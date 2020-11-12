@@ -1,0 +1,387 @@
+# Itero - Iterative vote online
+# Copyright (C) 2020 Joseph Boudou
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+# 
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+# Compatible with 5.5.65-MariaDB MariaDB Server
+
+SET sql_mode='TRADITIONAL,NO_ENGINE_SUBSTITUTION,ONLY_FULL_GROUP_BY';
+
+## Deletion must be in reverse order ##
+
+DROP TABLE IF EXISTS Participants;
+
+DROP PROCEDURE IF EXISTS Alternatives_checker_before;
+DROP TABLE IF EXISTS Alternatives;
+
+DROP PROCEDURE IF EXISTS Polls_checker_before;
+DROP TABLE IF EXISTS Polls;
+DROP TABLE IF EXISTS PollType;
+DROP TABLE IF EXISTS PollPublicity;
+DROP TABLE IF EXISTS PollRule;
+DROP TABLE IF EXISTS RoundType;
+
+DROP PROCEDURE  IF EXISTS Users_checker_before;
+DROP TABLE      IF EXISTS Users;
+
+
+######## Users ########
+
+CREATE TABLE Users (
+
+  Id      int unsigned  NOT NULL AUTO_INCREMENT,
+  Email   varchar(128)  NOT NULL,
+  Name    varchar(64)   NOT NULL,
+  Passwd  varchar(128)  NOT NULL,
+
+  CONSTRAINT Users_pk PRIMARY KEY (Id),
+  CONSTRAINT Users_Email_unique UNIQUE (Email),
+  CONSTRAINT Users_Name_unique  UNIQUE (Name)
+
+) ENGINE = InnoDB;
+
+DELIMITER //
+
+CREATE PROCEDURE Users_checker_before (
+  Email   varchar(128),
+  Name    varchar(64),
+  Passwd  varchar(128)
+)
+BEGIN
+  IF Email NOT LIKE '_%@_%.__%' THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Email field is not valid';
+  END IF;
+  IF length(Name) < 2 THEN
+    SIGNAL SQLSTATE '44999' SET MESSAGE_TEXT = 'Name field is too short';
+  END IF;
+  IF length(Passwd) < 8 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Passwd field is too short';
+  END IF;
+END;
+//
+
+CREATE TRIGGER Users_check_before_insert
+  BEFORE INSERT ON Users FOR EACH ROW
+BEGIN
+  CALL Users_checker_before(NEW.Email, NEW.Name, New.Passwd);
+END;
+//
+
+CREATE TRIGGER Users_check_before_update
+  BEFORE UPDATE ON Users FOR EACH ROW
+BEGIN
+  CALL Users_checker_before(NEW.Email, NEW.Name, New.Passwd);
+END;
+//
+
+DELIMITER ;
+
+
+######## Polls ########
+
+CREATE TABLE PollType (
+  Id    tinyint unsigned NOT NULL,
+  Label varchar(32) NOT NULL,
+  CONSTRAINT PollType_pk PRIMARY KEY (Id),
+  CONSTRAINT PollType_Label_unique UNIQUE (Label)
+) ENGINE = InnoDB;
+
+INSERT INTO PollType VALUES
+  (0, 'AcceptanceSet')
+;
+
+CREATE TABLE PollPublicity (
+  Id    tinyint unsigned NOT NULL,
+  Label varchar(32) NOT NULL,
+  CONSTRAINT PollPublicity_pk PRIMARY KEY (Id),
+  CONSTRAINT PollPublicity_Label_unique UNIQUE (Label)
+) ENGINE = InnoDB;
+
+INSERT INTO PollPublicity VALUES
+  (0, 'Public')
+;
+
+CREATE TABLE PollRule (
+  Id    tinyint unsigned NOT NULL,
+  Label varchar(32) NOT NULL,
+  CONSTRAINT PollRule_pk PRIMARY KEY (Id),
+  CONSTRAINT PollRule_Label_unique UNIQUE (Label)
+) ENGINE = InnoDB;
+
+INSERT INTO PollRule VALUES
+  (0, 'Plurality')
+;
+
+CREATE TABLE RoundType (
+  Id    tinyint unsigned NOT NULL,
+  Label varchar(32) NOT NULL,
+  CONSTRAINT RoundType_pk PRIMARY KEY (Id),
+  CONSTRAINT RoundType_Label_unique UNIQUE (Label)
+) ENGINE = InnoDB;
+
+INSERT INTO RoundType VALUES
+  (0, 'Freely Asynchronous')
+;
+
+
+CREATE TABLE Polls (
+
+  Id                int unsigned      NOT NULL  AUTO_INCREMENT,
+  Title             tinytext          NOT NULL,
+  Description       text,
+  Admin             int unsigned,
+
+  Type              tinyint unsigned  NOT NULL  DEFAULT 0,
+  Publicity         tinyint unsigned  NOT NULL  DEFAULT 0,
+  Rule              tinyint unsigned  NOT NULL  DEFAULT 0,
+
+  NbChoices         tinyint unsigned  NOT NULL,
+  MaxOutcomeCost    decimal(65,6)     NOT NULL  DEFAULT 1,
+  MaxBallotCost     decimal(65,6)     NOT NULL  DEFAULT 1,
+  BallotCostIsCount bool              NOT NULL  DEFAULT FALSE,
+
+  RoundType         tinyint unsigned  NOT NULL  DEFAULT 0,
+  MinNbRounds       smallint unsigned NOT NULL  DEFAULT 2,
+  MaxNbRounds       smallint unsigned           DEFAULT 10,
+  Deadline          datetime,
+  MaxRoundDutation  time                        DEFAULT '24:00:00',
+  RoundThreshold    double unsigned   NOT NULL  DEFAULT 1,
+
+  CurrentRound      tinyint unsigned  NOT NULL  DEFAULT 0,
+  CurrentRoundStart timestamp         NOT NULL  DEFAULT CURRENT_TIMESTAMP,
+
+  CONSTRAINT Polls_pk PRIMARY KEY (Id),
+  
+  CONSTRAINT Polls_Admin_fk FOREIGN KEY (Admin) REFERENCES Users (Id) ON DELETE SET NULL,
+  CONSTRAINT Polls_Type_fk FOREIGN KEY (Type) REFERENCES PollType (Id),
+  CONSTRAINT Polls_Publicity_fk FOREIGN KEY (Publicity) REFERENCES PollPublicity (Id),
+  CONSTRAINT Polls_Rule_fk FOREIGN KEY (Rule) REFERENCES PollRule (Id),
+  CONSTRAINT Polls_RoundType_fk FOREIGN KEY (RoundType) REFERENCES RoundType (Id)
+
+) ENGINE = InnoDB;
+
+DELIMITER //
+
+CREATE PROCEDURE Polls_checker_before (
+  Title             tinytext        ,
+  Publicity         tinyint unsigned,
+  NbChoices         tinyint unsigned,
+  MinNbRounds       smallint unsigned,
+  MaxNbRounds       smallint unsigned,
+  Deadline          datetime,
+  MaxRoundDutation  time,
+  RoundThreshold    double unsigned ,
+  CurrentRound      tinyint unsigned,
+  CurrentRoundStart timestamp
+)
+BEGIN
+  IF length(Title) < 3 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Title field is too short';
+  END IF;
+  IF NbChoices < 2 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'NbChoices must be at least 2';
+  END IF;
+  IF MaxNbRounds < MinNbRounds THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'MaxNbRounds must be greater than MinNbRounds';
+  END IF;
+  IF MaxNbRounds IS NULL AND Deadline IS NULL THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'One amongst MaxNbRounds and Deadline must not be NULL';
+  END IF;
+  IF Publicity = 0 AND MaxRoundDutation IS NULL THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'MaxRoundDutation can not be NULL unless Publicity is Private';
+  END IF;
+  IF MaxRoundDutation < '00:01:00' THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'MaxRoundDutation must be at least one minute';
+  END IF;
+  IF RoundThreshold < 0 OR RoundThreshold > 1 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'RoundThreshold must be in [0;1]';
+  END IF;
+  IF CurrentRound > MaxNbRounds THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'CurrentRound must be at most MaxNbRounds';
+  END IF;
+  IF CurrentRoundStart > Deadline THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'CurrentRoundStart must be before Deadline';
+  END IF;
+END;
+//
+
+CREATE TRIGGER Polls_check_before_insert
+  BEFORE INSERT ON Polls FOR EACH ROW
+BEGIN
+  IF NEW.Admin IS NULL THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Admin must not be NULL on INSERT';
+  END IF;
+  IF NEW.CurrentRound != 0 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'CurrentRound must be zero on INSERT';
+  END IF;
+  SET NEW.CurrentRoundStart = CURRENT_TIMESTAMP();
+  CALL Polls_checker_before(NEW.Title, NEW.Publicity, NEW.NbChoices, NEW.MinNbRounds, NEW.MaxNbRounds,
+                            NEW.Deadline, NEW.MaxRoundDutation, NEW.RoundThreshold, NEW.CurrentRound,
+                            NEW.CurrentRoundStart);
+END;
+//
+
+CREATE TRIGGER Polls_check_before_update
+  BEFORE UPDATE ON Polls FOR EACH ROW
+BEGIN
+  IF NEW.CurrentRound > OLD.CurrentRound THEN
+    SET NEW.CurrentRoundStart = CURRENT_TIMESTAMP();
+  END IF;
+  CALL Polls_checker_before(NEW.Title, NEW.Publicity, NEW.NbChoices, NEW.MinNbRounds, NEW.MaxNbRounds,
+                            NEW.Deadline, NEW.MaxRoundDutation, NEW.RoundThreshold, NEW.CurrentRound,
+                            NEW.CurrentRoundStart);
+END;
+//
+
+DELIMITER ;
+
+
+######## Alternatives ########
+
+CREATE TABLE Alternatives (
+
+  Poll    int unsigned      NOT NULL,
+  Id      tinyint unsigned  NOT NULL,
+  Name    varchar(128)      NOT NULL,
+  Cost    decimal(65,6)     NOT NULL  DEFAULT 1,
+
+  CONSTRAINT Alternatives_pk PRIMARY KEY (Poll, Id),
+  CONSTRAINT Alternatives_PollName_unique UNIQUE (Poll, Name),
+
+  CONSTRAINT Alternatives_Poll_fk FOREIGN KEY (Poll) REFERENCES Polls (Id) ON DELETE CASCADE
+
+) ENGINE = InnoDB;
+
+DELIMITER //
+
+CREATE PROCEDURE Alternatives_checker_before (
+  Poll    int unsigned    ,
+  Id      tinyint unsigned,
+  Name    varchar(128)    ,
+  Cost    decimal(65,6)
+)
+BEGIN
+
+  IF length(Name) < 1 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Name cannot be empty';
+  END IF;
+
+  SELECT p.NbChoices, p.MaxOutcomeCost, p.MaxBallotCost, p.BallotCostIsCount
+    INTO @NbChoices, @MaxBallotCost, @MaxBallotCost, @BallotCostIsCount
+    FROM Polls AS p
+   WHERE p.Id = Poll;
+
+  IF Id >= @NbChoices THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Id must be less than NbChoices';
+  END IF;
+  IF Cost > @MaxOutcomeCost THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Cost must be at most MaxOutcomeCost';
+  END IF;
+  IF NOT @BallotCostIsCount AND Cost > @MaxBallotCost THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Cost must be at most MaxBallotCost';
+  END IF;
+
+END;
+//
+
+CREATE TRIGGER Alternatives_check_before_insert
+  BEFORE INSERT ON Alternatives FOR EACH ROW
+BEGIN
+  CALL Alternatives_checker_before(NEW.Poll, NEW.Id, NEW.Name, NEW.Cost);
+END;
+//
+
+CREATE TRIGGER Alternatives_check_before_update
+  BEFORE UPDATE ON Alternatives FOR EACH ROW
+BEGIN
+  CALL Alternatives_checker_before(NEW.Poll, NEW.Id, NEW.Name, NEW.Cost);
+END;
+//
+
+DELIMITER ;
+
+
+######## Participants ########
+
+CREATE TABLE Participants (
+
+  User  int unsigned NOT NULL,
+  Poll  int unsigned NOT NULL,
+
+  CONSTRAINT Participants_pk PRIMARY KEY (User, Poll),
+
+  CONSTRAINT Participant_User_fk  FOREIGN KEY (User) REFERENCES Users (Id) ON DELETE CASCADE,
+  CONSTRAINT Participants_Poll_fk FOREIGN KEY (Poll) REFERENCES Polls (Id) ON DELETE CASCADE
+
+) ENGINE = InnoDB;
+
+
+######## Ballots ########
+
+CREATE TABLE Ballots (
+
+  User        int unsigned      NOT NULL,
+  Poll        int unsigned      NOT NULL,
+  Alternative tinyint unsigned  NOT NULL,
+  Round       tinyint unsigned  NOT NULL,
+  Rank        tinyint           NOT NULL  DEFAULT 1,
+
+  CONSTRAINT Ballots_pk PRIMARY KEY (User, Poll, Alternative, Round),
+
+  CONSTRAINT Ballots_Participant_fk FOREIGN KEY (User, Poll)        REFERENCES Participants (User, Poll),
+  CONSTRAINT Ballots_Alternative_fk FOREIGN KEY (Poll, Alternative) REFERENCES Alternatives (Poll, Id)
+
+) ENGINE = InnoDB;
+
+DELIMITER //
+
+CREATE PROCEDURE Ballots_checker_before (
+  Poll        int unsigned    ,
+  Round       tinyint unsigned
+)
+BEGIN
+  SELECT p.CurrentRound
+    INTO @CurrentRound
+    FROM Polls AS p
+   WHERE p.Id = Poll;
+
+  IF Round > @CurrentRound THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Round must be at most CurrentRound';
+  END IF;
+END;
+//
+
+CREATE TRIGGER Ballots_check_before_insert
+  BEFORE INSERT ON Ballots FOR EACH ROW
+BEGIN
+  CALL Ballots_checker_before(NEW.Poll, NEW.Round);
+END;
+//
+
+CREATE TRIGGER Ballots_check_before_update
+  BEFORE UPDATE ON Ballots FOR EACH ROW
+BEGIN
+  CALL Ballots_checker_before(NEW.Poll, NEW.Round);
+END;
+//
+
+DELIMITER ;
+
+
+### TEST ###
+# TODO: DEL
+
+INSERT INTO Users(Email, Name, Passwd) VALUES ('jogo@matabio.net', 'Joseph','XXXXXXXX');
+INSERT INTO Polls (Title, Admin, NbChoices) VALUES ('Test',1,2);
+INSERT INTO Alternatives (Poll, Id, Name) VALUES (1,0,'Vert'), (1, 1, 'Rouge');
