@@ -20,6 +20,10 @@ SET sql_mode='TRADITIONAL,NO_ENGINE_SUBSTITUTION,ONLY_FULL_GROUP_BY';
 
 ## Deletion must be in reverse order ##
 
+DROP PROCEDURE IF EXISTS Ballots_checker_before;
+DROP TABLE IF EXISTS Ballots;
+
+DROP PROCEDURE IF EXISTS Participants_checker_before;
 DROP TABLE IF EXISTS Participants;
 
 DROP PROCEDURE IF EXISTS Alternatives_checker_before;
@@ -38,12 +42,16 @@ DROP TABLE      IF EXISTS Users;
 
 ######## Users ########
 
+
+# Deletion of a user is not possible once she participated to a poll.
 CREATE TABLE Users (
 
-  Id      int unsigned  NOT NULL AUTO_INCREMENT,
+  # Passwd stores only a hash signature.
+  Id      int unsigned  NOT NULL  AUTO_INCREMENT,
   Email   varchar(128)  NOT NULL,
   Name    varchar(64)   NOT NULL,
   Passwd  varchar(128)  NOT NULL,
+  Created timestamp     NOT NULL  DEFAULT CURRENT_TIMESTAMP,
 
   CONSTRAINT Users_pk PRIMARY KEY (Id),
   CONSTRAINT Users_Email_unique UNIQUE (Email),
@@ -74,6 +82,7 @@ END;
 CREATE TRIGGER Users_check_before_insert
   BEFORE INSERT ON Users FOR EACH ROW
 BEGIN
+  SET NEW.Created = CURRENT_TIMESTAMP();
   CALL Users_checker_before(NEW.Email, NEW.Name, New.Passwd);
 END;
 //
@@ -81,6 +90,9 @@ END;
 CREATE TRIGGER Users_check_before_update
   BEFORE UPDATE ON Users FOR EACH ROW
 BEGIN
+  IF NEW.Created != OLD.Created THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Created cannot be changed';
+  END IF;
   CALL Users_checker_before(NEW.Email, NEW.Name, New.Passwd);
 END;
 //
@@ -90,6 +102,8 @@ DELIMITER ;
 
 ######## Polls ########
 
+# Internal type of polls.
+# Describes alternatives, outcomes and ballots.
 CREATE TABLE PollType (
   Id    tinyint unsigned NOT NULL,
   Label varchar(32) NOT NULL,
@@ -98,9 +112,17 @@ CREATE TABLE PollType (
 ) ENGINE = InnoDB;
 
 INSERT INTO PollType VALUES
-  (0, 'AcceptanceSet')
+# The outcome is a subset of the alternatives such that the sum of the cost of the alternatives in
+# the outcome is at most MaxOutcomeCost.
+# A ballot is a subset of the alternatives (all with rank 1) such that:
+#  - if BallotCostIsCount is true, the cadinality of the ballot is at most MaxBallotCost,
+#  - if BallotCostIsCount is false, the sum of the cost of the alternatives in the ballot is at
+#    most MaxBallotCost.
+  (0, 'Acceptance Set')
 ;
 
+# Describes who is allowed to participate in the poll.
+# Not meant to be changed in the future.
 CREATE TABLE PollPublicity (
   Id    tinyint unsigned NOT NULL,
   Label varchar(32) NOT NULL,
@@ -109,9 +131,15 @@ CREATE TABLE PollPublicity (
 ) ENGINE = InnoDB;
 
 INSERT INTO PollPublicity VALUES
-  (0, 'Public')
+  (0, 'Public'),            # Everyone can participate
+  (1, 'Public Registered'), # All registered users can participate
+  (2, 'Hidden'),            # Everyone with the link can participate
+  (3, 'Hidden Registered'), # All registered users with the link can participate
+  (4, 'Invited')            # The list of participants is fixed during poll creation.
 ;
 
+# How outcome is computed.
+# See Go implementation for detail of each method.
 CREATE TABLE PollRule (
   Id    tinyint unsigned NOT NULL,
   Label varchar(32) NOT NULL,
@@ -123,6 +151,7 @@ INSERT INTO PollRule VALUES
   (0, 'Plurality')
 ;
 
+# How moves are made during each round.
 CREATE TABLE RoundType (
   Id    tinyint unsigned NOT NULL,
   Label varchar(32) NOT NULL,
@@ -131,39 +160,50 @@ CREATE TABLE RoundType (
 ) ENGINE = InnoDB;
 
 INSERT INTO RoundType VALUES
-  (0, 'Freely Asynchronous')
+  (0, 'Freely Asynchronous')  # Participants can move at any time, any number of time.
 ;
 
-
+# Deletion of a poll is possible (cascade).
 CREATE TABLE Polls (
 
   Id                int unsigned      NOT NULL  AUTO_INCREMENT,
   Title             tinytext          NOT NULL,
   Description       text,
-  Admin             int unsigned,
+  Admin             int unsigned      NOT NULL,             # FK on Users
+  Created           timestamp         NOT NULL  DEFAULT CURRENT_TIMESTAMP,
 
-  Type              tinyint unsigned  NOT NULL  DEFAULT 0,
-  Publicity         tinyint unsigned  NOT NULL  DEFAULT 0,
-  Rule              tinyint unsigned  NOT NULL  DEFAULT 0,
+  Type              tinyint unsigned  NOT NULL  DEFAULT 0,  # FK on PollType
+  Publicity         tinyint unsigned  NOT NULL  DEFAULT 1,  # FK on PollPublicity
+  Rule              tinyint unsigned  NOT NULL  DEFAULT 0,  # FK on PollRule
+  RoundType         tinyint unsigned  NOT NULL  DEFAULT 0,  # FK on RoundType
 
   NbChoices         tinyint unsigned  NOT NULL,
   MaxOutcomeCost    decimal(65,6)     NOT NULL  DEFAULT 1,
   MaxBallotCost     decimal(65,6)     NOT NULL  DEFAULT 1,
-  BallotCostIsCount bool              NOT NULL  DEFAULT FALSE,
+  BallotCostIsCount bool              NOT NULL  DEFAULT TRUE,
 
-  RoundType         tinyint unsigned  NOT NULL  DEFAULT 0,
+  # The poll ends as soon as one of the following condition holds:
+  #  - CurrentRound >= MaxNbRounds
+  #  - CURRENT_TIMESTAMP() >= Deadline AND CurrentRound >= MinNbRounds
   MinNbRounds       smallint unsigned NOT NULL  DEFAULT 2,
   MaxNbRounds       smallint unsigned           DEFAULT 10,
   Deadline          datetime,
+
+  # The round ends as soon as one of the following conditions holds:
+  #  - addtime(CurrentRoundStart, MaxRoundDutation) >= CURRENT_TIMESTAMP()
+  #  - (CurrentRound > 0 OR Publicity is 'Invited') AND
+  #    RoundThreshold = 0 AND one participant moved for this round
+  #  - (CurrentRound > 0 OR Publicity is 'Invited') AND
+  #    RoundThreshold > 0 AND the proportion of participants who moved for this round > RoundThreshold
   MaxRoundDutation  time                        DEFAULT '24:00:00',
   RoundThreshold    double unsigned   NOT NULL  DEFAULT 1,
 
   CurrentRound      tinyint unsigned  NOT NULL  DEFAULT 0,
-  CurrentRoundStart timestamp         NOT NULL  DEFAULT CURRENT_TIMESTAMP,
+  CurrentRoundStart timestamp         NOT NULL  DEFAULT '2020-01-01',
 
   CONSTRAINT Polls_pk PRIMARY KEY (Id),
   
-  CONSTRAINT Polls_Admin_fk FOREIGN KEY (Admin) REFERENCES Users (Id) ON DELETE SET NULL,
+  CONSTRAINT Polls_Admin_fk FOREIGN KEY (Admin) REFERENCES Users (Id),
   CONSTRAINT Polls_Type_fk FOREIGN KEY (Type) REFERENCES PollType (Id),
   CONSTRAINT Polls_Publicity_fk FOREIGN KEY (Publicity) REFERENCES PollPublicity (Id),
   CONSTRAINT Polls_Rule_fk FOREIGN KEY (Rule) REFERENCES PollRule (Id),
@@ -198,7 +238,7 @@ BEGIN
   IF MaxNbRounds IS NULL AND Deadline IS NULL THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'One amongst MaxNbRounds and Deadline must not be NULL';
   END IF;
-  IF Publicity = 0 AND MaxRoundDutation IS NULL THEN
+  IF Publicity != 4 AND MaxRoundDutation IS NULL THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'MaxRoundDutation can not be NULL unless Publicity is Private';
   END IF;
   IF MaxRoundDutation < '00:01:00' THEN
@@ -219,12 +259,10 @@ END;
 CREATE TRIGGER Polls_check_before_insert
   BEFORE INSERT ON Polls FOR EACH ROW
 BEGIN
-  IF NEW.Admin IS NULL THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Admin must not be NULL on INSERT';
-  END IF;
   IF NEW.CurrentRound != 0 THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'CurrentRound must be zero on INSERT';
   END IF;
+  SET NEW.Created           = CURRENT_TIMESTAMP();
   SET NEW.CurrentRoundStart = CURRENT_TIMESTAMP();
   CALL Polls_checker_before(NEW.Title, NEW.Publicity, NEW.NbChoices, NEW.MinNbRounds, NEW.MaxNbRounds,
                             NEW.Deadline, NEW.MaxRoundDutation, NEW.RoundThreshold, NEW.CurrentRound,
@@ -235,12 +273,24 @@ END;
 CREATE TRIGGER Polls_check_before_update
   BEFORE UPDATE ON Polls FOR EACH ROW
 BEGIN
+  IF NEW.Created != OLD.Created THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Created cannot be changed';
+  END IF;
   IF NEW.CurrentRound > OLD.CurrentRound THEN
     SET NEW.CurrentRoundStart = CURRENT_TIMESTAMP();
   END IF;
   CALL Polls_checker_before(NEW.Title, NEW.Publicity, NEW.NbChoices, NEW.MinNbRounds, NEW.MaxNbRounds,
                             NEW.Deadline, NEW.MaxRoundDutation, NEW.RoundThreshold, NEW.CurrentRound,
                             NEW.CurrentRoundStart);
+END;
+//
+
+# Manual ON DELETE CASCADE because we want Ballots to be automatically deleted when the poll is
+# deleted, but we don't want to allow deletion of an alternatives when someone voted for it.
+CREATE TRIGGER Polls_cascade_delete_before
+  BEFORE DELETE ON Polls FOR EACH ROW
+BEGIN
+  DELETE FROM Participants wHERE Poll = OLD.id;
 END;
 //
 
@@ -251,7 +301,8 @@ DELIMITER ;
 
 CREATE TABLE Alternatives (
 
-  Poll    int unsigned      NOT NULL,
+  # Beware that the primary key is (Poll, Id), not Id alone.
+  Poll    int unsigned      NOT NULL,   # FK on Polls
   Id      tinyint unsigned  NOT NULL,
   Name    varchar(128)      NOT NULL,
   Cost    decimal(65,6)     NOT NULL  DEFAULT 1,
@@ -316,19 +367,65 @@ DELIMITER ;
 
 CREATE TABLE Participants (
 
-  User  int unsigned NOT NULL,
-  Poll  int unsigned NOT NULL,
+  User      int unsigned NOT NULL,
+  Poll      int unsigned NOT NULL,
+  Since     timestamp    NOT NULL  DEFAULT CURRENT_TIMESTAMP,
+
+  # Last round the participant moved in.
+  # This is needed to take blank votes into account.
+  # May be NULL if the participant has not moved yet.
+  LastRound tinyint unsigned,
 
   CONSTRAINT Participants_pk PRIMARY KEY (User, Poll),
 
-  CONSTRAINT Participant_User_fk  FOREIGN KEY (User) REFERENCES Users (Id) ON DELETE CASCADE,
-  CONSTRAINT Participants_Poll_fk FOREIGN KEY (Poll) REFERENCES Polls (Id) ON DELETE CASCADE
+  CONSTRAINT Participant_User_fk  FOREIGN KEY (User) REFERENCES Users (Id),
+  CONSTRAINT Participants_Poll_fk FOREIGN KEY (Poll) REFERENCES Polls (Id)
 
 ) ENGINE = InnoDB;
+
+DELIMITER //
+
+CREATE PROCEDURE Participants_checker_before (
+  Poll      int unsigned,
+  LastRound tinyint unsigned
+)
+BEGIN
+  SELECT p.CurrentRound
+    INTO @CurrentRound
+    FROM Polls AS p
+   WHERE p.id = Poll;
+
+  IF LastRound > @CurrentRound THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'LastRound must be at most CurrentRound';
+  END IF;
+END;
+//
+
+CREATE TRIGGER Participants_check_before_insert
+  BEFORE INSERT ON Participants FOR EACH ROW
+BEGIN
+  SET NEW.Since = CURRENT_TIMESTAMP();
+  CALL Participants_checker_before(NEW.Poll, NEW.LastRound);
+END;
+//
+
+CREATE TRIGGER Participants_check_before_update
+  BEFORE UPDATE ON Participants FOR EACH ROW
+BEGIN
+  IF NEW.Since != OLD.Since THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Since cannot be changed';
+  END IF;
+  CALL Participants_checker_before(NEW.Poll, NEW.LastRound);
+END;
+//
+
+DELIMITER ;
 
 
 ######## Ballots ########
 
+# Simple ranked ballot.
+# Other tables for ballots may be added in the future.
 CREATE TABLE Ballots (
 
   User        int unsigned      NOT NULL,
@@ -336,10 +433,11 @@ CREATE TABLE Ballots (
   Alternative tinyint unsigned  NOT NULL,
   Round       tinyint unsigned  NOT NULL,
   Rank        tinyint           NOT NULL  DEFAULT 1,
+  Modified    timestamp         NOT NULL  DEFAULT CURRENT_TIMESTAMP,
 
   CONSTRAINT Ballots_pk PRIMARY KEY (User, Poll, Alternative, Round),
 
-  CONSTRAINT Ballots_Participant_fk FOREIGN KEY (User, Poll)        REFERENCES Participants (User, Poll),
+  CONSTRAINT Ballots_Participant_fk FOREIGN KEY (User, Poll)        REFERENCES Participants (User, Poll) ON DELETE CASCADE,
   CONSTRAINT Ballots_Alternative_fk FOREIGN KEY (Poll, Alternative) REFERENCES Alternatives (Poll, Id)
 
 ) ENGINE = InnoDB;
@@ -365,6 +463,7 @@ END;
 CREATE TRIGGER Ballots_check_before_insert
   BEFORE INSERT ON Ballots FOR EACH ROW
 BEGIN
+  SET NEW.Modified = CURRENT_TIMESTAMP();
   CALL Ballots_checker_before(NEW.Poll, NEW.Round);
 END;
 //
@@ -372,16 +471,9 @@ END;
 CREATE TRIGGER Ballots_check_before_update
   BEFORE UPDATE ON Ballots FOR EACH ROW
 BEGIN
+  SET NEW.Modified = CURRENT_TIMESTAMP();
   CALL Ballots_checker_before(NEW.Poll, NEW.Round);
 END;
 //
 
 DELIMITER ;
-
-
-### TEST ###
-# TODO: DEL
-
-INSERT INTO Users(Email, Name, Passwd) VALUES ('jogo@matabio.net', 'Joseph','XXXXXXXX');
-INSERT INTO Polls (Title, Admin, NbChoices) VALUES ('Test',1,2);
-INSERT INTO Alternatives (Poll, Id, Name) VALUES (1,0,'Vert'), (1, 1, 'Rouge');
