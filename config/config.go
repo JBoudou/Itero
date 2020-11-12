@@ -27,6 +27,7 @@ const configFileName = "config.json"
 
 var values map[string]json.RawMessage
 
+// Error returned when the key is not found in the configuration.
 type KeyNotFound string
 
 func (self KeyNotFound) Error() string {
@@ -48,25 +49,57 @@ func init() {
 	}
 }
 
-func String(key string) (ret string, err error) {
+// Retrieve the value associated to the given key.
+// Same rules than with json.Unmarshal applies to ret.
+func Value(key string, ret interface{}) (err error) {
 	raw, ok := values[key]
 	if !ok {
 		err = KeyNotFound(key)
 		return
 	}
 
-	err = json.Unmarshal(raw, &ret)
+	err = json.Unmarshal(raw, ret)
+	log.Printf("Value gets %v from %s", ret, string(raw))
 	return
 }
 
-func StringOr(key string, byDefault string) (ret string, err error) {
+// Same as Value except that if the key is not found then byDefault
+// is stored as the new value for that key, and returned.
+// Same rules than with json.Marshal applies to byDefault.
+func ValueOr(key string, ret interface{}, byDefault interface{}) (err error) {
 	raw, ok := values[key]
 	if !ok {
-		values[key], err = json.Marshal(&byDefault)
-		ret = byDefault
-		return
+		raw, err = json.Marshal(byDefault)
+		if err != nil {
+			return
+		}
+		values[key] = raw
 	}
 
-	err = json.Unmarshal(raw, &ret)
+	err = json.Unmarshal(raw, ret)
+	return
+}
+
+// Wrapper around Value to simplify retrieval of strings.
+func String(key string) (ret string, err error) {
+	err = Value(key, &ret)
+	return
+}
+
+// Wrapper around ValueOr to simplify retrieval of strings.
+func StringOr(key string, byDefault string) (ret string, err error) {
+	err = ValueOr(key, &ret, &byDefault)
+	return
+}
+
+// Wrapper around Value to simplify retrieval of ints.
+func Int(key string) (ret int, err error) {
+	err = Value(key, &ret)
+	return
+}
+
+// Wrapper around ValueOr to simplify retrieval of ints.
+func IntOr(key string, byDefault int) (ret int, err error) {
+	err = ValueOr(key, &ret, &byDefault)
 	return
 }

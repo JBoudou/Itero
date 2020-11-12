@@ -1,5 +1,12 @@
 {
   "comment": "This file is a FAKE config file for test purpose.",
   "string.foo": "foo",
-  "number.42" : 42
+  "int.42" : 42,
+  "object": {
+    "IntValue": 42,
+    "StringValue": "foo",
+    "FloatValue": 3.14,
+    "Z": "bar",
+    "Array": [2, 3, 5, 8]
+  }
 }
