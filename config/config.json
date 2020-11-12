@@ -1,0 +1,5 @@
+{
+  "comment": "This file is a FAKE config file for test purpose.",
+  "string.foo": "foo",
+  "number.42" : 42
+}
