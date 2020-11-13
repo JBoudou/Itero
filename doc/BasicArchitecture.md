@@ -6,13 +6,11 @@ most basic layers in web applications: a front end, a middleware and a back
 end. The front end runs on the user's browser, the middleware and the back
 end run on servers (either the same one or two dedicated machines).
 
-|------------|
 | Front end  |
 |------------|
 | Middleware |
 |------------|
 |  Back end  |
-|------------|
 
 Basically, the front end displays information and controllers to the user,
 relaying her actions; the back end is a database that stores all the
@@ -85,4 +83,5 @@ usually also performs some consistency checks on that data. It typically
 consists in a database inside a DBMS.
 
 Itero's back end is a database on a [MariaDB](https://mariadb.org/) server.
-The files to configure that database are in the sql/ directory.
+MariaDB is a fork of [MySQL](https://www.mysql.com/).  The files to configure
+the database are in the sql/ directory.
