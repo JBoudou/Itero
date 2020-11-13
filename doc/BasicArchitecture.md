@@ -7,9 +7,7 @@ end. The front end runs on the user's browser, the middleware and the back
 end run on servers (either the same one or two dedicated machines).
 
 | Front end  |
-|------------|
 | Middleware |
-|------------|
 |  Back end  |
 
 Basically, the front end displays information and controllers to the user,
