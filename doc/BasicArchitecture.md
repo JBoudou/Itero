@@ -1,10 +1,10 @@
 Three layers
 ============
 
-Itero is a simple web application, hence its architecture is based on the three
-most basic layers in web applications: a front end, a middleware and a back
-end. The front end runs on the user's browser, the middleware and the back
-end run on servers (either the same one or two dedicated machines).
+Itero is a simple web application, hence its architecture is based on three
+basic layers: a front end, a middleware and a back end. The front end runs on
+the user's browser, the middleware and the back end run on servers (either the
+same one or two dedicated machines).
 
 ![schema](architecture.png)
 
@@ -26,15 +26,15 @@ user's computer, ideally all the computation should be done on the front end,
 to lessen the server's duty. But there are two limitations. First, the
 communication between the front end and the middleware may be slow. Therefore,
 if some computation needs large input data but produces small output data, it
-is usually more efficient to perform this computation on the middleware.
+is usually more efficient to perform this computation in the middleware.
 Second, all the code of the front end and all the data it receives from the
 middleware are available on the user's computer. That means that some malicious
-user or code may use all that information to abuse the application as a whole.
+user or code may use that information to abuse the application.
 
 Since the front end runs in a browser, it consists in a collection of HTML, CSS
-and JavaScript resources. Itero's front end uses [Angular](https//angular.io)
+and JavaScript resources. Itero's front end uses [Angular](https://angular.io/)
 to generate these resources. The code is written in HTML,
-[SASS](https://sass-lang.org) and
+[SASS](https://sass-lang.com) and
 [TypeScript](https://www.typescriptlang.org/). This code is compiled by
 Angular into HTML, CSS and JavaScript. Angular produces a one page website:
 from the browser perspective there is only one web page. This page dynamically
@@ -79,5 +79,5 @@ usually also performs some consistency checks on that data. It typically
 consists in a database inside a DBMS.
 
 Itero's back end is a database on a [MariaDB](https://mariadb.org/) server.
-MariaDB is a fork of [MySQL](https://www.mysql.com/).  The files to configure
-the database are in the sql/ directory.
+MariaDB is a fork of MySQL. The files to configure the database are in the sql/
+directory.
