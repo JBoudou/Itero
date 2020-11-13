@@ -171,17 +171,19 @@ type myCompoundStruct struct {
 	IntValue 		int
 	StringValue string
 	FloatValue 	float64
-	Z 					string // `json:"other"`
+	Z 					string `json:"other"`
 	Array 			[4]int
 }
 
 func TestValue(t *testing.T) {
 	const key = "object"
 	var expected = myCompoundStruct{42, "foo", 3.14, "bar", [4]int{2, 3, 5, 8}}
+
 	const keyOther = "object.other"
 	var other = myCompoundStruct{27, "flu", 2.14, "blu", [4]int{1, 3, 13, 75}}
-	const jsonOther =
-		`{"intValue": 27,"stringValue": "flu","floatValue": 2.14,"other": "blu","array": [1,3,13,75]}`
+
+	const keyPartial = "object.partial"
+	var partial = myCompoundStruct{26, "foo", 3.14, "blu", [4]int{2, 3, 5, 8}}
 
 	t.Run("found", func (t *testing.T) {
 		var got myCompoundStruct
@@ -241,6 +243,21 @@ func TestValue(t *testing.T) {
 		err = Value(keyOther, &got)
 		if err != nil {
 			t.Fatalf("Error: %v", err)
+		}
+		if got != expected {
+			t.Errorf("Got: %v. Expect: %v", got, expected)
+		}
+	})
+
+	t.Run("partial", func (t *testing.T) {
+		got := partial
+		err := Value(keyPartial, &got)
+		
+		if err != nil {
+			t.Fatalf("Error: %v", err)
+		}
+		if got == partial {
+			t.Errorf("Unchanged");
 		}
 		if got != expected {
 			t.Errorf("Got: %v. Expect: %v", got, expected)

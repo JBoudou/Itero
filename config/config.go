@@ -14,6 +14,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+// Package config provides configured values for all parts of the application.
+//
+// Configuration values are read from the file "config.json" in the initial
+// directory of the running program. This means in particular that for test
+// programs, the file "config.json" is searched in the package directory.
 package config
 
 import (
@@ -35,8 +40,6 @@ func (self KeyNotFound) Error() string {
 }
 
 func init() {
-	pwd, err := os.Getwd()
-	log.Println(pwd)
 	in, err := os.Open(configFileName)
 	if err != nil {
 		log.Fatalf("Unable to open config file %s: %v", configFileName, err)
@@ -59,7 +62,6 @@ func Value(key string, ret interface{}) (err error) {
 	}
 
 	err = json.Unmarshal(raw, ret)
-	log.Printf("Value gets %v from %s", ret, string(raw))
 	return
 }
 

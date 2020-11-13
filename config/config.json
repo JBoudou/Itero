@@ -6,7 +6,11 @@
     "IntValue": 42,
     "StringValue": "foo",
     "FloatValue": 3.14,
-    "Z": "bar",
+    "other": "bar",
     "Array": [2, 3, 5, 8]
-  }
+  },
+  "object.partial": {
+    "IntValue": 42,
+    "other": "bar"
+  } 
 }
