@@ -68,7 +68,7 @@ many advantages:
    depends on any library.
 
 Itero's middleware code is divided into packages. Each package corresponds to a
-directory at the root of the repository. See [FILE.md](../FILE.md) for details.
+directory at the root of the repository. See [FILE.md](../FILES.md) for details.
 
 
 Back end
