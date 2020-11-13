@@ -41,7 +41,7 @@ from the browser perspective there is only one web page. This page dynamically
 changes its content in response to user input and load the needed data from the
 middleware by internal HTTP requests. The main advantage of Angular is to
 decompose the application in strongly typed reusable components. All Itero's
-front end code resides in the app/ directory.
+front end code resides in the [app/](../app) directory.
 
 
 Middleware
@@ -68,7 +68,7 @@ many advantages:
    depends on any library.
 
 Itero's middleware code is divided into packages. Each package corresponds to a
-directory at the root of the repository. See FILE.md for details.
+directory at the root of the repository. See [FILE.md](../FILE.md) for details.
 
 
 Back end
@@ -79,5 +79,5 @@ usually also performs some consistency checks on that data. It typically
 consists in a database inside a DBMS.
 
 Itero's back end is a database on a [MariaDB](https://mariadb.org/) server.
-MariaDB is a fork of MySQL. The files to configure the database are in the sql/
-directory.
+MariaDB is a fork of MySQL. The files to configure the database are in the
+[sql/](../sql) directory.
