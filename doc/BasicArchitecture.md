@@ -6,9 +6,7 @@ most basic layers in web applications: a front end, a middleware and a back
 end. The front end runs on the user's browser, the middleware and the back
 end run on servers (either the same one or two dedicated machines).
 
-| Front end  |
-| Middleware |
-|  Back end  |
+![schema](architecture.png)
 
 Basically, the front end displays information and controllers to the user,
 relaying her actions; the back end is a database that stores all the
