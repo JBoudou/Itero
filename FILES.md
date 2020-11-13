@@ -1,8 +1,8 @@
-app/      Client-side web application
-server/   Server go module
-config/   Config go module
-event/    Event go module
-backend/  Backend go module
-main/     Main code for the server
+app/      Frontend application
+server/   Go module handling the front side of the middleware
+config/   Go module providing configuration to the middleware
+event/    Go module to manage middleware events
+db/       Go module for the back side of the middleware
+main/     Main code of the middleware
 doc/      Documentation
-sql/      Database files
+sql/      Backend files
