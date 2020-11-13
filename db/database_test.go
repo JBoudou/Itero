@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-package database
+package db
 
 import (
 	"strings"
@@ -104,4 +104,20 @@ func TestInsert(t *testing.T) {
 	exec("INSERT INTO Ballots (User, Poll, Alternative, Round) VALUES (?, ?, 0, 0)", userId, pollId)
 	exec("UPDATE Polls SET CurrentRound = 1 WHERE Id = ?", pollId)
 	exec("INSERT INTO Ballots (User, Poll, Alternative, Round) VALUES (?, ?, 1, 1)", userId, pollId)
+}
+
+func TestVariables(t *testing.T) {
+	allDifferent := func (vals ...uint8) {
+		t.Helper()
+		set := map[uint8]bool{}
+		for _, val := range vals {
+			if _, found := set[val]; found {
+				t.Fatalf("Value %d duplicated", val)
+			}
+			set[val] = true
+		}
+	}
+
+	allDifferent(PollPublicityPublic, PollPublicityPublicRegistered, PollPublicityHidden,
+						   PollPublicityHiddenRegistered, PollPublicityInvited)
 }
