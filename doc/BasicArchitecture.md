@@ -55,8 +55,8 @@ efficiency or security reasons.
 
 Itero's middleware is an HTTP server. This server both provides the front end
 resources (the initial and only web page) and replies to the internal HTTP
-requests made by the front end (this is called the public API). Internally, the
-middleware issues SQL requests to the back end.
+requests made by the front end (the public API). Internally, the middleware
+issues SQL requests to the back end.
 
 Itero's middleware is implemented in [Go](https://golang.org/), which provides
 many advantages:
@@ -79,5 +79,8 @@ usually also performs some consistency checks on that data. It typically
 consists in a database inside a DBMS.
 
 Itero's back end is a database on a [MariaDB](https://mariadb.org/) server.
-MariaDB is a fork of MySQL. The files to configure the database are in the
-[sql/](../sql) directory.
+MariaDB is a fork of MySQL. MariaDB has not been chosen because of its features
+(it lacks some important features compared to Oracle or
+[PostgreSQL](https://www.postgresql.org/)), but because it's a free software
+available on most web hosting services. The files to configure the database are
+in the [sql/](../sql) directory.
