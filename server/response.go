@@ -18,10 +18,13 @@ package server
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
+	"encoding/base64"
 	"errors"
 	"log"
 	"net/http"
+	"time"
 )
 
 // Error with corresponding HTTP code.
@@ -49,7 +52,8 @@ type Response struct {
 	Writer http.ResponseWriter
 }
 
-// Send a JSON as response.
+// SendJSON sends a JSON as response.
+// On success statuc code is http.StatusOK.
 func (self Response) SendJSON(ctx context.Context, data interface{}) {
 	if err := ctx.Err(); err != nil {
 		self.SendError(err)
@@ -65,7 +69,7 @@ func (self Response) SendJSON(ctx context.Context, data interface{}) {
 	}
 }
 
-// Send an error as response.
+// SendError sends an error as response.
 // If err is an HttpError, its code and msg are used in the HTPP response.
 // Also log the error.
 func (self Response) SendError(err error) {
@@ -85,6 +89,40 @@ func (self Response) SendError(err error) {
   }
 }
 
-func (self Response) SendLoginAccepted(ctx context.Context, user string) {
-	self.SendError(NewHttpError(http.StatusNotImplemented, "Not implemented", "to be done"))
+// SendLoginAccepted create new credential for the user and send it as response.
+func (self Response) SendLoginAccepted(ctx context.Context, user User, req *Request) {
+	if err := ctx.Err(); err != nil {
+		self.SendError(err)
+		return
+	}
+
+	session, err := sessionStore.New(req.original, sessionName)
+	if err != nil {
+		self.SendError(err)
+		return
+	}
+	
+	sessionId, err := randomShortId()
+	if err != nil {
+		self.SendError(err)
+	}
+	
+	session.Values[sessionKeySessionId] = sessionId
+	session.Values[sessionKeyUserName ] = user.Name
+	session.Values[sessionKeyUserId   ] = user.Id
+	session.Values[sessionKeyDeadline ] = time.Now().Unix() + sessionMaxAge + sessionGraceTime
+
+	if err = session.Save(req.original, self.Writer); err != nil {
+		log.Printf("Error saving session: %v", err)
+	}
+
+	self.SendJSON(ctx, sessionId)
+}
+
+func randomShortId() (string, error) {
+  b := make([]byte, 3)
+  if _, err := rand.Read(b); err != nil {
+    return "", err
+  }
+  return base64.URLEncoding.EncodeToString(b), nil
 }

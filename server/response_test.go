@@ -25,6 +25,9 @@ import (
 	"net/http/httptest"
 	"reflect"
 	"testing"
+	"time"
+
+	"github.com/gorilla/securecookie"
 )
 
 func canceledContext() (ret context.Context) {
@@ -230,18 +233,141 @@ func TestResponse_SendError(t *testing.T) {
 func TestResponse_SendLoginAccepted(t *testing.T) {
 	type args struct {
 		ctx  context.Context
-		user string
+		user User
+		req  *Request
 	}
+
+	checkSuccess := func (t *testing.T, mock *httptest.ResponseRecorder, args *args) {
+		now := time.Now()
+
+		// Check status code
+		result := mock.Result()
+		if result.StatusCode < 200 || result.StatusCode >= 300 {
+			t.Errorf("Wrong StatusCode %d", result.StatusCode)
+		}
+
+		// Read the body
+		var buff bytes.Buffer
+		if _, err := buff.ReadFrom(result.Body); err != nil {
+			t.Fatalf("Error reading body: %s", err)
+		}
+		var bodySessionId string
+		if err := json.Unmarshal(buff.Bytes(), &bodySessionId); err != nil {
+			t.Fatalf("Error reading body: %s", err)
+		}
+
+		// Read the cookie
+		cookie := findCookie(result.Cookies(), sessionName)
+		if cookie == nil {
+			t.Fatalf("No cookie named %s", sessionName)
+		}
+		codecs := securecookie.CodecsFromPairs(cfg.SessionKeys...)
+		var values map[interface{}]interface{}
+		if err := securecookie.DecodeMulti(sessionName, cookie.Value, &values, codecs...); err != nil {
+			t.Fatalf("Decode cookie: %s", err)
+		}
+		
+		// Check expire and deadline
+		expireDuration := cookie.Expires.Sub(now).Seconds()
+		if limit := float64(sessionMaxAge - sessionGraceTime); expireDuration < limit {
+			t.Errorf("Expire too early. Got %f. Expect %f", expireDuration, limit)
+		}
+		if limit := float64(sessionMaxAge + sessionGraceTime); expireDuration > limit {
+			t.Errorf("Expire too late. Got %f. Expect %f", expireDuration, limit)
+		}
+		untyped, ok := values[sessionKeyDeadline]
+		if !ok {
+			t.Fatalf("Not found key %s in cookie", sessionKeyDeadline)
+		}
+		deadline, ok := untyped.(int64)
+		if !ok {
+			t.Fatalf("Wrong type for key %s in cookie", sessionKeyDeadline)
+		}
+		if limit := now.Unix() + sessionMaxAge; deadline < limit {
+			t.Errorf("Expire too early. Got %d. Expect %d", deadline, limit)
+		}
+		if limit := now.Unix() + sessionMaxAge + (2 * sessionGraceTime); deadline > limit {
+			t.Errorf("Expire too late. Got %d. Expect %d", deadline, limit)
+		}
+
+		// Check the other session values
+		getString := func (key string) (value string) {
+			untyped, ok := values[key]
+			if !ok {
+				t.Fatalf("Not found key %s in cookie", key)
+			}
+			value, ok = untyped.(string)
+			if !ok {
+				t.Fatalf("Wrong type for key %s in cookie", key)
+			}
+			return
+		}
+		if cookieSessionId := getString(sessionKeySessionId); cookieSessionId != bodySessionId {
+			t.Errorf("Wrong session ID. Body %s. Cookie %s.", bodySessionId, cookieSessionId)
+		}
+		if userName := getString(sessionKeyUserName); userName != args.user.Name {
+			t.Errorf("Wrong user name. Got %s. Expect %s.", userName, args.user.Name)
+		}
+		untyped, ok = values[sessionKeyUserId]
+		if !ok {
+			t.Fatalf("Not found key %s in cookie", sessionKeyUserId)
+		}
+		userId, ok := untyped.(uint32)
+		if !ok {
+			t.Fatalf("Wrong type for key %s in cookie", sessionKeyUserId)
+		}
+		if userId != args.user.Id {
+			t.Errorf("Wrong user Id. Got %d. Expect %d", userId, args.user.Id)
+		}
+	}
+	checkFail := func (t *testing.T, mock *httptest.ResponseRecorder, args *args) {
+		result := mock.Result()
+		if result.StatusCode < 400 {
+			t.Errorf("Wrong StatusCode %d", result.StatusCode)
+		}
+	}
+
 	tests := []struct {
 		name string
-		self Response
 		args args
+		check  func(t *testing.T, mock *httptest.ResponseRecorder, args *args)
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Success",
+			args: args{
+				ctx: context.Background(),
+				user: User{Name: "Foo", Id: 42},
+				req: &Request{original: &http.Request{}},
+			},
+			check: checkSuccess,
+		},
+		{
+			name: "Failure",
+			args: args{
+				ctx: canceledContext(),
+				user: User{Name: "Foo", Id: 42},
+				req: &Request{original: &http.Request{}},
+			},
+			check: checkFail,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.self.SendLoginAccepted(tt.args.ctx, tt.args.user)
+			mock := httptest.NewRecorder()
+			self := Response{
+				Writer: mock,
+			}
+			self.SendLoginAccepted(tt.args.ctx, tt.args.user, tt.args.req)
+			tt.check(t, mock, &tt.args)
 		})
 	}
+}
+
+func findCookie(cookies []*http.Cookie, name string) (found *http.Cookie) {
+	for _, cookie := range(cookies) {
+		if cookie.Name == name {
+			return cookie
+		}
+	}
+	return
 }
