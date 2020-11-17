@@ -74,9 +74,9 @@ func TestHttpError_Error(t *testing.T) {
 		want   string
 	}{
 		{
-			name: "unique",
+			name:   "unique",
 			fields: fields{Code: 404, msg: "Not found", detail: "For some reason"},
-			want: "For some reason",
+			want:   "For some reason",
 		},
 	}
 	for _, tt := range tests {
@@ -99,7 +99,7 @@ func TestResponse_SendJSON(t *testing.T) {
 		data interface{}
 	}
 
-	checkSuccess := func (t *testing.T, mock *httptest.ResponseRecorder, args *args) {
+	checkSuccess := func(t *testing.T, mock *httptest.ResponseRecorder, args *args) {
 		// Check status code
 		result := mock.Result()
 		if result.StatusCode < 200 || result.StatusCode >= 300 {
@@ -114,7 +114,7 @@ func TestResponse_SendJSON(t *testing.T) {
 		body := buff.Bytes()
 
 		// Compare the body
-	  if !json.Valid(body) {
+		if !json.Valid(body) {
 			t.Fatal("Invalid JSON in body")
 		}
 		buff.Reset()
@@ -131,41 +131,44 @@ func TestResponse_SendJSON(t *testing.T) {
 			t.Errorf("Wrong body. Got %s. Expect %s", got, expected)
 		}
 	}
-	checkFail := func (t *testing.T, mock *httptest.ResponseRecorder, args *args) {
+	checkFail := func(t *testing.T, mock *httptest.ResponseRecorder, args *args) {
 		result := mock.Result()
 		if result.StatusCode < 400 {
 			t.Errorf("Wrong StatusCode %d", result.StatusCode)
 		}
 	}
-	
+
 	tests := []struct {
-		name   string
-		args   args
-		check  func(t *testing.T, mock *httptest.ResponseRecorder, args *args)
+		name  string
+		args  args
+		check func(t *testing.T, mock *httptest.ResponseRecorder, args *args)
 	}{
 		{
-			name: "String",
-			args: args{ctx: context.Background(), data: "foobar"},
+			name:  "String",
+			args:  args{ctx: context.Background(), data: "foobar"},
 			check: checkSuccess,
 		},
 		{
-			name: "Number",
-			args: args{ctx: context.Background(), data: 42},
+			name:  "Number",
+			args:  args{ctx: context.Background(), data: 42},
 			check: checkSuccess,
 		},
 		{
-			name: "Slice",
-			args: args{ctx: context.Background(), data: []string{ "a", "b", "c", "d" }},
+			name:  "Slice",
+			args:  args{ctx: context.Background(), data: []string{"a", "b", "c", "d"}},
 			check: checkSuccess,
 		},
 		{
 			name: "Struct",
-			args: args{ctx: context.Background(), data: struct{foo string; bar int}{"foobar", 42}},
+			args: args{ctx: context.Background(), data: struct {
+				foo string
+				bar int
+			}{"foobar", 42}},
 			check: checkSuccess,
 		},
 		{
-			name: "Canceled",
-			args: args{ctx: canceledContext(), data: 0},
+			name:  "Canceled",
+			args:  args{ctx: canceledContext(), data: 0},
 			check: checkFail,
 		},
 	}
@@ -188,27 +191,27 @@ func TestResponse_SendError(t *testing.T) {
 		expectedCode int // set to zero to disable
 	}{
 		{
-			name: "403",
-			err: NewHttpError(http.StatusForbidden, "Forbidden", "Test"),
+			name:         "403",
+			err:          NewHttpError(http.StatusForbidden, "Forbidden", "Test"),
 			expectedCode: http.StatusForbidden,
 		},
 		{
-			name: "explicit 500",
-			err: NewHttpError(http.StatusInternalServerError, "Server error", "Test"),
+			name:         "explicit 500",
+			err:          NewHttpError(http.StatusInternalServerError, "Server error", "Test"),
 			expectedCode: http.StatusInternalServerError,
 		},
 		{
-			name: "implicit 500",
-			err: errors.New("Internal error"),
+			name:         "implicit 500",
+			err:          errors.New("Internal error"),
 			expectedCode: http.StatusInternalServerError,
 		},
 		{
 			name: "context canceled",
-			err: context.Canceled,
+			err:  context.Canceled,
 		},
 		{
 			name: "context deadline exceeded",
-			err: context.DeadlineExceeded,
+			err:  context.DeadlineExceeded,
 		},
 	}
 	for _, tt := range tests {
@@ -237,7 +240,7 @@ func TestResponse_SendLoginAccepted(t *testing.T) {
 		req  *Request
 	}
 
-	checkSuccess := func (t *testing.T, mock *httptest.ResponseRecorder, args *args) {
+	checkSuccess := func(t *testing.T, mock *httptest.ResponseRecorder, args *args) {
 		now := time.Now()
 
 		// Check status code
@@ -266,7 +269,7 @@ func TestResponse_SendLoginAccepted(t *testing.T) {
 		if err := securecookie.DecodeMulti(sessionName, cookie.Value, &values, codecs...); err != nil {
 			t.Fatalf("Decode cookie: %s", err)
 		}
-		
+
 		// Check expire and deadline
 		expireDuration := cookie.Expires.Sub(now).Seconds()
 		if limit := float64(sessionMaxAge - sessionGraceTime); expireDuration < limit {
@@ -291,7 +294,7 @@ func TestResponse_SendLoginAccepted(t *testing.T) {
 		}
 
 		// Check the other session values
-		getString := func (key string) (value string) {
+		getString := func(key string) (value string) {
 			untyped, ok := values[key]
 			if !ok {
 				t.Fatalf("Not found key %s in cookie", key)
@@ -320,7 +323,7 @@ func TestResponse_SendLoginAccepted(t *testing.T) {
 			t.Errorf("Wrong user Id. Got %d. Expect %d", userId, args.user.Id)
 		}
 	}
-	checkFail := func (t *testing.T, mock *httptest.ResponseRecorder, args *args) {
+	checkFail := func(t *testing.T, mock *httptest.ResponseRecorder, args *args) {
 		result := mock.Result()
 		if result.StatusCode < 400 {
 			t.Errorf("Wrong StatusCode %d", result.StatusCode)
@@ -328,25 +331,25 @@ func TestResponse_SendLoginAccepted(t *testing.T) {
 	}
 
 	tests := []struct {
-		name string
-		args args
-		check  func(t *testing.T, mock *httptest.ResponseRecorder, args *args)
+		name  string
+		args  args
+		check func(t *testing.T, mock *httptest.ResponseRecorder, args *args)
 	}{
 		{
 			name: "Success",
 			args: args{
-				ctx: context.Background(),
+				ctx:  context.Background(),
 				user: User{Name: "Foo", Id: 42},
-				req: &Request{original: &http.Request{}},
+				req:  &Request{original: &http.Request{}},
 			},
 			check: checkSuccess,
 		},
 		{
 			name: "Failure",
 			args: args{
-				ctx: canceledContext(),
+				ctx:  canceledContext(),
 				user: User{Name: "Foo", Id: 42},
-				req: &Request{original: &http.Request{}},
+				req:  &Request{original: &http.Request{}},
 			},
 			check: checkFail,
 		},
@@ -364,7 +367,7 @@ func TestResponse_SendLoginAccepted(t *testing.T) {
 }
 
 func findCookie(cookies []*http.Cookie, name string) (found *http.Cookie) {
-	for _, cookie := range(cookies) {
+	for _, cookie := range cookies {
 		if cookie.Name == name {
 			return cookie
 		}

@@ -28,8 +28,8 @@ import (
 )
 
 type Request struct {
-	User					*User
-	SessionError	error
+	User          *User
+	SessionError  error
 	FullPath      []string
 	RemainingPath []string
 
@@ -48,40 +48,39 @@ func newRequest(basePattern string, original *http.Request) (req Request) {
 	req.FullPath = splitPath(req.original.URL.Path)
 	basePath := splitPath(basePattern)
 	req.RemainingPath = req.FullPath[len(basePath):]
-  return
+	return
 }
 
 func (self *Request) UnmarshalJSONBody(dst interface{}) error {
-		var buff bytes.Buffer
-		if _, err := buff.ReadFrom(self.original.Body); err != nil {
-			return err
-		}
-		return json.Unmarshal(buff.Bytes(), &dst)
+	var buff bytes.Buffer
+	if _, err := buff.ReadFrom(self.original.Body); err != nil {
+		return err
+	}
+	return json.Unmarshal(buff.Bytes(), &dst)
 }
 
-
 func (self *Request) addSession(session *gs.Session) {
-	registerError := func (detail string) {
-    self.SessionError = NewHttpError(http.StatusForbidden, "Unauthorized", detail)
+	registerError := func(detail string) {
+		self.SessionError = NewHttpError(http.StatusForbidden, "Unauthorized", detail)
 	}
 	// TODO use functions to retrieve a typed value from a session
 
 	// Check deadline
-  unconverted, ok := session.Values[sessionKeyDeadline]
-  if !ok {
+	unconverted, ok := session.Values[sessionKeyDeadline]
+	if !ok {
 		registerError("no deadline in the session cookie")
 		return
-  }
-  deadline, ok := unconverted.(int64)
-  if !ok {
+	}
+	deadline, ok := unconverted.(int64)
+	if !ok {
 		registerError("the deadline in the session cookie has wrong type")
 		return
-  }
+	}
 
-  if time.Now().Unix() > deadline {
+	if time.Now().Unix() > deadline {
 		registerError("the session cookie has expired")
 		return
-  }
+	}
 
 	// Check session id
 	queryId, ok := self.original.URL.Query()[queryKeySessionId]

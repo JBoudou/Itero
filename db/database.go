@@ -33,29 +33,28 @@ var (
 
 	PollTypeAcceptanceSet uint8
 
-	PollPublicityPublic						uint8
+	PollPublicityPublic           uint8
 	PollPublicityPublicRegistered uint8
-	PollPublicityHidden						uint8
+	PollPublicityHidden           uint8
 	PollPublicityHiddenRegistered uint8
-	PollPublicityInvited					uint8
+	PollPublicityInvited          uint8
 
 	PollRulePlurality uint8
 
 	RoundTypeFreelyAsynchronous uint8
 )
-	
 
 type myConfig struct {
 	DSN string
 
-	MaxLifetime	string
+	MaxLifetime  string
 	MaxIdleConns int
 	MaxOpenConns int
 }
 
 func init() {
 	// Read conf
-	cfg := myConfig{ MaxIdleConns: 2 }
+	cfg := myConfig{MaxIdleConns: 2}
 	must(config.Value("database", &cfg), "Error loading database configuration:")
 
 	// Open DB
@@ -71,20 +70,20 @@ func init() {
 	DB.SetMaxOpenConns(cfg.MaxOpenConns)
 
 	// Fill variables
-	fillVars("PollType", map[string]*uint8{ "Acceptance Set": &PollTypeAcceptanceSet })
+	fillVars("PollType", map[string]*uint8{"Acceptance Set": &PollTypeAcceptanceSet})
 	fillVars("PollPublicity", map[string]*uint8{
-		"Public": 						&PollPublicityPublic,
-		"Public Registered":	&PollPublicityPublicRegistered,
-		"Hidden":							&PollPublicityHidden,
-		"Hidden Registered":	&PollPublicityHiddenRegistered,
-		"Invited":						&PollPublicityInvited})
-	fillVars("PollRule", map[string]*uint8{ "Plurality": &PollRulePlurality })
-	fillVars("RoundType", map[string]*uint8{ "Freely Asynchronous": &RoundTypeFreelyAsynchronous })
+		"Public":            &PollPublicityPublic,
+		"Public Registered": &PollPublicityPublicRegistered,
+		"Hidden":            &PollPublicityHidden,
+		"Hidden Registered": &PollPublicityHiddenRegistered,
+		"Invited":           &PollPublicityInvited})
+	fillVars("PollRule", map[string]*uint8{"Plurality": &PollRulePlurality})
+	fillVars("RoundType", map[string]*uint8{"Freely Asynchronous": &RoundTypeFreelyAsynchronous})
 }
 
 func fillVars(table string, assoc map[string]*uint8) {
 	rows, err := DB.Query("SELECT Id, Label FROM " + table)
-	must(err, "Query on " + table + ":")
+	must(err, "Query on "+table+":")
 
 	for rows.Next() {
 		var id uint8

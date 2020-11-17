@@ -1,16 +1,16 @@
 // Itero - Online iterative vote application
 // Copyright (C) 2020 Joseph Boudou
-// 
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
 // published by the Free Software Foundation, either version 3 of the
 // License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Affero General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
@@ -21,12 +21,12 @@ import (
 )
 
 func TestString(t *testing.T) {
-	t.Run("found", func (t *testing.T) {
+	t.Run("found", func(t *testing.T) {
 		const key = "string.foo"
 		const expected = "foo"
 
 		got, err := String(key)
-		
+
 		if err != nil {
 			t.Fatalf("Error: %v", err)
 		}
@@ -35,11 +35,11 @@ func TestString(t *testing.T) {
 		}
 	})
 
-	t.Run("not found", func (t *testing.T) {
+	t.Run("not found", func(t *testing.T) {
 		const key = "foobar"
 
 		_, err := String(key)
-		
+
 		if err == nil {
 			t.Fatalf("Key %s found", key)
 		}
@@ -52,12 +52,12 @@ func TestString(t *testing.T) {
 		}
 	})
 
-	t.Run("or found", func (t *testing.T) {
+	t.Run("or found", func(t *testing.T) {
 		const key = "string.foo"
 		const expected = "foo"
 
 		got, err := StringOr(key, "other")
-		
+
 		if err != nil {
 			t.Fatalf("Error: %v", err)
 		}
@@ -66,7 +66,7 @@ func TestString(t *testing.T) {
 		}
 	})
 
-	t.Run("or not found", func (t *testing.T) {
+	t.Run("or not found", func(t *testing.T) {
 		const key = "string.bar"
 		const expected = "bar"
 
@@ -76,7 +76,7 @@ func TestString(t *testing.T) {
 		}
 
 		got, err := StringOr(key, expected)
-		
+
 		if err != nil {
 			t.Fatalf("Error: %v", err)
 		}
@@ -94,12 +94,12 @@ func TestString(t *testing.T) {
 }
 
 func TestInt(t *testing.T) {
-	t.Run("found", func (t *testing.T) {
+	t.Run("found", func(t *testing.T) {
 		const key = "int.42"
 		const expected = 42
 
 		got, err := Int(key)
-		
+
 		if err != nil {
 			t.Fatalf("Error: %v", err)
 		}
@@ -108,11 +108,11 @@ func TestInt(t *testing.T) {
 		}
 	})
 
-	t.Run("not found", func (t *testing.T) {
+	t.Run("not found", func(t *testing.T) {
 		const key = "foobar"
 
 		_, err := Int(key)
-		
+
 		if err == nil {
 			t.Fatalf("Key %s found", key)
 		}
@@ -125,13 +125,13 @@ func TestInt(t *testing.T) {
 		}
 	})
 
-	t.Run("or found", func (t *testing.T) {
+	t.Run("or found", func(t *testing.T) {
 		const key = "int.42"
 		const expected = 42
-		const other 	 = 27
+		const other = 27
 
 		got, err := IntOr(key, other)
-		
+
 		if err != nil {
 			t.Fatalf("Error: %v", err)
 		}
@@ -140,7 +140,7 @@ func TestInt(t *testing.T) {
 		}
 	})
 
-	t.Run("or not found", func (t *testing.T) {
+	t.Run("or not found", func(t *testing.T) {
 		const key = "int.27"
 		const expected = 27
 
@@ -150,7 +150,7 @@ func TestInt(t *testing.T) {
 		}
 
 		got, err := IntOr(key, expected)
-		
+
 		if err != nil {
 			t.Fatalf("Error: %v", err)
 		}
@@ -168,11 +168,11 @@ func TestInt(t *testing.T) {
 }
 
 type myCompoundStruct struct {
-	IntValue 		int
+	IntValue    int
 	StringValue string
-	FloatValue 	float64
-	Z 					string `json:"other"`
-	Array 			[4]int
+	FloatValue  float64
+	Z           string `json:"other"`
+	Array       [4]int
 }
 
 func TestValue(t *testing.T) {
@@ -185,10 +185,10 @@ func TestValue(t *testing.T) {
 	const keyPartial = "object.partial"
 	var partial = myCompoundStruct{26, "foo", 3.14, "blu", [4]int{2, 3, 5, 8}}
 
-	t.Run("found", func (t *testing.T) {
+	t.Run("found", func(t *testing.T) {
 		var got myCompoundStruct
 		err := Value(key, &got)
-		
+
 		if err != nil {
 			t.Fatalf("Error: %v", err)
 		}
@@ -197,10 +197,10 @@ func TestValue(t *testing.T) {
 		}
 	})
 
-	t.Run("not found", func (t *testing.T) {
+	t.Run("not found", func(t *testing.T) {
 		var got myCompoundStruct
 		err := Value(keyOther, &got)
-		
+
 		if err == nil {
 			t.Fatalf("Key %s found", keyOther)
 		}
@@ -213,10 +213,10 @@ func TestValue(t *testing.T) {
 		}
 	})
 
-	t.Run("or found", func (t *testing.T) {
+	t.Run("or found", func(t *testing.T) {
 		var got myCompoundStruct
 		err := ValueOr(key, &got, &other)
-		
+
 		if err != nil {
 			t.Fatalf("Error: %v", err)
 		}
@@ -225,7 +225,7 @@ func TestValue(t *testing.T) {
 		}
 	})
 
-	t.Run("or not found", func (t *testing.T) {
+	t.Run("or not found", func(t *testing.T) {
 		var got myCompoundStruct
 		err := Value(keyOther, &got)
 		if err == nil {
@@ -233,7 +233,7 @@ func TestValue(t *testing.T) {
 		}
 
 		err = ValueOr(keyOther, &got, &expected)
-		
+
 		if err != nil {
 			t.Fatalf("Error: %v", err)
 		}
@@ -249,19 +249,18 @@ func TestValue(t *testing.T) {
 		}
 	})
 
-	t.Run("partial", func (t *testing.T) {
+	t.Run("partial", func(t *testing.T) {
 		got := partial
 		err := Value(keyPartial, &got)
-		
+
 		if err != nil {
 			t.Fatalf("Error: %v", err)
 		}
 		if got == partial {
-			t.Errorf("Unchanged");
+			t.Errorf("Unchanged")
 		}
 		if got != expected {
 			t.Errorf("Got: %v. Expect: %v", got, expected)
 		}
 	})
 }
-

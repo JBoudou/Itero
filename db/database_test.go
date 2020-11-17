@@ -36,23 +36,23 @@ func nof(err error, t *testing.T) {
 }
 
 func TestConnection(t *testing.T) {
-	t.Run("ping", func (t *testing.T) {
+	t.Run("ping", func(t *testing.T) {
 		nof(DB.Ping(), t)
 	})
 
-	t.Run("sql_mode", func (t *testing.T) {
+	t.Run("sql_mode", func(t *testing.T) {
 
 		// The boolean indicate whether the tag is necessary
 		tagSet := map[string]bool{
-			"ONLY_FULL_GROUP_BY": true,
-			"STRICT_TRANS_TABLES": false,
-			"STRICT_ALL_TABLES": true,
-			"NO_ZERO_IN_DATE": true,
-			"NO_ZERO_DATE": true,
+			"ONLY_FULL_GROUP_BY":         true,
+			"STRICT_TRANS_TABLES":        false,
+			"STRICT_ALL_TABLES":          true,
+			"NO_ZERO_IN_DATE":            true,
+			"NO_ZERO_DATE":               true,
 			"ERROR_FOR_DIVISION_BY_ZERO": true,
-			"TRADITIONAL": false,
-			"NO_AUTO_CREATE_USER": false,
-			"NO_ENGINE_SUBSTITUTION": true}
+			"TRADITIONAL":                false,
+			"NO_AUTO_CREATE_USER":        false,
+			"NO_ENGINE_SUBSTITUTION":     true}
 
 		row := DB.QueryRow("SELECT @@sql_mode")
 		var result string
@@ -79,9 +79,9 @@ func TestConnection(t *testing.T) {
 func TestInsert(t *testing.T) {
 	tx, err := DB.Begin()
 	nof(err, t)
-	defer func () { nof(tx.Rollback(), t) } ()
+	defer func() { nof(tx.Rollback(), t) }()
 
-	execLIR := func (cmd string, args ...interface{}) (ret int64) {
+	execLIR := func(cmd string, args ...interface{}) (ret int64) {
 		t.Helper()
 		result, err := tx.Exec(cmd, args...)
 		nof(err, t)
@@ -90,7 +90,7 @@ func TestInsert(t *testing.T) {
 		return
 	}
 
-	exec := func (cmd string, args ...interface{}) {
+	exec := func(cmd string, args ...interface{}) {
 		t.Helper()
 		_, err := tx.Exec(cmd, args...)
 		nof(err, t)
@@ -107,7 +107,7 @@ func TestInsert(t *testing.T) {
 }
 
 func TestVariables(t *testing.T) {
-	allDifferent := func (vals ...uint8) {
+	allDifferent := func(vals ...uint8) {
 		t.Helper()
 		set := map[uint8]bool{}
 		for _, val := range vals {
@@ -119,5 +119,5 @@ func TestVariables(t *testing.T) {
 	}
 
 	allDifferent(PollPublicityPublic, PollPublicityPublicRegistered, PollPublicityHidden,
-						   PollPublicityHiddenRegistered, PollPublicityInvited)
+		PollPublicityHiddenRegistered, PollPublicityInvited)
 }
