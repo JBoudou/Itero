@@ -23,7 +23,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 )
 
@@ -93,50 +92,6 @@ func TestCheckerStatus(expectCode int) TestChecker {
 	return func(t *testing.T, response *http.Response, req *http.Request) {
 		if response.StatusCode != expectCode {
 			t.Errorf("Wrong status code. Got %d. Expect %d", response.StatusCode, expectCode)
-		}
-	}
-}
-
-// TestCheckerJSONString returns a TestChecker to check responses whose body is a JSON object
-// representing a string.
-//
-// The returned function checks that the statuc code and the encoded string are as expected.
-func TestCheckerJSONString(expectCode int, expectBody string) TestChecker {
-	return func(t *testing.T, response *http.Response, req *http.Request) {
-		if response.StatusCode != expectCode {
-			t.Errorf("Wrong status code. Got %d. Expect %d", response.StatusCode, expectCode)
-		}
-
-		var body string
-		var buff bytes.Buffer
-		if _, err := buff.ReadFrom(response.Body); err != nil {
-			t.Fatalf("Error reading body: %s", err)
-		}
-		if err := json.Unmarshal(buff.Bytes(), &body); err != nil {
-			t.Fatalf("Error reading body: %s", err)
-		}
-		if body != expectBody {
-			t.Errorf("Wrong body. Got %s. Expect %s", body, expectBody)
-		}
-	}
-}
-
-// TestCheckerJSONString returns a TestCheckerto check responses whose body is a JSON object
-// representing a string.
-//
-// The returned function checks that the statuc code and the encoded string are as expected.
-func TestCheckerRawString(expectCode int, expectBody string) TestChecker {
-	return func(t *testing.T, response *http.Response, req *http.Request) {
-		if response.StatusCode != expectCode {
-			t.Errorf("Wrong status code. Got %d. Expect %d", response.StatusCode, expectCode)
-		}
-
-		var buff bytes.Buffer
-		if _, err := buff.ReadFrom(response.Body); err != nil {
-			t.Fatalf("Error reading body: %s", err)
-		}
-		if body := strings.TrimSpace(string(buff.Bytes())); body != expectBody {
-			t.Errorf("Wrong body. Got %s. Expect %s", body, expectBody)
 		}
 	}
 }

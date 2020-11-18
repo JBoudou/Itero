@@ -17,7 +17,9 @@
 package server
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -125,6 +127,50 @@ func TestHandle(t *testing.T) {
 	}
 }
 
+// checkerJSONString returns a TestChecker to check responses whose body is a JSON object
+// representing a string.
+//
+// The returned function checks that the statuc code and the encoded string are as expected.
+func checkerJSONString(expectCode int, expectBody string) TestChecker {
+	return func(t *testing.T, response *http.Response, req *http.Request) {
+		if response.StatusCode != expectCode {
+			t.Errorf("Wrong status code. Got %d. Expect %d", response.StatusCode, expectCode)
+		}
+
+		var body string
+		var buff bytes.Buffer
+		if _, err := buff.ReadFrom(response.Body); err != nil {
+			t.Fatalf("Error reading body: %s", err)
+		}
+		if err := json.Unmarshal(buff.Bytes(), &body); err != nil {
+			t.Fatalf("Error reading body: %s", err)
+		}
+		if body != expectBody {
+			t.Errorf("Wrong body. Got %s. Expect %s", body, expectBody)
+		}
+	}
+}
+
+// checkerJSONString returns a TestCheckerto check responses whose body is a JSON object
+// representing a string.
+//
+// The returned function checks that the statuc code and the encoded string are as expected.
+func checkerRawString(expectCode int, expectBody string) TestChecker {
+	return func(t *testing.T, response *http.Response, req *http.Request) {
+		if response.StatusCode != expectCode {
+			t.Errorf("Wrong status code. Got %d. Expect %d", response.StatusCode, expectCode)
+		}
+
+		var buff bytes.Buffer
+		if _, err := buff.ReadFrom(response.Body); err != nil {
+			t.Fatalf("Error reading body: %s", err)
+		}
+		if body := strings.TrimSpace(string(buff.Bytes())); body != expectBody {
+			t.Errorf("Wrong body. Got %s. Expect %s", body, expectBody)
+		}
+	}
+}
+
 type handlerArgs struct {
 	pattern string
 	fct     func(ctx context.Context, resp Response, req *Request)
@@ -155,7 +201,7 @@ var handlerTests []handlerTestsStruct = []handlerTestsStruct{
 			method: "GET",
 			target: "/t/write",
 		},
-		checker: TestCheckerJSONString(http.StatusOK, "bar"),
+		checker: checkerJSONString(http.StatusOK, "bar"),
 	},
 	{
 		name: "echo",
@@ -175,7 +221,7 @@ var handlerTests []handlerTestsStruct = []handlerTestsStruct{
 			target: "/t/echo",
 			body:   `"Hello"`,
 		},
-		checker: TestCheckerJSONString(http.StatusOK, "Hello"),
+		checker: checkerJSONString(http.StatusOK, "Hello"),
 	},
 	{
 		name: "error",
@@ -189,7 +235,7 @@ var handlerTests []handlerTestsStruct = []handlerTestsStruct{
 			method: "GET",
 			target: "/t/error",
 		},
-		checker: TestCheckerRawString(http.StatusPaymentRequired, "Flublu"),
+		checker: checkerRawString(http.StatusPaymentRequired, "Flublu"),
 	},
 	{
 		name: "panic",
@@ -203,21 +249,27 @@ var handlerTests []handlerTestsStruct = []handlerTestsStruct{
 			method: "GET",
 			target: "/t/panic",
 		},
-		checker: TestCheckerRawString(http.StatusPaymentRequired, "Barbaz"),
+		checker: checkerRawString(http.StatusPaymentRequired, "Barbaz"),
 	},
 	{
 		name: "struct",
 		args: handlerArgs{
 			pattern: "/t/struct",
 			fct: func(ctx context.Context, resp Response, req *Request) {
-				resp.SendJSON(ctx, struct {A int; B string}{A: 42, B: "Foobar"})
+				resp.SendJSON(ctx, struct {
+					A int
+					B string
+				}{A: 42, B: "Foobar"})
 			},
 		},
 		req: reqFields{
 			method: "GET",
 			target: "/t/struct",
 		},
-		checker: TestCheckerJSON(http.StatusOK, struct{A int; B string}{A: 42, B: "Foobar"}),
+		checker: TestCheckerJSON(http.StatusOK, struct {
+			A int
+			B string
+		}{A: 42, B: "Foobar"}),
 	},
 }
 
