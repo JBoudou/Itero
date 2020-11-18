@@ -23,7 +23,6 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
 	"testing"
 	"time"
 
@@ -34,63 +33,6 @@ func canceledContext() (ret context.Context) {
 	ret, cancelFct := context.WithCancel(context.Background())
 	cancelFct()
 	return
-}
-
-func TestNewHttpError(t *testing.T) {
-	type args struct {
-		code   int
-		msg    string
-		detail string
-	}
-	tests := []struct {
-		name string
-		args args
-		want HttpError
-	}{
-		{
-			name: "unique",
-			args: args{code: 404, msg: "Not found", detail: "For some reason"},
-			want: HttpError{Code: 404, msg: "Not found", detail: "For some reason"},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := NewHttpError(tt.args.code, tt.args.msg, tt.args.detail); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewHttpError() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestHttpError_Error(t *testing.T) {
-	type fields struct {
-		Code   int
-		msg    string
-		detail string
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		want   string
-	}{
-		{
-			name:   "unique",
-			fields: fields{Code: 404, msg: "Not found", detail: "For some reason"},
-			want:   "For some reason",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			self := HttpError{
-				Code:   tt.fields.Code,
-				msg:    tt.fields.msg,
-				detail: tt.fields.detail,
-			}
-			if got := self.Error(); got != tt.want {
-				t.Errorf("HttpError.Error() = %v, want %v", got, tt.want)
-			}
-		})
-	}
 }
 
 func TestResponse_SendJSON(t *testing.T) {
@@ -176,7 +118,7 @@ func TestResponse_SendJSON(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mock := httptest.NewRecorder()
 			self := Response{
-				Writer: mock,
+				writer: mock,
 			}
 			self.SendJSON(tt.args.ctx, tt.args.data)
 			tt.check(t, mock, &tt.args)
@@ -218,7 +160,7 @@ func TestResponse_SendError(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mock := httptest.NewRecorder()
 			self := Response{
-				Writer: mock,
+				writer: mock,
 			}
 			self.SendError(tt.err)
 
@@ -358,7 +300,7 @@ func TestResponse_SendLoginAccepted(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mock := httptest.NewRecorder()
 			self := Response{
-				Writer: mock,
+				writer: mock,
 			}
 			self.SendLoginAccepted(tt.args.ctx, tt.args.user, tt.args.req)
 			tt.check(t, mock, &tt.args)

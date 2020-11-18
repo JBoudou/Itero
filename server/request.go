@@ -27,15 +27,28 @@ import (
 	gs "github.com/gorilla/sessions"
 )
 
+// A request represents an HTTP request to be handled by the server.
 type Request struct {
-	User          *User
-	SessionError  error
-	FullPath      []string
+	// User is the session user.
+	// It is nil if no user is successfully logged in the current session.
+	User *User
+
+	// SessionError is the error raised when checking the session informations send by the client.
+	// It is nil either if the client did not send any session information (in which case User is nil
+	// too) or if the session has been successfully checked (in which case Use is not nil).
+	SessionError error
+
+	// FullPath contains all path elements of the request made by the client.
+	FullPath []string
+
+	// RemainingPath contains the path elements after the pattern corresponding to the current
+	// Handler.
 	RemainingPath []string
 
 	original *http.Request
 }
 
+// newRequest the only constructor for Request.
 func newRequest(basePattern string, original *http.Request) (req Request) {
 	req.original = original
 
@@ -51,6 +64,8 @@ func newRequest(basePattern string, original *http.Request) (req Request) {
 	return
 }
 
+// UnmarshalJSONBody retrieves the body of the request as a JSON object.
+// See json.Unmarshal for details of the unmarshalling process.
 func (self *Request) UnmarshalJSONBody(dst interface{}) error {
 	var buff bytes.Buffer
 	if _, err := buff.ReadFrom(self.original.Body); err != nil {
@@ -58,6 +73,8 @@ func (self *Request) UnmarshalJSONBody(dst interface{}) error {
 	}
 	return json.Unmarshal(buff.Bytes(), &dst)
 }
+
+/* What follows are private methods and functions */
 
 func (self *Request) addSession(session *gs.Session) {
 	registerError := func(detail string) {
