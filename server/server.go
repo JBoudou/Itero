@@ -18,6 +18,7 @@ package server
 
 import (
 	"log"
+	"net/http"
 
 	"github.com/JBoudou/Itero/config"
 
@@ -47,24 +48,43 @@ var (
 )
 
 type myConfig struct {
+	Address     string
+	CertFile    string
+	KeyFile     string
 	SessionKeys [][]byte
 }
 
 func init() {
+	// Configuration
+	cfg.Address = ":8080"
 	must(config.Value("server", &cfg), "Error loading server config:")
 
+	// Session
 	sessionStore = gs.NewCookieStore(cfg.SessionKeys...)
 	sessionStore.Options.MaxAge = sessionMaxAge
-}
-
-func must(err error, msg string) {
-	if err != nil {
-		log.Fatal(msg, err)
-	}
 }
 
 // User represents a logged user.
 type User struct {
 	Name string
 	Id   uint32
+}
+
+// Start the server.
+// Parameters are taken from the configuration.
+func Start() (err error) {
+	if cfg.CertFile == "" && cfg.KeyFile == "" {
+		log.Println("WARNING: The server will be launched in HTTP mode, which is INSECURE.")
+		log.Println("WARNING: Set server.CertFile and server.KeyFile in the configuration.")
+		err = http.ListenAndServe(cfg.Address, nil)
+	} else {
+		err = http.ListenAndServeTLS(cfg.Address, cfg.CertFile, cfg.KeyFile, nil)
+	}
+	return
+}
+
+func must(err error, msg string) {
+	if err != nil {
+		log.Fatal(msg, err)
+	}
 }
