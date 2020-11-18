@@ -19,7 +19,6 @@ package server
 import (
 	"context"
 	"net/http"
-	"net/http/httptest"
 )
 
 // A HttpError is an error that can be send as an HTTP response.
@@ -109,14 +108,4 @@ func Handle(pattern string, handler Handler) {
 // See http.ServeMux for a description of the pattern format.
 func HandleFunc(pattern string, fct HandleFunction) {
 	http.Handle(pattern, handlerWrapper{pattern: pattern, handler: HandlerFunc(fct)})
-}
-
-func TestHandler(pattern string, handler Handler, request *http.Request) *http.Response {
-	mock := httptest.NewRecorder()
-	handlerWrapper{pattern: pattern, handler: handler}.ServeHTTP(mock, request)
-	return mock.Result()
-}
-
-func TestHandlerFunc(pattern string, handler HandleFunction, request *http.Request) *http.Response {
-	return TestHandler(pattern, HandlerFunc(handler), request)
 }

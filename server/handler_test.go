@@ -17,9 +17,7 @@
 package server
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -127,45 +125,7 @@ func TestHandle(t *testing.T) {
 	}
 }
 
-type checkerFunction = func(t *testing.T, response *http.Response, req *http.Request)
-
-func checkerJSON(expectCode int, expectBody string) checkerFunction {
-	return func(t *testing.T, response *http.Response, req *http.Request) {
-		if response.StatusCode != expectCode {
-			t.Errorf("Wrong status code. Got %d. Expect %d", response.StatusCode, expectCode)
-		}
-
-		var body string
-		var buff bytes.Buffer
-		if _, err := buff.ReadFrom(response.Body); err != nil {
-			t.Fatalf("Error reading body: %s", err)
-		}
-		if err := json.Unmarshal(buff.Bytes(), &body); err != nil {
-			t.Fatalf("Error reading body: %s", err)
-		}
-		if body != expectBody {
-			t.Errorf("Wrong body. Got %s. Expect %s", body, expectBody)
-		}
-	}
-}
-
-func checkerRaw(expectCode int, expectBody string) checkerFunction {
-	return func(t *testing.T, response *http.Response, req *http.Request) {
-		if response.StatusCode != expectCode {
-			t.Errorf("Wrong status code. Got %d. Expect %d", response.StatusCode, expectCode)
-		}
-
-		var buff bytes.Buffer
-		if _, err := buff.ReadFrom(response.Body); err != nil {
-			t.Fatalf("Error reading body: %s", err)
-		}
-		if body := strings.TrimSpace(string(buff.Bytes())); body != expectBody {
-			t.Errorf("Wrong body. Got %s. Expect %s", body, expectBody)
-		}
-	}
-}
-
-type hanlderArgs struct {
+type handlerArgs struct {
 	pattern string
 	fct     func(ctx context.Context, resp Response, req *Request)
 }
@@ -176,15 +136,15 @@ type reqFields struct {
 }
 type handlerTestsStruct struct {
 	name    string
-	args    hanlderArgs
+	args    handlerArgs
 	req     reqFields
-	checker checkerFunction
+	checker TestChecker
 }
 
 var handlerTests []handlerTestsStruct = []handlerTestsStruct{
 	{
 		name: "write",
-		args: hanlderArgs{
+		args: handlerArgs{
 			pattern: "/t/write",
 			fct: func(ctx context.Context, resp Response, req *Request) {
 				msg := "bar"
@@ -195,11 +155,11 @@ var handlerTests []handlerTestsStruct = []handlerTestsStruct{
 			method: "GET",
 			target: "/t/write",
 		},
-		checker: checkerJSON(http.StatusOK, "bar"),
+		checker: TestCheckerJSONString(http.StatusOK, "bar"),
 	},
 	{
 		name: "echo",
-		args: hanlderArgs{
+		args: handlerArgs{
 			pattern: "/t/echo",
 			fct: func(ctx context.Context, resp Response, req *Request) {
 				var msg string
@@ -215,11 +175,11 @@ var handlerTests []handlerTestsStruct = []handlerTestsStruct{
 			target: "/t/echo",
 			body:   `"Hello"`,
 		},
-		checker: checkerJSON(http.StatusOK, "Hello"),
+		checker: TestCheckerJSONString(http.StatusOK, "Hello"),
 	},
 	{
 		name: "error",
-		args: hanlderArgs{
+		args: handlerArgs{
 			pattern: "/t/error",
 			fct: func(ctx context.Context, resp Response, req *Request) {
 				resp.SendError(NewHttpError(http.StatusPaymentRequired, "Flublu", "Test"))
@@ -229,11 +189,11 @@ var handlerTests []handlerTestsStruct = []handlerTestsStruct{
 			method: "GET",
 			target: "/t/error",
 		},
-		checker: checkerRaw(http.StatusPaymentRequired, "Flublu"),
+		checker: TestCheckerRawString(http.StatusPaymentRequired, "Flublu"),
 	},
 	{
 		name: "panic",
-		args: hanlderArgs{
+		args: handlerArgs{
 			pattern: "/t/panic",
 			fct: func(ctx context.Context, resp Response, req *Request) {
 				panic(NewHttpError(http.StatusPaymentRequired, "Barbaz", "Test"))
@@ -243,7 +203,21 @@ var handlerTests []handlerTestsStruct = []handlerTestsStruct{
 			method: "GET",
 			target: "/t/panic",
 		},
-		checker: checkerRaw(http.StatusPaymentRequired, "Barbaz"),
+		checker: TestCheckerRawString(http.StatusPaymentRequired, "Barbaz"),
+	},
+	{
+		name: "struct",
+		args: handlerArgs{
+			pattern: "/t/struct",
+			fct: func(ctx context.Context, resp Response, req *Request) {
+				resp.SendJSON(ctx, struct {A int; B string}{A: 42, B: "Foobar"})
+			},
+		},
+		req: reqFields{
+			method: "GET",
+			target: "/t/struct",
+		},
+		checker: TestCheckerJSON(http.StatusOK, struct{A int; B string}{A: 42, B: "Foobar"}),
 	},
 }
 
