@@ -127,128 +127,128 @@ func TestHandle(t *testing.T) {
 	}
 }
 
+type checkerFunction = func(t *testing.T, response *http.Response, req *http.Request)
+
+func checkerJSON(expectCode int, expectBody string) checkerFunction {
+	return func(t *testing.T, response *http.Response, req *http.Request) {
+		if response.StatusCode != expectCode {
+			t.Errorf("Wrong status code. Got %d. Expect %d", response.StatusCode, expectCode)
+		}
+
+		var body string
+		var buff bytes.Buffer
+		if _, err := buff.ReadFrom(response.Body); err != nil {
+			t.Fatalf("Error reading body: %s", err)
+		}
+		if err := json.Unmarshal(buff.Bytes(), &body); err != nil {
+			t.Fatalf("Error reading body: %s", err)
+		}
+		if body != expectBody {
+			t.Errorf("Wrong body. Got %s. Expect %s", body, expectBody)
+		}
+	}
+}
+
+func checkerRaw(expectCode int, expectBody string) checkerFunction {
+	return func(t *testing.T, response *http.Response, req *http.Request) {
+		if response.StatusCode != expectCode {
+			t.Errorf("Wrong status code. Got %d. Expect %d", response.StatusCode, expectCode)
+		}
+
+		var buff bytes.Buffer
+		if _, err := buff.ReadFrom(response.Body); err != nil {
+			t.Fatalf("Error reading body: %s", err)
+		}
+		if body := strings.TrimSpace(string(buff.Bytes())); body != expectBody {
+			t.Errorf("Wrong body. Got %s. Expect %s", body, expectBody)
+		}
+	}
+}
+
+type hanlderArgs struct {
+	pattern string
+	fct     func(ctx context.Context, resp Response, req *Request)
+}
+type reqFields struct {
+	method string
+	target string
+	body   string
+}
+type handlerTestsStruct struct {
+	name    string
+	args    hanlderArgs
+	req     reqFields
+	checker checkerFunction
+}
+
+var handlerTests []handlerTestsStruct = []handlerTestsStruct{
+	{
+		name: "write",
+		args: hanlderArgs{
+			pattern: "/t/write",
+			fct: func(ctx context.Context, resp Response, req *Request) {
+				msg := "bar"
+				resp.SendJSON(ctx, msg)
+			},
+		},
+		req: reqFields{
+			method: "GET",
+			target: "/t/write",
+		},
+		checker: checkerJSON(http.StatusOK, "bar"),
+	},
+	{
+		name: "echo",
+		args: hanlderArgs{
+			pattern: "/t/echo",
+			fct: func(ctx context.Context, resp Response, req *Request) {
+				var msg string
+				if err := req.UnmarshalJSONBody(&msg); err != nil {
+					resp.SendError(err)
+					return
+				}
+				resp.SendJSON(ctx, msg)
+			},
+		},
+		req: reqFields{
+			method: "POST",
+			target: "/t/echo",
+			body:   `"Hello"`,
+		},
+		checker: checkerJSON(http.StatusOK, "Hello"),
+	},
+	{
+		name: "error",
+		args: hanlderArgs{
+			pattern: "/t/error",
+			fct: func(ctx context.Context, resp Response, req *Request) {
+				resp.SendError(NewHttpError(http.StatusPaymentRequired, "Flublu", "Test"))
+			},
+		},
+		req: reqFields{
+			method: "GET",
+			target: "/t/error",
+		},
+		checker: checkerRaw(http.StatusPaymentRequired, "Flublu"),
+	},
+	{
+		name: "panic",
+		args: hanlderArgs{
+			pattern: "/t/panic",
+			fct: func(ctx context.Context, resp Response, req *Request) {
+				panic(NewHttpError(http.StatusPaymentRequired, "Barbaz", "Test"))
+			},
+		},
+		req: reqFields{
+			method: "GET",
+			target: "/t/panic",
+		},
+		checker: checkerRaw(http.StatusPaymentRequired, "Barbaz"),
+	},
+}
+
 func TestHandleFunc(t *testing.T) {
-	checkerJSON :=
-		func(expectCode int, expectBody string) func(t *testing.T, wr *httptest.ResponseRecorder, req *http.Request) {
-			return func(t *testing.T, wr *httptest.ResponseRecorder, req *http.Request) {
-				response := wr.Result()
-
-				if response.StatusCode != expectCode {
-					t.Errorf("Wrong status code. Got %d. Expect %d", response.StatusCode, expectCode)
-				}
-
-				var body string
-				var buff bytes.Buffer
-				if _, err := buff.ReadFrom(response.Body); err != nil {
-					t.Fatalf("Error reading body: %s", err)
-				}
-				if err := json.Unmarshal(buff.Bytes(), &body); err != nil {
-					t.Fatalf("Error reading body: %s", err)
-				}
-				if body != expectBody {
-					t.Errorf("Wrong body. Got %s. Expect %s", body, expectBody)
-				}
-			}
-		}
-	checkerRaw :=
-		func(expectCode int, expectBody string) func(t *testing.T, wr *httptest.ResponseRecorder, req *http.Request) {
-			return func(t *testing.T, wr *httptest.ResponseRecorder, req *http.Request) {
-				response := wr.Result()
-
-				if response.StatusCode != expectCode {
-					t.Errorf("Wrong status code. Got %d. Expect %d", response.StatusCode, expectCode)
-				}
-
-				var buff bytes.Buffer
-				if _, err := buff.ReadFrom(response.Body); err != nil {
-					t.Fatalf("Error reading body: %s", err)
-				}
-				if body := strings.TrimSpace(string(buff.Bytes())); body != expectBody {
-					t.Errorf("Wrong body. Got %s. Expect %s", body, expectBody)
-				}
-			}
-		}
-
-	type args struct {
-		pattern string
-		fct     func(ctx context.Context, resp Response, req *Request)
-	}
-	type req struct {
-		method string
-		target string
-		body   string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		req     req
-		checker func(t *testing.T, wr *httptest.ResponseRecorder, req *http.Request)
-	}{
-		{
-			name: "write",
-			args: args{
-				pattern: "/t/write",
-				fct: func(ctx context.Context, resp Response, req *Request) {
-					msg := "bar"
-					resp.SendJSON(ctx, msg)
-				},
-			},
-			req: req{
-				method: "GET",
-				target: "/t/write",
-			},
-			checker: checkerJSON(http.StatusOK, "bar"),
-		},
-		{
-			name: "echo",
-			args: args{
-				pattern: "/t/echo",
-				fct: func(ctx context.Context, resp Response, req *Request) {
-					var msg string
-					if err := req.UnmarshalJSONBody(&msg); err != nil {
-						resp.SendError(err)
-						return
-					}
-					resp.SendJSON(ctx, msg)
-				},
-			},
-			req: req{
-				method: "POST",
-				target: "/t/echo",
-				body:   `"Hello"`,
-			},
-			checker: checkerJSON(http.StatusOK, "Hello"),
-		},
-		{
-			name: "error",
-			args: args{
-				pattern: "/t/error",
-				fct: func(ctx context.Context, resp Response, req *Request) {
-					resp.SendError(NewHttpError(http.StatusPaymentRequired, "Flublu", "Test"))
-				},
-			},
-			req: req{
-				method: "GET",
-				target: "/t/error",
-			},
-			checker: checkerRaw(http.StatusPaymentRequired, "Flublu"),
-		},
-		{
-			name: "panic",
-			args: args{
-				pattern: "/t/panic",
-				fct: func(ctx context.Context, resp Response, req *Request) {
-					panic(NewHttpError(http.StatusPaymentRequired, "Barbaz", "Test"))
-				},
-			},
-			req: req{
-				method: "GET",
-				target: "/t/panic",
-			},
-			checker: checkerRaw(http.StatusPaymentRequired, "Barbaz"),
-		},
-	}
-	for _, tt := range tests {
+	for _, tt := range handlerTests {
 		t.Run(tt.name, func(t *testing.T) {
 			HandleFunc(tt.args.pattern, tt.args.fct)
 
@@ -261,7 +261,21 @@ func TestHandleFunc(t *testing.T) {
 			req := httptest.NewRequest(tt.req.method, tt.req.target, body)
 			http.DefaultServeMux.ServeHTTP(wr, req)
 
-			tt.checker(t, wr, req)
+			tt.checker(t, wr.Result(), req)
+		})
+	}
+}
+
+func TestTestHandlerFunc(t *testing.T) {
+	for _, tt := range handlerTests {
+		t.Run(tt.name, func(t *testing.T) {
+			var body io.Reader
+			if tt.req.body != "" {
+				body = strings.NewReader(tt.req.body)
+			}
+			req := httptest.NewRequest(tt.req.method, tt.req.target, body)
+			response := TestHandlerFunc(tt.args.pattern, tt.args.fct, req)
+			tt.checker(t, response, req)
 		})
 	}
 }

@@ -19,6 +19,7 @@ package server
 import (
 	"context"
 	"net/http"
+	"net/http/httptest"
 )
 
 // A HttpError is an error that can be send as an HTTP response.
@@ -69,8 +70,10 @@ type Handler interface {
 	Handle(ctx context.Context, response Response, request *Request)
 }
 
+type HandleFunction = func(ctx context.Context, response Response, request *Request)
+
 // HandlerFunc wraps a function into a Handler.
-type HandlerFunc func(ctx context.Context, response Response, request *Request)
+type HandlerFunc HandleFunction
 
 func (self HandlerFunc) Handle(ctx context.Context, response Response, request *Request) {
 	self(ctx, response, request)
@@ -104,6 +107,16 @@ func Handle(pattern string, handler Handler) {
 
 // Handle registers the handler function for the given pattern.
 // See http.ServeMux for a description of the pattern format.
-func HandleFunc(pattern string, fct func(ctx context.Context, resp Response, req *Request)) {
+func HandleFunc(pattern string, fct HandleFunction) {
 	http.Handle(pattern, handlerWrapper{pattern: pattern, handler: HandlerFunc(fct)})
+}
+
+func TestHandler(pattern string, handler Handler, request *http.Request) *http.Response {
+	mock := httptest.NewRecorder()
+	handlerWrapper{pattern: pattern, handler: handler}.ServeHTTP(mock, request)
+	return mock.Result()
+}
+
+func TestHandlerFunc(pattern string, handler HandleFunction, request *http.Request) *http.Response {
+	return TestHandler(pattern, HandlerFunc(handler), request)
 }
