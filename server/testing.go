@@ -86,6 +86,17 @@ func TestCheckerJSON(expectCode int, expectBody interface{}) TestChecker {
 	}
 }
 
+// TestCheckerJSONString returns a TestChecker to check status code.
+//
+// The returned function checks that the statuc code is as expected. The body is not checked.
+func TestCheckerStatus(expectCode int) TestChecker {
+	return func(t *testing.T, response *http.Response, req *http.Request) {
+		if response.StatusCode != expectCode {
+			t.Errorf("Wrong status code. Got %d. Expect %d", response.StatusCode, expectCode)
+		}
+	}
+}
+
 // TestCheckerJSONString returns a TestChecker to check responses whose body is a JSON object
 // representing a string.
 //
