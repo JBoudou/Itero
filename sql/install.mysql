@@ -167,6 +167,10 @@ CREATE TABLE Polls (
   Description       text,
   Admin             int unsigned      NOT NULL,             # FK on Users
   Created           timestamp         NOT NULL  DEFAULT CURRENT_TIMESTAMP,
+  Active            bool              NOT NULL  DEFAULT TRUE,
+
+  # Salt is used to make discovery of poll difficult
+  Salt              int unsigned      NOT NULL,
 
   Type              tinyint unsigned  NOT NULL  DEFAULT 0,  # FK on PollType
   Publicity         tinyint unsigned  NOT NULL  DEFAULT 1,  # FK on PollPublicity
@@ -210,7 +214,8 @@ CREATE TABLE Polls (
 DELIMITER //
 
 CREATE PROCEDURE Polls_checker_before (
-  Title             tinytext        ,
+  Title             tinytext,
+  Salt              int unsigned,
   Publicity         tinyint unsigned,
   NbChoices         tinyint unsigned,
   MinNbRounds       smallint unsigned,
@@ -224,6 +229,9 @@ CREATE PROCEDURE Polls_checker_before (
 BEGIN
   IF length(Title) < 3 THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Title field is too short';
+  END IF;
+  IF Salt >= 8388608 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Salt must be 23 bits long';
   END IF;
   IF NbChoices < 2 THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'NbChoices must be at least 2';
@@ -260,9 +268,9 @@ BEGIN
   END IF;
   SET NEW.Created           = CURRENT_TIMESTAMP();
   SET NEW.CurrentRoundStart = CURRENT_TIMESTAMP();
-  CALL Polls_checker_before(NEW.Title, NEW.Publicity, NEW.NbChoices, NEW.MinNbRounds, NEW.MaxNbRounds,
-                            NEW.Deadline, NEW.MaxRoundDutation, NEW.RoundThreshold, NEW.CurrentRound,
-                            NEW.CurrentRoundStart);
+  CALL Polls_checker_before(NEW.Title, NEW.Salt, NEW.Publicity, NEW.NbChoices, NEW.MinNbRounds,
+                            NEW.MaxNbRounds, NEW.Deadline, NEW.MaxRoundDutation, NEW.RoundThreshold,
+                            NEW.CurrentRound, NEW.CurrentRoundStart);
 END;
 //
 
@@ -275,9 +283,9 @@ BEGIN
   IF NEW.CurrentRound > OLD.CurrentRound THEN
     SET NEW.CurrentRoundStart = CURRENT_TIMESTAMP();
   END IF;
-  CALL Polls_checker_before(NEW.Title, NEW.Publicity, NEW.NbChoices, NEW.MinNbRounds, NEW.MaxNbRounds,
-                            NEW.Deadline, NEW.MaxRoundDutation, NEW.RoundThreshold, NEW.CurrentRound,
-                            NEW.CurrentRoundStart);
+  CALL Polls_checker_before(NEW.Title, NEW.Salt, NEW.Publicity, NEW.NbChoices, NEW.MinNbRounds,
+                            NEW.MaxNbRounds, NEW.Deadline, NEW.MaxRoundDutation, NEW.RoundThreshold,
+                            NEW.CurrentRound, NEW.CurrentRoundStart);
 END;
 //
 
