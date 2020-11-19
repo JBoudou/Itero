@@ -78,13 +78,18 @@ func (self HandlerFunc) Handle(ctx context.Context, response Response, request *
 	self(ctx, response, request)
 }
 
-type handlerWrapper struct {
+// HandlerWrapper wraps a Handler into an http.Handler.
+type HandlerWrapper struct {
 	pattern string
 	handler Handler
 }
 
+func NewHandlerWrapper(pattern string, handler Handler) HandlerWrapper {
+	return HandlerWrapper{pattern: pattern, handler: handler}
+}
+
 // ServeHTTP implements http.Handler.
-func (self handlerWrapper) ServeHTTP(wr http.ResponseWriter, original *http.Request) {
+func (self HandlerWrapper) ServeHTTP(wr http.ResponseWriter, original *http.Request) {
 	ctx := original.Context()
 	response := Response{wr}
 	request := newRequest(self.pattern, original)
@@ -101,11 +106,11 @@ func (self handlerWrapper) ServeHTTP(wr http.ResponseWriter, original *http.Requ
 // Handle registers the handler for the given pattern.
 // See http.ServeMux for a description of the pattern format.
 func Handle(pattern string, handler Handler) {
-	http.Handle(pattern, handlerWrapper{pattern: pattern, handler: handler})
+	http.Handle(pattern, HandlerWrapper{pattern: pattern, handler: handler})
 }
 
 // Handle registers the handler function for the given pattern.
 // See http.ServeMux for a description of the pattern format.
 func HandleFunc(pattern string, fct HandleFunction) {
-	http.Handle(pattern, handlerWrapper{pattern: pattern, handler: HandlerFunc(fct)})
+	http.Handle(pattern, HandlerWrapper{pattern: pattern, handler: HandlerFunc(fct)})
 }

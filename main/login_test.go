@@ -17,14 +17,12 @@
 package main
 
 import (
-	"io"
 	"net/http"
-	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/JBoudou/Itero/db"
 	"github.com/JBoudou/Itero/server"
+	srvt "github.com/JBoudou/Itero/server/servertest"
 )
 
 func TestLoginHandler(t *testing.T) {
@@ -42,61 +40,38 @@ func TestLoginHandler(t *testing.T) {
 		db.DB.Exec(`DELETE FROM Users WHERE Id = ?`, userId)
 	} ()
 
-	type req struct {
-		method string
-		target string
-		body   string
-	}
-	tests := []struct {
-		name    string
-		req     req
-		checker server.TestChecker
-	}{
+	tests := []srvt.Test {
 		{
-			name: "no body",
-			req: req{
-				method: "GET",
+			Name: "no body",
+			Request: srvt.Request{
+				Method: "GET",
 			},
-			checker: server.TestCheckerStatus(http.StatusBadRequest),
+			Checker: srvt.CheckerStatus(http.StatusBadRequest),
 		},
 		{
-			name: "empty user",
-			req: req{
-				method: "POST",
-				body:   `{"Passwd":"XYZ"}`,
+			Name: "empty user",
+			Request: srvt.Request{
+				Method: "POST",
+				Body:   `{"Passwd":"XYZ"}`,
 			},
-			checker: server.TestCheckerStatus(http.StatusForbidden),
+			Checker: srvt.CheckerStatus(http.StatusForbidden),
 		},
 		{
-			name: "empty passwd",
-			req: req{
-				method: "POST",
-				body:   `{"User":" Test "}`,
+			Name: "empty passwd",
+			Request: srvt.Request{
+				Method: "POST",
+				Body:   `{"User":" Test "}`,
 			},
-			checker: server.TestCheckerStatus(http.StatusForbidden),
+			Checker: srvt.CheckerStatus(http.StatusForbidden),
 		},
 		{
-			name: "success",
-			req: req{
-				method: "POST",
-				body:   `{"User":" Test ","Passwd":"XYZ"}`,
+			Name: "success",
+			Request: srvt.Request{
+				Method: "POST",
+				Body:   `{"User":" Test ","Passwd":"XYZ"}`,
 			},
-			checker: server.TestCheckerStatus(http.StatusOK),
+			Checker: srvt.CheckerStatus(http.StatusOK),
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			target := tt.req.target
-			if target == "" {
-				target = "/a/test"
-			}
-			var body io.Reader
-			if tt.req.body != "" {
-				body = strings.NewReader(tt.req.body)
-			}
-			req := httptest.NewRequest(tt.req.method, target, body)
-			response := server.TestHandlerFunc("/a/test", LoginHandler, req)
-			tt.checker(t, response, req)
-		})
-	}
+	srvt.Run(t, tests, server.HandlerFunc(LoginHandler))
 }

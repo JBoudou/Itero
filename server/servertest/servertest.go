@@ -14,9 +14,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-package server
-
-// The tests for this file are in handler_test.go.
+// Package servertest provides methods and types to test server.Handler implementations.
+package servertest
 
 import (
 	"bytes"
@@ -24,33 +23,63 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"io"
+	"strings"
+
+	"github.com/JBoudou/Itero/server"
 )
 
-// TestHandler execute the given handler for the given request.
+// Request provides information to create an http.Request.
 //
-// The returned http.Response is what would have been received by a client if the handler
-// was registered for the given pattern and the given http.Request was directed to that handler.
-// Notice that there is not check that the path of the request corresponds to the pattern.
-//
-// This function is meant to be used to test Handlers.
-func TestHandler(pattern string, handler Handler, request *http.Request) *http.Response {
-	mock := httptest.NewRecorder()
-	handlerWrapper{pattern: pattern, handler: handler}.ServeHTTP(mock, request)
-	return mock.Result()
+// The only mandatory field is Method. If Target has zero value, it is replaced with "/a/test"
+// by Run().
+type Request struct {
+	Method string
+	Target string
+	Body   string
 }
 
-// TestHandlerFunc is a thin wrapper around TestHandler. See TestHandler for details.
-func TestHandlerFunc(pattern string, handler HandleFunction, request *http.Request) *http.Response {
-	return TestHandler(pattern, HandlerFunc(handler), request)
+// Checker is a signature for functions that check the result of a request on a Handler.
+type Checker = func(t *testing.T, response *http.Response, req *http.Request)
+
+// Test represents a test to be executed by Run().
+type Test struct {
+	Name string
+	Request Request
+	Checker Checker
 }
 
-// TestChecker is a signature for functions that check the result of a request on a Handler.
-type TestChecker = func(t *testing.T, response *http.Response, req *http.Request)
+// Run executes all the given tests on the given Handler.
+//
+// The same handler is used for all tests. The tests are executed in the given order.
+// The requests received by the handler are as if the handler had been registered for the pattern
+// "/a/test".
+//
+// Each test is executed inside testing.T.Run, hence calling t.Fatal in the checker abort only the
+// current test.
+func Run(t *testing.T, tests []Test, handler server.Handler) {
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			target := tt.Request.Target
+			if target == "" {
+				target = "/a/test"
+			}
+			var body io.Reader
+			if tt.Request.Body != "" {
+				body = strings.NewReader(tt.Request.Body)
+			}
+			req := httptest.NewRequest(tt.Request.Method, target, body)
+			mock := httptest.NewRecorder()
+			server.NewHandlerWrapper("/a/test", handler).ServeHTTP(mock, req)
+			tt.Checker(t, mock.Result(), req)
+		})
+	}
+}
 
-// TestCheckerJSON returns a TestChecker to check responses whose body is a JSON object.
+// CheckerJSON returns a Checker to check responses whose body is a JSON object.
 //
 // The returned function checks that the statuc code and the body are as expected.
-func TestCheckerJSON(expectCode int, expectBody interface{}) TestChecker {
+func CheckerJSON(expectCode int, expectBody interface{}) Checker {
 	return func(t *testing.T, response *http.Response, req *http.Request) {
 		if response.StatusCode != expectCode {
 			t.Errorf("Wrong status code. Got %d. Expect %d", response.StatusCode, expectCode)
@@ -85,10 +114,10 @@ func TestCheckerJSON(expectCode int, expectBody interface{}) TestChecker {
 	}
 }
 
-// TestCheckerJSONString returns a TestChecker to check status code.
+// CheckerJSONString returns a Checker to check status code.
 //
 // The returned function checks that the statuc code is as expected. The body is not checked.
-func TestCheckerStatus(expectCode int) TestChecker {
+func CheckerStatus(expectCode int) Checker {
 	return func(t *testing.T, response *http.Response, req *http.Request) {
 		if response.StatusCode != expectCode {
 			t.Errorf("Wrong status code. Got %d. Expect %d", response.StatusCode, expectCode)
