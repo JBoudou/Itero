@@ -14,6 +14,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+// Package server provides classes and functions for the HTTP server side of the middleware.
+//
+// In particular, the package handles client sessions by producing credentials for logged user and
+// by verifying these credentials for each request.
+//
+// It is a wrapper around net/http.
 package server
 
 import (
