@@ -25,6 +25,8 @@ import (
 	"log"
 	"net/http"
 	"time"
+
+	gs "github.com/gorilla/sessions"
 )
 
 type Response struct {
@@ -76,22 +78,11 @@ func (self Response) SendLoginAccepted(ctx context.Context, user User, req *Requ
 		return
 	}
 
-	session, err := sessionStore.New(req.original, sessionName)
-	if err != nil {
-		self.SendError(err)
-		return
-	}
-
-	sessionId, err := randomShortId()
+	sessionId, err := MakeSessionId()
 	if err != nil {
 		self.SendError(err)
 	}
-
-	session.Values[sessionKeySessionId] = sessionId
-	session.Values[sessionKeyUserName] = user.Name
-	session.Values[sessionKeyUserId] = user.Id
-	session.Values[sessionKeyDeadline] = time.Now().Unix() + sessionMaxAge + sessionGraceTime
-
+	session := NewSession(sessionStore, sessionStore.Options, sessionId, user)
 	if err = session.Save(req.original, self.writer); err != nil {
 		log.Printf("Error saving session: %v", err)
 	}
@@ -99,10 +90,30 @@ func (self Response) SendLoginAccepted(ctx context.Context, user User, req *Requ
 	self.SendJSON(ctx, sessionId)
 }
 
-func randomShortId() (string, error) {
+// MakeSessionId create a new session id.
+//
+// This is a low level function, made available for tests.
+func MakeSessionId() (string, error) {
 	b := make([]byte, 3)
 	if _, err := rand.Read(b); err != nil {
 		return "", err
 	}
 	return base64.URLEncoding.EncodeToString(b), nil
+}
+
+// NewSession creates a new session for the given user.
+//
+// This is a low level function, made available for tests. Use SendLoginAccepted instead.
+func NewSession(st gs.Store, opts *gs.Options, sessionId string, user User) (session *gs.Session) {
+	session = gs.NewSession(st, sessionName)
+	sessionOptions := *opts
+	session.Options = &sessionOptions
+	session.IsNew = true
+
+	session.Values[sessionKeySessionId] = sessionId
+	session.Values[sessionKeyUserName] = user.Name
+	session.Values[sessionKeyUserId] = user.Id
+	session.Values[sessionKeyDeadline] = time.Now().Unix() + sessionMaxAge + sessionGraceTime
+
+	return
 }

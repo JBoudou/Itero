@@ -98,7 +98,7 @@ func TestInsert(t *testing.T) {
 
 	// MariaDB does not handle $1 placeholders...
 	userId := execLIR("INSERT INTO Users (Email, Name, Passwd) VALUES ('jogo@matabio.net', 'joseph', 'XXXXXXXXXXXX')")
-	pollId := execLIR("INSERT INTO Polls (Title, Admin, NbChoices) VALUES ('Test', ?, 2)", userId)
+	pollId := execLIR("INSERT INTO Polls (Title, Admin, Salt, NbChoices) VALUES ('Test', ?, 42, 2)", userId)
 	exec("INSERT INTO Alternatives (Poll, Id, Name) VALUES (?, 0, 'Blue'), (?, 1, 'Yellow')", pollId, pollId)
 	exec("INSERT INTO Participants (User, Poll) VALUES (?, ?)", userId, pollId)
 	exec("INSERT INTO Ballots (User, Poll, Alternative, Round) VALUES (?, ?, 0, 0)", userId, pollId)

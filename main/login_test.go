@@ -20,25 +20,19 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/JBoudou/Itero/db"
 	"github.com/JBoudou/Itero/server"
 	srvt "github.com/JBoudou/Itero/server/servertest"
+	dbt  "github.com/JBoudou/Itero/db/dbtest"
 )
 
 func TestLoginHandler(t *testing.T) {
-	result, err := db.DB.Exec(`INSERT INTO Users(Name, Email, Passwd)
-	                           VALUES(' Test ', 'test@example.test',
-	                           X'2e43477a2da06cb4aba764381086cbc9323945eb1bffb232f221e374af44f803')`)
-	if err != nil {
-		t.Fatalf("Insert failed: %s", err)
+	env := new(dbt.Env)
+	defer env.Close()
+
+	env.CreateUser()
+	if env.Error != nil {
+		t.Fatalf("Env failed: %s", env.Error)
 	}
-	userId, err := result.LastInsertId()
-	if err != nil {
-		t.Fatalf("Insert failed: %s", err)
-	}
-	defer func () {
-		db.DB.Exec(`DELETE FROM Users WHERE Id = ?`, userId)
-	} ()
 
 	tests := []srvt.Test {
 		{

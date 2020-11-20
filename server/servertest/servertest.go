@@ -20,31 +20,74 @@ package servertest
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
-	"testing"
-	"io"
 	"strings"
+	"testing"
 
 	"github.com/JBoudou/Itero/server"
 )
 
+var (
+	clientStore *ClientStore
+)
+
+func init() {
+	clientStore = NewClientStore(server.SessionKeys()...)
+}
+
 // Request provides information to create an http.Request.
 //
-// The only mandatory field is Method. If Target has zero value, it is replaced with "/a/test"
-// by Run().
+// Its zero value is valid and produces the request "GET /a/test". See Make() for details.
 type Request struct {
 	Method string
 	Target string
 	Body   string
+	UserId *uint32
+}
+
+// Make generates an http.Request.
+//
+// Default value for Method is "GET". Default value for Target is "/a/test". If UserId is not nil
+// then a valid session for that user is added to the request.
+func (self *Request) Make() (req *http.Request, err error) {
+	target := self.Target
+	if target == "" {
+		target = "/a/test"
+	}
+
+	sessionId := ""
+	if self.UserId != nil {
+		sessionId, err = server.MakeSessionId()
+		if err != nil {
+			return
+		}
+		server.AddSessionIdToPath(&target, sessionId)
+	}
+
+	var body io.Reader
+	if self.Body != "" {
+		body = strings.NewReader(self.Body)
+	}
+	req = httptest.NewRequest(self.Method, target, body)
+	if self.UserId != nil {
+		user := server.User{Name: " Test ", Id: *self.UserId}
+		session := server.NewSession(clientStore, &server.SessionOptions, sessionId, user)
+		clientStore.Save(req, nil, session)
+	}
+	return
 }
 
 // Checker is a signature for functions that check the result of a request on a Handler.
 type Checker = func(t *testing.T, response *http.Response, req *http.Request)
 
 // Test represents a test to be executed by Run().
+//
+// Update is called before the test, if not nil.
 type Test struct {
-	Name string
+	Name    string
+	Update  func(t *testing.T)
 	Request Request
 	Checker Checker
 }
@@ -60,20 +103,23 @@ type Test struct {
 func Run(t *testing.T, tests []Test, handler server.Handler) {
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
-			target := tt.Request.Target
-			if target == "" {
-				target = "/a/test"
+			if tt.Update != nil {
+				tt.Update(t)
 			}
-			var body io.Reader
-			if tt.Request.Body != "" {
-				body = strings.NewReader(tt.Request.Body)
+			req, err := tt.Request.Make()
+			if err != nil {
+				t.Fatalf("Error creating request: %s", err)
 			}
-			req := httptest.NewRequest(tt.Request.Method, target, body)
 			mock := httptest.NewRecorder()
 			server.NewHandlerWrapper("/a/test", handler).ServeHTTP(mock, req)
 			tt.Checker(t, mock.Result(), req)
 		})
 	}
+}
+
+// RunFunc is a convenient wrapper around Run for HandleFunction.
+func RunFunc(t *testing.T, tests []Test, handler server.HandleFunction) {
+	Run(t, tests, server.HandlerFunc(handler))
 }
 
 // CheckerJSON returns a Checker to check responses whose body is a JSON object.

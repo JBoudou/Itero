@@ -74,6 +74,18 @@ func (self *Request) UnmarshalJSONBody(dst interface{}) error {
 	return json.Unmarshal(buff.Bytes(), &dst)
 }
 
+// AddSessionIdToPath adds a session id to a URL path.
+// This function is meant to be used by HTTP clients and tests.
+func AddSessionIdToPath(path *string, sessionId string) {
+	var inter string
+	if strings.Contains(*path, "?") {
+		inter = "&"
+	} else {
+		inter = "?"
+	}
+	*path = *path + inter + queryKeySessionId + "=" + sessionId
+}
+
 /* What follows are private methods and functions */
 
 func (self *Request) addSession(session *gs.Session) {

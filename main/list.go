@@ -18,6 +18,7 @@ package main
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/JBoudou/Itero/b64buff"
 	"github.com/JBoudou/Itero/db"
@@ -57,22 +58,19 @@ func (self PollSegment) Encode() (str string, err error) {
 
 // end PollSegment
 
+type listResponseEntry struct {
+	Title        string `json:"t"`
+	Segment      string `json:"s"`
+	CurrentRound uint8  `json:"c"`
+	MaxRound     uint8  `json:"m"`
+}
+
 func ListHandler(ctx context.Context, response server.Response, request *server.Request) {
-	type entry struct {
-		Title        string `json:"t"`
-		Segment      string `json:"s"`
-		CurrentRound uint8  `json:"c"`
-		MaxRound     uint8  `json:"m"`
-	}
-	reply := struct {
-		Ok   bool
-		Data []entry `json:"d"`
-	}{}
+	reply := make([]listResponseEntry, 0, 16)
 
 	if request.User == nil {
 		// TODO change that
-		reply.Ok = false
-		response.SendJSON(ctx, reply)
+		response.SendError(server.NewHttpError(http.StatusNotImplemented, "Unimplemented", ""))
 		return
 	}
 
@@ -94,22 +92,23 @@ func ListHandler(ctx context.Context, response server.Response, request *server.
 	defer rows.Close()
 
 	for rows.Next() {
-		var entry entry
+		var listResponseEntry listResponseEntry
 		var segment PollSegment
 
-		err = rows.Scan(&segment.Id, &segment.Salt, &entry.Title, &entry.CurrentRound, &entry.MaxRound)
+		err = rows.Scan(&segment.Id, &segment.Salt, &listResponseEntry.Title,
+			&listResponseEntry.CurrentRound, &listResponseEntry.MaxRound)
 		if err != nil {
 			response.SendError(err)
 			return
 		}
 
-		entry.Segment, err = segment.Encode()
+		listResponseEntry.Segment, err = segment.Encode()
 		if err != nil {
 			response.SendError(err)
 			return
 		}
 
-		reply.Data = append(reply.Data, entry)
+		reply = append(reply, listResponseEntry)
 	}
 
 	response.SendJSON(ctx, reply)
