@@ -26,11 +26,14 @@ import (
 	"github.com/JBoudou/Itero/config"
 )
 
+// Database pool for the application.
+var DB *sql.DB
+
+// Whether the database is usable. May be false if there is no configuration for the package.
+var Ok bool
+
+// Constants for Polls fields.
 var (
-
-	// Database pool for the application.
-	DB *sql.DB
-
 	PollTypeAcceptanceSet uint8
 
 	PollPublicityPublic           uint8
@@ -55,7 +58,13 @@ type myConfig struct {
 func init() {
 	// Read conf
 	cfg := myConfig{MaxIdleConns: 2}
-	must(config.Value("database", &cfg), "Error loading database configuration:")
+	if err := config.Value("database", &cfg); err != nil {
+		log.Print(err)
+		log.Println("WARNING: Package db not usable because there is no configuration for it.")
+		Ok = false
+		return
+	}
+	Ok = true
 
 	// Open DB
 	var err error

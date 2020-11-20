@@ -21,10 +21,11 @@ import (
 	"testing"
 )
 
-func noe(err error, t *testing.T) {
-	if err != nil {
-		t.Helper()
-		t.Error(err)
+func precheck(t *testing.T) {
+	if !db.Ok {
+		t.Log("Impossible to test package db: there is no configuration.")
+		t.Log("Add a configuration file in db/ (may be a link to the main configuration file).")
+		t.SkipNow()
 	}
 }
 
@@ -36,6 +37,8 @@ func nof(err error, t *testing.T) {
 }
 
 func TestConnection(t *testing.T) {
+	precheck(t)
+
 	t.Run("ping", func(t *testing.T) {
 		nof(DB.Ping(), t)
 	})
@@ -77,6 +80,8 @@ func TestConnection(t *testing.T) {
 }
 
 func TestInsert(t *testing.T) {
+	precheck(t)
+
 	tx, err := DB.Begin()
 	nof(err, t)
 	defer func() { nof(tx.Rollback(), t) }()
@@ -107,6 +112,8 @@ func TestInsert(t *testing.T) {
 }
 
 func TestVariables(t *testing.T) {
+	precheck(t)
+
 	allDifferent := func(vals ...uint8) {
 		t.Helper()
 		set := map[uint8]bool{}

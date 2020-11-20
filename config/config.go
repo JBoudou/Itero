@@ -23,6 +23,7 @@ package config
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -31,6 +32,10 @@ import (
 const configFileName = "config.json"
 
 var values map[string]json.RawMessage
+
+// Ok is true iff the configuration file has successfully been read.
+// It may be false after init() has been called if no configuration file has been found.
+var Ok bool
 
 // Error returned when the key is not found in the configuration.
 type KeyNotFound string
@@ -42,6 +47,10 @@ func (self KeyNotFound) Error() string {
 func init() {
 	in, err := os.Open(configFileName)
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			Ok = false
+			return
+		}
 		log.Fatalf("Unable to open config file %s: %v", configFileName, err)
 	}
 
@@ -50,6 +59,7 @@ func init() {
 	if err != nil {
 		log.Fatalf("Unable to parse JSON file %s: %v", configFileName, err)
 	}
+	Ok = true
 }
 
 // Retrieve the value associated to the given key.
