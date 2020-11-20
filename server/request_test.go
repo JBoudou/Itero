@@ -28,6 +28,8 @@ import (
 )
 
 func TestNewRequest(t *testing.T) {
+	precheck(t)
+
 	type args struct {
 		basePattern string
 		original    *http.Request
@@ -65,6 +67,8 @@ func TestNewRequest(t *testing.T) {
 // TestLoginThenNewRequest tests that Response.SendLoginAccepted works well with newRequest.
 // This is a "black box test": we don't care what the functions precisely do.
 func TestLoginThenNewRequest(t *testing.T) {
+	precheck(t)
+
 	const singlePath = "foo"
 	const fullPath = "/" + singlePath
 	user := User{Name: "John", Id: 42}

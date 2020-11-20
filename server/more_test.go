@@ -30,6 +30,14 @@ import (
 	srvt "github.com/JBoudou/Itero/server/servertest"
 )
 
+func precheck(t *testing.T) {
+	if !Ok {
+		t.Log("Impossible to test package server_test: there is no configuration.")
+		t.Log("Add a configuration file in server/ (may be a link to the main configuration file).")
+		t.SkipNow()
+	}
+}
+
 // checkerJSONString returns a srvt.Checker to check responses whose body is a JSON object
 // representing a string.
 //
@@ -172,6 +180,8 @@ var handlerTests []handlerTestsStruct = []handlerTestsStruct{
 }
 
 func TestHandleFunc(t *testing.T) {
+	precheck(t)
+
 	for _, tt := range handlerTests {
 		t.Run(tt.name, func(t *testing.T) {
 			HandleFunc(tt.args.pattern, tt.args.fct)

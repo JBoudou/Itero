@@ -48,6 +48,8 @@ func init() {
 	in, err := os.Open(configFileName)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
+			log.Printf("WARNING: no configuration file ./%s found! You must create it.", configFileName)
+			log.Printf("To enable tests, there must be a configuration file (or link) in each package folder.")
 			Ok = false
 			return
 		}

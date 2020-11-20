@@ -22,7 +22,7 @@ import (
 )
 
 func precheck(t *testing.T) {
-	if !db.Ok {
+	if !Ok {
 		t.Log("Impossible to test package db: there is no configuration.")
 		t.Log("Add a configuration file in db/ (may be a link to the main configuration file).")
 		t.SkipNow()

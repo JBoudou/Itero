@@ -29,6 +29,14 @@ import (
 	"github.com/gorilla/securecookie"
 )
 
+func precheck(t *testing.T) {
+	if !Ok {
+		t.Log("Impossible to test package server: there is no configuration.")
+		t.Log("Add a configuration file in server/ (may be a link to the main configuration file).")
+		t.SkipNow()
+	}
+}
+
 func canceledContext() (ret context.Context) {
 	ret, cancelFct := context.WithCancel(context.Background())
 	cancelFct()
@@ -176,6 +184,8 @@ func TestResponse_SendError(t *testing.T) {
 }
 
 func TestResponse_SendLoginAccepted(t *testing.T) {
+	precheck(t)
+
 	type args struct {
 		ctx  context.Context
 		user User

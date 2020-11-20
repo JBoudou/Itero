@@ -53,6 +53,8 @@ func TestPollSegment(t *testing.T) {
 }
 
 func TestListHandler(t *testing.T) {
+	precheck(t)
+
 	env := new(dbt.Env)
 	defer env.Close()
 

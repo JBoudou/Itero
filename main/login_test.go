@@ -26,6 +26,8 @@ import (
 )
 
 func TestLoginHandler(t *testing.T) {
+	precheck(t)
+
 	env := new(dbt.Env)
 	defer env.Close()
 
