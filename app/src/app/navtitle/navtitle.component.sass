@@ -1,0 +1,41 @@
+@use 'sass:color'
+@use '../../styles.sass'
+div#navtitle
+  background-color: styles.$up-bg-color
+  color: styles.$up-fg-color
+  position: fixed
+  top: 0
+  left: 0
+  width: 100%
+  height: styles.$navbarheight
+  .titles
+    float: left
+    h1, h2
+      display: inline
+    h2
+      font-size: 12pt
+      font-weight: normal
+      margin: auto 1em
+  nav
+    float: right
+    $innermargin: 4px
+    $border: solid 1px styles.$up-fg-color
+    a
+      display: inline-flex
+      border-right: $border
+      margin: $innermargin 0 0 0
+      padding: 0 6px
+      height: styles.$navbarheight - (2 * $innermargin)
+      color: styles.$up-fg-color
+      text-decoration: none
+      .navitem
+        margin: auto 0
+    a:first-child
+      border-left: $border
+    a:hover
+      background-color: color.adjust(styles.$up-bg-color, $lightness: 20%)
+    a.active
+      background-color: color.adjust(styles.$up-bg-color, $lightness: 10%)
+    a.active:hover
+      background-color: color.adjust(styles.$up-bg-color, $lightness: 30%)
+

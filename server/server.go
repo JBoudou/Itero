@@ -25,6 +25,7 @@ package server
 import (
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/JBoudou/Itero/config"
 
@@ -46,6 +47,8 @@ const (
 	sessionKeyDeadline  = "dl"
 
 	queryKeySessionId = "s"
+
+	wwwroot = "app/dist/app"
 )
 
 var (
@@ -90,9 +93,22 @@ type User struct {
 	Id   uint32
 }
 
+type oneFile struct {
+	path string
+}
+
+func (self *oneFile) Open(name string) (http.File, error) {
+	log.Printf("Redirect for: %s", name)
+	return os.Open(self.path)
+}
+
 // Start the server.
 // Parameters are taken from the configuration.
 func Start() (err error) {
+	redirect := oneFile{wwwroot + "/index.html"}
+	http.Handle("/r/", http.FileServer(&redirect))
+	http.Handle("/", http.FileServer(http.Dir(wwwroot)))
+
 	if cfg.CertFile == "" && cfg.KeyFile == "" {
 		log.Println("WARNING: The server will be launched in HTTP mode, which is INSECURE.")
 		log.Println("WARNING: Set server.CertFile and server.KeyFile in the configuration.")
