@@ -1,14 +1,13 @@
 @use 'sass:color'
 
-$up-bg-color: #602c57
-//$up-bg-color: #613613
-//$up-bg-color: #85200b
-//$up-bg-color: #5421ad
-//$up-bg-color: #d48500
+$maincolor: #602c57
+//$maincolor: #613613
+//$maincolor: #85200b
+//$maincolor: #5421ad
+//$maincolor: #d48500
 
-$up-fg-color: white
-
-$userboxcolor: color.adjust($up-bg-color, $saturation: -10%, $lightness: 50%)
+$fgOnMaincolor: white
+$errorcolor: red
 
 $contmaxwidth: 1100px
 $contpadding: 8px
@@ -21,39 +20,49 @@ $formfontsize: 11pt
 body
   font-family: "Droid Sans", sans-serif
   margin: #{$navbarheight + 16} 8px 8px
-  color: color.adjust($up-bg-color, $lightness: -25%)
+  color: color.adjust($maincolor, $lightness: -25%)
 
 .main-container
   max-width: $contmaxwidth
   margin: 0 auto
   padding: 0 $contpadding
 
+$userbuttonbgcolor: color.adjust($maincolor, $saturation: -10%, $lightness: 50%)
+$useboxfgcolor: color.change($maincolor, $lightness: 16%)
+
 @mixin userbox
-  border: solid 1px $up-bg-color
+  border: solid 1px $maincolor
   border-radius: 3px
-  background-color: $userboxcolor
   padding: $userboxpadding
-  color: color.change($up-bg-color, $lightness: 16%)
+  color: $useboxfgcolor
   font-size: $formfontsize
 
 @mixin userinput
   @include userbox
-  background-color: color.adjust($userboxcolor, $lightness: 20%)
+  background-color: color.adjust($userbuttonbgcolor, $lightness: 20%)
 
 @mixin userbutton
   @include userbox
+  background-color: $userbuttonbgcolor
   padding: $userboxpadding #{$userboxpadding * 2}
 
-form .formfields
+form.basicform
   label
     font-size: $formfontsize
   input
     @include userinput
 
+@function tame($color)
+  @return color.adjust($color, $saturation: -20%, $lightness: +10%)
+
 form .formactions
   button
     @include userbutton
     &:hover
-      background-color: color.adjust($up-bg-color, $lightness: 20%)
-      color: $up-fg-color
+      background-color: color.adjust($maincolor, $lightness: 20%)
+      color: $fgOnMaincolor
+    &[disabled], &[disabled]:hover
+      border-color: tame($maincolor)
+      background-color: tame($userbuttonbgcolor)
+      color: tame($useboxfgcolor)
     

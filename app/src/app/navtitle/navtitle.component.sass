@@ -1,8 +1,8 @@
 @use 'sass:color'
 @use '../../styles.sass'
 div#navtitle
-  background-color: styles.$up-bg-color
-  color: styles.$up-fg-color
+  background-color: styles.$maincolor
+  color: styles.$fgOnMaincolor
   position: fixed
   top: 0
   left: 0
@@ -19,23 +19,23 @@ div#navtitle
   nav
     float: right
     $innermargin: 4px
-    $border: solid 1px styles.$up-fg-color
+    $border: solid 1px styles.$fgOnMaincolor
     a
       display: inline-flex
       border-right: $border
       margin: $innermargin 0 0 0
       padding: 0 6px
       height: styles.$navbarheight - (2 * $innermargin)
-      color: styles.$up-fg-color
+      color: styles.$fgOnMaincolor
       text-decoration: none
       .navitem
         margin: auto 0
       &:first-child
         border-left: $border
       &:hover
-        background-color: color.adjust(styles.$up-bg-color, $lightness: 20%)
+        background-color: color.adjust(styles.$maincolor, $lightness: 20%)
       &.active
-        background-color: color.adjust(styles.$up-bg-color, $lightness: 10%)
+        background-color: color.adjust(styles.$maincolor, $lightness: 10%)
       &.active:hover
-        background-color: color.adjust(styles.$up-bg-color, $lightness: 30%)
+        background-color: color.adjust(styles.$maincolor, $lightness: 30%)
 

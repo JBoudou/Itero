@@ -16,7 +16,8 @@
 
 import {HttpErrorResponse} from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder } from '@angular/forms';
+import { FormBuilder, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 
 import { SessionService } from '../session.service';
 
@@ -28,8 +29,8 @@ import { SessionService } from '../session.service';
 export class LoginComponent implements OnInit {
 
   form = this.formBuilder.group({
-    User: [''],
-    Passwd: ['']
+    User: ['', [Validators.required, Validators.minLength(3), Validators.pattern(/^[^\s].*[^\s]$/)]],
+    Passwd: ['', [Validators.required, Validators.minLength(4)]]
   });
 
 
@@ -37,14 +38,19 @@ export class LoginComponent implements OnInit {
   errorMsg = ''
 
   constructor(private session: SessionService,
-              private formBuilder: FormBuilder) { }
+              private formBuilder: FormBuilder,
+              private router: Router
+             ) { }
 
   ngOnInit(): void {
   }
 
   onLogin() {
     this.session.login(this.form.value).subscribe({
-      next: _ => this.errorType = 'None',
+      next: _ => {
+        this.errorType = 'None';
+        this.router.navigate(['r', 'list']);
+      },
       error: (err: HttpErrorResponse) => {
         if (err.error instanceof ErrorEvent) {
           this.errorType = 'Local';

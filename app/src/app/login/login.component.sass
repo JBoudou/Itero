@@ -1,21 +1,20 @@
 @use '../../styles.sass'
 form
-  display: inline-block
-  width: 18em
-  .formfields
-    display: table
-    width: 100%
-    p
-      display: table-row
-      label, input
-        display: table-cell
-        margin: 2px
-  .formerror
-    color: red
+  display: grid
+  grid-template-columns: min-content min-content
+  gap: 4px
+  align-items: center
+  label, input
+    grid-area: auto
+  .formerrors
+    grid-area: span 1 / span 2
+    color: styles.$errorcolor
     font-size: 10pt
+    p
+      margin: 0
   .formactions
-    border-top: solid 1px styles.$up-bg-color
-    margin: 4px 0 0 0
+    grid-area: span 1 / span 2
+    border-top: solid 1px styles.$maincolor
     padding: 4px
     display: flex
     flex-flow: row-reverse

@@ -1,14 +1,12 @@
-<form [formGroup]="form" (ngSubmit)="onLogin()">
-  <div class="formfields">
-    <p><label i18n>User:</label><input type="text" formControlName="User"></p>
-    <p><label i18n>Password:</label><input type="text" formControlName="Passwd"></p>
-  </div>
+<form class="basicform" [formGroup]="form" (ngSubmit)="onLogin()">
+  <label i18n>User:</label><input type="text" formControlName="User">
+  <label i18n>Password:</label><input type="password" formControlName="Passwd">
   <div class="formerrors" *ngIf="errorType != 'None'" [ngSwitch]="errorType">
     <p *ngSwitchCase="'Wrong'" i18n>Wrong user name or password. Please try again.</p>
     <p *ngSwitchCase="'Local'" i18n>Internal error: {{errorMsg}}</p>
     <p *ngSwitchCase="'Server'" i18n>Server error: {{errorMsg}}</p>
   </div>
   <div class="formactions">
-    <button type="submit" i18n>Log in</button>
+    <button type="submit" [disabled]="!form.valid" i18n>Log in</button>
   </div>
 </form>
