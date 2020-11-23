@@ -30,12 +30,12 @@ div#navtitle
       text-decoration: none
       .navitem
         margin: auto 0
-    a:first-child
-      border-left: $border
-    a:hover
-      background-color: color.adjust(styles.$up-bg-color, $lightness: 20%)
-    a.active
-      background-color: color.adjust(styles.$up-bg-color, $lightness: 10%)
-    a.active:hover
-      background-color: color.adjust(styles.$up-bg-color, $lightness: 30%)
+      &:first-child
+        border-left: $border
+      &:hover
+        background-color: color.adjust(styles.$up-bg-color, $lightness: 20%)
+      &.active
+        background-color: color.adjust(styles.$up-bg-color, $lightness: 10%)
+      &.active:hover
+        background-color: color.adjust(styles.$up-bg-color, $lightness: 30%)
 

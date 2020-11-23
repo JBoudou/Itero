@@ -1,15 +1,59 @@
+@use 'sass:color'
+
 $up-bg-color: #602c57
+//$up-bg-color: #613613
+//$up-bg-color: #85200b
+//$up-bg-color: #5421ad
+//$up-bg-color: #d48500
+
 $up-fg-color: white
+
+$userboxcolor: color.adjust($up-bg-color, $saturation: -10%, $lightness: 50%)
 
 $contmaxwidth: 1100px
 $contpadding: 8px
+
 $navbarheight: 40px
+
+$userboxpadding: 4px
+$formfontsize: 11pt
 
 body
   font-family: "Droid Sans", sans-serif
-  margin: $navbarheight + 16 8px 8px
+  margin: #{$navbarheight + 16} 8px 8px
+  color: color.adjust($up-bg-color, $lightness: -25%)
 
 .main-container
   max-width: $contmaxwidth
   margin: 0 auto
   padding: 0 $contpadding
+
+@mixin userbox
+  border: solid 1px $up-bg-color
+  border-radius: 3px
+  background-color: $userboxcolor
+  padding: $userboxpadding
+  color: color.change($up-bg-color, $lightness: 16%)
+  font-size: $formfontsize
+
+@mixin userinput
+  @include userbox
+  background-color: color.adjust($userboxcolor, $lightness: 20%)
+
+@mixin userbutton
+  @include userbox
+  padding: $userboxpadding #{$userboxpadding * 2}
+
+form .formfields
+  label
+    font-size: $formfontsize
+  input
+    @include userinput
+
+form .formactions
+  button
+    @include userbutton
+    &:hover
+      background-color: color.adjust($up-bg-color, $lightness: 20%)
+      color: $up-fg-color
+    

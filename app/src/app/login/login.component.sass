@@ -1,0 +1,21 @@
+@use '../../styles.sass'
+form
+  display: inline-block
+  width: 18em
+  .formfields
+    display: table
+    width: 100%
+    p
+      display: table-row
+      label, input
+        display: table-cell
+        margin: 2px
+  .formerror
+    color: red
+    font-size: 10pt
+  .formactions
+    border-top: solid 1px styles.$up-bg-color
+    margin: 4px 0 0 0
+    padding: 4px
+    display: flex
+    flex-flow: row-reverse
