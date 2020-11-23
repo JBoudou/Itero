@@ -6,8 +6,9 @@
     </div>
     <nav>
       <a routerLink="/r/list" routerLinkActive="active"><span class="navitem" i18n>Polls</span></a>
-      <a><span class="navitem" i18n>Sign up</span></a>
-      <a routerLink="/r/login" routerLinkActive="active"><span class="navitem" i18n>Log in</span></a>
+      <a *ngIf="!logged"><span class="navitem" i18n>Sign up</span></a>
+      <a *ngIf="!logged" routerLink="/r/login" routerLinkActive="active"><span class="navitem" i18n>Log in</span></a>
+      <a *ngIf="logged"><span class="navitem">{{sessionUser}}</span></a>
     </nav>
   </div>
 </div>

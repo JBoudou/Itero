@@ -16,27 +16,47 @@
 
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 import { LoginInfo } from './api'
+
+export class SessionInfo {
+  registered: boolean;
+  user: string;
+}
 
 @Injectable({
   providedIn: 'root'
 })
 export class SessionService {
 
-  sessionId: string;
+  sessionId: string = '';
+
+  observable = new Subject<SessionInfo>()
 
   login(info: LoginInfo): Observable<LoginInfo> {
     return this.http.post('/a/login', info).pipe(
       map((data: string) => {
         this.sessionId = data;
-        console.log("New session id " + this.sessionId);
+        this.observable.next({registered: true, user: info.User});
         return info;
       })
     );
   }
 
-  constructor(private http: HttpClient) { }
+  makeURL(base: string): string {
+    if (this.sessionId == '') {
+      return base;
+    }
+
+    var sep: string = "?";
+    if (base.includes(sep)) {
+      sep = "&";
+    }
+    return base + sep + "s=" + this.sessionId;
+  }
+
+  constructor(public http: HttpClient) {
+  }
 }

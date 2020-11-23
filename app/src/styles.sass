@@ -6,6 +6,9 @@ $maincolor: #602c57
 //$maincolor: #5421ad
 //$maincolor: #d48500
 
+$userbuttonbgcolor: color.adjust($maincolor, $saturation: -10%, $lightness: 50%)
+$softbgcolor: color.adjust($userbuttonbgcolor, $lightness: 20%)
+
 $fgOnMaincolor: white
 $errorcolor: red
 
@@ -27,7 +30,6 @@ body
   margin: 0 auto
   padding: 0 $contpadding
 
-$userbuttonbgcolor: color.adjust($maincolor, $saturation: -10%, $lightness: 50%)
 $useboxfgcolor: color.change($maincolor, $lightness: 16%)
 
 @mixin userbox
@@ -39,7 +41,7 @@ $useboxfgcolor: color.change($maincolor, $lightness: 16%)
 
 @mixin userinput
   @include userbox
-  background-color: color.adjust($userbuttonbgcolor, $lightness: 20%)
+  background-color: $softbgcolor
 
 @mixin userbutton
   @include userbox

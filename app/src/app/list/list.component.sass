@@ -1,0 +1,15 @@
+@use '../../styles.sass'
+table#polllist
+  border: solid 1px styles.$maincolor
+  border-collapse: collapse
+  td, th
+    padding: 2px 4px
+  tr.tableheader
+    background-color: styles.$softbgcolor
+  tr.poll
+    td
+      border-top: solid 1px styles.$maincolor
+    &:hover
+      background-color: styles.$softbgcolor
+    td.round
+      text-align: center

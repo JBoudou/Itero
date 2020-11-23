@@ -1,1 +1,8 @@
-<p>list works!</p>
+<h3>Poll list</h3>
+<table *ngIf="polls.length > 0" id="polllist">
+  <tr class="tableheader"><th i18n>Title</th><th i18n>Round</th></tr>
+  <tbody *ngFor="let poll of polls">
+  <tr class="poll"><td class="title">{{poll.t}}</td><td class="round">{{poll.c}}/{{poll.m}}</td></tr>
+  </tbody>
+</table>
+<p *ngIf="polls.length == 0" i18n>There is no poll you can participe in now. Maybe can you create your own?</p>

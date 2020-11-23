@@ -24,6 +24,7 @@ import (
 
 func main() {
 	server.HandleFunc("/a/login", LoginHandler)
+	server.HandleFunc("/a/list", ListHandler)
 
 	log.Println("Server starting")
 	if err := server.Start(); err != nil {

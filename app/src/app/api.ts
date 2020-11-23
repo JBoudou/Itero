@@ -21,3 +21,10 @@ export class LoginInfo {
   User: string;
   Passwd: string;
 }
+
+export class ListResponseEntry {
+  t: string; // title
+  s: string; // segment
+  c: number; // current round
+  m: number; // max nb rounds
+}

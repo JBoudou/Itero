@@ -29,10 +29,16 @@ import { SessionService } from '../session.service';
 export class LoginComponent implements OnInit {
 
   form = this.formBuilder.group({
-    User: ['', [Validators.required, Validators.minLength(3), Validators.pattern(/^[^\s].*[^\s]$/)]],
-    Passwd: ['', [Validators.required, Validators.minLength(4)]]
+    User: ['',
+      [Validators.required,
+       Validators.minLength(3),
+       Validators.pattern(/^[^\s].*[^\s]$/)
+      ]],
+    Passwd: ['',
+      [Validators.required,
+       Validators.minLength(4)
+      ]]
   });
-
 
   errorType = 'None'
   errorMsg = ''
