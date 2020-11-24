@@ -9,6 +9,7 @@ import { NavtitleComponent } from './navtitle/navtitle.component';
 import { ListComponent } from './list/list.component';
 import { LoginComponent } from './login/login.component';
 import { HomeComponent } from './home/home.component';
+import { DeadRouteComponent } from './dead-route/dead-route.component';
 
 @NgModule({
   declarations: [
@@ -16,7 +17,8 @@ import { HomeComponent } from './home/home.component';
     NavtitleComponent,
     ListComponent,
     LoginComponent,
-    HomeComponent
+    HomeComponent,
+    DeadRouteComponent
   ],
   imports: [
     BrowserModule,
