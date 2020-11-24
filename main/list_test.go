@@ -17,7 +17,10 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"net/http"
+	"reflect"
 	"testing"
 
 	"github.com/JBoudou/Itero/db"
@@ -82,24 +85,61 @@ func TestListHandler(t *testing.T) {
 
 	type maker = func(t *testing.T) listResponseEntry
 
-	makePollEntry := func(title string, id *uint32) maker {
+	makePollEntry := func(title string, id *uint32, action string) maker {
 		return func(t *testing.T) listResponseEntry {
 			segment, err := PollSegment{Id: *id, Salt: 42}.Encode()
 			if err != nil {
 				t.Fatal(err)
 			}
-			return listResponseEntry{Title: title, Segment: segment, CurrentRound: 0, MaxRound: 3}
+			return listResponseEntry{Title: title, Segment: segment, CurrentRound: 0, MaxRound: 3,
+				Action: action}
 		}
 	}
 
-	checker := func(polls []maker) srvt.Checker {
+	checker := func(include []maker, exclude []maker) srvt.Checker {
 		return func(t *testing.T, response *http.Response, req *http.Request) {
-			expect := make([]listResponseEntry, 0, len(polls))
-			for _, maker := range polls {
-				expect = append(expect, maker(t))
+			if response.StatusCode != http.StatusOK {
+				t.Errorf("Wrong status code. Got %d. Expect %d", response.StatusCode, http.StatusOK)
 			}
-			// TODO improve the checker such that it does not fail in production.
-			srvt.CheckerJSON(http.StatusOK, expect)(t, response, req)
+
+			wanted := make(map[string]*listResponseEntry, 2)
+			for _, maker := range include {
+				entry := maker(t)
+				wanted[entry.Segment] = &entry
+			}
+			for _, maker := range exclude {
+				entry := maker(t)
+				wanted[entry.Segment] = nil
+			}
+			
+			var got []listResponseEntry
+			var buff bytes.Buffer
+			if _, err := buff.ReadFrom(response.Body); err != nil {
+				t.Fatalf("Error reading body: %s", err)
+			}
+			if err := json.Unmarshal(buff.Bytes(), &got); err != nil {
+				t.Fatalf("Error reading body: %s", err)
+			}
+			
+			for _, entry := range got {
+				entry.Deadline = ""
+				want, ok := wanted[entry.Segment]
+				if !ok {
+					continue
+				}
+				if want == nil {
+					t.Errorf("Unwanted %v", entry)
+				} else if !reflect.DeepEqual(entry, *want) {
+					t.Errorf("Got %v. Expect %v", entry, *want)
+				}
+				delete(wanted, entry.Segment)
+			}
+
+			for _, value := range wanted {
+				if value != nil {
+					t.Errorf("Missing %v", value)
+				}
+			}
 		}
 	}
 
@@ -110,12 +150,6 @@ func TestListHandler(t *testing.T) {
 			Checker: srvt.CheckerStatus(http.StatusNotImplemented),
 		},
 		{
-			Name:    "No poll",
-			Request: srvt.Request{UserId: &userId},
-			// TODO fix this test such that it does not fail in production.
-			Checker: srvt.CheckerJSON(http.StatusOK, []listResponseEntry{}),
-		},
-		{
 			Name: "PublicRegistered Poll",
 			Update: func(t *testing.T) {
 				poll1Id = env.CreatePoll(poll1Title, userId, db.PollPublicityPublicRegistered)
@@ -124,7 +158,7 @@ func TestListHandler(t *testing.T) {
 				}
 			},
 			Request: srvt.Request{UserId: &userId},
-			Checker: checker([]maker{makePollEntry(poll1Title, &poll1Id)}),
+			Checker: checker([]maker{makePollEntry(poll1Title, &poll1Id, "Part")}, []maker{}),
 		},
 		{
 			Name: "HiddenRegistered Poll",
@@ -135,7 +169,9 @@ func TestListHandler(t *testing.T) {
 				}
 			},
 			Request: srvt.Request{UserId: &userId},
-			Checker: checker([]maker{makePollEntry(poll1Title, &poll1Id)}),
+			Checker: checker(
+				[]maker{makePollEntry(poll1Title, &poll1Id, "Part")},
+				[]maker{makePollEntry(poll2Title, &poll2Id, "Vote")}),
 		},
 		{
 			Name: "HiddenRegistered Poll Participate",
@@ -147,9 +183,9 @@ func TestListHandler(t *testing.T) {
 			},
 			Request: srvt.Request{UserId: &userId},
 			Checker: checker([]maker{
-				makePollEntry(poll1Title, &poll1Id),
-				makePollEntry(poll2Title, &poll2Id),
-			}),
+				makePollEntry(poll1Title, &poll1Id, "Part"),
+				makePollEntry(poll2Title, &poll2Id, "Vote"),
+			}, []maker{}),
 		},
 	}
 

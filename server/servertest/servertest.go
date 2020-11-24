@@ -143,10 +143,7 @@ func CheckerJSON(expectCode int, expectBody interface{}) Checker {
 		if err := json.Compact(&buff, body); err != nil {
 			t.Fatalf("Error reading body: %s", err)
 		}
-		body = make([]byte, buff.Len())
-		if _, err := buff.Read(body); err != nil {
-			t.Fatalf("Error reading body: %s", err)
-		}
+		body = buff.Bytes()
 
 		// We assume json.Marshal produces compact JSON.
 		expectBodyEncoded, err := json.Marshal(expectBody)

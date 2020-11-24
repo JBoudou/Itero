@@ -18,6 +18,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
 
 	"github.com/JBoudou/Itero/b64buff"
@@ -59,10 +60,12 @@ func (self PollSegment) Encode() (str string, err error) {
 // end PollSegment
 
 type listResponseEntry struct {
-	Title        string `json:"t"`
 	Segment      string `json:"s"`
+	Title        string `json:"t"`
 	CurrentRound uint8  `json:"c"`
 	MaxRound     uint8  `json:"m"`
+	Deadline     string `json:"d"` // TODO Use (a variant of) time.Time
+	Action       string `json:"a"` // TODO Use an "enum" ?
 }
 
 func ListHandler(ctx context.Context, response server.Response, request *server.Request) {
@@ -74,16 +77,14 @@ func ListHandler(ctx context.Context, response server.Response, request *server.
 		return
 	}
 
-	const query =
-		`SELECT p.Id, p.Salt, p.Title, p.CurrentRound, p.MaxNbRounds
-		   FROM Polls AS p
-		  WHERE p.Active AND p.CurrentRound = 0 AND p.Publicity <= ?
-		 UNION DISTINCT
-		 SELECT p.Id, p.Salt, p.Title, p.CurrentRound, p.MaxNbRounds
-		   FROM Polls AS p, Participants AS a
+	const query = `SELECT p.Id, p.Salt, p.Title, p.CurrentRound, p.MaxNbRounds,
+		        addtime(p.CurrentRoundStart, p.MaxRoundDuration) AS Deadline,
+		        CASE WHEN a.User IS NULL THEN 'Part'
+		             WHEN a.LastRound >= p.CurrentRound THEN 'Modif'
+		             ELSE 'Vote' END AS Action
+		   FROM Polls AS p LEFT OUTER JOIN Participants AS a ON p.Id = a.Poll
 		  WHERE p.Active
-		    AND p.Id = a.Poll
-		    AND a.User = ?`
+			  AND ((a.User IS NULL AND p.CurrentRound = 0 AND p.Publicity <= ?) OR a.User = ?)`
 	rows, err := db.DB.QueryContext(ctx, query, db.PollPublicityPublicRegistered, request.User.Id)
 	if err != nil {
 		response.SendError(err)
@@ -94,9 +95,11 @@ func ListHandler(ctx context.Context, response server.Response, request *server.
 	for rows.Next() {
 		var listResponseEntry listResponseEntry
 		var segment PollSegment
+		var deadline sql.NullString
 
 		err = rows.Scan(&segment.Id, &segment.Salt, &listResponseEntry.Title,
-			&listResponseEntry.CurrentRound, &listResponseEntry.MaxRound)
+			&listResponseEntry.CurrentRound, &listResponseEntry.MaxRound, &deadline,
+			&listResponseEntry.Action)
 		if err != nil {
 			response.SendError(err)
 			return
@@ -106,6 +109,11 @@ func ListHandler(ctx context.Context, response server.Response, request *server.
 		if err != nil {
 			response.SendError(err)
 			return
+		}
+		if deadline.Valid {
+			listResponseEntry.Deadline = deadline.String
+		} else {
+			listResponseEntry.Deadline = "⋅";
 		}
 
 		reply = append(reply, listResponseEntry)

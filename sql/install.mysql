@@ -190,12 +190,12 @@ CREATE TABLE Polls (
   Deadline          datetime,
 
   # The round ends as soon as one of the following conditions holds:
-  #  - addtime(CurrentRoundStart, MaxRoundDutation) >= CURRENT_TIMESTAMP()
+  #  - addtime(CurrentRoundStart, MaxRoundDuration) >= CURRENT_TIMESTAMP()
   #  - (CurrentRound > 0 OR Publicity is 'Invited') AND
   #    RoundThreshold = 0 AND one participant moved for this round
   #  - (CurrentRound > 0 OR Publicity is 'Invited') AND
   #    RoundThreshold > 0 AND the proportion of participants who moved for this round > RoundThreshold
-  MaxRoundDutation  time                        DEFAULT '24:00:00',
+  MaxRoundDuration  time                        DEFAULT '24:00:00',
   RoundThreshold    double unsigned   NOT NULL  DEFAULT 1,
 
   CurrentRound      tinyint unsigned  NOT NULL  DEFAULT 0,
@@ -221,7 +221,7 @@ CREATE PROCEDURE Polls_checker_before (
   MinNbRounds       smallint unsigned,
   MaxNbRounds       smallint unsigned,
   Deadline          datetime,
-  MaxRoundDutation  time,
+  MaxRoundDuration  time,
   RoundThreshold    double unsigned ,
   CurrentRound      tinyint unsigned,
   CurrentRoundStart timestamp
@@ -242,11 +242,11 @@ BEGIN
   IF MaxNbRounds IS NULL AND Deadline IS NULL THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'One amongst MaxNbRounds and Deadline must not be NULL';
   END IF;
-  IF Publicity != 4 AND MaxRoundDutation IS NULL THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'MaxRoundDutation can not be NULL unless Publicity is Private';
+  IF Publicity < 4 AND MaxRoundDuration IS NULL THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'MaxRoundDuration can not be NULL unless Publicity is Invited';
   END IF;
-  IF MaxRoundDutation < '00:01:00' THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'MaxRoundDutation must be at least one minute';
+  IF MaxRoundDuration < '00:01:00' THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'MaxRoundDuration must be at least one minute';
   END IF;
   IF RoundThreshold < 0 OR RoundThreshold > 1 THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'RoundThreshold must be in [0;1]';
@@ -269,7 +269,7 @@ BEGIN
   SET NEW.Created           = CURRENT_TIMESTAMP();
   SET NEW.CurrentRoundStart = CURRENT_TIMESTAMP();
   CALL Polls_checker_before(NEW.Title, NEW.Salt, NEW.Publicity, NEW.NbChoices, NEW.MinNbRounds,
-                            NEW.MaxNbRounds, NEW.Deadline, NEW.MaxRoundDutation, NEW.RoundThreshold,
+                            NEW.MaxNbRounds, NEW.Deadline, NEW.MaxRoundDuration, NEW.RoundThreshold,
                             NEW.CurrentRound, NEW.CurrentRoundStart);
 END;
 //
@@ -284,7 +284,7 @@ BEGIN
     SET NEW.CurrentRoundStart = CURRENT_TIMESTAMP();
   END IF;
   CALL Polls_checker_before(NEW.Title, NEW.Salt, NEW.Publicity, NEW.NbChoices, NEW.MinNbRounds,
-                            NEW.MaxNbRounds, NEW.Deadline, NEW.MaxRoundDutation, NEW.RoundThreshold,
+                            NEW.MaxNbRounds, NEW.Deadline, NEW.MaxRoundDuration, NEW.RoundThreshold,
                             NEW.CurrentRound, NEW.CurrentRoundStart);
 END;
 //
