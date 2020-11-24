@@ -23,8 +23,10 @@ export class LoginInfo {
 }
 
 export class ListResponseEntry {
-  t: string; // title
   s: string; // segment
+  t: string; // title
   c: number; // current round
   m: number; // max nb rounds
+  d: string; // deadline
+  a: string; // action (abbreviated)
 }

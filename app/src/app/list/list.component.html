@@ -1,8 +1,22 @@
 <h3>Poll list</h3>
 <table *ngIf="polls.length > 0" id="polllist">
-  <tr class="tableheader"><th i18n>Title</th><th i18n>Round</th></tr>
+  <tr class="tableheader">
+    <th i18n>Title</th>
+    <th i18n>Round</th>
+    <th i18n>Deadline</th>
+    <th i18n>Action</th>
+  </tr>
   <tbody *ngFor="let poll of polls">
-  <tr class="poll"><td class="title">{{poll.t}}</td><td class="round">{{poll.c}}/{{poll.m}}</td></tr>
+  <tr class="poll" (click)="go(poll.s)">
+    <td class="title">{{poll.t}}</td>
+    <td class="round">{{poll.c}}/{{poll.m}}</td>
+    <td class="deadline">{{poll.d}}</td>
+    <td class="action" [ngSwitch]="poll.a">
+      <span class ="part" *ngSwitchCase="'Part'" i18n>Join</span>
+      <span class ="vote" *ngSwitchCase="'Vote'" i18n>Vote</span>
+      <span class ="modi" *ngSwitchCase="'Modi'" i18n>Modify</span>
+    </td>
+  </tr>
   </tbody>
 </table>
 <p *ngIf="polls.length == 0" i18n>There is no poll you can participe in now. Maybe can you create your own?</p>

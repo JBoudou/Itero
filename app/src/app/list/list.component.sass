@@ -7,9 +7,25 @@ table#polllist
   tr.tableheader
     background-color: styles.$softbgcolor
   tr.poll
+    cursor: pointer
     td
       border-top: solid 1px styles.$maincolor
     &:hover
       background-color: styles.$softbgcolor
-    td.round
+    td.round, td.deadline
       text-align: center
+    td.action
+      span
+        display: block
+        margin: auto
+        border-radius: 2px
+        font-size: smaller
+        padding: 2px
+        text-align: center
+      .part
+        background-color: lightblue
+      .vote
+        background-color: lightgreen
+      .modi
+        background-color: orange
+      

@@ -15,6 +15,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { Component, OnInit } from '@angular/core';
+import {Router} from '@angular/router';
 
 import { SessionService } from '../session.service';
 import { ListResponseEntry } from '../api';
@@ -28,9 +29,14 @@ export class ListComponent implements OnInit {
 
   polls: ListResponseEntry[]
 
-  constructor(private session: SessionService
+  constructor(private session: SessionService,
+              private router: Router,
              ) {
     this.polls = [];
+  }
+
+  go(segment: string): void {
+    this.router.navigateByUrl('/r/poll/' + segment)
   }
 
   ngOnInit(): void {

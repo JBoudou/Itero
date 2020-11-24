@@ -56,7 +56,6 @@ export class SessionService {
   }
 
   makeURL(base: string): string {
-    console.log("makeURL " + base + " with " + this.sessionId);
     if (this.sessionId == '') {
       return base;
     }
@@ -72,7 +71,6 @@ export class SessionService {
   }
 
   checkSession() {
-    console.log("checkSession with " + this.sessionId);
     if (this.sessionId !== '') {
       return;
     }
