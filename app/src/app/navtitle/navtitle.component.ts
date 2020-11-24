@@ -15,6 +15,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 
 import { SessionService, SessionInfo } from '../session.service';
 
@@ -28,7 +29,13 @@ export class NavtitleComponent implements OnInit {
   logged = false
   sessionUser = ''
 
-  constructor(private session: SessionService
+  logoff(): void {
+    this.session.logoff();
+    this.router.navigateByUrl('/');
+  }
+
+  constructor(private session: SessionService,
+              private router: Router,
              ) { }
 
   ngOnInit(): void {
@@ -38,6 +45,7 @@ export class NavtitleComponent implements OnInit {
         this.sessionUser = info.user;
       }
     });
+    this.session.checkSession();
   }
 
 }
