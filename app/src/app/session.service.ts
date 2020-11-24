@@ -76,7 +76,7 @@ export class SessionService {
     }
 
     this.sessionId = localStorage.getItem("SessionId");
-    if (this.sessionId !== '') {
+    if (!!this.sessionId) {
       this.observable.next({registered: true, user: localStorage.getItem("User")});
     }
   }
