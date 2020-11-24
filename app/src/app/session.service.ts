@@ -26,11 +26,17 @@ export class SessionInfo {
   user: string;
 }
 
+class CheckUserResponse {
+  SessionId: string;
+  User: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class SessionService {
 
+  sessionWorker: SharedWorker;
   sessionId: string = '';
 
   observable = new Subject<SessionInfo>()
@@ -38,11 +44,15 @@ export class SessionService {
   login(info: LoginInfo): Observable<LoginInfo> {
     return this.http.post('/a/login', info).pipe(
       map((data: string) => {
-        this.sessionId = data;
-        this.observable.next({registered: true, user: info.User});
+        this.sessionWorker.port.postMessage({SessionId: data, User: info.User});
         return info;
       })
     );
+  }
+
+  private newSession(data: CheckUserResponse) {
+    this.sessionId = data.SessionId;
+    this.observable.next({registered: true, user: data.User})
   }
 
   makeURL(base: string): string {
@@ -58,5 +68,19 @@ export class SessionService {
   }
 
   constructor(public http: HttpClient) {
+    console.log("constructor");
+    var instance = this;
+
+    if (!!window.SharedWorker) {
+      this.sessionWorker = new SharedWorker("/s/worker.js");
+      this.sessionWorker.port.onmessage = function(e) {
+        if (e.data !== {}) {
+          instance.newSession(e.data);
+        }
+      }
+
+      console.log("worker started");
+      this.sessionWorker.port.postMessage({});
+    }
   }
 }

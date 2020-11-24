@@ -108,6 +108,7 @@ func Start() (err error) {
 	redirect := oneFile{wwwroot + "/index.html"}
 	http.Handle("/r/", http.FileServer(&redirect))
 	http.Handle("/", http.FileServer(http.Dir(wwwroot)))
+	http.Handle("/s/", http.FileServer(http.Dir("static/")))
 
 	if cfg.CertFile == "" && cfg.KeyFile == "" {
 		log.Println("WARNING: The server will be launched in HTTP mode, which is INSECURE.")
