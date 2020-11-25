@@ -17,7 +17,7 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 
-import { SessionService, SessionInfo } from '../session.service';
+import { SessionService, SessionInfo } from '../session/session.service';
 
 /**
  * The navigation bar.

@@ -19,7 +19,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, Subject } from 'rxjs';
 import { map } from 'rxjs/operators';
 
-import { LoginInfo } from './api'
+import { LoginInfo } from '../api'
 
 export class SessionInfo {
   registered: boolean;

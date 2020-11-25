@@ -19,7 +19,7 @@ import { Router } from '@angular/router';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 
 import { ListComponent } from './list.component';
-import { SessionService } from '../session.service';
+import { SessionService } from '../session/session.service';
 
 describe('ListComponent', () => {
   let component: ListComponent;

@@ -19,7 +19,7 @@ import { Router } from '@angular/router';
 
 import { Subject } from 'rxjs';
 
-import { SessionService, SessionInfo } from '../session.service';
+import { SessionService, SessionInfo } from '../session/session.service';
 import { NavtitleComponent } from './navtitle.component';
 
 describe('NavtitleComponent', () => {

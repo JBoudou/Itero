@@ -23,7 +23,7 @@ import {
 } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
-import { SessionService } from '../session.service';
+import { SessionService } from './session.service';
 
 /** Add session information to the sent requests. */
 @Injectable()

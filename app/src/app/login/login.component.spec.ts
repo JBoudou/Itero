@@ -19,7 +19,7 @@ import { FormBuilder } from '@angular/forms';
 import { Router } from '@angular/router';
 
 import { LoginComponent } from './login.component';
-import { SessionService } from '../session.service';
+import { SessionService } from '../session/session.service';
 
 describe('LoginComponent', () => {
   let component: LoginComponent;

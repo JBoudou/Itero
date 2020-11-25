@@ -42,29 +42,13 @@ describe('SessionService', () => {
   });
 
   it('does not have a session at startup', () => {
-    expect(service.sessionId).toBe('');
+    expect(service.registered()).toBeFalse();
   })
-
-  it('adds session info when there is no query', () => {
-    service.sessionId = 'ABCD';
-    let url = service.makeURL('/foo');
-    let params = new URL(url, 'http://localhost/').searchParams;
-    expect(params.has('s')).toBeTrue();
-    expect(params.get('s')).toBe(service.sessionId);
-  });
-
-  it('adds session info when there is a query', () => {
-    service.sessionId = 'ABCD';
-    let url = service.makeURL('/foo?bar=27');
-    let params = new URL(url, 'http://localhost/').searchParams;
-    expect(params.has('s')).toBeTrue();
-    expect(params.get('s')).toBe(service.sessionId);
-  });
 
   it('does not create a session on failed login', done => {
     service.login({User: 'foo', Passwd: 'bar'}).subscribe({
       error: () => {
-        expect(service.sessionId).toBe('');
+        expect(service.registered()).toBeFalse();
         done();
       }
     });
@@ -76,6 +60,7 @@ describe('SessionService', () => {
   it('creates a session on successful login', done => {
     service.observable.subscribe((notif: SessionInfo) => {
       expect(notif).toEqual({registered: true, user: 'foo'});
+      expect(service.registered()).toBeTrue();
       expect(service.sessionId).toBe('ABCD');
       done();
     });
@@ -93,8 +78,7 @@ describe('SessionService', () => {
         count = 1;
         return;
       }
-      expect(notif).toEqual({registered: false, user: ''});
-      expect(service.sessionId).toBe('');
+      expect(notif.registered).toBeFalse();
       done();
     });
 
