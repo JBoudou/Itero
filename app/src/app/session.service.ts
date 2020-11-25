@@ -35,6 +35,20 @@ export class SessionService {
 
   observable = new Subject<SessionInfo>()
 
+  constructor(private http: HttpClient) {
+  }
+
+  checkSession() {
+    if (this.sessionId !== '') {
+      return;
+    }
+
+    this.sessionId = localStorage.getItem("SessionId");
+    if (!!this.sessionId) {
+      this.observable.next({registered: true, user: localStorage.getItem("User")});
+    }
+  }
+
   login(info: LoginInfo): Observable<LoginInfo> {
     return this.http.post('/a/login', info).pipe(
       map((data: string) => {
@@ -65,19 +79,5 @@ export class SessionService {
       sep = "&";
     }
     return base + sep + "s=" + this.sessionId;
-  }
-
-  constructor(public http: HttpClient) {
-  }
-
-  checkSession() {
-    if (this.sessionId !== '') {
-      return;
-    }
-
-    this.sessionId = localStorage.getItem("SessionId");
-    if (!!this.sessionId) {
-      this.observable.next({registered: true, user: localStorage.getItem("User")});
-    }
   }
 }

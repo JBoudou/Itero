@@ -55,7 +55,7 @@ export class LoginComponent implements OnInit {
     this.session.login(this.form.value).subscribe({
       next: _ => {
         this.errorType = 'None';
-        this.router.navigate(['r', 'list']);
+        this.router.navigateByUrl('/r/list');
       },
       error: (err: HttpErrorResponse) => {
         if (err.error instanceof ErrorEvent) {

@@ -16,6 +16,7 @@
 
 import { Component, OnInit } from '@angular/core';
 import {Router} from '@angular/router';
+import {HttpClient} from '@angular/common/http';
 
 import { SessionService } from '../session.service';
 import { ListResponseEntry } from '../api';
@@ -31,20 +32,21 @@ export class ListComponent implements OnInit {
 
   constructor(private session: SessionService,
               private router: Router,
+              private http: HttpClient
              ) {
     this.polls = [];
   }
 
-  go(segment: string): void {
-    this.router.navigateByUrl('/r/poll/' + segment)
-  }
-
   ngOnInit(): void {
     var url: string = this.session.makeURL('/a/list');
-    this.session.http.get<ListResponseEntry[]>(url).subscribe({
+    this.http.get<ListResponseEntry[]>(url).subscribe({
       next: (values: ListResponseEntry[]) => this.polls = values,
       error: (_) => this.polls = []
     });
+  }
+
+  go(segment: string): void {
+    this.router.navigateByUrl('/r/poll/' + segment)
   }
 
 }
