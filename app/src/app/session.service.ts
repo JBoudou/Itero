@@ -23,37 +23,74 @@ import { LoginInfo } from './api'
 
 export class SessionInfo {
   registered: boolean;
-  user: string;
+  user?: string;
 }
 
+/**
+ * Manage the session.
+ *
+ * TODO
+ */
 @Injectable({
   providedIn: 'root'
 })
 export class SessionService {
 
+  /**
+   * Current session identifier.
+   * May be anything when registered() returns false.
+   */
   sessionId: string = '';
 
-  observable = new Subject<SessionInfo>()
+  /** Observable to subscribe to to be notified about session change. */
+  observable: Subject<SessionInfo> = new Subject<SessionInfo>()
+
+  currentState: SessionInfo = {registered: false};
 
   constructor(private http: HttpClient) {
   }
 
+  /** Whether a session is currently registered. */
+  registered(): boolean {
+    return this.currentState.registered;
+  }
+
+  /**
+   * Check if a session is available in the browser.
+   *
+   * If there is one, it is used. Otherwise, the service gets unregistered.
+   * Notice that the synchronization is done only in the direction from the
+   * browser to the service.
+   *
+   * This method should be called once at startup.
+   */
   checkSession() {
-    if (this.sessionId !== '') {
+    if (this.registered()) {
+      if (!this.hasCookie) {
+        this.logoff();
+      }
+      return;
+    }
+    if (!this.hasCookie()) {
       return;
     }
 
-    this.sessionId = localStorage.getItem("SessionId");
-    if (!!this.sessionId) {
-      this.observable.next({registered: true, user: localStorage.getItem("User")});
+    let sessionId = localStorage.getItem("SessionId");
+    if (!!sessionId) {
+      this.register(sessionId, localStorage.getItem("User"));
     }
   }
 
+  /**
+   * Attempt to log in with the given user.
+   *
+   * The returned Observable sends the function parameters on success, or
+   * the error from HttpClient on failure.
+   */
   login(info: LoginInfo): Observable<LoginInfo> {
     return this.http.post('/a/login', info).pipe(
       map((data: string) => {
-        this.sessionId = data;
-        this.observable.next({registered: true, user: info.User})
+        this.register(data, info.User);
         localStorage.setItem("SessionId", this.sessionId);
         localStorage.setItem("User", info.User);
         return info;
@@ -61,23 +98,29 @@ export class SessionService {
     );
   }
 
+  /** Close the current session (if any). */
   logoff() {
-    this.sessionId = ''
     localStorage.removeItem("SessionId");
     localStorage.removeItem("User");
     document.cookie = "s=; Path=/; Max-Age=-1";
-    this.observable.next({registered: false, user: ''});
+    this.currentState = {registered: false};
+    this.observable.next(this.currentState);
   }
 
-  makeURL(base: string): string {
-    if (this.sessionId == '') {
-      return base;
-    }
+  private register(sessionId: string, user: string): void {
+    this.sessionId = sessionId;
+    this.currentState = {registered: true, user: user};
+    this.observable.next(this.currentState);
+  }
 
-    var sep: string = "?";
-    if (base.includes(sep)) {
-      sep = "&";
+  private hasCookie(): boolean {
+    let ca: Array<string> = document.cookie.split(/; */);
+    let caLen: number = ca.length;
+    for (let i: number = 0; i < caLen; i+=1) {
+      if (ca[i].startsWith('s=')) {
+        return true;
+      }
     }
-    return base + sep + "s=" + this.sessionId;
+    return false;
   }
 }

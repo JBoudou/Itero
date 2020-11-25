@@ -18,9 +18,11 @@ import { Component, OnInit } from '@angular/core';
 import {Router} from '@angular/router';
 import {HttpClient} from '@angular/common/http';
 
-import { SessionService } from '../session.service';
 import { ListResponseEntry } from '../api';
 
+/**
+ * The list of polls.
+ */
 @Component({
   selector: 'app-list',
   templateUrl: './list.component.html',
@@ -28,23 +30,27 @@ import { ListResponseEntry } from '../api';
 })
 export class ListComponent implements OnInit {
 
-  polls: ListResponseEntry[]
+  polls: ListResponseEntry[];
 
-  constructor(private session: SessionService,
-              private router: Router,
-              private http: HttpClient
-             ) {
+  constructor(
+    private router: Router,
+    private http: HttpClient
+  ) {
     this.polls = [];
   }
 
   ngOnInit(): void {
-    var url: string = this.session.makeURL('/a/list');
-    this.http.get<ListResponseEntry[]>(url).subscribe({
+    // Retrieve the list of polls each time the component is displayed.
+    this.http.get<ListResponseEntry[]>('/a/list').subscribe({
       next: (values: ListResponseEntry[]) => this.polls = values,
       error: (_) => this.polls = []
     });
   }
 
+  /**
+   * Receives click event on individual poll.
+   * @Param {string} segment The identifier of the poll.
+   */
   go(segment: string): void {
     this.router.navigateByUrl('/r/poll/' + segment)
   }

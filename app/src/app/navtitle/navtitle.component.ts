@@ -19,6 +19,9 @@ import { Router } from '@angular/router';
 
 import { SessionService, SessionInfo } from '../session.service';
 
+/**
+ * The navigation bar.
+ */
 @Component({
   selector: 'app-navtitle',
   templateUrl: './navtitle.component.html',
