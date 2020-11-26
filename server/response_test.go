@@ -26,6 +26,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/JBoudou/Itero/server/logger"
 	"github.com/gorilla/securecookie"
 )
 
@@ -135,6 +136,8 @@ func TestResponse_SendJSON(t *testing.T) {
 }
 
 func TestResponse_SendError(t *testing.T) {
+	ctx := logger.New(context.Background())
+
 	tests := []struct {
 		name         string
 		err          error
@@ -170,7 +173,7 @@ func TestResponse_SendError(t *testing.T) {
 			self := Response{
 				writer: mock,
 			}
-			self.SendError(tt.err)
+			self.SendError(ctx, tt.err)
 
 			got := mock.Result().StatusCode
 			if got < 400 {

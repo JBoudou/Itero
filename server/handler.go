@@ -19,44 +19,11 @@ package server
 import (
 	"context"
 	"net/http"
+
+	"github.com/justinas/alice"
 )
 
-// A HttpError is an error that can be send as an HTTP response.
-type HttpError struct {
-	// HTTP status code for the error.
-	Code    int
-	msg     string
-	detail  string
-	wrapped error
-}
-
-// NewHttpError constructs a new HttpError.
-//
-// The code is to be sent as the HTTP code of the response. It should be a constant from the
-// net/http package. The message (msg) is to be sent as body of the HTTP response. This is the
-// public description of the error. The detail is the private description of the error, to be
-// displayed in the logs.
-func NewHttpError(code int, msg string, detail string) HttpError {
-	return HttpError{Code: code, msg: msg, detail: detail}
-}
-
-// NewInternalHttpError wraps another error into an InternalServerError HttpError.
-// This function is particularly usefull to panic inside an Handler, see Handler.
-func NewInternalHttpError(err error) HttpError {
-	return HttpError{Code: http.StatusInternalServerError, msg: "Internal error", wrapped: err}
-}
-
-func (self HttpError) Error() string {
-	if self.wrapped == nil {
-		return self.detail
-	} else {
-		return self.wrapped.Error()
-	}
-}
-
-func (self HttpError) Unwrap() error {
-	return self.wrapped
-}
+type Interceptor = alice.Constructor
 
 // A Handler responds to an HTTP request.
 //
@@ -96,7 +63,7 @@ func (self HandlerWrapper) ServeHTTP(wr http.ResponseWriter, original *http.Requ
 
 	defer func() {
 		if err := recover(); err != nil {
-			response.SendError(err.(HttpError))
+			response.SendError(ctx, err.(HttpError))
 		}
 	}()
 
@@ -105,12 +72,16 @@ func (self HandlerWrapper) ServeHTTP(wr http.ResponseWriter, original *http.Requ
 
 // Handle registers the handler for the given pattern.
 // See http.ServeMux for a description of the pattern format.
-func Handle(pattern string, handler Handler) {
-	http.Handle(pattern, HandlerWrapper{pattern: pattern, handler: handler})
+func Handle(pattern string, handler Handler, interceptors... Interceptor) {
+	packed := interceptorChain.Append(interceptors...).
+		Then(HandlerWrapper{pattern: pattern, handler: handler})
+	http.Handle(pattern, packed)
 }
 
 // Handle registers the handler function for the given pattern.
 // See http.ServeMux for a description of the pattern format.
-func HandleFunc(pattern string, fct HandleFunction) {
-	http.Handle(pattern, HandlerWrapper{pattern: pattern, handler: HandlerFunc(fct)})
+func HandleFunc(pattern string, fct HandleFunction, interceptors... Interceptor) {
+	packed := interceptorChain.Append(interceptors...).
+		Then(HandlerWrapper{pattern: pattern, handler: HandlerFunc(fct)})
+	http.Handle(pattern, packed)
 }

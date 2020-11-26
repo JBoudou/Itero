@@ -73,7 +73,7 @@ func ListHandler(ctx context.Context, response server.Response, request *server.
 
 	if request.User == nil {
 		// TODO change that
-		response.SendError(server.NewHttpError(http.StatusNotImplemented, "Unimplemented", ""))
+		response.SendError(ctx, server.NewHttpError(http.StatusNotImplemented, "Unimplemented", ""))
 		return
 	}
 
@@ -87,7 +87,7 @@ func ListHandler(ctx context.Context, response server.Response, request *server.
 			  AND ((a.User IS NULL AND p.CurrentRound = 0 AND p.Publicity <= ?) OR a.User = ?)`
 	rows, err := db.DB.QueryContext(ctx, query, db.PollPublicityPublicRegistered, request.User.Id)
 	if err != nil {
-		response.SendError(err)
+		response.SendError(ctx, err)
 		return
 	}
 	defer rows.Close()
@@ -101,13 +101,13 @@ func ListHandler(ctx context.Context, response server.Response, request *server.
 			&listResponseEntry.CurrentRound, &listResponseEntry.MaxRound, &deadline,
 			&listResponseEntry.Action)
 		if err != nil {
-			response.SendError(err)
+			response.SendError(ctx, err)
 			return
 		}
 
 		listResponseEntry.Segment, err = segment.Encode()
 		if err != nil {
-			response.SendError(err)
+			response.SendError(ctx, err)
 			return
 		}
 		if deadline.Valid {

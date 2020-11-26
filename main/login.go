@@ -22,11 +22,11 @@ import (
 	"database/sql"
 	"errors"
 	"hash"
-	"log"
 	"net/http"
 
 	"github.com/JBoudou/Itero/db"
 	"github.com/JBoudou/Itero/server"
+	"github.com/JBoudou/Itero/server/logger"
 
 	"golang.org/x/crypto/blake2b"
 )
@@ -42,9 +42,9 @@ func LoginHandler(ctx context.Context, response server.Response, request *server
 	}
 	if err := request.UnmarshalJSONBody(&loginInfo); err != nil {
 		// TODO: better login
-		log.Print(err)
+		logger.Print(ctx, err)
 		err = server.NewHttpError(http.StatusBadRequest, "Wrong request", "Unable to read loginInfo")
-		response.SendError(err)
+		response.SendError(ctx, err)
 		return
 	}
 
@@ -55,19 +55,19 @@ func LoginHandler(ctx context.Context, response server.Response, request *server
 		if errors.Is(err, sql.ErrNoRows) {
 			err = server.NewHttpError(http.StatusForbidden, "Unauthorized", "User not found")
 		}
-		response.SendError(err)
+		response.SendError(ctx, err)
 		return
 	}
 
 	hashFct, err := passwdHash()
 	if err != nil {
-		response.SendError(err)
+		response.SendError(ctx, err)
 		return
 	}
 	hashFct.Write([]byte(loginInfo.Passwd))
 	hashPwd := hashFct.Sum(nil)
 	if !bytes.Equal(hashPwd, passwd) {
-		response.SendError(server.NewHttpError(http.StatusForbidden, "Unauthorized", "Wrong password"))
+		response.SendError(ctx, server.NewHttpError(http.StatusForbidden, "Unauthorized", "Wrong password"))
 		return
 	}
 

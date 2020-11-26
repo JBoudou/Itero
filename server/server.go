@@ -28,8 +28,10 @@ import (
 	"os"
 
 	"github.com/JBoudou/Itero/config"
+	"github.com/JBoudou/Itero/server/logger"
 
 	gs "github.com/gorilla/sessions"
+	"github.com/justinas/alice"
 )
 
 const (
@@ -52,8 +54,8 @@ const (
 )
 
 var (
-	cfg           myConfig
-	sessionStore  *gs.CookieStore
+	cfg          myConfig
+	sessionStore *gs.CookieStore
 )
 
 // Whether the package is usable. May be false if there is no configuration for the package.
@@ -93,22 +95,36 @@ type User struct {
 	Id   uint32
 }
 
+var	interceptorChain = alice.New(logger.Constructor, addRequestInfo)
+
+func addRequestInfo(next http.Handler) http.Handler {
+	return http.HandlerFunc(
+		func(wr http.ResponseWriter, req *http.Request) {
+			ctx := req.Context()
+			if err := logger.Push(ctx, req.RemoteAddr, req.URL.Path); err != nil {
+				panic(err)
+			}
+			next.ServeHTTP(wr, req)
+	})
+}
+
 type oneFile struct {
 	path string
 }
 
-func (self *oneFile) Open(name string) (http.File, error) {
-	log.Printf("Redirect for: %s", name)
+func (self oneFile) Open(name string) (http.File, error) {
 	return os.Open(self.path)
 }
 
 // Start the server.
 // Parameters are taken from the configuration.
 func Start() (err error) {
-	redirect := oneFile{wwwroot + "/index.html"}
-	http.Handle("/r/", http.FileServer(&redirect))
-	http.Handle("/", http.FileServer(http.Dir(wwwroot)))
-	http.Handle("/s/", http.StripPrefix("/s/", http.FileServer(http.Dir("static"))))
+	http.Handle("/r/", interceptorChain.
+		Then(http.FileServer(oneFile{wwwroot + "/index.html"})))
+	http.Handle("/", interceptorChain.
+		Then(http.FileServer(http.Dir(wwwroot))))
+	http.Handle("/s/", interceptorChain.
+		Then(http.StripPrefix("/s/", http.FileServer(http.Dir("static")))))
 
 	if cfg.CertFile == "" && cfg.KeyFile == "" {
 		log.Println("WARNING: The server will be launched in HTTP mode, which is INSECURE.")

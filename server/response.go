@@ -22,12 +22,50 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 	"time"
 
+	"github.com/JBoudou/Itero/server/logger"
+
 	gs "github.com/gorilla/sessions"
 )
+
+// A HttpError is an error that can be send as an HTTP response.
+type HttpError struct {
+	// HTTP status code for the error.
+	Code    int
+	msg     string
+	detail  string
+	wrapped error
+}
+
+// NewHttpError constructs a new HttpError.
+//
+// The code is to be sent as the HTTP code of the response. It should be a constant from the
+// net/http package. The message (msg) is to be sent as body of the HTTP response. This is the
+// public description of the error. The detail is the private description of the error, to be
+// displayed in the logs.
+func NewHttpError(code int, msg string, detail string) HttpError {
+	return HttpError{Code: code, msg: msg, detail: detail}
+}
+
+// NewInternalHttpError wraps another error into an InternalServerError HttpError.
+// This function is particularly usefull to panic inside an Handler, see Handler.
+func NewInternalHttpError(err error) HttpError {
+	return HttpError{Code: http.StatusInternalServerError, msg: "Internal error", wrapped: err}
+}
+
+func (self HttpError) Error() string {
+	if self.wrapped == nil {
+		return self.detail
+	} else {
+		return self.wrapped.Error()
+	}
+}
+
+func (self HttpError) Unwrap() error {
+	return self.wrapped
+}
 
 type Response struct {
 	writer http.ResponseWriter
@@ -37,26 +75,26 @@ type Response struct {
 // On success statuc code is http.StatusOK.
 func (self Response) SendJSON(ctx context.Context, data interface{}) {
 	if err := ctx.Err(); err != nil {
-		self.SendError(err)
+		self.SendError(ctx, err)
 		return
 	}
 	buff, err := json.Marshal(data)
 	if err != nil {
-		self.SendError(err)
+		self.SendError(ctx, err)
 		return
 	}
 	if _, err = self.writer.Write(buff); err != nil {
-		log.Printf("Write error: %v", err)
+		logger.Printf(ctx, "Write error: %v", err)
 	}
 }
 
 // SendError sends an error as response.
 // If err is an HttpError, its code and msg are used in the HTPP response.
 // Also log the error.
-func (self Response) SendError(err error) {
+func (self Response) SendError(ctx context.Context, err error) {
 	send := func(statusCode int, msg string) {
 		http.Error(self.writer, msg, statusCode)
-		log.Printf("%d %s: %s", statusCode, msg, err)
+		logger.Printf(ctx, "%d %s: %s", statusCode, msg, err)
 	}
 
 	var pError HttpError
@@ -74,17 +112,17 @@ func (self Response) SendError(err error) {
 // SendLoginAccepted create new credential for the user and send it as response.
 func (self Response) SendLoginAccepted(ctx context.Context, user User, req *Request) {
 	if err := ctx.Err(); err != nil {
-		self.SendError(err)
+		self.SendError(ctx, err)
 		return
 	}
 
 	sessionId, err := MakeSessionId()
 	if err != nil {
-		self.SendError(err)
+		self.SendError(ctx, err)
 	}
 	session := NewSession(sessionStore, sessionStore.Options, sessionId, user)
 	if err = session.Save(req.original, self.writer); err != nil {
-		log.Printf("Error saving session: %v", err)
+		logger.Printf(ctx, "Error saving session: %v", err)
 	}
 
 	self.SendJSON(ctx, sessionId)

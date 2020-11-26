@@ -116,7 +116,7 @@ var handlerTests []handlerTestsStruct = []handlerTestsStruct{
 			fct: func(ctx context.Context, resp Response, req *Request) {
 				var msg string
 				if err := req.UnmarshalJSONBody(&msg); err != nil {
-					resp.SendError(err)
+					resp.SendError(ctx, err)
 					return
 				}
 				resp.SendJSON(ctx, msg)
@@ -134,7 +134,7 @@ var handlerTests []handlerTestsStruct = []handlerTestsStruct{
 		args: handlerArgs{
 			pattern: "/t/error",
 			fct: func(ctx context.Context, resp Response, req *Request) {
-				resp.SendError(NewHttpError(http.StatusPaymentRequired, "Flublu", "Test"))
+				resp.SendError(ctx, NewHttpError(http.StatusPaymentRequired, "Flublu", "Test"))
 			},
 		},
 		req: srvt.Request{
