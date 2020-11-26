@@ -24,6 +24,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/JBoudou/Itero/server/logger"
+
 	gs "github.com/gorilla/sessions"
 )
 
@@ -153,8 +155,10 @@ func (self *Request) addSession(session *gs.Session) {
 		registerError("wrong type for the user id in the cookie")
 		return
 	}
+
 	self.User = &User{Name: userName, Id: userId}
 	self.SessionError = nil
+	logger.Push(self.original.Context(), sessionId)
 }
 
 func splitPath(pathStr string) (pathSli []string) {
