@@ -15,11 +15,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, Subject } from 'rxjs';
+import { Subject } from 'rxjs';
 import { map } from 'rxjs/operators';
-
-import { LoginInfo } from '../api'
 
 export class SessionInfo {
   registered: boolean;
@@ -47,7 +44,7 @@ export class SessionService {
 
   currentState: SessionInfo = {registered: false};
 
-  constructor(private http: HttpClient) {
+  constructor() {
   }
 
   /** Whether a session is currently registered. */
@@ -82,20 +79,18 @@ export class SessionService {
   }
 
   /**
-   * Attempt to log in with the given user.
+   * Intercept session information.
    *
-   * The returned Observable sends the function parameters on success, or
-   * the error from HttpClient on failure.
+   * This operator must be piped in requests like login or signup that may
+   * result in a new session.
    */
-  login(info: LoginInfo): Observable<LoginInfo> {
-    return this.http.post('/a/login', info).pipe(
-      map((data: string) => {
-        this.register(data, info.User);
-        localStorage.setItem("SessionId", this.sessionId);
-        localStorage.setItem("User", info.User);
-        return info;
-      })
-    );
+  httpOperator(user: string) {
+    return map((data: string) => {
+      this.register(data, user);
+      localStorage.setItem("SessionId", this.sessionId);
+      localStorage.setItem("User", user);
+      return true;
+    })
   }
 
   /** Close the current session (if any). */

@@ -15,7 +15,10 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { TestBed } from '@angular/core/testing';
+import { HttpErrorResponse } from '@angular/common/http';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+
+import { throwError, of } from 'rxjs';
 
 import { SessionInfo, SessionService } from './session.service';
 
@@ -46,15 +49,14 @@ describe('SessionService', () => {
   })
 
   it('does not create a session on failed login', done => {
-    service.login({User: 'foo', Passwd: 'bar'}).subscribe({
+    throwError(new HttpErrorResponse({status: 403}))
+      .pipe(service.httpOperator('foo'))
+      .subscribe({
       error: () => {
         expect(service.registered()).toBeFalse();
         done();
       }
     });
-    const req = httpTestingController.expectOne('/a/login');
-    expect(req.request.method).toEqual('POST');
-    req.flush('Argh', { status: 403, statusText: 'Unauthorized' });
   });
 
   it('creates a session on successful login', done => {
@@ -65,10 +67,9 @@ describe('SessionService', () => {
       done();
     });
 
-    service.login({User: 'foo', Passwd: 'bar'}).subscribe();
-    const req = httpTestingController.expectOne('/a/login');
-    expect(req.request.method).toEqual('POST');
-    req.flush('ABCD');
+    of('ABCD')
+      .pipe(service.httpOperator('foo'))
+      .subscribe();
   });
 
   it('removes the session after logoff', done => {
@@ -82,11 +83,9 @@ describe('SessionService', () => {
       done();
     });
 
-    service.login({User: 'foo', Passwd: 'bar'}).subscribe();
-    const req = httpTestingController.expectOne('/a/login');
-    expect(req.request.method).toEqual('POST');
-    req.flush('ABCD');
-
+    of('ABCD')
+      .pipe(service.httpOperator('foo'))
+      .subscribe();
     service.logoff();
   });
 

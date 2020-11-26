@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import {HttpErrorResponse} from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -44,6 +44,7 @@ export class LoginComponent implements OnInit {
   errorMsg = ''
 
   constructor(private session: SessionService,
+              private http: HttpClient,
               private formBuilder: FormBuilder,
               private router: Router
              ) { }
@@ -52,7 +53,9 @@ export class LoginComponent implements OnInit {
   }
 
   onLogin() {
-    this.session.login(this.form.value).subscribe({
+    this.http.post('/a/login', this.form.value)
+      .pipe(this.session.httpOperator(this.form.value.User))
+      .subscribe({
       next: _ => {
         this.errorType = 'None';
         this.router.navigateByUrl('/r/list');
