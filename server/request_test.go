@@ -55,7 +55,7 @@ func TestNewRequest(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := newRequest(tt.args.basePattern, tt.args.original)
+			got := NewRequest(tt.args.basePattern, tt.args.original)
 			tt.expect.original = tt.args.original
 			if !reflect.DeepEqual(got, tt.expect) {
 				t.Errorf("Got %v. Expect %v", got, tt.expect)
@@ -64,7 +64,7 @@ func TestNewRequest(t *testing.T) {
 	}
 }
 
-// TestLoginThenNewRequest tests that Response.SendLoginAccepted works well with newRequest.
+// TestLoginThenNewRequest tests that Response.SendLoginAccepted works well with NewRequest.
 // This is a "black box test": we don't care what the functions precisely do.
 func TestLoginThenNewRequest(t *testing.T) {
 	precheck(t)
@@ -142,7 +142,7 @@ func TestLoginThenNewRequest(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mock := httptest.NewRecorder()
 
-			response := Response{writer: mock}
+			response := response{writer: mock}
 			response.SendLoginAccepted(context.Background(), user, &Request{original: &http.Request{}})
 			result := mock.Result()
 
@@ -152,7 +152,7 @@ func TestLoginThenNewRequest(t *testing.T) {
 				originalRequest.AddCookie(cookie)
 			}
 
-			got := newRequest(fullPath, originalRequest)
+			got := NewRequest(fullPath, originalRequest)
 			tt.checker(t, &got, originalRequest)
 		})
 	}

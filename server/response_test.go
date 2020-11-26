@@ -126,7 +126,7 @@ func TestResponse_SendJSON(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mock := httptest.NewRecorder()
-			self := Response{
+			self := response{
 				writer: mock,
 			}
 			self.SendJSON(tt.args.ctx, tt.args.data)
@@ -170,7 +170,7 @@ func TestResponse_SendError(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mock := httptest.NewRecorder()
-			self := Response{
+			self := response{
 				writer: mock,
 			}
 			self.SendError(ctx, tt.err)
@@ -312,7 +312,7 @@ func TestResponse_SendLoginAccepted(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mock := httptest.NewRecorder()
-			self := Response{
+			self := response{
 				writer: mock,
 			}
 			self.SendLoginAccepted(tt.args.ctx, tt.args.user, tt.args.req)

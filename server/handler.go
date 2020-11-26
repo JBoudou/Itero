@@ -58,8 +58,8 @@ func NewHandlerWrapper(pattern string, handler Handler) HandlerWrapper {
 // ServeHTTP implements http.Handler.
 func (self HandlerWrapper) ServeHTTP(wr http.ResponseWriter, original *http.Request) {
 	ctx := original.Context()
-	response := Response{wr}
-	request := newRequest(self.pattern, original)
+	response := response{wr}
+	request := NewRequest(self.pattern, original)
 
 	defer func() {
 		if err := recover(); err != nil {

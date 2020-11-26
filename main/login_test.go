@@ -17,12 +17,14 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"testing"
 
+	"github.com/JBoudou/Itero/db"
+	dbt "github.com/JBoudou/Itero/db/dbtest"
 	"github.com/JBoudou/Itero/server"
 	srvt "github.com/JBoudou/Itero/server/servertest"
-	dbt  "github.com/JBoudou/Itero/db/dbtest"
 )
 
 func TestLoginHandler(t *testing.T) {
@@ -70,4 +72,132 @@ func TestLoginHandler(t *testing.T) {
 		},
 	}
 	srvt.Run(t, tests, server.HandlerFunc(LoginHandler))
+}
+
+func TestSignUpHandler_Error(t *testing.T) {
+	precheck(t)
+
+	tests := []srvt.Test {
+		{
+			Name: "Bad request",
+			Checker: srvt.CheckerStatus(http.StatusBadRequest),
+		},
+		{
+			Name: "Name too short",
+			Request: srvt.Request{
+				Method: "POST",
+				Body: `{"User":"a","Email":"toto@example.com","Passwd":"tititi"}`,
+			},
+			Checker: srvt.CheckerStatus(http.StatusBadRequest),
+		},
+		{
+			Name: "User starting with a space",
+			Request: srvt.Request{
+				Method: "POST",
+				Body: `{"User":" tototo","Email":"toto@example.com","Passwd":"tititi"}`,
+			},
+			Checker: srvt.CheckerStatus(http.StatusBadRequest),
+		},
+		{
+			Name: "User ending with a space",
+			Request: srvt.Request{
+				Method: "POST",
+				Body: `{"User":"tototo ","Email":"toto@example.com","Passwd":"tititi"}`,
+			},
+			Checker: srvt.CheckerStatus(http.StatusBadRequest),
+		},
+		{
+			Name: "Password too short",
+			Request: srvt.Request{
+				Method: "POST",
+				Body: `{"User":"tototo","Email":"toto@example.com","Passwd":"t"}`,
+			},
+			Checker: srvt.CheckerStatus(http.StatusBadRequest),
+		},
+		{
+			Name: "Wrong email 1",
+			Request: srvt.Request{
+				Method: "POST",
+				Body: `{"User":"tototo","Email":"toto.example.com","Passwd":"tititi"}`,
+			},
+			Checker: srvt.CheckerStatus(http.StatusBadRequest),
+		},
+		{
+			Name: "Wrong email 2",
+			Request: srvt.Request{
+				Method: "POST",
+				Body: `{"User":"tototo","Email":"toto@examplecom","Passwd":"tititi"}`,
+			},
+			Checker: srvt.CheckerStatus(http.StatusBadRequest),
+		},
+	}
+	srvt.Run(t, tests, server.HandlerFunc(SignUpHandler))
+}
+
+type mockResponse struct {
+	t *testing.T
+	jsonFct func(*testing.T, context.Context, interface{})
+	errorFct func(*testing.T, context.Context, error)
+	loginFct func(*testing.T, context.Context, server.User, *server.Request)
+}
+
+func (self mockResponse) SendJSON(ctx context.Context, data interface{}) {
+	if self.jsonFct == nil {
+		self.t.Errorf("SendJSON called with data %v", data)
+		return
+	}
+	self.jsonFct(self.t, ctx, data)
+}
+
+func (self mockResponse) SendError(ctx context.Context, err error) {
+	if self.errorFct == nil {
+		self.t.Errorf("SendError called with error %s", err)
+		return
+	}
+	self.errorFct(self.t, ctx, err)
+}
+
+func (self mockResponse) SendLoginAccepted(ctx context.Context, user server.User,
+	request *server.Request) {
+	if self.loginFct == nil {
+		self.t.Errorf("SendLoginAccepted called with user %v", user)
+		return
+	}
+	self.loginFct(self.t, ctx, user, request)
+}
+
+func TestSignUpHandler_Success(t *testing.T) {
+	const name = "toto_my_test_user_with_a_long_name"
+	var called bool
+	var userId uint32
+	response := mockResponse{
+		t: t,
+		loginFct: func(t *testing.T, ctx context.Context, user server.User, request *server.Request) {
+			if user.Name != name {
+				t.Errorf("Wrong name. Got %s. Expect %s.", user.Name, name)
+			}
+			userId = user.Id
+			called = true
+		},
+	}
+
+	const body = `{"User":"` + name + `","Email":"` + name + `@example.com","Passwd":"tititi"}`
+	tRequest := srvt.Request{Body: body}
+	hRequest, err := tRequest.Make()
+	if err != nil {
+		t.Fatal(err)
+	}
+	sRequest := server.NewRequest("/a/test", hRequest)
+
+	SignUpHandler(hRequest.Context(), response, &sRequest)
+
+	if !called {
+		t.Errorf("SendLoginAccepted not called")
+	} else {
+		const qDelete = `DELETE FROM Users WHERE Id = ?`
+		_, err = db.DB.Exec(qDelete, userId)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
 }

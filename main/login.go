@@ -23,6 +23,9 @@ import (
 	"errors"
 	"hash"
 	"net/http"
+	"regexp"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/JBoudou/Itero/db"
 	"github.com/JBoudou/Itero/server"
@@ -37,11 +40,10 @@ func passwdHash() (hash.Hash, error) {
 
 func LoginHandler(ctx context.Context, response server.Response, request *server.Request) {
 	var loginInfo struct {
-		User string
+		User   string
 		Passwd string
 	}
 	if err := request.UnmarshalJSONBody(&loginInfo); err != nil {
-		// TODO: better login
 		logger.Print(ctx, err)
 		err = server.NewHttpError(http.StatusBadRequest, "Wrong request", "Unable to read loginInfo")
 		response.SendError(ctx, err)
@@ -72,5 +74,78 @@ func LoginHandler(ctx context.Context, response server.Response, request *server
 	}
 
 	response.SendLoginAccepted(ctx, server.User{Name: loginInfo.User, Id: id}, request)
+	return
+}
+
+func SignUpHandler(ctx context.Context, response server.Response, request *server.Request) {
+	var signUpQuery struct {
+		User   string
+		Email  string
+		Passwd string
+	}
+	if err := request.UnmarshalJSONBody(&signUpQuery); err != nil {
+		logger.Print(ctx, err)
+		err = server.NewHttpError(http.StatusBadRequest, "Wrong request", "Unable to read SignUpQuery")
+		response.SendError(ctx, err)
+		return
+	}
+
+	// Check query //
+
+	if len(signUpQuery.User) < 5 {
+		err := server.NewHttpError(http.StatusBadRequest, "Wrong request", "User name too short")
+		response.SendError(ctx, err)
+		return
+	}
+	firstRune, _ := utf8.DecodeRuneInString(signUpQuery.User)
+	lastRune, _ := utf8.DecodeLastRuneInString(signUpQuery.User)
+	if unicode.IsSpace(firstRune) || unicode.IsSpace(lastRune) {
+		err := server.NewHttpError(http.StatusBadRequest, "Wrong request",
+			"User starts or ends with space")
+		response.SendError(ctx, err)
+		return
+	}
+
+	if len(signUpQuery.Passwd) < 5 {
+		err := server.NewHttpError(http.StatusBadRequest, "Wrong request", "Password too short")
+		response.SendError(ctx, err)
+		return
+	}
+	hashFct, err := passwdHash()
+	if err != nil {
+		response.SendError(ctx, err)
+		return
+	}
+	hashFct.Write([]byte(signUpQuery.Passwd))
+	hashPwd := hashFct.Sum(nil)
+
+	ok, err := regexp.MatchString("^[^\\s@]+@[^\\s.]+\\.\\S+$", signUpQuery.Email)
+	if err != nil {
+		response.SendError(ctx, err)
+		return
+	}
+	if !ok {
+		err := server.NewHttpError(http.StatusBadRequest, "Wrong request", "Wrong email format")
+		response.SendError(ctx, err)
+		return
+	}
+
+	// Perform request //
+
+	const qInsert = `INSERT INTO Users (Name, Email, Passwd) VALUE (?, ?, ?)`
+	result, err := db.DB.Exec(qInsert, signUpQuery.User, signUpQuery.Email, hashPwd)
+	if err != nil {
+		response.SendError(ctx, err)
+		return
+	}
+	rawId, err := result.LastInsertId()
+	if err != nil {
+		response.SendError(ctx, err)
+		return
+	}
+	
+	// Start session //
+
+	response.SendLoginAccepted(ctx, server.User{Name: signUpQuery.User, Id: uint32(rawId)}, request)
 	return
 }

@@ -67,13 +67,25 @@ func (self HttpError) Unwrap() error {
 	return self.wrapped
 }
 
-type Response struct {
+type Response interface {
+	// SendJSON sends a JSON as response.
+	// On success statuc code is http.StatusOK.
+	SendJSON(ctx context.Context, data interface{})
+
+	// SendError sends an error as response.
+	// If the error is an HttpError, its code and msg are used in the HTPP response.
+	// Also log the error.
+	SendError(context.Context, error)
+	
+	// SendLoginAccepted create new credential for the user and send it as response.
+	SendLoginAccepted(context.Context, User, *Request)
+}
+
+type response struct {
 	writer http.ResponseWriter
 }
 
-// SendJSON sends a JSON as response.
-// On success statuc code is http.StatusOK.
-func (self Response) SendJSON(ctx context.Context, data interface{}) {
+func (self response) SendJSON(ctx context.Context, data interface{}) {
 	if err := ctx.Err(); err != nil {
 		self.SendError(ctx, err)
 		return
@@ -88,10 +100,7 @@ func (self Response) SendJSON(ctx context.Context, data interface{}) {
 	}
 }
 
-// SendError sends an error as response.
-// If err is an HttpError, its code and msg are used in the HTPP response.
-// Also log the error.
-func (self Response) SendError(ctx context.Context, err error) {
+func (self response) SendError(ctx context.Context, err error) {
 	send := func(statusCode int, msg string) {
 		http.Error(self.writer, msg, statusCode)
 		logger.Printf(ctx, "%d %s: %s", statusCode, msg, err)
@@ -109,8 +118,7 @@ func (self Response) SendError(ctx context.Context, err error) {
 	}
 }
 
-// SendLoginAccepted create new credential for the user and send it as response.
-func (self Response) SendLoginAccepted(ctx context.Context, user User, req *Request) {
+func (self response) SendLoginAccepted(ctx context.Context, user User, req *Request) {
 	if err := ctx.Err(); err != nil {
 		self.SendError(ctx, err)
 		return
