@@ -120,7 +120,7 @@ func SignupHandler(ctx context.Context, response server.Response, request *serve
 	hashFct.Write([]byte(signupQuery.Passwd))
 	hashPwd := hashFct.Sum(nil)
 
-	ok, err := regexp.MatchString("^[^\\s@]+@[^\\s.]+\\.\\S+$", signupQuery.Email)
+	ok, err := regexp.MatchString("^[^\\s@]+@[^\\s.]+\\.\\S\\S+$", signupQuery.Email)
 	if err != nil {
 		response.SendError(ctx, err)
 		return

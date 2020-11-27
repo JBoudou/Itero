@@ -51,6 +51,7 @@ $useboxfgcolor: color.change($maincolor, $lightness: 16%)
 form.basicform
   label
     font-size: $formfontsize
+    white-space: nowrap
   input
     @include userinput
 
@@ -68,3 +69,22 @@ form .formactions
       background-color: tame($userbuttonbgcolor)
       color: tame($useboxfgcolor)
     
+form.basicform
+  display: grid
+  grid-template-columns: min-content min-content
+  gap: 4px
+  align-items: center
+  label, input
+    grid-area: auto
+  .formerrors
+    color: $errorcolor
+    font-size: 10pt
+    p
+      margin: 0
+  .formactions
+    border-top: solid 1px $maincolor
+    padding: 4px 0
+    display: flex
+    flex-flow: row-reverse
+    button
+      margin-left: 4px

@@ -43,16 +43,17 @@ export class LoginComponent implements OnInit {
   errorType = 'None'
   errorMsg = ''
 
-  constructor(private session: SessionService,
-              private http: HttpClient,
-              private formBuilder: FormBuilder,
-              private router: Router
-             ) { }
+  constructor(
+    private session: SessionService,
+    private http: HttpClient,
+    private formBuilder: FormBuilder,
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
   }
 
-  onLogin() {
+  onLogin(): void {
     this.http.post('/a/login', this.form.value)
       .pipe(this.session.httpOperator(this.form.value.User))
       .subscribe({

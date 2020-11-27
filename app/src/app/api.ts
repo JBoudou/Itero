@@ -22,6 +22,12 @@ export class LoginInfo {
   Passwd: string;
 }
 
+export class SignupQuery {
+  Name: string;
+  Email: string;
+  Passwd: string;
+}
+
 export class ListResponseEntry {
   s: string; // segment
   t: string; // title

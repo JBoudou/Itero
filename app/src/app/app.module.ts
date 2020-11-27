@@ -12,6 +12,7 @@ import { ListComponent } from './list/list.component';
 import { LoginComponent } from './login/login.component';
 import { HomeComponent } from './home/home.component';
 import { DeadRouteComponent } from './dead-route/dead-route.component';
+import { SignupComponent } from './signup/signup.component';
 
 @NgModule({
   declarations: [
@@ -20,7 +21,8 @@ import { DeadRouteComponent } from './dead-route/dead-route.component';
     ListComponent,
     LoginComponent,
     HomeComponent,
-    DeadRouteComponent
+    DeadRouteComponent,
+    SignupComponent
   ],
   imports: [
     BrowserModule,
