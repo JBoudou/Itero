@@ -24,6 +24,7 @@ import (
 
 func main() {
 	server.HandleFunc("/a/login", LoginHandler)
+	server.HandleFunc("/a/signup", SignupHandler)
 	server.HandleFunc("/a/list", ListHandler)
 
 	log.Println("Server starting")

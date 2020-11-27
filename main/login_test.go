@@ -74,7 +74,7 @@ func TestLoginHandler(t *testing.T) {
 	srvt.Run(t, tests, server.HandlerFunc(LoginHandler))
 }
 
-func TestSignUpHandler_Error(t *testing.T) {
+func TestSignupHandler_Error(t *testing.T) {
 	precheck(t)
 
 	tests := []srvt.Test {
@@ -86,23 +86,23 @@ func TestSignUpHandler_Error(t *testing.T) {
 			Name: "Name too short",
 			Request: srvt.Request{
 				Method: "POST",
-				Body: `{"User":"a","Email":"toto@example.com","Passwd":"tititi"}`,
+				Body: `{"Name":"a","Email":"toto@example.com","Passwd":"tititi"}`,
 			},
 			Checker: srvt.CheckerStatus(http.StatusBadRequest),
 		},
 		{
-			Name: "User starting with a space",
+			Name: "Name starting with a space",
 			Request: srvt.Request{
 				Method: "POST",
-				Body: `{"User":" tototo","Email":"toto@example.com","Passwd":"tititi"}`,
+				Body: `{"Name":" tototo","Email":"toto@example.com","Passwd":"tititi"}`,
 			},
 			Checker: srvt.CheckerStatus(http.StatusBadRequest),
 		},
 		{
-			Name: "User ending with a space",
+			Name: "Name ending with a space",
 			Request: srvt.Request{
 				Method: "POST",
-				Body: `{"User":"tototo ","Email":"toto@example.com","Passwd":"tititi"}`,
+				Body: `{"Name":"tototo ","Email":"toto@example.com","Passwd":"tititi"}`,
 			},
 			Checker: srvt.CheckerStatus(http.StatusBadRequest),
 		},
@@ -110,7 +110,7 @@ func TestSignUpHandler_Error(t *testing.T) {
 			Name: "Password too short",
 			Request: srvt.Request{
 				Method: "POST",
-				Body: `{"User":"tototo","Email":"toto@example.com","Passwd":"t"}`,
+				Body: `{"Name":"tototo","Email":"toto@example.com","Passwd":"t"}`,
 			},
 			Checker: srvt.CheckerStatus(http.StatusBadRequest),
 		},
@@ -118,7 +118,7 @@ func TestSignUpHandler_Error(t *testing.T) {
 			Name: "Wrong email 1",
 			Request: srvt.Request{
 				Method: "POST",
-				Body: `{"User":"tototo","Email":"toto.example.com","Passwd":"tititi"}`,
+				Body: `{"Name":"tototo","Email":"toto.example.com","Passwd":"tititi"}`,
 			},
 			Checker: srvt.CheckerStatus(http.StatusBadRequest),
 		},
@@ -126,12 +126,12 @@ func TestSignUpHandler_Error(t *testing.T) {
 			Name: "Wrong email 2",
 			Request: srvt.Request{
 				Method: "POST",
-				Body: `{"User":"tototo","Email":"toto@examplecom","Passwd":"tititi"}`,
+				Body: `{"Name":"tototo","Email":"toto@examplecom","Passwd":"tititi"}`,
 			},
 			Checker: srvt.CheckerStatus(http.StatusBadRequest),
 		},
 	}
-	srvt.Run(t, tests, server.HandlerFunc(SignUpHandler))
+	srvt.Run(t, tests, server.HandlerFunc(SignupHandler))
 }
 
 type mockResponse struct {
@@ -142,6 +142,7 @@ type mockResponse struct {
 }
 
 func (self mockResponse) SendJSON(ctx context.Context, data interface{}) {
+	self.t.Helper()
 	if self.jsonFct == nil {
 		self.t.Errorf("SendJSON called with data %v", data)
 		return
@@ -150,6 +151,7 @@ func (self mockResponse) SendJSON(ctx context.Context, data interface{}) {
 }
 
 func (self mockResponse) SendError(ctx context.Context, err error) {
+	self.t.Helper()
 	if self.errorFct == nil {
 		self.t.Errorf("SendError called with error %s", err)
 		return
@@ -159,6 +161,8 @@ func (self mockResponse) SendError(ctx context.Context, err error) {
 
 func (self mockResponse) SendLoginAccepted(ctx context.Context, user server.User,
 	request *server.Request) {
+
+	self.t.Helper()
 	if self.loginFct == nil {
 		self.t.Errorf("SendLoginAccepted called with user %v", user)
 		return
@@ -166,7 +170,7 @@ func (self mockResponse) SendLoginAccepted(ctx context.Context, user server.User
 	self.loginFct(self.t, ctx, user, request)
 }
 
-func TestSignUpHandler_Success(t *testing.T) {
+func TestSignupHandler_Success(t *testing.T) {
 	const name = "toto_my_test_user_with_a_long_name"
 	var called bool
 	var userId uint32
@@ -181,7 +185,7 @@ func TestSignUpHandler_Success(t *testing.T) {
 		},
 	}
 
-	const body = `{"User":"` + name + `","Email":"` + name + `@example.com","Passwd":"tititi"}`
+	const body = `{"Name":"` + name + `","Email":"` + name + `@example.com","Passwd":"tititi"}`
 	tRequest := srvt.Request{Body: body}
 	hRequest, err := tRequest.Make()
 	if err != nil {
@@ -189,15 +193,22 @@ func TestSignUpHandler_Success(t *testing.T) {
 	}
 	sRequest := server.NewRequest("/a/test", hRequest)
 
-	SignUpHandler(hRequest.Context(), response, &sRequest)
+	SignupHandler(hRequest.Context(), response, &sRequest)
 
 	if !called {
 		t.Errorf("SendLoginAccepted not called")
 	} else {
 		const qDelete = `DELETE FROM Users WHERE Id = ?`
-		_, err = db.DB.Exec(qDelete, userId)
+		result, err := db.DB.Exec(qDelete, userId)
 		if err != nil {
 			t.Fatal(err)
+		}
+		nbRows, err := result.RowsAffected()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if nbRows != 1 {
+			t.Fatalf("Not deleting the user (%d rows instead of 1).", nbRows)
 		}
 	}
 }

@@ -77,37 +77,37 @@ func LoginHandler(ctx context.Context, response server.Response, request *server
 	return
 }
 
-func SignUpHandler(ctx context.Context, response server.Response, request *server.Request) {
-	var signUpQuery struct {
-		User   string
+func SignupHandler(ctx context.Context, response server.Response, request *server.Request) {
+	var signupQuery struct {
+		Name   string
 		Email  string
 		Passwd string
 	}
-	if err := request.UnmarshalJSONBody(&signUpQuery); err != nil {
+	if err := request.UnmarshalJSONBody(&signupQuery); err != nil {
 		logger.Print(ctx, err)
-		err = server.NewHttpError(http.StatusBadRequest, "Wrong request", "Unable to read SignUpQuery")
+		err = server.NewHttpError(http.StatusBadRequest, "Wrong request", "Unable to read SignupQuery")
 		response.SendError(ctx, err)
 		return
 	}
 
 	// Check query //
 
-	if len(signUpQuery.User) < 5 {
-		err := server.NewHttpError(http.StatusBadRequest, "Wrong request", "User name too short")
+	if len(signupQuery.Name) < 5 {
+		err := server.NewHttpError(http.StatusBadRequest, "Name too short", "User name too short")
 		response.SendError(ctx, err)
 		return
 	}
-	firstRune, _ := utf8.DecodeRuneInString(signUpQuery.User)
-	lastRune, _ := utf8.DecodeLastRuneInString(signUpQuery.User)
+	firstRune, _ := utf8.DecodeRuneInString(signupQuery.Name)
+	lastRune, _ := utf8.DecodeLastRuneInString(signupQuery.Name)
 	if unicode.IsSpace(firstRune) || unicode.IsSpace(lastRune) {
-		err := server.NewHttpError(http.StatusBadRequest, "Wrong request",
+		err := server.NewHttpError(http.StatusBadRequest, "Name has spaces",
 			"User starts or ends with space")
 		response.SendError(ctx, err)
 		return
 	}
 
-	if len(signUpQuery.Passwd) < 5 {
-		err := server.NewHttpError(http.StatusBadRequest, "Wrong request", "Password too short")
+	if len(signupQuery.Passwd) < 5 {
+		err := server.NewHttpError(http.StatusBadRequest, "Passwd too short", "Password too short")
 		response.SendError(ctx, err)
 		return
 	}
@@ -116,24 +116,65 @@ func SignUpHandler(ctx context.Context, response server.Response, request *serve
 		response.SendError(ctx, err)
 		return
 	}
-	hashFct.Write([]byte(signUpQuery.Passwd))
+	hashFct.Write([]byte(signupQuery.Passwd))
 	hashPwd := hashFct.Sum(nil)
 
-	ok, err := regexp.MatchString("^[^\\s@]+@[^\\s.]+\\.\\S+$", signUpQuery.Email)
+	ok, err := regexp.MatchString("^[^\\s@]+@[^\\s.]+\\.\\S+$", signupQuery.Email)
 	if err != nil {
 		response.SendError(ctx, err)
 		return
 	}
 	if !ok {
-		err := server.NewHttpError(http.StatusBadRequest, "Wrong request", "Wrong email format")
+		err := server.NewHttpError(http.StatusBadRequest, "Email invalid", "Wrong email format")
 		response.SendError(ctx, err)
 		return
 	}
 
 	// Perform request //
 
+	const qSetAutocommit = `SET autocommit=?`
+	const qLock = `LOCK TABLE Users WRITE CONCURRENT`
+	const qUnlock = `UNLOCK TABLES`
+	const qSelect = `SELECT 1 FROM Users WHERE Name = ? OR Email = ?`
 	const qInsert = `INSERT INTO Users (Name, Email, Passwd) VALUE (?, ?, ?)`
-	result, err := db.DB.Exec(qInsert, signUpQuery.User, signUpQuery.Email, hashPwd)
+
+	conn, err := db.DB.Conn(ctx)
+	if err != nil {
+		response.SendError(ctx, err)
+		return
+	}
+	defer conn.Close()
+	exec := func(query string, args ...interface{}) (result sql.Result) {
+		if err == nil {
+			result, err = conn.ExecContext(ctx, query, args...)
+		}
+		return
+	}
+	exec(qSetAutocommit, 0)
+	exec(qLock)
+	if err != nil {
+		response.SendError(ctx, err)
+		return
+	}
+	defer func() {
+		conn.ExecContext(ctx, qUnlock)
+		conn.ExecContext(ctx, qSetAutocommit, 1)
+	}()
+
+	rows, err := conn.QueryContext(ctx, qSelect, signupQuery.Name, signupQuery.Email)
+	if err != nil {
+		response.SendError(ctx, err)
+		return
+	}
+	if rows.Next() {
+		rows.Close();
+		err = server.NewHttpError(http.StatusBadRequest, "Already exists",
+			"Name or Email already exists")
+		response.SendError(ctx, err)
+		return
+	}
+
+	result := exec(qInsert, signupQuery.Name, signupQuery.Email, hashPwd)
 	if err != nil {
 		response.SendError(ctx, err)
 		return
@@ -143,9 +184,9 @@ func SignUpHandler(ctx context.Context, response server.Response, request *serve
 		response.SendError(ctx, err)
 		return
 	}
-	
+
 	// Start session //
 
-	response.SendLoginAccepted(ctx, server.User{Name: signUpQuery.User, Id: uint32(rawId)}, request)
+	response.SendLoginAccepted(ctx, server.User{Name: signupQuery.Name, Id: uint32(rawId)}, request)
 	return
 }
