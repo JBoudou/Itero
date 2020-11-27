@@ -40,20 +40,20 @@ func passwdHash() (hash.Hash, error) {
 }
 
 func LoginHandler(ctx context.Context, response server.Response, request *server.Request) {
-	var loginInfo struct {
+	var loginQuery struct {
 		User   string
 		Passwd string
 	}
-	if err := request.UnmarshalJSONBody(&loginInfo); err != nil {
+	if err := request.UnmarshalJSONBody(&loginQuery); err != nil {
 		logger.Print(ctx, err)
-		err = server.NewHttpError(http.StatusBadRequest, "Wrong request", "Unable to read loginInfo")
+		err = server.NewHttpError(http.StatusBadRequest, "Wrong request", "Unable to read loginQuery")
 		response.SendError(ctx, err)
 		return
 	}
 
 	var id uint32
 	var passwd []byte
-	row := db.DB.QueryRowContext(ctx, "SELECT Id, Passwd FROM Users WHERE Name = ?", loginInfo.User)
+	row := db.DB.QueryRowContext(ctx, "SELECT Id, Passwd FROM Users WHERE Name = ?", loginQuery.User)
 	if err := row.Scan(&id, &passwd); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			err = server.NewHttpError(http.StatusForbidden, "Unauthorized", "User not found")
@@ -67,14 +67,14 @@ func LoginHandler(ctx context.Context, response server.Response, request *server
 		response.SendError(ctx, err)
 		return
 	}
-	hashFct.Write([]byte(loginInfo.Passwd))
+	hashFct.Write([]byte(loginQuery.Passwd))
 	hashPwd := hashFct.Sum(nil)
 	if !bytes.Equal(hashPwd, passwd) {
 		response.SendError(ctx, server.NewHttpError(http.StatusForbidden, "Unauthorized", "Wrong password"))
 		return
 	}
 
-	response.SendLoginAccepted(ctx, server.User{Name: loginInfo.User, Id: id}, request)
+	response.SendLoginAccepted(ctx, server.User{Name: loginQuery.User, Id: id}, request)
 	return
 }
 

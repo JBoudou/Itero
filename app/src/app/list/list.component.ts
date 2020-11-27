@@ -18,7 +18,7 @@ import { Component, OnInit } from '@angular/core';
 import {Router} from '@angular/router';
 import {HttpClient} from '@angular/common/http';
 
-import { ListResponseEntry } from '../api';
+import { ListAnswerEntry } from '../api';
 
 /**
  * The list of polls.
@@ -30,7 +30,7 @@ import { ListResponseEntry } from '../api';
 })
 export class ListComponent implements OnInit {
 
-  polls: ListResponseEntry[];
+  polls: ListAnswerEntry[];
 
   constructor(
     private router: Router,
@@ -41,8 +41,8 @@ export class ListComponent implements OnInit {
 
   ngOnInit(): void {
     // Retrieve the list of polls each time the component is displayed.
-    this.http.get<ListResponseEntry[]>('/a/list').subscribe({
-      next: (values: ListResponseEntry[]) => this.polls = values,
+    this.http.get<ListAnswerEntry[]>('/a/list').subscribe({
+      next: (values: ListAnswerEntry[]) => this.polls = values,
       error: (_) => this.polls = []
     });
   }

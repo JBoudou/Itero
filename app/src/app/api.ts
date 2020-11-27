@@ -17,7 +17,7 @@
 /* This file lists classes used in the communication between the front end and
  * the middleware. */
 
-export class LoginInfo {
+export class LoginQuery {
   User: string;
   Passwd: string;
 }
@@ -28,7 +28,7 @@ export class SignupQuery {
   Passwd: string;
 }
 
-export class ListResponseEntry {
+export class ListAnswerEntry {
   s: string; // segment
   t: string; // title
   c: number; // current round

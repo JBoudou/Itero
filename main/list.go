@@ -59,7 +59,7 @@ func (self PollSegment) Encode() (str string, err error) {
 
 // end PollSegment
 
-type listResponseEntry struct {
+type listAnswerEntry struct {
 	Segment      string `json:"s"`
 	Title        string `json:"t"`
 	CurrentRound uint8  `json:"c"`
@@ -69,7 +69,7 @@ type listResponseEntry struct {
 }
 
 func ListHandler(ctx context.Context, response server.Response, request *server.Request) {
-	reply := make([]listResponseEntry, 0, 16)
+	reply := make([]listAnswerEntry, 0, 16)
 
 	if request.User == nil {
 		// TODO change that
@@ -93,30 +93,30 @@ func ListHandler(ctx context.Context, response server.Response, request *server.
 	defer rows.Close()
 
 	for rows.Next() {
-		var listResponseEntry listResponseEntry
+		var listAnswerEntry listAnswerEntry
 		var segment PollSegment
 		var deadline sql.NullString
 
-		err = rows.Scan(&segment.Id, &segment.Salt, &listResponseEntry.Title,
-			&listResponseEntry.CurrentRound, &listResponseEntry.MaxRound, &deadline,
-			&listResponseEntry.Action)
+		err = rows.Scan(&segment.Id, &segment.Salt, &listAnswerEntry.Title,
+			&listAnswerEntry.CurrentRound, &listAnswerEntry.MaxRound, &deadline,
+			&listAnswerEntry.Action)
 		if err != nil {
 			response.SendError(ctx, err)
 			return
 		}
 
-		listResponseEntry.Segment, err = segment.Encode()
+		listAnswerEntry.Segment, err = segment.Encode()
 		if err != nil {
 			response.SendError(ctx, err)
 			return
 		}
 		if deadline.Valid {
-			listResponseEntry.Deadline = deadline.String
+			listAnswerEntry.Deadline = deadline.String
 		} else {
-			listResponseEntry.Deadline = "⋅";
+			listAnswerEntry.Deadline = "⋅";
 		}
 
-		reply = append(reply, listResponseEntry)
+		reply = append(reply, listAnswerEntry)
 	}
 
 	response.SendJSON(ctx, reply)

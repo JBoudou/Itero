@@ -83,15 +83,15 @@ func TestListHandler(t *testing.T) {
 		poll2Id uint32
 	)
 
-	type maker = func(t *testing.T) listResponseEntry
+	type maker = func(t *testing.T) listAnswerEntry
 
 	makePollEntry := func(title string, id *uint32, action string) maker {
-		return func(t *testing.T) listResponseEntry {
+		return func(t *testing.T) listAnswerEntry {
 			segment, err := PollSegment{Id: *id, Salt: 42}.Encode()
 			if err != nil {
 				t.Fatal(err)
 			}
-			return listResponseEntry{Title: title, Segment: segment, CurrentRound: 0, MaxRound: 3,
+			return listAnswerEntry{Title: title, Segment: segment, CurrentRound: 0, MaxRound: 3,
 				Action: action}
 		}
 	}
@@ -102,7 +102,7 @@ func TestListHandler(t *testing.T) {
 				t.Errorf("Wrong status code. Got %d. Expect %d", response.StatusCode, http.StatusOK)
 			}
 
-			wanted := make(map[string]*listResponseEntry, 2)
+			wanted := make(map[string]*listAnswerEntry, 2)
 			for _, maker := range include {
 				entry := maker(t)
 				wanted[entry.Segment] = &entry
@@ -112,7 +112,7 @@ func TestListHandler(t *testing.T) {
 				wanted[entry.Segment] = nil
 			}
 			
-			var got []listResponseEntry
+			var got []listAnswerEntry
 			var buff bytes.Buffer
 			if _, err := buff.ReadFrom(response.Body); err != nil {
 				t.Fatalf("Error reading body: %s", err)
