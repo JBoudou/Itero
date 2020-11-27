@@ -30,6 +30,7 @@ import (
 	"github.com/JBoudou/Itero/db"
 	"github.com/JBoudou/Itero/server"
 	"github.com/JBoudou/Itero/server/logger"
+	"github.com/go-sql-driver/mysql"
 
 	"golang.org/x/crypto/blake2b"
 )
@@ -132,50 +133,15 @@ func SignupHandler(ctx context.Context, response server.Response, request *serve
 
 	// Perform request //
 
-	const qSetAutocommit = `SET autocommit=?`
-	const qLock = `LOCK TABLE Users WRITE CONCURRENT`
-	const qUnlock = `UNLOCK TABLES`
-	const qSelect = `SELECT 1 FROM Users WHERE Name = ? OR Email = ?`
 	const qInsert = `INSERT INTO Users (Name, Email, Passwd) VALUE (?, ?, ?)`
 
-	conn, err := db.DB.Conn(ctx)
+	result, err := db.DB.ExecContext(ctx, qInsert, signupQuery.Name, signupQuery.Email, hashPwd)
 	if err != nil {
-		response.SendError(ctx, err)
-		return
-	}
-	defer conn.Close()
-	exec := func(query string, args ...interface{}) (result sql.Result) {
-		if err == nil {
-			result, err = conn.ExecContext(ctx, query, args...)
+		sqlError, ok := err.(*mysql.MySQLError)
+		if ok && sqlError.Number == 1062 {
+			err = server.NewHttpError(http.StatusBadRequest, "Already exists",
+				"The Name or Password already exists")
 		}
-		return
-	}
-	exec(qSetAutocommit, 0)
-	exec(qLock)
-	if err != nil {
-		response.SendError(ctx, err)
-		return
-	}
-	defer func() {
-		conn.ExecContext(ctx, qUnlock)
-		conn.ExecContext(ctx, qSetAutocommit, 1)
-	}()
-
-	rows, err := conn.QueryContext(ctx, qSelect, signupQuery.Name, signupQuery.Email)
-	if err != nil {
-		response.SendError(ctx, err)
-		return
-	}
-	if rows.Next() {
-		rows.Close();
-		err = server.NewHttpError(http.StatusBadRequest, "Already exists",
-			"Name or Email already exists")
-		response.SendError(ctx, err)
-		return
-	}
-
-	result := exec(qInsert, signupQuery.Name, signupQuery.Email, hashPwd)
-	if err != nil {
 		response.SendError(ctx, err)
 		return
 	}
