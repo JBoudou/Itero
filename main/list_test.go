@@ -18,6 +18,7 @@ package main
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"reflect"
@@ -40,7 +41,7 @@ func TestListHandler(t *testing.T) {
 	}
 
 	const (
-		qParticipate        = `INSERT INTO Participants(Poll, User) VALUE (?, ?)`
+		qParticipate = `INSERT INTO Participants(Poll, User) VALUE (?, ?)`
 
 		poll1Title = "Test 1"
 		poll2Title = "Test 2"
@@ -79,7 +80,7 @@ func TestListHandler(t *testing.T) {
 				entry := maker(t)
 				wanted[entry.Segment] = nil
 			}
-			
+
 			var got []listAnswerEntry
 			var buff bytes.Buffer
 			if _, err := buff.ReadFrom(response.Body); err != nil {
@@ -88,9 +89,9 @@ func TestListHandler(t *testing.T) {
 			if err := json.Unmarshal(buff.Bytes(), &got); err != nil {
 				t.Fatalf("Error reading body: %s", err)
 			}
-			
+
 			for _, entry := range got {
-				entry.Deadline = ""
+				entry.Deadline = NuDate(sql.NullTime{Valid: false})
 				want, ok := wanted[entry.Segment]
 				if !ok {
 					continue

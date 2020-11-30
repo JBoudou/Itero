@@ -74,6 +74,7 @@ func Push(ctx context.Context, info ...interface{}) error {
 func Print(ctx context.Context, msg ...interface{}) error {
 	stored, ok := ctx.Value(logInfoKey).(*[]interface{})
 	if !ok {
+		log.Print(msg...)
 		return NoLogInfo
 	}
 	_log(stored, msg...)
@@ -84,6 +85,7 @@ func Print(ctx context.Context, msg ...interface{}) error {
 func Printf(ctx context.Context, format string, msg ...interface{}) error {
 	stored, ok := ctx.Value(logInfoKey).(*[]interface{})
 	if !ok {
+		log.Printf(format, msg...)
 		return NoLogInfo
 	}
 	_log(stored, fmt.Sprintf(format, msg...))

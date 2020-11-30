@@ -25,16 +25,32 @@ import (
 	"github.com/JBoudou/Itero/server"
 )
 
-// TODO Move PollSegment somewhere else.
+type NuDate sql.NullTime
 
-// end PollSegment
+func (self NuDate) MarshalJSON() ([]byte, error) {
+	if !self.Valid {
+		return []byte(`"⋅"`), nil
+	} else {
+		return self.Time.MarshalJSON()
+	}
+}
+
+func (self *NuDate) UnmarshalJSON(raw []byte) (err error) {
+	if string(raw) == `"⋅"` {
+		self.Valid = false
+		return
+	}
+	err = self.Time.UnmarshalJSON(raw)
+	self.Valid = err == nil
+	return
+}
 
 type listAnswerEntry struct {
 	Segment      string `json:"s"`
 	Title        string `json:"t"`
 	CurrentRound uint8  `json:"c"`
 	MaxRound     uint8  `json:"m"`
-	Deadline     string `json:"d"` // TODO Use (a variant of) time.Time
+	Deadline     NuDate `json:"d"`
 	Action       string `json:"a"` // TODO Use an "enum" ?
 }
 
@@ -47,14 +63,16 @@ func ListHandler(ctx context.Context, response server.Response, request *server.
 		return
 	}
 
-	const query = `SELECT p.Id, p.Salt, p.Title, p.CurrentRound, p.MaxNbRounds,
-		        addtime(p.CurrentRoundStart, p.MaxRoundDuration) AS Deadline,
-		        CASE WHEN a.User IS NULL THEN 'Part'
-		             WHEN a.LastRound >= p.CurrentRound THEN 'Modi'
-		             ELSE 'Vote' END AS Action
-		   FROM Polls AS p LEFT OUTER JOIN Participants AS a ON p.Id = a.Poll
-		  WHERE p.Active
-			  AND ((a.User IS NULL AND p.CurrentRound = 0 AND p.Publicity <= ?) OR a.User = ?)`
+	const query = `
+	   SELECT p.Id, p.Salt, p.Title, p.CurrentRound, p.MaxNbRounds,
+	          addtime(p.CurrentRoundStart, p.MaxRoundDuration) AS Deadline,
+	          CASE WHEN a.User IS NULL THEN 'Part'
+	               WHEN a.LastRound >= p.CurrentRound THEN 'Modi'
+	               ELSE 'Vote' END AS Action
+	     FROM Polls AS p LEFT OUTER JOIN Participants AS a ON p.Id = a.Poll
+	    WHERE p.Active
+	      AND ((a.User IS NULL AND p.CurrentRound = 0 AND p.Publicity <= ?) OR a.User = ?)
+	 ORDER BY Action DESC, Deadline ASC`
 	rows, err := db.DB.QueryContext(ctx, query, db.PollPublicityPublicRegistered, request.User.Id)
 	if err != nil {
 		response.SendError(ctx, err)
@@ -65,7 +83,7 @@ func ListHandler(ctx context.Context, response server.Response, request *server.
 	for rows.Next() {
 		var listAnswerEntry listAnswerEntry
 		var segment PollSegment
-		var deadline sql.NullString
+		var deadline sql.NullTime
 
 		err = rows.Scan(&segment.Id, &segment.Salt, &listAnswerEntry.Title,
 			&listAnswerEntry.CurrentRound, &listAnswerEntry.MaxRound, &deadline,
@@ -75,15 +93,11 @@ func ListHandler(ctx context.Context, response server.Response, request *server.
 			return
 		}
 
+		listAnswerEntry.Deadline = NuDate(deadline)
 		listAnswerEntry.Segment, err = segment.Encode()
 		if err != nil {
 			response.SendError(ctx, err)
 			return
-		}
-		if deadline.Valid {
-			listAnswerEntry.Deadline = deadline.String
-		} else {
-			listAnswerEntry.Deadline = "⋅";
 		}
 
 		reply = append(reply, listAnswerEntry)

@@ -28,13 +28,18 @@ export class SignupQuery {
   Passwd: string;
 }
 
+// Null-able Date
+export type NuDate = Date | '.'
+
 export class ListAnswerEntry {
   s: string; // segment
   t: string; // title
   c: number; // current round
   m: number; // max nb rounds
-  d: string; // deadline
+  d: NuDate; // deadline
   a: string; // action (abbreviated)
+
+  deadlineCategory?: string;
 }
 
 export enum BallotType {

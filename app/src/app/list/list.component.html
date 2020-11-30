@@ -10,7 +10,16 @@
   <tr class="poll" (click)="go(poll.s)">
     <td class="title">{{poll.t}}</td>
     <td class="round">{{poll.c}}/{{poll.m}}</td>
-    <td class="deadline">{{poll.d}}</td>
+    <td class="deadline" i18n>
+      {poll.deadlineCategory, select,
+      None {None}
+      Today {Today at {{poll.d | date:'h:mm aa'}}}
+      Tomorrow {Tomorrow at {{poll.d | date:'h:mm aa'}}}
+      Week {Next {{poll.d | date:'EEEE'}} at {{poll.d | date:'h aa'}}}
+      Month {{{poll.d | date:'MMMM d'}}, at {{poll.d | date:'h aa'}}}
+      Year {{{poll.d | date:'longDate'}}}
+      }
+    </td>
     <td class="action" [ngSwitch]="poll.a">
       <span class ="part" *ngSwitchCase="'Part'" i18n>Join</span>
       <span class ="vote" *ngSwitchCase="'Vote'" i18n>Vote</span>

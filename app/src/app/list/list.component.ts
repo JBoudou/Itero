@@ -20,6 +20,50 @@ import {HttpClient} from '@angular/common/http';
 
 import { ListAnswerEntry } from '../api';
 
+function mapListAnswerEntry(e: ListAnswerEntry): ListAnswerEntry {
+  const today = new Date(Date.now());
+  today.setHours(0, 0, 0);
+
+  if (e.d as string == '⋅') {
+    e.d = today;
+    e.deadlineCategory = 'None';
+    return e;
+  }
+
+  e.d = new Date(e.d);
+  if (e.d < today) {
+    e.deadlineCategory = 'None';
+    return e;
+  }
+
+  const tomorrow = new Date(today.valueOf() + (24 * 3600 * 1000));
+  if (e.d < tomorrow) {
+    e.deadlineCategory = 'Today';
+    return e;
+  }
+
+  const afterTomorrow = new Date(today.valueOf() + (2 * 24 * 3600 * 1000));
+  if (e.d < afterTomorrow) {
+    e.deadlineCategory = 'Tomorrow';
+    return e;
+  }
+
+  const nextWeek = new Date(today.valueOf() + (8 * 24 * 3600 * 1000));
+  if (e.d < nextWeek) {
+    e.deadlineCategory = 'Week';
+    return e;
+  }
+
+  const nextMonth =  new Date(today.valueOf() + (33 * 24 * 3600 * 1000));
+  if (e.d < nextMonth) {
+    e.deadlineCategory = 'Month';
+    return e;
+  }
+
+  e.deadlineCategory = 'Year';
+  return e;
+}
+
 /**
  * The list of polls.
  */
@@ -42,7 +86,7 @@ export class ListComponent implements OnInit {
   ngOnInit(): void {
     // Retrieve the list of polls each time the component is displayed.
     this.http.get<ListAnswerEntry[]>('/a/list').subscribe({
-      next: (values: ListAnswerEntry[]) => this.polls = values,
+      next: (values: ListAnswerEntry[]) => this.polls = values.map(mapListAnswerEntry),
       error: (_) => this.polls = []
     });
   }
