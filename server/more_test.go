@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -93,106 +92,112 @@ type handlerTestsStruct struct {
 	checker srvt.Checker
 }
 
-var handlerTests []handlerTestsStruct = []handlerTestsStruct{
-	{
-		name: "write",
-		args: handlerArgs{
-			pattern: "/t/write",
-			fct: func(ctx context.Context, resp Response, req *Request) {
-				msg := "bar"
-				resp.SendJSON(ctx, msg)
-			},
-		},
-		req: srvt.Request{
-			Method: "GET",
-			Target: "/t/write",
-		},
-		checker: checkerJSONString(http.StatusOK, "bar"),
-	},
-	{
-		name: "echo",
-		args: handlerArgs{
-			pattern: "/t/echo",
-			fct: func(ctx context.Context, resp Response, req *Request) {
-				var msg string
-				if err := req.UnmarshalJSONBody(&msg); err != nil {
-					resp.SendError(ctx, err)
-					return
-				}
-				resp.SendJSON(ctx, msg)
-			},
-		},
-		req: srvt.Request{
-			Method: "POST",
-			Target: "/t/echo",
-			Body:   `"Hello"`,
-		},
-		checker: checkerJSONString(http.StatusOK, "Hello"),
-	},
-	{
-		name: "error",
-		args: handlerArgs{
-			pattern: "/t/error",
-			fct: func(ctx context.Context, resp Response, req *Request) {
-				resp.SendError(ctx, NewHttpError(http.StatusPaymentRequired, "Flublu", "Test"))
-			},
-		},
-		req: srvt.Request{
-			Method: "GET",
-			Target: "/t/error",
-		},
-		checker: checkerRawString(http.StatusPaymentRequired, "Flublu"),
-	},
-	{
-		name: "panic",
-		args: handlerArgs{
-			pattern: "/t/panic",
-			fct: func(ctx context.Context, resp Response, req *Request) {
-				panic(NewHttpError(http.StatusPaymentRequired, "Barbaz", "Test"))
-			},
-		},
-		req: srvt.Request{
-			Method: "GET",
-			Target: "/t/panic",
-		},
-		checker: checkerRawString(http.StatusPaymentRequired, "Barbaz"),
-	},
-	{
-		name: "struct",
-		args: handlerArgs{
-			pattern: "/t/struct",
-			fct: func(ctx context.Context, resp Response, req *Request) {
-				resp.SendJSON(ctx, struct {
-					A int
-					B string
-				}{A: 42, B: "Foobar"})
-			},
-		},
-		req: srvt.Request{
-			Method: "GET",
-			Target: "/t/struct",
-		},
-		checker: srvt.CheckerJSON(http.StatusOK, struct {
-			A int
-			B string
-		}{A: 42, B: "Foobar"}),
-	},
-}
-
 func TestHandleFunc(t *testing.T) {
 	precheck(t)
+
+	var (
+		tWrite  = "/t/write"
+		tEcho   = "/t/echo"
+		tError  = "/t/error"
+		tPanic  = "/t/panic"
+		tStruct = "/t/struct"
+	)
+
+	handlerTests := []handlerTestsStruct{
+		{
+			name: "write",
+			args: handlerArgs{
+				pattern: tWrite,
+				fct: func(ctx context.Context, resp Response, req *Request) {
+					msg := "bar"
+					resp.SendJSON(ctx, msg)
+				},
+			},
+			req: srvt.Request{
+				Method: "GET",
+				Target: &tWrite,
+			},
+			checker: checkerJSONString(http.StatusOK, "bar"),
+		},
+		{
+			name: "echo",
+			args: handlerArgs{
+				pattern: tEcho,
+				fct: func(ctx context.Context, resp Response, req *Request) {
+					var msg string
+					if err := req.UnmarshalJSONBody(&msg); err != nil {
+						resp.SendError(ctx, err)
+						return
+					}
+					resp.SendJSON(ctx, msg)
+				},
+			},
+			req: srvt.Request{
+				Method: "POST",
+				Target: &tEcho,
+				Body:   `"Hello"`,
+			},
+			checker: checkerJSONString(http.StatusOK, "Hello"),
+		},
+		{
+			name: "error",
+			args: handlerArgs{
+				pattern: tError,
+				fct: func(ctx context.Context, resp Response, req *Request) {
+					resp.SendError(ctx, NewHttpError(http.StatusPaymentRequired, "Flublu", "Test"))
+				},
+			},
+			req: srvt.Request{
+				Method: "GET",
+				Target: &tError,
+			},
+			checker: checkerRawString(http.StatusPaymentRequired, "Flublu"),
+		},
+		{
+			name: "panic",
+			args: handlerArgs{
+				pattern: tPanic,
+				fct: func(ctx context.Context, resp Response, req *Request) {
+					panic(NewHttpError(http.StatusPaymentRequired, "Barbaz", "Test"))
+				},
+			},
+			req: srvt.Request{
+				Method: "GET",
+				Target: &tPanic,
+			},
+			checker: checkerRawString(http.StatusPaymentRequired, "Barbaz"),
+		},
+		{
+			name: "struct",
+			args: handlerArgs{
+				pattern: tStruct,
+				fct: func(ctx context.Context, resp Response, req *Request) {
+					resp.SendJSON(ctx, struct {
+						A int
+						B string
+					}{A: 42, B: "Foobar"})
+				},
+			},
+			req: srvt.Request{
+				Method: "GET",
+				Target: &tStruct,
+			},
+			checker: srvt.CheckerJSON(http.StatusOK, struct {
+				A int
+				B string
+			}{A: 42, B: "Foobar"}),
+		},
+	}
 
 	for _, tt := range handlerTests {
 		t.Run(tt.name, func(t *testing.T) {
 			HandleFunc(tt.args.pattern, tt.args.fct)
 
-			var body io.Reader
-			if tt.req.Body != "" {
-				body = strings.NewReader(tt.req.Body)
-			}
-
 			wr := httptest.NewRecorder()
-			req := httptest.NewRequest(tt.req.Method, tt.req.Target, body)
+			req, err := tt.req.Make()
+			if err != nil {
+				t.Fatal(err)
+			}
 			http.DefaultServeMux.ServeHTTP(wr, req)
 
 			tt.checker(t, wr.Result(), req)

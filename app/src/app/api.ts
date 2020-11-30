@@ -36,3 +36,13 @@ export class ListAnswerEntry {
   d: string; // deadline
   a: string; // action (abbreviated)
 }
+
+export enum BallotType {
+  Closed,
+  Uninomial,
+}
+
+export enum InformationType {
+  NoneYet,
+  Counts,
+}

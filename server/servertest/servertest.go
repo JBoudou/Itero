@@ -42,7 +42,7 @@ func init() {
 // Its zero value is valid and produces the request "GET /a/test". See Make() for details.
 type Request struct {
 	Method string
-	Target string
+	Target *string
 	Body   string
 	UserId *uint32
 }
@@ -52,9 +52,11 @@ type Request struct {
 // Default value for Method is "GET". Default value for Target is "/a/test". If UserId is not nil
 // then a valid session for that user is added to the request.
 func (self *Request) Make() (req *http.Request, err error) {
-	target := self.Target
-	if target == "" {
+	var target string
+	if self.Target == nil {
 		target = "/a/test"
+	} else {
+		target = *self.Target
 	}
 
 	sessionId := ""
@@ -153,6 +155,24 @@ func CheckerJSON(expectCode int, expectBody interface{}) Checker {
 
 		if !bytes.Equal(body, expectBodyEncoded) {
 			t.Errorf("Wrong body. Got %s. Expect %s", body, expectBodyEncoded)
+		}
+	}
+}
+
+func CheckerError(expectCode int, expectBody string) Checker {
+	return func(t *testing.T, response *http.Response, req *http.Request) {
+		if response.StatusCode != expectCode {
+			t.Errorf("Wrong status code. Got %d. Expect %d", response.StatusCode, expectCode)
+		}
+
+		var buff bytes.Buffer
+		if _, err := buff.ReadFrom(response.Body); err != nil {
+			t.Fatalf("Error reading body: %s", err)
+		}
+		body := strings.TrimSpace(string(buff.Bytes()))
+
+		if body != expectBody {
+			t.Errorf("Wrong error. Got %s. Expect %s.", body, expectBody)
 		}
 	}
 }

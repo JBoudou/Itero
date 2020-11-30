@@ -26,10 +26,17 @@ func main() {
 	server.HandleFunc("/a/login", LoginHandler)
 	server.HandleFunc("/a/signup", SignupHandler)
 	server.HandleFunc("/a/list", ListHandler)
+	server.HandleFunc("/a/poll", ListHandler)
 
 	log.Println("Server starting")
 	if err := server.Start(); err != nil {
 		log.Fatal(err)
 	}
 	log.Println("Server terminated")
+}
+
+func must(err error) {
+	if err != nil {
+		panic(err)
+	}
 }

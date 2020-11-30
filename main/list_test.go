@@ -28,33 +28,6 @@ import (
 	srvt "github.com/JBoudou/Itero/server/servertest"
 )
 
-func TestPollSegment(t *testing.T) {
-	tests := []struct {
-		name    string
-		segment PollSegment
-	}{
-		{
-			name:    "Simple",
-			segment: PollSegment{Id: 0x12345, Salt: 0x71234},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			encoded, err := tt.segment.Encode()
-			if err != nil {
-				t.Fatalf("Encode error: %s", err)
-			}
-			got, err := PollSegmentDecode(encoded)
-			if err != nil {
-				t.Fatalf("Decode error: %s", err)
-			}
-			if got != tt.segment {
-				t.Errorf("Got %v. Expect %v", got, tt.segment)
-			}
-		})
-	}
-}
-
 func TestListHandler(t *testing.T) {
 	precheck(t)
 
@@ -67,12 +40,7 @@ func TestListHandler(t *testing.T) {
 	}
 
 	const (
-		qCreatePoll = `INSERT INTO Polls(Title, Admin, Salt, NbChoices, Publicity, MaxNbRounds)
-			 VALUE (?, ?, 42, 2, ?, 3)`
-		qCreateAlternatives = `INSERT INTO Alternatives(Poll, Id, Name) VALUES (?, 0, 'No'), (?, 1, 'Yes')`
 		qParticipate        = `INSERT INTO Participants(Poll, User) VALUE (?, ?)`
-
-		qRemovePoll = `DELETE FROM Polls WHERE Id = ?`
 
 		poll1Title = "Test 1"
 		poll2Title = "Test 2"

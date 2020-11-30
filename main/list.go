@@ -21,41 +21,11 @@ import (
 	"database/sql"
 	"net/http"
 
-	"github.com/JBoudou/Itero/b64buff"
 	"github.com/JBoudou/Itero/db"
 	"github.com/JBoudou/Itero/server"
 )
 
 // TODO Move PollSegment somewhere else.
-
-type PollSegment struct {
-	Id   uint32
-	Salt uint32
-}
-
-func PollSegmentDecode(str string) (ret PollSegment, err error) {
-	buff := b64buff.Buffer{}
-	err = buff.WriteB64(str)
-	if err == nil {
-		ret.Salt, err = buff.ReadUInt32(23)
-	}
-	if err == nil {
-		ret.Id, err = buff.ReadUInt32(31)
-	}
-	return
-}
-
-func (self PollSegment) Encode() (str string, err error) {
-	buff := b64buff.Buffer{}
-	err = buff.WriteUInt32(self.Salt, 23)
-	if err == nil {
-		err = buff.WriteUInt32(self.Id, 31)
-	}
-	if err == nil {
-		str, err = buff.ReadAllB64()
-	}
-	return
-}
 
 // end PollSegment
 

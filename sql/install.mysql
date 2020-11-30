@@ -230,8 +230,8 @@ BEGIN
   IF length(Title) < 3 THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Title field is too short';
   END IF;
-  IF Salt >= 8388608 THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Salt must be 23 bits long';
+  IF Salt >= 4194304 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Salt must be 22 bits long';
   END IF;
   IF NbChoices < 2 THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'NbChoices must be at least 2';
