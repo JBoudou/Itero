@@ -88,7 +88,7 @@ func TestSignupHandler_Error(t *testing.T) {
 				Method: "POST",
 				Body: `{"Name":"a","Email":"toto@example.com","Passwd":"tititi"}`,
 			},
-			Checker: srvt.CheckerStatus(http.StatusBadRequest),
+			Checker: srvt.CheckerError(http.StatusBadRequest, "Name too short"),
 		},
 		{
 			Name: "Name starting with a space",
@@ -96,7 +96,7 @@ func TestSignupHandler_Error(t *testing.T) {
 				Method: "POST",
 				Body: `{"Name":" tototo","Email":"toto@example.com","Passwd":"tititi"}`,
 			},
-			Checker: srvt.CheckerStatus(http.StatusBadRequest),
+			Checker: srvt.CheckerError(http.StatusBadRequest, "Name has spaces"),
 		},
 		{
 			Name: "Name ending with a space",
@@ -104,7 +104,7 @@ func TestSignupHandler_Error(t *testing.T) {
 				Method: "POST",
 				Body: `{"Name":"tototo ","Email":"toto@example.com","Passwd":"tititi"}`,
 			},
-			Checker: srvt.CheckerStatus(http.StatusBadRequest),
+			Checker: srvt.CheckerError(http.StatusBadRequest, "Name has spaces"),
 		},
 		{
 			Name: "Password too short",
@@ -112,7 +112,7 @@ func TestSignupHandler_Error(t *testing.T) {
 				Method: "POST",
 				Body: `{"Name":"tototo","Email":"toto@example.com","Passwd":"t"}`,
 			},
-			Checker: srvt.CheckerStatus(http.StatusBadRequest),
+			Checker: srvt.CheckerError(http.StatusBadRequest, "Passwd too short"),
 		},
 		{
 			Name: "Wrong email 1",
@@ -120,7 +120,7 @@ func TestSignupHandler_Error(t *testing.T) {
 				Method: "POST",
 				Body: `{"Name":"tototo","Email":"toto.example.com","Passwd":"tititi"}`,
 			},
-			Checker: srvt.CheckerStatus(http.StatusBadRequest),
+			Checker: srvt.CheckerError(http.StatusBadRequest, "Email invalid"),
 		},
 		{
 			Name: "Wrong email 2",
@@ -128,7 +128,7 @@ func TestSignupHandler_Error(t *testing.T) {
 				Method: "POST",
 				Body: `{"Name":"tototo","Email":"toto@examplecom","Passwd":"tititi"}`,
 			},
-			Checker: srvt.CheckerStatus(http.StatusBadRequest),
+			Checker: srvt.CheckerError(http.StatusBadRequest, "Email invalid"),
 		},
 	}
 	srvt.Run(t, tests, server.HandlerFunc(SignupHandler))
@@ -171,6 +171,8 @@ func (self mockResponse) SendLoginAccepted(ctx context.Context, user server.User
 }
 
 func TestSignupHandler_Success(t *testing.T) {
+	precheck(t)
+
 	const name = "toto_my_test_user_with_a_long_name"
 	var called bool
 	var userId uint32
@@ -196,19 +198,39 @@ func TestSignupHandler_Success(t *testing.T) {
 	SignupHandler(hRequest.Context(), response, &sRequest)
 
 	if !called {
-		t.Errorf("SendLoginAccepted not called")
-	} else {
-		const qDelete = `DELETE FROM Users WHERE Id = ?`
-		result, err := db.DB.Exec(qDelete, userId)
-		if err != nil {
-			t.Fatal(err)
-		}
-		nbRows, err := result.RowsAffected()
-		if err != nil {
-			t.Fatal(err)
-		}
-		if nbRows != 1 {
-			t.Fatalf("Not deleting the user (%d rows instead of 1).", nbRows)
-		}
+		t.Fatal("SendLoginAccepted not called")
+	}
+
+	tests := []srvt.Test {
+		{
+			Name: "Name already exists",
+			Request: srvt.Request{
+				Method: "POST",
+				Body: `{"Name":"` + name + `","Email":"another_long_dummy@example.com","Passwd":"tititi"}`,
+			},
+			Checker: srvt.CheckerError(http.StatusBadRequest, "Already exists"),
+		},
+		{
+			Name: "Name already exists",
+			Request: srvt.Request{
+				Method: "POST",
+				Body: `{"Name":"another_long_dummy","Email":"` + name + `@example.com","Passwd":"tititi"}`,
+			},
+			Checker: srvt.CheckerError(http.StatusBadRequest, "Already exists"),
+		},
+	}
+	srvt.Run(t, tests, server.HandlerFunc(SignupHandler))
+	
+	const qDelete = `DELETE FROM Users WHERE Id = ?`
+	result, err := db.DB.Exec(qDelete, userId)
+	if err != nil {
+		t.Fatal(err)
+	}
+	nbRows, err := result.RowsAffected()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if nbRows != 1 {
+		t.Fatalf("Not deleting the user (%d rows instead of 1).", nbRows)
 	}
 }
