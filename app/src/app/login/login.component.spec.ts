@@ -17,6 +17,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormBuilder } from '@angular/forms';
 import { Router } from '@angular/router';
+import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import { map } from 'rxjs/operators';
 
 import { LoginComponent } from './login.component';
 import { SessionService } from '../session/session.service';
@@ -24,13 +26,16 @@ import { SessionService } from '../session/session.service';
 describe('LoginComponent', () => {
   let component: LoginComponent;
   let fixture: ComponentFixture<LoginComponent>;
+  let httpControler: HttpTestingController;
+  let sessionSpy: jasmine.SpyObj<SessionService>;
 
   beforeEach(async () => {
-    const sessionSpy = jasmine.createSpyObj('SessionService', ['makeURL']);
+    const sessionSpy = jasmine.createSpyObj('SessionService', ['httpOperator']);
     const routerSpy  = jasmine.createSpyObj('Router', ['navigateByUrl']);
 
     await TestBed.configureTestingModule({
       declarations: [ LoginComponent ],
+      imports: [ HttpClientTestingModule ],
       providers: [
         FormBuilder,
         {provide: SessionService, useValue: sessionSpy},
@@ -44,9 +49,32 @@ describe('LoginComponent', () => {
     fixture = TestBed.createComponent(LoginComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
+    httpControler = TestBed.inject(HttpTestingController);
+    sessionSpy = TestBed.inject(SessionService) as jasmine.SpyObj<SessionService>;
   });
+
+  afterEach(() => {
+    httpControler.verify();
+  })
 
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  it('pipes login to SessionService.httpOperator', () => {
+    const sessionId = 'ABCD';
+
+    const spyFct = jasmine.createSpy('filter');
+    spyFct.withArgs(sessionId).and.returnValue(true);
+    sessionSpy.httpOperator.and.returnValue(map(spyFct));
+
+    component.onLogin();
+
+    const req = httpControler.expectOne('/a/login');
+    req.flush(sessionId);
+    httpControler.verify();
+
+    expect(spyFct.calls.count()).toBe(1);
+  });
+  
 });

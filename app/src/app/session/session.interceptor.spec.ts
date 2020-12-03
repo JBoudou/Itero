@@ -34,14 +34,21 @@ describe('SessionInterceptor', () => {
     });
   })
 
-  function checkUrlHandler(url: string): HttpHandler {
+  function checkHasSession(sessionId: string): HttpHandler {
     return {
       handle: (req: HttpRequest<any>): Observable<HttpEvent<any>> => {
-        expect(req.url).toBe(url);
+        expect(req.headers.get('X-CSRF')).toEqual(sessionId);
         return EMPTY;
       }
     };
   }
+
+  let checkNoSession: HttpHandler = {
+    handle: (req: HttpRequest<any>): Observable<HttpEvent<any>> => {
+      expect(req.headers.has('X-CSRF')).toBeFalse();
+      return EMPTY;
+    }
+  };
 
   it('should be created', () => {
     const interceptor: SessionInterceptor = TestBed.inject(SessionInterceptor);
@@ -54,17 +61,17 @@ describe('SessionInterceptor', () => {
     let service = TestBed.inject(SessionService) as jasmine.SpyObj<SessionService>;
     service.registered.and.returnValue(true);
 
-    interceptor.intercept(new HttpRequest('GET', '/foo'), checkUrlHandler('/foo?s=ABCD'));
-    interceptor.intercept(new HttpRequest('POST', '/foo?t=bar', {}), checkUrlHandler('/foo?t=bar&s=ABCD'));
+    interceptor.intercept(new HttpRequest('GET', '/foo'), checkHasSession('ABCD'));
+    interceptor.intercept(new HttpRequest('POST', '/foo?t=bar', {}), checkHasSession('ABCD'));
   });
 
-  it('does not change URL when there is no session', () => {
+  it('does not add session when there is none', () => {
     const interceptor: SessionInterceptor = TestBed.inject(SessionInterceptor);
     
     let service = TestBed.inject(SessionService) as jasmine.SpyObj<SessionService>;
     service.registered.and.returnValue(false);
 
-    interceptor.intercept(new HttpRequest('GET', '/foo'), checkUrlHandler('/foo'));
-    interceptor.intercept(new HttpRequest('POST', '/foo?t=bar', {}), checkUrlHandler('/foo?t=bar'));
+    interceptor.intercept(new HttpRequest('GET', '/foo'), checkNoSession);
+    interceptor.intercept(new HttpRequest('POST', '/foo?t=bar', {}), checkNoSession);
   });
 });
