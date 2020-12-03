@@ -157,10 +157,15 @@ func TestLoginThenNewRequest(t *testing.T) {
 
 func TestRequest_CheckPOST(t *testing.T) {
 	const target = "/a/test"
+
+	originAddress := cfg.Address
+	defer func() { cfg.Address = originAddress }()
+
 	tests := []struct {
 		name     string
 		method   string
 		headers  map[string]string
+		address  string // internal server address, i.e., cfg.Address
 		errorMsg string // empty for success
 	}{
 		{
@@ -174,25 +179,88 @@ func TestRequest_CheckPOST(t *testing.T) {
 			errorMsg: "Missing Origin",
 		},
 		{
-			name:   "Wrong origin",
+			name:   "Wrong origin host",
 			method: "POST",
+			address: "example.com",
 			headers: map[string]string{
-				"Origin": "http://impossible.dummy.address/",
+				"Origin": "https://impossible.dummy.address/",
 			},
 			errorMsg: "Unauthorized",
 		},
 		{
-			name: "Success Origin",
+			name:   "Wrong origin scheme",
 			method: "POST",
-			headers: map[string]string {
-				"Origin": "https://" + cfg.Address + "/",
+			address: "example.com",
+			headers: map[string]string{
+				"Origin": "http://example.com/",
+			},
+			errorMsg: "Unauthorized",
+		},
+		{
+			name:   "Wrong port",
+			method: "POST",
+			address: "example.com:17",
+			headers: map[string]string{
+				"Origin": "https://example.com:18/",
+			},
+			errorMsg: "Unauthorized",
+		},
+		{
+			name:   "Wrong port default 1",
+			method: "POST",
+			address: "example.com",
+			headers: map[string]string{
+				"Origin": "https://example.com:18/",
+			},
+			errorMsg: "Unauthorized",
+		},
+		{
+			name:   "Wrong port default 2",
+			method: "POST",
+			address: "example.com:42",
+			headers: map[string]string{
+				"Origin": "https://example.com/",
+			},
+			errorMsg: "Unauthorized",
+		},
+		{
+			name:   "Good port default 1",
+			method: "POST",
+			address: "example.com",
+			headers: map[string]string{
+				"Origin": "https://example.com:443/",
 			},
 		},
 		{
-			name: "Success Referer",
+			name:   "Good port default 2",
 			method: "POST",
-			headers: map[string]string {
-				"Referer": "https://" + cfg.Address + "/something/else",
+			address: "example.com:443",
+			headers: map[string]string{
+				"Origin": "https://example.com/",
+			},
+		},
+		{
+			name:   "Good port explicit",
+			method: "POST",
+			address: "example.com:42",
+			headers: map[string]string{
+				"Origin": "https://example.com:42/",
+			},
+		},
+		{
+			name:   "Success Origin",
+			method: "POST",
+			address: "example.com",
+			headers: map[string]string{
+				"Origin": "https://example.com/",
+			},
+		},
+		{
+			name:   "Success Referer",
+			method: "POST",
+			address: "example.com",
+			headers: map[string]string{
+				"Referer": "https://example.com/something/else",
 			},
 		},
 	}
@@ -203,6 +271,10 @@ func TestRequest_CheckPOST(t *testing.T) {
 				request.Header.Add(name, value)
 			}
 			self := NewRequest(target, request)
+
+			if tt.address != "" {
+				cfg.Address = tt.address
+			}
 
 			err := self.CheckPOST(context.Background())
 

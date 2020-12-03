@@ -89,18 +89,37 @@ func (self *Request) CheckPOST(ctx context.Context) error {
 			return NewHttpError(http.StatusForbidden, "Missing Origin", "No Origin nor Referer header")
 		}
 	}
-	url, err := url.Parse(origin[0])
+	originUrl, err := url.Parse(origin[0])
 	if err != nil {
 		return err
 	}
-	if url.Scheme != "https" {
-		return NewHttpError(http.StatusForbidden, "Unauthorized", "Not using https scheme")
+	baseUrl, err := url.Parse(BaseURL())
+	if err != nil {
+		return err
 	}
-	if url.Host != cfg.Address {
+	if originUrl.Scheme != baseUrl.Scheme ||
+		originUrl.Hostname() != baseUrl.Hostname() ||
+		URLPortWithDefault(originUrl) != URLPortWithDefault(baseUrl) {
+		logger.Printf(ctx, "Wrong origin. Got %s. Expect %s.", originUrl, baseUrl)
 		return NewHttpError(http.StatusForbidden, "Unauthorized", "Wrong origin")
 	}
 
 	return nil
+}
+
+// URLPortWithDefault returns the port part of url.Host, without the leading colon.
+// If url does not have a port, a default value is guessed from url.Scheme.
+func URLPortWithDefault(url *url.URL) (port string) {
+	port = url.Port()
+	if port == "" {
+		switch url.Scheme {
+		case "http":
+			return "80"
+		case "https":
+			return "443"
+		}
+	}
+	return
 }
 
 // UnmarshalJSONBody retrieves the body of the request as a JSON object.

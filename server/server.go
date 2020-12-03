@@ -26,6 +26,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/JBoudou/Itero/config"
 	"github.com/JBoudou/Itero/server/logger"
@@ -48,6 +49,7 @@ const (
 	sessionKeyUserId    = "uid"
 	sessionKeyDeadline  = "dl"
 
+	defaultPort = ":443"
 	sessionHeader = "X-CSRF"
 
 	wwwroot = "app/dist/app"
@@ -118,7 +120,7 @@ func (self oneFile) Open(name string) (http.File, error) {
 
 // Start the server.
 // Parameters are taken from the configuration.
-func Start() (err error) {
+func Start() error {
 	http.Handle("/r/", interceptorChain.
 		Then(http.FileServer(oneFile{wwwroot + "/index.html"})))
 	http.Handle("/", interceptorChain.
@@ -126,14 +128,14 @@ func Start() (err error) {
 	http.Handle("/s/", interceptorChain.
 		Then(http.StripPrefix("/s/", http.FileServer(http.Dir("static")))))
 
-	if cfg.CertFile == "" && cfg.KeyFile == "" {
-		log.Println("WARNING: Configuration entries server.CertFile and server.KeyFile are missing.")
-		log.Println("WARNING: The server will NOT use HTTPS. Some features may be unavailable.")
-		err = http.ListenAndServe(cfg.Address, nil)
+	addr := cfg.Address
+	if !strings.Contains(addr, ":") {
+		addr = addr + defaultPort
 	} else {
-		err = http.ListenAndServeTLS(cfg.Address, cfg.CertFile, cfg.KeyFile, nil)
+		cfg.Address = strings.TrimSuffix(cfg.Address, defaultPort)
 	}
-	return
+
+	return http.ListenAndServeTLS(addr, cfg.CertFile, cfg.KeyFile, nil)
 }
 
 func BaseURL() string {
