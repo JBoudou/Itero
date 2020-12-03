@@ -65,6 +65,10 @@ func (self *Request) Make() (req *http.Request, err error) {
 	}
 
 	req = httptest.NewRequest(self.Method, target, body)
+
+	if req.Method == "POST" {
+		req.Header.Add("Origin", server.BaseURL())
+	}
 	
 	if self.UserId != nil {
 		var sessionId string
@@ -103,8 +107,10 @@ type Test struct {
 // Each test is executed inside testing.T.Run, hence calling t.Fatal in the checker abort only the
 // current test.
 func Run(t *testing.T, tests []Test, handler server.Handler) {
+	t.Helper()
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
+			t.Helper()
 			if tt.Update != nil {
 				tt.Update(t)
 			}
@@ -121,6 +127,7 @@ func Run(t *testing.T, tests []Test, handler server.Handler) {
 
 // RunFunc is a convenient wrapper around Run for HandleFunction.
 func RunFunc(t *testing.T, tests []Test, handler server.HandleFunction) {
+	t.Helper()
 	Run(t, tests, server.HandlerFunc(handler))
 }
 
@@ -129,6 +136,7 @@ func RunFunc(t *testing.T, tests []Test, handler server.HandleFunction) {
 // The returned function checks that the statuc code and the body are as expected.
 func CheckerJSON(expectCode int, expectBody interface{}) Checker {
 	return func(t *testing.T, response *http.Response, req *http.Request) {
+		t.Helper()
 		if response.StatusCode != expectCode {
 			t.Errorf("Wrong status code. Got %d. Expect %d", response.StatusCode, expectCode)
 		}
@@ -161,6 +169,7 @@ func CheckerJSON(expectCode int, expectBody interface{}) Checker {
 
 func CheckerError(expectCode int, expectBody string) Checker {
 	return func(t *testing.T, response *http.Response, req *http.Request) {
+		t.Helper()
 		if response.StatusCode != expectCode {
 			t.Errorf("Wrong status code. Got %d. Expect %d", response.StatusCode, expectCode)
 		}
@@ -182,6 +191,7 @@ func CheckerError(expectCode int, expectBody string) Checker {
 // The returned function checks that the statuc code is as expected. The body is not checked.
 func CheckerStatus(expectCode int) Checker {
 	return func(t *testing.T, response *http.Response, req *http.Request) {
+		t.Helper()
 		if response.StatusCode != expectCode {
 			t.Errorf("Wrong status code. Got %d. Expect %d", response.StatusCode, expectCode)
 		}

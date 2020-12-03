@@ -34,19 +34,10 @@ export class SessionInterceptor implements HttpInterceptor {
   intercept(request: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {
     if (this.session.registered()) {
       const sessionReq = request.clone({
-        url: this.sessionURL(request.url),
         headers: request.headers.set('X-CSRF', this.session.sessionId)
       });
       return next.handle(sessionReq);
     }
     return next.handle(request);
-  }
-
-  private sessionURL(base: string): string {
-    var sep: string = '?';
-    if (base.includes(sep)) {
-      sep = '&';
-    }
-    return base + sep + 's=' + this.session.sessionId;
   }
 }

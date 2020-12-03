@@ -38,11 +38,11 @@ func TestLoginHandler(t *testing.T) {
 		t.Fatalf("Env failed: %s", env.Error)
 	}
 
-	tests := []srvt.Test {
+	tests := []srvt.Test{
 		{
 			Name: "no body",
 			Request: srvt.Request{
-				Method: "GET",
+				Method: "POST",
 			},
 			Checker: srvt.CheckerStatus(http.StatusBadRequest),
 		},
@@ -77,16 +77,17 @@ func TestLoginHandler(t *testing.T) {
 func TestSignupHandler_Error(t *testing.T) {
 	precheck(t)
 
-	tests := []srvt.Test {
+	tests := []srvt.Test{
 		{
-			Name: "Bad request",
+			Name:    "Bad request",
+			Request: srvt.Request{Method: "POST"},
 			Checker: srvt.CheckerStatus(http.StatusBadRequest),
 		},
 		{
 			Name: "Name too short",
 			Request: srvt.Request{
 				Method: "POST",
-				Body: `{"Name":"a","Email":"toto@example.com","Passwd":"tititi"}`,
+				Body:   `{"Name":"a","Email":"toto@example.com","Passwd":"tititi"}`,
 			},
 			Checker: srvt.CheckerError(http.StatusBadRequest, "Name too short"),
 		},
@@ -94,7 +95,7 @@ func TestSignupHandler_Error(t *testing.T) {
 			Name: "Name starting with a space",
 			Request: srvt.Request{
 				Method: "POST",
-				Body: `{"Name":" tototo","Email":"toto@example.com","Passwd":"tititi"}`,
+				Body:   `{"Name":" tototo","Email":"toto@example.com","Passwd":"tititi"}`,
 			},
 			Checker: srvt.CheckerError(http.StatusBadRequest, "Name has spaces"),
 		},
@@ -102,7 +103,7 @@ func TestSignupHandler_Error(t *testing.T) {
 			Name: "Name ending with a space",
 			Request: srvt.Request{
 				Method: "POST",
-				Body: `{"Name":"tototo ","Email":"toto@example.com","Passwd":"tititi"}`,
+				Body:   `{"Name":"tototo ","Email":"toto@example.com","Passwd":"tititi"}`,
 			},
 			Checker: srvt.CheckerError(http.StatusBadRequest, "Name has spaces"),
 		},
@@ -110,7 +111,7 @@ func TestSignupHandler_Error(t *testing.T) {
 			Name: "Password too short",
 			Request: srvt.Request{
 				Method: "POST",
-				Body: `{"Name":"tototo","Email":"toto@example.com","Passwd":"t"}`,
+				Body:   `{"Name":"tototo","Email":"toto@example.com","Passwd":"t"}`,
 			},
 			Checker: srvt.CheckerError(http.StatusBadRequest, "Passwd too short"),
 		},
@@ -118,7 +119,7 @@ func TestSignupHandler_Error(t *testing.T) {
 			Name: "Wrong email 1",
 			Request: srvt.Request{
 				Method: "POST",
-				Body: `{"Name":"tototo","Email":"toto.example.com","Passwd":"tititi"}`,
+				Body:   `{"Name":"tototo","Email":"toto.example.com","Passwd":"tititi"}`,
 			},
 			Checker: srvt.CheckerError(http.StatusBadRequest, "Email invalid"),
 		},
@@ -126,7 +127,7 @@ func TestSignupHandler_Error(t *testing.T) {
 			Name: "Wrong email 2",
 			Request: srvt.Request{
 				Method: "POST",
-				Body: `{"Name":"tototo","Email":"toto@examplecom","Passwd":"tititi"}`,
+				Body:   `{"Name":"tototo","Email":"toto@examplecom","Passwd":"tititi"}`,
 			},
 			Checker: srvt.CheckerError(http.StatusBadRequest, "Email invalid"),
 		},
@@ -135,8 +136,8 @@ func TestSignupHandler_Error(t *testing.T) {
 }
 
 type mockResponse struct {
-	t *testing.T
-	jsonFct func(*testing.T, context.Context, interface{})
+	t        *testing.T
+	jsonFct  func(*testing.T, context.Context, interface{})
 	errorFct func(*testing.T, context.Context, error)
 	loginFct func(*testing.T, context.Context, server.User, *server.Request)
 }
@@ -188,7 +189,7 @@ func TestSignupHandler_Success(t *testing.T) {
 	}
 
 	const body = `{"Name":"` + name + `","Email":"` + name + `@example.com","Passwd":"tititi"}`
-	tRequest := srvt.Request{Body: body}
+	tRequest := srvt.Request{Method: "POST", Body: body}
 	hRequest, err := tRequest.Make()
 	if err != nil {
 		t.Fatal(err)
@@ -201,12 +202,12 @@ func TestSignupHandler_Success(t *testing.T) {
 		t.Fatal("SendLoginAccepted not called")
 	}
 
-	tests := []srvt.Test {
+	tests := []srvt.Test{
 		{
 			Name: "Name already exists",
 			Request: srvt.Request{
 				Method: "POST",
-				Body: `{"Name":"` + name + `","Email":"another_long_dummy@example.com","Passwd":"tititi"}`,
+				Body:   `{"Name":"` + name + `","Email":"another_long_dummy@example.com","Passwd":"tititi"}`,
 			},
 			Checker: srvt.CheckerError(http.StatusBadRequest, "Already exists"),
 		},
@@ -214,13 +215,13 @@ func TestSignupHandler_Success(t *testing.T) {
 			Name: "Name already exists",
 			Request: srvt.Request{
 				Method: "POST",
-				Body: `{"Name":"another_long_dummy","Email":"` + name + `@example.com","Passwd":"tititi"}`,
+				Body:   `{"Name":"another_long_dummy","Email":"` + name + `@example.com","Passwd":"tititi"}`,
 			},
 			Checker: srvt.CheckerError(http.StatusBadRequest, "Already exists"),
 		},
 	}
 	srvt.Run(t, tests, server.HandlerFunc(SignupHandler))
-	
+
 	const qDelete = `DELETE FROM Users WHERE Id = ?`
 	result, err := db.DB.Exec(qDelete, userId)
 	if err != nil {

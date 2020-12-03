@@ -40,6 +40,11 @@ func passwdHash() (hash.Hash, error) {
 }
 
 func LoginHandler(ctx context.Context, response server.Response, request *server.Request) {
+	if err := request.CheckPOST(ctx); err != nil {
+		response.SendError(ctx, err)
+		return
+	}
+
 	var loginQuery struct {
 		User   string
 		Passwd string
@@ -79,6 +84,11 @@ func LoginHandler(ctx context.Context, response server.Response, request *server
 }
 
 func SignupHandler(ctx context.Context, response server.Response, request *server.Request) {
+	if err := request.CheckPOST(ctx); err != nil {
+		response.SendError(ctx, err)
+		return
+	}
+
 	var signupQuery struct {
 		Name   string
 		Email  string

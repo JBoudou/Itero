@@ -136,6 +136,10 @@ func Start() (err error) {
 	return
 }
 
+func BaseURL() string {
+	return "https://" + cfg.Address + "/"
+}
+
 // SessionKeys retrieves the session keys for test purpose.
 //
 // This is a low level function, made available for tests.
