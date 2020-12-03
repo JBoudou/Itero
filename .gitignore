@@ -1,3 +1,8 @@
 /config.json
+/db/config.json
+/main/config.json
+/server/config.json
 srvtool
 srv
+ssl.crt
+ssl.key
