@@ -59,25 +59,25 @@ func (self *Request) Make() (req *http.Request, err error) {
 		target = *self.Target
 	}
 
-	sessionId := ""
-	if self.UserId != nil {
-		sessionId, err = server.MakeSessionId()
-		if err != nil {
-			return
-		}
-		server.AddSessionIdToPath(&target, sessionId)
-	}
-
 	var body io.Reader
 	if self.Body != "" {
 		body = strings.NewReader(self.Body)
 	}
+
 	req = httptest.NewRequest(self.Method, target, body)
+	
 	if self.UserId != nil {
+		var sessionId string
+		sessionId, err = server.MakeSessionId()
+		if err != nil {
+			return
+		}
+		server.AddSessionIdToRequest(req, sessionId)
 		user := server.User{Name: " Test ", Id: *self.UserId}
 		session := server.NewSession(clientStore, &server.SessionOptions, sessionId, user)
 		clientStore.Save(req, nil, session)
 	}
+	
 	return
 }
 

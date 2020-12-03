@@ -18,8 +18,10 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
+	"net/url"
 	"path"
 	"strings"
 	"time"
@@ -67,6 +69,40 @@ func NewRequest(basePattern string, original *http.Request) (req Request) {
 	return
 }
 
+// CheckPOST ensures that the request is particularly safe.
+//
+// This method returns nil only if the method is POST and
+// there is an Origin header with the correct host.
+func (self *Request) CheckPOST(ctx context.Context) error {
+	if self.SessionError != nil {
+		return self.SessionError
+	}
+	if self.original.Method != "POST" {
+		return NewHttpError(http.StatusForbidden, "Unauthorized", "Not a POST")
+	}
+	
+	origin := self.original.Header.Values("Origin")
+	if origin == nil || len(origin) != 1 {
+		logger.Print(ctx, "No Origin: header.")
+		origin = self.original.Header.Values("Referer")
+		if origin == nil || len(origin) != 1 {
+			return NewHttpError(http.StatusForbidden, "Missing Origin", "No Origin nor Referer header")
+		}
+	}
+	url, err := url.Parse(origin[0])
+	if err != nil {
+		return err
+	}
+	if url.Scheme != "https" {
+		return NewHttpError(http.StatusForbidden, "Unauthorized", "Not using https scheme")
+	}
+	if url.Host != cfg.Address {
+		return NewHttpError(http.StatusForbidden, "Unauthorized", "Wrong origin")
+	}
+
+	return nil
+}
+
 // UnmarshalJSONBody retrieves the body of the request as a JSON object.
 // See json.Unmarshal for details of the unmarshalling process.
 func (self *Request) UnmarshalJSONBody(dst interface{}) error {
@@ -77,16 +113,10 @@ func (self *Request) UnmarshalJSONBody(dst interface{}) error {
 	return json.Unmarshal(buff.Bytes(), &dst)
 }
 
-// AddSessionIdToPath adds a session id to a URL path.
+// AddSessionIdToRequest adds a session id to an http.Request.
 // This function is meant to be used by HTTP clients and tests.
-func AddSessionIdToPath(path *string, sessionId string) {
-	var inter string
-	if strings.Contains(*path, "?") {
-		inter = "&"
-	} else {
-		inter = "?"
-	}
-	*path = *path + inter + queryKeySessionId + "=" + sessionId
+func AddSessionIdToRequest(req *http.Request, sessionId string) {
+	req.Header.Set(sessionHeader, sessionId)
 }
 
 /* What follows are private methods and functions */
@@ -115,11 +145,7 @@ func (self *Request) addSession(session *gs.Session) {
 	}
 
 	// Check session id
-	queryId, ok := self.original.URL.Query()[queryKeySessionId]
-	if !ok {
-		registerError("no session id in query")
-		return
-	}
+	queryId := self.original.Header.Get(sessionHeader)
 	unconverted, ok = session.Values[sessionKeySessionId]
 	if !ok {
 		registerError("no session id in the cookie")
@@ -130,7 +156,7 @@ func (self *Request) addSession(session *gs.Session) {
 		registerError("wrong type for the session id in the cookie")
 		return
 	}
-	if queryId[0] != sessionId {
+	if queryId != sessionId {
 		registerError("wrong session id")
 		return
 	}

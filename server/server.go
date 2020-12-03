@@ -48,7 +48,7 @@ const (
 	sessionKeyUserId    = "uid"
 	sessionKeyDeadline  = "dl"
 
-	queryKeySessionId = "s"
+	sessionHeader = "X-CSRF"
 
 	wwwroot = "app/dist/app"
 )
@@ -127,8 +127,8 @@ func Start() (err error) {
 		Then(http.StripPrefix("/s/", http.FileServer(http.Dir("static")))))
 
 	if cfg.CertFile == "" && cfg.KeyFile == "" {
-		log.Println("WARNING: The server will be launched in HTTP mode, which is INSECURE.")
-		log.Println("WARNING: Set server.CertFile and server.KeyFile in the configuration.")
+		log.Println("WARNING: Configuration entries server.CertFile and server.KeyFile are missing.")
+		log.Println("WARNING: The server will NOT use HTTPS. Some features may be unavailable.")
 		err = http.ListenAndServe(cfg.Address, nil)
 	} else {
 		err = http.ListenAndServeTLS(cfg.Address, cfg.CertFile, cfg.KeyFile, nil)

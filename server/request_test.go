@@ -20,9 +20,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"reflect"
 	"testing"
 )
@@ -73,7 +73,7 @@ func TestLoginThenNewRequest(t *testing.T) {
 	const fullPath = "/" + singlePath
 	user := User{Name: "John", Id: 42}
 
-	makeCorrectURL := func(t *testing.T, result *http.Response) string {
+	addCorrectSession := func(t *testing.T, result *http.Response, request *http.Request) {
 		var sessionID string
 		var buff bytes.Buffer
 		if _, err := buff.ReadFrom(result.Body); err != nil {
@@ -83,16 +83,13 @@ func TestLoginThenNewRequest(t *testing.T) {
 			t.Fatalf("Unable to convert response body: %s", err)
 		}
 
-		query := url.Values{}
-		query.Add(queryKeySessionId, sessionID)
-		return fullPath + "?" + query.Encode()
+		AddSessionIdToRequest(request, sessionID)
 	}
 
-	makeForgedURL := func(value string) func(t *testing.T, result *http.Response) string {
-		return func(t *testing.T, result *http.Response) string {
-			query := url.Values{}
-			query.Add(queryKeySessionId, value)
-			return fullPath + "?" + query.Encode()
+	addForgedSession := func(value string) func(t *testing.T, result *http.Response,
+		request *http.Request) {
+		return func(t *testing.T, result *http.Response, request *http.Request) {
+			AddSessionIdToRequest(request, value)
 		}
 	}
 
@@ -118,24 +115,24 @@ func TestLoginThenNewRequest(t *testing.T) {
 	}
 
 	tests := []struct {
-		name    string
-		makeUrl func(t *testing.T, result *http.Response) string
-		checker func(t *testing.T, got *Request, original *http.Request)
+		name       string
+		addSession func(t *testing.T, result *http.Response, request *http.Request)
+		checker    func(t *testing.T, got *Request, original *http.Request)
 	}{
 		{
-			name:    "Success",
-			makeUrl: makeCorrectURL,
-			checker: checkSuccess,
+			name:       "Success",
+			addSession: addCorrectSession,
+			checker:    checkSuccess,
 		},
 		{
-			name:    "No session",
-			makeUrl: func(t *testing.T, result *http.Response) string { return fullPath },
-			checker: checkFail,
+			name:       "No session",
+			addSession: func(t *testing.T, result *http.Response, request *http.Request) {},
+			checker:    checkFail,
 		},
 		{
-			name:    "Wrong session",
-			makeUrl: makeForgedURL(";;;;"),
-			checker: checkFail,
+			name:       "Wrong session",
+			addSession: addForgedSession(";;;;"),
+			checker:    checkFail,
 		},
 	}
 	for _, tt := range tests {
@@ -146,14 +143,84 @@ func TestLoginThenNewRequest(t *testing.T) {
 			response.SendLoginAccepted(context.Background(), user, &Request{original: &http.Request{}})
 			result := mock.Result()
 
-			reqURL := tt.makeUrl(t, result)
-			originalRequest := httptest.NewRequest("GET", reqURL, nil)
+			originalRequest := httptest.NewRequest("GET", fullPath, nil)
 			for _, cookie := range result.Cookies() {
 				originalRequest.AddCookie(cookie)
 			}
+			tt.addSession(t, result, originalRequest)
 
 			got := NewRequest(fullPath, originalRequest)
 			tt.checker(t, &got, originalRequest)
+		})
+	}
+}
+
+func TestRequest_CheckPOST(t *testing.T) {
+	const target = "/a/test"
+	tests := []struct {
+		name     string
+		method   string
+		headers  map[string]string
+		errorMsg string // empty for success
+	}{
+		{
+			name:     "Get",
+			method:   "GET",
+			errorMsg: "Unauthorized",
+		},
+		{
+			name:     "No additional header",
+			method:   "POST",
+			errorMsg: "Missing Origin",
+		},
+		{
+			name:   "Wrong origin",
+			method: "POST",
+			headers: map[string]string{
+				"Origin": "http://impossible.dummy.address/",
+			},
+			errorMsg: "Unauthorized",
+		},
+		{
+			name: "Success Origin",
+			method: "POST",
+			headers: map[string]string {
+				"Origin": "https://" + cfg.Address + "/",
+			},
+		},
+		{
+			name: "Success Referer",
+			method: "POST",
+			headers: map[string]string {
+				"Referer": "https://" + cfg.Address + "/something/else",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			request := httptest.NewRequest(tt.method, target, nil)
+			for name, value := range tt.headers {
+				request.Header.Add(name, value)
+			}
+			self := NewRequest(target, request)
+
+			err := self.CheckPOST(context.Background())
+
+			if (err == nil) != (len(tt.errorMsg) == 0) {
+				if err == nil {
+					t.Errorf(`Expected error "%s", got nil.`, tt.errorMsg)
+				} else {
+					t.Errorf(`Unexpected error "%s".`, err)
+				}
+			} else if err != nil {
+				var httpError HttpError
+				ok := errors.As(err, &httpError)
+				if !ok {
+					t.Errorf("Unexpected error type for %v.", err)
+				} else if httpError.msg != tt.errorMsg {
+					t.Errorf(`Wrong error message. Got "%s". Expect "%s".`, httpError.msg, tt.errorMsg)
+				}
+			}
 		})
 	}
 }
