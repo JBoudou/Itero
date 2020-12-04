@@ -76,7 +76,7 @@ type myConfig struct {
 
 func init() {
 	// Configuration
-	cfg.Address = ":8080"
+	cfg.Address = defaultPort
 	if err := config.Value("server", &cfg); err != nil {
 		log.Print(err)
 		log.Println("WARNING: Package server not usable because there is no configuration for it.")
@@ -84,10 +84,13 @@ func init() {
 		return
 	}
 	Ok = true
+	cfg.Address = strings.TrimSuffix(cfg.Address, defaultPort)
 
 	// Session
 	sessionStore = gs.NewCookieStore(cfg.SessionKeys...)
 	sessionStore.MaxAge(sessionMaxAge)
+	sessionStore.Options.Domain = cfg.Address
+	sessionStore.Options.SameSite = http.SameSiteLaxMode
 	SessionOptions = *sessionStore.Options
 }
 
@@ -131,8 +134,6 @@ func Start() error {
 	addr := cfg.Address
 	if !strings.Contains(addr, ":") {
 		addr = addr + defaultPort
-	} else {
-		cfg.Address = strings.TrimSuffix(cfg.Address, defaultPort)
 	}
 
 	return http.ListenAndServeTLS(addr, cfg.CertFile, cfg.KeyFile, nil)

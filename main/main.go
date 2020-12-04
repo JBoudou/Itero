@@ -28,6 +28,7 @@ func main() {
 	server.HandleFunc("/a/signup", SignupHandler)
 	server.HandleFunc("/a/list", ListHandler)
 	server.HandleFunc("/a/poll/", PollHandler)
+	server.HandleFunc("/a/ballot/uninominal/", UninomialBallotHandler)
 
 	log.Println("Server starting")
 	if err := server.Start(); err != nil {
