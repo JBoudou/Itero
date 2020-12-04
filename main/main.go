@@ -17,6 +17,7 @@
 package main
 
 import (
+	"errors"
 	"log"
 
 	"github.com/JBoudou/Itero/server"
@@ -37,6 +38,10 @@ func main() {
 
 func must(err error) {
 	if err != nil {
+		var httpError server.HttpError
+		if !errors.As(err, &httpError) {
+			err = server.NewInternalHttpError(err)
+		}
 		panic(err)
 	}
 }

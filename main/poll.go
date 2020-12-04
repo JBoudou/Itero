@@ -60,6 +60,11 @@ type PollInfo struct {
 	CurrentRound uint8
 }
 
+// checkPollAccess ensure that the user can access the poll.
+//
+// It checks that the request has a session and a valid poll segment. It also check that the user
+// participates in the poll. If she doesn't, checkPollAccess makes the user participate in the poll,
+// if possible.
 func checkPollAccess(ctx context.Context, request *server.Request) (poll PollInfo, err error) {
 	// Check user
 	// TODO allow unregistered poll
