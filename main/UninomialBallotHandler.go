@@ -19,7 +19,6 @@ package main
 import (
 	"bytes"
 	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
 
@@ -45,13 +44,20 @@ func allAlternatives(ctx context.Context, poll PollInfo, out *[]PollAlternative)
 	}
 }
 
-type UninomialBallotAnswer struct {
-	Previous     sql.NullInt32
-	Current      sql.NullInt32
-	Alternatives []PollAlternative
+type NullUInt8 struct {
+	Value uint8
+	Valid bool
 }
 
-var ballotIdOutOfRange = errors.New("Ballot Id is out of range.")
+func (self *NullUInt8) Set(value uint8) {
+	self.Value, self.Valid = value, true
+}
+
+type UninomialBallotAnswer struct {
+	Previous     NullUInt8
+	Current      NullUInt8
+	Alternatives []PollAlternative
+}
 
 func (self *UninomialBallotAnswer) MarshalJSON() (ret []byte, err error) {
 	var buffer bytes.Buffer
@@ -70,15 +76,11 @@ func (self *UninomialBallotAnswer) MarshalJSON() (ret []byte, err error) {
 			_, err = buffer.WriteRune(':')
 		}
 	}
-	encodeBallot := func(name string, ballot sql.NullInt32) {
+	encodeBallot := func(name string, ballot NullUInt8) {
 		if err == nil && ballot.Valid {
-			if ballot.Int32 < 0 || ballot.Int32 >= 256 {
-				err = ballotIdOutOfRange
-				return
-			}
 			encodeHeader(name)
 			if err == nil {
-				err = encoder.Encode(ballot.Int32)
+				err = encoder.Encode(ballot.Value)
 			}
 			if err == nil {
 				_, err = buffer.WriteRune(',')
@@ -121,11 +123,11 @@ func UninomialBallotHandler(ctx context.Context, response server.Response, reque
 	for rows.Next() {
 		var round, alternative uint8
 		must(rows.Scan(&round, &alternative))
-		setBallot := func(field *sql.NullInt32) {
+		setBallot := func(field *NullUInt8) {
 			if field.Valid {
 				must(errors.New("Duplicated ballot"))
 			}
-			*field = sql.NullInt32{ Int32: int32(alternative), Valid: true}
+			field.Set(alternative)
 		}
 		switch round {
 		case pollInfo.CurrentRound:

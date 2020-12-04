@@ -18,7 +18,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"net/http"
 	"reflect"
@@ -57,6 +56,11 @@ func TestAllAlternatives(t *testing.T) {
 	}
 }
 
+var (
+	noVote = NullUInt8{Value: 0, Valid: true}
+	yesVote = NullUInt8{Value: 1, Valid: true}
+)
+
 func TestUninomialBallotAnswer_MarshalJSON(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -67,8 +71,8 @@ func TestUninomialBallotAnswer_MarshalJSON(t *testing.T) {
 		{
 			name: "Full",
 			answer: UninomialBallotAnswer{
-				Previous: sql.NullInt32{Int32: 0, Valid: true},
-				Current:  sql.NullInt32{Int32: 0, Valid: true},
+				Previous: noVote,
+				Current:  noVote,
 				Alternatives: []PollAlternative{
 					{Id: 0, Name: "No", Cost: 1.},
 					{Id: 1, Name: "Yes", Cost: 1.},
@@ -80,7 +84,7 @@ func TestUninomialBallotAnswer_MarshalJSON(t *testing.T) {
 		{
 			name: "No Previous",
 			answer: UninomialBallotAnswer{
-				Current: sql.NullInt32{Int32: 0, Valid: true},
+				Current: noVote,
 				Alternatives: []PollAlternative{
 					{Id: 0, Name: "No", Cost: 1.},
 					{Id: 1, Name: "Yes", Cost: 1.},
@@ -92,7 +96,7 @@ func TestUninomialBallotAnswer_MarshalJSON(t *testing.T) {
 		{
 			name: "No Current",
 			answer: UninomialBallotAnswer{
-				Previous: sql.NullInt32{Int32: 0, Valid: true},
+				Previous: noVote,
 				Alternatives: []PollAlternative{
 					{Id: 0, Name: "No", Cost: 1.},
 					{Id: 1, Name: "Yes", Cost: 1.},
@@ -110,28 +114,6 @@ func TestUninomialBallotAnswer_MarshalJSON(t *testing.T) {
 				},
 			},
 			expectValue: `{"Alternatives":[{"Id":0,"Name":"No","Cost":1},{"Id":1,"Name":"Yes","Cost":1}]}`,
-		},
-		{
-			name: "Previous out of range",
-			answer: UninomialBallotAnswer{
-				Previous: sql.NullInt32{Int32: 306, Valid: true},
-				Alternatives: []PollAlternative{
-					{Id: 0, Name: "No", Cost: 1.},
-					{Id: 1, Name: "Yes", Cost: 1.},
-				},
-			},
-			expectError: ballotIdOutOfRange,
-		},
-		{
-			name: "Current out of range",
-			answer: UninomialBallotAnswer{
-				Current: sql.NullInt32{Int32: 306, Valid: true},
-				Alternatives: []PollAlternative{
-					{Id: 0, Name: "No", Cost: 1.},
-					{Id: 1, Name: "Yes", Cost: 1.},
-				},
-			},
-			expectError: ballotIdOutOfRange,
 		},
 	}
 	for _, tt := range tests {
@@ -197,9 +179,6 @@ func TestUninomialBallotHandler(t *testing.T) {
 			mustt(t, err)
 		}
 	}
-
-	noVote := sql.NullInt32{Int32: 0, Valid: true}
-	yesVote := sql.NullInt32{Int32: 1, Valid: true}
 
 	tests := []srvt.Test{
 		{
