@@ -56,6 +56,7 @@ func (self PollSegment) Encode() (str string, err error) {
 
 type PollInfo struct {
 	Id           uint32
+	NbChoices    uint8
 	Active       bool
 	CurrentRound uint8
 }
@@ -92,9 +93,9 @@ func checkPollAccess(ctx context.Context, request *server.Request) (poll PollInf
 	// Check poll
 	var salt uint32
 	var publicity uint8
-	const qPoll = `SELECT Salt, Publicity, Active, CurrentRound FROM Polls WHERE Id = ?`
+	const qPoll = `SELECT Salt, Publicity, NbChoices, Active, CurrentRound FROM Polls WHERE Id = ?`
 	row := db.DB.QueryRowContext(ctx, qPoll, poll.Id)
-	err = row.Scan(&salt, &publicity, &poll.Active, &poll.CurrentRound)
+	err = row.Scan(&salt, &publicity, &poll.NbChoices, &poll.Active, &poll.CurrentRound)
 	if err != nil {
 		return
 	}
@@ -145,7 +146,7 @@ func PollHandler(ctx context.Context, response server.Response, request *server.
 
 	// TODO really compute the values
 	answer := PollAnswer{
-		Ballot: BallotTypeUninomial,
+		Ballot:      BallotTypeUninomial,
 		Information: InformationTypeCounts,
 	}
 	if !pollInfo.Active {

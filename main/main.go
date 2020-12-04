@@ -36,6 +36,8 @@ func main() {
 	log.Println("Server terminated")
 }
 
+// must ensures that err is nil. If it's not, the error is sent by panic, after being wrapped in a
+// server.HttpError if it's not already one.
 func must(err error) {
 	if err != nil {
 		var httpError server.HttpError

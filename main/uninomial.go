@@ -32,15 +32,15 @@ type PollAlternative struct {
 	Cost float64
 }
 
+// allAlternatives retrieves all the alternatives for a poll and store them in out.
+// Error in allAlternatives are wrapped in server.HttpError and sent by panic.
 func allAlternatives(ctx context.Context, poll PollInfo, out *[]PollAlternative) {
-	// TODO: Allocate the slice here and no copy
 	const qSelect = `SELECT Id, Name, Cost FROM Alternatives WHERE Poll = ? ORDER BY Id ASC`
 	rows, err := db.DB.QueryContext(ctx, qSelect, poll.Id)
 	must(err)
-	for rows.Next() {
-		var entry PollAlternative
-		must(rows.Scan(&entry.Id, &entry.Name, &entry.Cost))
-		*out = append(*out, entry)
+	*out = make([]PollAlternative, poll.NbChoices)
+	for i := 0; rows.Next(); i++ {
+		must(rows.Scan(&(*out)[i].Id, &(*out)[i].Name, &(*out)[i].Cost))
 	}
 }
 
@@ -53,12 +53,15 @@ func (self *NullUInt8) Set(value uint8) {
 	self.Value, self.Valid = value, true
 }
 
+// UninomialBallotAnswer represents the response sent by UninomialBallotHandler.
+// The fields Previous and Current are not sent in the JSON representation if they're not valid.
 type UninomialBallotAnswer struct {
 	Previous     NullUInt8
 	Current      NullUInt8
 	Alternatives []PollAlternative
 }
 
+// MarshalJSON implements json.Marshaler.
 func (self *UninomialBallotAnswer) MarshalJSON() (ret []byte, err error) {
 	var buffer bytes.Buffer
 	encoder := json.NewEncoder(&buffer)
@@ -103,6 +106,8 @@ func (self *UninomialBallotAnswer) MarshalJSON() (ret []byte, err error) {
 	return buffer.Bytes(), err
 }
 
+// UninomialBallotAnswer sends the previous ballot (if any), the current one (if any) and all
+// the alternatives.
 func UninomialBallotHandler(ctx context.Context, response server.Response, request *server.Request) {
 	pollInfo, err := checkPollAccess(ctx, request)
 	must(err)

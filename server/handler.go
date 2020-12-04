@@ -18,7 +18,10 @@ package server
 
 import (
 	"context"
+	"errors"
 	"net/http"
+
+	"github.com/JBoudou/Itero/server/logger"
 
 	"github.com/justinas/alice"
 )
@@ -62,8 +65,14 @@ func (self HandlerWrapper) ServeHTTP(wr http.ResponseWriter, original *http.Requ
 	request := NewRequest(self.pattern, original)
 
 	defer func() {
-		if err := recover(); err != nil {
-			response.SendError(ctx, err.(HttpError))
+		if thrown := recover(); thrown != nil {
+			err := thrown.(error)
+			var httpError HttpError
+			if !errors.As(err, &httpError) {
+				logger.Print(ctx, err)
+				panic(err)
+			}
+			response.SendError(ctx, httpError)
 		}
 	}()
 

@@ -39,7 +39,7 @@ func TestAllAlternatives(t *testing.T) {
 	var env dbt.Env
 	defer env.Close()
 
-	var pollInfo PollInfo
+	pollInfo := PollInfo{NbChoices: 2}
 	userId := env.CreateUser()
 	pollInfo.Id = env.CreatePoll("AllAlternatives", userId, db.PollPublicityPublic)
 	mustt(t, env.Error)
@@ -57,7 +57,7 @@ func TestAllAlternatives(t *testing.T) {
 }
 
 var (
-	noVote = NullUInt8{Value: 0, Valid: true}
+	noVote  = NullUInt8{Value: 0, Valid: true}
 	yesVote = NullUInt8{Value: 1, Valid: true}
 )
 
