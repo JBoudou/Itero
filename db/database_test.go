@@ -21,6 +21,36 @@ import (
 	"testing"
 )
 
+func TestAddURLQuery(t *testing.T) {
+	tests := []struct {
+		name   string
+		url    string
+		query  string
+		expect string
+	}{
+		{
+			name:   "Without ?",
+			url:    "foo",
+			query:  "test=1",
+			expect: "foo?test=1",
+		},
+		{
+			name:   "With ?",
+			url:    "foo?bar=z",
+			query:  "test=1",
+			expect: "foo?bar=z&test=1",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := AddURLQuery(tt.url, tt.query)
+			if got != tt.expect {
+				t.Errorf("Got %s. Expect %s.", got, tt.expect)
+			}
+		})
+	}
+}
+
 func precheck(t *testing.T) {
 	if !Ok {
 		t.Log("Impossible to test package db: there is no configuration.")
@@ -102,7 +132,7 @@ func TestInsert(t *testing.T) {
 	}
 
 	// MariaDB does not handle $1 placeholders...
-	userId := execLIR("INSERT INTO Users (Email, Name, Passwd) VALUES ('jogo@matabio.net', 'joseph', 'XXXXXXXXXXXX')")
+	userId := execLIR("INSERT INTO Users (Email, Name, Passwd) VALUES ('test@example.test', ' Test ', 'XXXXXXXXXXXX')")
 	pollId := execLIR("INSERT INTO Polls (Title, Admin, Salt, NbChoices) VALUES ('Test', ?, 42, 2)", userId)
 	exec("INSERT INTO Alternatives (Poll, Id, Name) VALUES (?, 0, 'Blue'), (?, 1, 'Yellow')", pollId, pollId)
 	exec("INSERT INTO Participants (User, Poll) VALUES (?, ?)", userId, pollId)

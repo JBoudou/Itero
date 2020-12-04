@@ -19,6 +19,7 @@ package db
 import (
 	"database/sql"
 	"log"
+	"strings"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -47,6 +48,8 @@ var (
 	RoundTypeFreelyAsynchronous uint8
 )
 
+const dsnOptions = `parseTime=true&sql_mode=%27TRADITIONAL%2CNO_ENGINE_SUBSTITUTION%2CONLY_FULL_GROUP_BY%27`
+
 type myConfig struct {
 	DSN string
 
@@ -65,6 +68,9 @@ func init() {
 		return
 	}
 	Ok = true
+
+	// Add DSN options
+	cfg.DSN = AddURLQuery(cfg.DSN, dsnOptions)
 
 	// Open DB
 	var err error
@@ -88,6 +94,16 @@ func init() {
 		"Invited":           &PollPublicityInvited})
 	fillVars("PollRule", map[string]*uint8{"Plurality": &PollRulePlurality})
 	fillVars("RoundType", map[string]*uint8{"Freely Asynchronous": &RoundTypeFreelyAsynchronous})
+}
+
+// AddURLQuery adds a query string to an url string.
+// TODO: Move this function somewhere else.
+func AddURLQuery(url, query string) string {
+	sep := "?"
+	if strings.Contains(url, sep) {
+		sep = "&"
+	}
+	return url + sep + query
 }
 
 func fillVars(table string, assoc map[string]*uint8) {
