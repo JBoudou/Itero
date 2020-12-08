@@ -1,0 +1,19 @@
+<div id="pollmain">
+  <div *ngIf="hasAnswer()" id="pollheader">
+    <h3>{{answer.Title}}</h3>
+    <p *ngIf="!!answer.Description" id="polldescription">{{answer.Description}}</p>
+    <p id="pollcreation" i18n>Poll created by {{answer.Admin}} on {{answer.CreationTime | date}}.</p>
+  </div>
+  <div id="pollballot">
+    <h4 *ngIf="hasAnswer()" i18n>
+      {answer.CurrentRound, plural, =0 {First round} =1 {Second round} =2 {Third round} other {{{answer.CurrentRound}}nd round}}
+    </h4>
+    <ng-template PollBallot></ng-template>
+  </div>
+  <div id="pollinformation">
+    <h4 *ngIf="hasAnswer()">{answer.CurrentRound, plural, =0 {No previous round} other {Previous round}}</h4>
+    <div PollInformation>
+      <p *ngIf="hasAnswer() && answer.CurrentRound">No information available for that round.</p>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,18 @@
+<div class="previousVotes">
+  <p *ngIf="hasPrevious()">
+    On the previous round, you voted <span class="vote">{{previous()}}</span>.
+  </p>
+  <p *ngIf="hasCurrent()">
+    For the current round, you already voted <span class="vote">{{current()}}</span>.
+    You may now change this vote, if you want to.
+  </p>
+</div>
+<form *ngIf="!!answer" class="basicform" [formGroup]="form">
+  <label i18n>Your choice:</label>
+  <select>
+    <option *ngFor="let alt of answer.Alternatives">{{alt.Name}}</option>
+  </select>
+  <div class="formactions">
+    <button type="submit" i18n>Vote</button>
+  </div>
+</form>

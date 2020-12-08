@@ -13,6 +13,9 @@ import { LoginComponent } from './login/login.component';
 import { HomeComponent } from './home/home.component';
 import { DeadRouteComponent } from './dead-route/dead-route.component';
 import { SignupComponent } from './signup/signup.component';
+import { PollComponent } from './poll/poll.component';
+import { PollBallotDirective, PollInformationDirective } from './poll/directives';
+import { UninominalBallotComponent } from './uninominal-ballot/uninominal-ballot.component';
 
 @NgModule({
   declarations: [
@@ -22,7 +25,11 @@ import { SignupComponent } from './signup/signup.component';
     LoginComponent,
     HomeComponent,
     DeadRouteComponent,
-    SignupComponent
+    SignupComponent,
+    PollComponent,
+    PollBallotDirective,
+    PollInformationDirective,
+    UninominalBallotComponent
   ],
   imports: [
     BrowserModule,

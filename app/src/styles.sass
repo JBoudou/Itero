@@ -18,10 +18,11 @@ $contpadding: 8px
 $navbarheight: 40px
 
 $userboxpadding: 4px
-$formfontsize: 11pt
+$fontsize: 12pt
 
 body
   font-family: "Droid Sans", sans-serif
+  font-size: $fontsize
   margin: #{$navbarheight + 16} 8px 8px
   color: color.adjust($maincolor, $lightness: -25%)
 
@@ -37,7 +38,6 @@ $useboxfgcolor: color.change($maincolor, $lightness: 16%)
   border-radius: 3px
   padding: $userboxpadding
   color: $useboxfgcolor
-  font-size: $formfontsize
 
 @mixin userinput
   @include userbox
@@ -47,10 +47,10 @@ $useboxfgcolor: color.change($maincolor, $lightness: 16%)
   @include userbox
   background-color: $userbuttonbgcolor
   padding: $userboxpadding #{$userboxpadding * 2}
+  font-size: $fontsize
 
 form.basicform
   label
-    font-size: $formfontsize
     white-space: nowrap
   input
     @include userinput
@@ -77,11 +77,13 @@ form.basicform
   label, input
     grid-area: auto
   .formerrors
+    grid-area: span 1 / span 2
     color: $errorcolor
     font-size: 10pt
     p
       margin: 0
   .formactions
+    grid-area: span 1 / span 2
     border-top: solid 1px $maincolor
     padding: 4px 0
     display: flex

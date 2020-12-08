@@ -51,3 +51,25 @@ export enum InformationType {
   NoneYet,
   Counts,
 }
+
+export class PollAnswer {
+  Title:        string;
+  Description:  string;
+  Admin:        string;
+  CreationTime: Date;
+  CurrentRound: number;
+  Ballot:       BallotType;
+  Information:  InformationType;
+}
+
+export class PollAlternative {
+  Id:   number;
+  Name: string;
+  Cost: number;
+}
+
+export interface UninomialBallotAnswer {
+  Previous?: number;
+  Current?: number;
+  Alternatives: Array<PollAlternative>;
+}

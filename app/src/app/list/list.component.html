@@ -6,8 +6,8 @@
     <th i18n>Deadline</th>
     <th i18n>Action</th>
   </tr>
-  <tbody *ngFor="let poll of polls">
-  <tr class="poll" (click)="go(poll.s)">
+  <tbody>
+  <tr *ngFor="let poll of polls" class="poll" (click)="go(poll.s)">
     <td class="title">{{poll.t}}</td>
     <td class="round">{{poll.c}}/{{poll.m}}</td>
     <td class="deadline" i18n>
