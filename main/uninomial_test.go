@@ -184,16 +184,16 @@ func TestUninomialBallotHandler(t *testing.T) {
 		{
 			Name:    "No Ballot",
 			Request: request,
-			Checker: srvt.CheckerJSON(http.StatusOK, UninomialBallotAnswer{Alternatives: alternatives}),
+			Checker: srvt.CheckJSON{http.StatusOK, &UninomialBallotAnswer{Alternatives: alternatives}},
 		},
 		{
 			Name:    "Current ballot",
 			Update:  vote(0, 0),
 			Request: request,
-			Checker: srvt.CheckerJSON(http.StatusOK, UninomialBallotAnswer{
+			Checker: srvt.CheckJSON{http.StatusOK, &UninomialBallotAnswer{
 				Current:      noVote,
 				Alternatives: alternatives,
-			}),
+			}},
 		},
 		{
 			Name: "Previous ballot",
@@ -202,20 +202,20 @@ func TestUninomialBallotHandler(t *testing.T) {
 				mustt(t, err)
 			},
 			Request: request,
-			Checker: srvt.CheckerJSON(http.StatusOK, UninomialBallotAnswer{
+			Checker: srvt.CheckJSON{http.StatusOK, &UninomialBallotAnswer{
 				Previous:     noVote,
 				Alternatives: alternatives,
-			}),
+			}},
 		},
 		{
 			Name:    "Both ballots",
 			Update:  vote(1, 1),
 			Request: request,
-			Checker: srvt.CheckerJSON(http.StatusOK, UninomialBallotAnswer{
+			Checker: srvt.CheckJSON{http.StatusOK, &UninomialBallotAnswer{
 				Previous:     noVote,
 				Current:      yesVote,
 				Alternatives: alternatives,
-			}),
+			}},
 		},
 	}
 	srvt.RunFunc(t, tests, UninomialBallotHandler)

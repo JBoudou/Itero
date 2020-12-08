@@ -102,13 +102,13 @@ func TestPollHandler(t *testing.T) {
 		{
 			Name: "No segment",
 			Request: srvt.Request{ UserId: &userId },
-			Checker: srvt.CheckerStatus(http.StatusBadRequest),
+			Checker: srvt.CheckStatus{http.StatusBadRequest},
 		},
 		{
 			Name: "No session",
 			Update:  createPoll(&segment1, &target1, db.PollPublicityHiddenRegistered),
 			Request: srvt.Request{ Target: &target1 },
-			Checker: srvt.CheckerStatus(http.StatusForbidden),
+			Checker: srvt.CheckStatus{http.StatusForbidden},
 		},
 		{
 			Name: "Wrong salt",
@@ -121,13 +121,13 @@ func TestPollHandler(t *testing.T) {
 				target1wrong = "/a/test/" + encoded
 			},
 			Request: srvt.Request{ Target: &target1wrong, UserId: &userId },
-			Checker: srvt.CheckerStatus(http.StatusForbidden),
+			Checker: srvt.CheckStatus{http.StatusForbidden},
 		},
 		{
 			Name: "Private poll",
 			Update:  createPoll(&segment2, &target2, db.PollPublicityInvited),
 			Request: srvt.Request{ Target: &target2, UserId: &userId },
-			Checker: srvt.CheckerStatus(http.StatusForbidden),
+			Checker: srvt.CheckStatus{http.StatusForbidden},
 		},
 		{
 			Name: "Late public poll",
@@ -139,13 +139,13 @@ func TestPollHandler(t *testing.T) {
 				}
 			},
 			Request: srvt.Request{ Target: &target3, UserId: &userId },
-			Checker: srvt.CheckerError(http.StatusForbidden, "Too late"),
+			Checker: srvt.CheckError{http.StatusForbidden, "Too late"},
 		},
 		{
 			Name: "Ok Hidden Registered",
 			Request: srvt.Request{ Target: &target1, UserId: &userId },
-			Checker: srvt.CheckerJSON(http.StatusOK,
-				PollAnswer{Ballot: BallotTypeUninomial, Information: InformationTypeNoneYet}),
+			Checker: srvt.CheckJSON{http.StatusOK,
+				PollAnswer{Ballot: BallotTypeUninomial, Information: InformationTypeNoneYet}},
 		},
 		{
 			Name: "Ok Invited",
@@ -156,8 +156,8 @@ func TestPollHandler(t *testing.T) {
 				}
 			},
 			Request: srvt.Request{ Target: &target2, UserId: &userId },
-			Checker: srvt.CheckerJSON(http.StatusOK,
-				PollAnswer{Ballot: BallotTypeUninomial, Information: InformationTypeNoneYet}),
+			Checker: srvt.CheckJSON{http.StatusOK,
+				PollAnswer{Ballot: BallotTypeUninomial, Information: InformationTypeNoneYet}},
 		},
 		{
 			Name: "Ok next round",
@@ -168,8 +168,8 @@ func TestPollHandler(t *testing.T) {
 				}
 			},
 			Request: srvt.Request{ Target: &target1, UserId: &userId },
-			Checker: srvt.CheckerJSON(http.StatusOK,
-				PollAnswer{Ballot: BallotTypeUninomial, Information: InformationTypeCounts}),
+			Checker: srvt.CheckJSON{http.StatusOK,
+				PollAnswer{Ballot: BallotTypeUninomial, Information: InformationTypeCounts}},
 		},
 		{
 			Name: "Ok closed",
@@ -180,8 +180,8 @@ func TestPollHandler(t *testing.T) {
 				}
 			},
 			Request: srvt.Request{ Target: &target1, UserId: &userId },
-			Checker: srvt.CheckerJSON(http.StatusOK,
-				PollAnswer{Ballot: BallotTypeClosed, Information: InformationTypeCounts}),
+			Checker: srvt.CheckJSON{http.StatusOK,
+				PollAnswer{Ballot: BallotTypeClosed, Information: InformationTypeCounts}},
 		},
 	}
 	srvt.RunFunc(t, tests, PollHandler)

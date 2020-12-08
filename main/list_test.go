@@ -66,7 +66,7 @@ func TestListHandler(t *testing.T) {
 	}
 
 	checker := func(include []maker, exclude []maker) srvt.Checker {
-		return func(t *testing.T, response *http.Response, req *http.Request) {
+		return srvt.CheckerFun(func(t *testing.T, response *http.Response, req *http.Request) {
 			if response.StatusCode != http.StatusOK {
 				t.Errorf("Wrong status code. Got %d. Expect %d", response.StatusCode, http.StatusOK)
 			}
@@ -109,14 +109,14 @@ func TestListHandler(t *testing.T) {
 					t.Errorf("Missing %v", value)
 				}
 			}
-		}
+		})
 	}
 
 	tests := []srvt.Test{
 		{
 			Name: "No session",
 			// TODO fix this test once implemented
-			Checker: srvt.CheckerStatus(http.StatusNotImplemented),
+			Checker: srvt.CheckStatus{http.StatusNotImplemented},
 		},
 		{
 			Name: "PublicRegistered Poll",

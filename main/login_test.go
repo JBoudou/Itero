@@ -44,7 +44,7 @@ func TestLoginHandler(t *testing.T) {
 			Request: srvt.Request{
 				Method: "POST",
 			},
-			Checker: srvt.CheckerStatus(http.StatusBadRequest),
+			Checker: srvt.CheckStatus{http.StatusBadRequest},
 		},
 		{
 			Name: "empty user",
@@ -52,7 +52,7 @@ func TestLoginHandler(t *testing.T) {
 				Method: "POST",
 				Body:   `{"Passwd":"XYZ"}`,
 			},
-			Checker: srvt.CheckerStatus(http.StatusForbidden),
+			Checker: srvt.CheckStatus{http.StatusForbidden},
 		},
 		{
 			Name: "empty passwd",
@@ -60,7 +60,7 @@ func TestLoginHandler(t *testing.T) {
 				Method: "POST",
 				Body:   `{"User":" Test "}`,
 			},
-			Checker: srvt.CheckerStatus(http.StatusForbidden),
+			Checker: srvt.CheckStatus{http.StatusForbidden},
 		},
 		{
 			Name: "success",
@@ -68,7 +68,7 @@ func TestLoginHandler(t *testing.T) {
 				Method: "POST",
 				Body:   `{"User":" Test ","Passwd":"XYZ"}`,
 			},
-			Checker: srvt.CheckerStatus(http.StatusOK),
+			Checker: srvt.CheckStatus{http.StatusOK},
 		},
 	}
 	srvt.Run(t, tests, server.HandlerFunc(LoginHandler))
@@ -81,7 +81,7 @@ func TestSignupHandler_Error(t *testing.T) {
 		{
 			Name:    "Bad request",
 			Request: srvt.Request{Method: "POST"},
-			Checker: srvt.CheckerStatus(http.StatusBadRequest),
+			Checker: srvt.CheckStatus{http.StatusBadRequest},
 		},
 		{
 			Name: "Name too short",
@@ -89,7 +89,7 @@ func TestSignupHandler_Error(t *testing.T) {
 				Method: "POST",
 				Body:   `{"Name":"a","Email":"toto@example.com","Passwd":"tititi"}`,
 			},
-			Checker: srvt.CheckerError(http.StatusBadRequest, "Name too short"),
+			Checker: srvt.CheckError{http.StatusBadRequest, "Name too short"},
 		},
 		{
 			Name: "Name starting with a space",
@@ -97,7 +97,7 @@ func TestSignupHandler_Error(t *testing.T) {
 				Method: "POST",
 				Body:   `{"Name":" tototo","Email":"toto@example.com","Passwd":"tititi"}`,
 			},
-			Checker: srvt.CheckerError(http.StatusBadRequest, "Name has spaces"),
+			Checker: srvt.CheckError{http.StatusBadRequest, "Name has spaces"},
 		},
 		{
 			Name: "Name ending with a space",
@@ -105,7 +105,7 @@ func TestSignupHandler_Error(t *testing.T) {
 				Method: "POST",
 				Body:   `{"Name":"tototo ","Email":"toto@example.com","Passwd":"tititi"}`,
 			},
-			Checker: srvt.CheckerError(http.StatusBadRequest, "Name has spaces"),
+			Checker: srvt.CheckError{http.StatusBadRequest, "Name has spaces"},
 		},
 		{
 			Name: "Password too short",
@@ -113,7 +113,7 @@ func TestSignupHandler_Error(t *testing.T) {
 				Method: "POST",
 				Body:   `{"Name":"tototo","Email":"toto@example.com","Passwd":"t"}`,
 			},
-			Checker: srvt.CheckerError(http.StatusBadRequest, "Passwd too short"),
+			Checker: srvt.CheckError{http.StatusBadRequest, "Passwd too short"},
 		},
 		{
 			Name: "Wrong email 1",
@@ -121,7 +121,7 @@ func TestSignupHandler_Error(t *testing.T) {
 				Method: "POST",
 				Body:   `{"Name":"tototo","Email":"toto.example.com","Passwd":"tititi"}`,
 			},
-			Checker: srvt.CheckerError(http.StatusBadRequest, "Email invalid"),
+			Checker: srvt.CheckError{http.StatusBadRequest, "Email invalid"},
 		},
 		{
 			Name: "Wrong email 2",
@@ -129,7 +129,7 @@ func TestSignupHandler_Error(t *testing.T) {
 				Method: "POST",
 				Body:   `{"Name":"tototo","Email":"toto@examplecom","Passwd":"tititi"}`,
 			},
-			Checker: srvt.CheckerError(http.StatusBadRequest, "Email invalid"),
+			Checker: srvt.CheckError{http.StatusBadRequest, "Email invalid"},
 		},
 	}
 	srvt.Run(t, tests, server.HandlerFunc(SignupHandler))
@@ -209,7 +209,7 @@ func TestSignupHandler_Success(t *testing.T) {
 				Method: "POST",
 				Body:   `{"Name":"` + name + `","Email":"another_long_dummy@example.com","Passwd":"tititi"}`,
 			},
-			Checker: srvt.CheckerError(http.StatusBadRequest, "Already exists"),
+			Checker: srvt.CheckError{http.StatusBadRequest, "Already exists"},
 		},
 		{
 			Name: "Name already exists",
@@ -217,7 +217,7 @@ func TestSignupHandler_Success(t *testing.T) {
 				Method: "POST",
 				Body:   `{"Name":"another_long_dummy","Email":"` + name + `@example.com","Passwd":"tititi"}`,
 			},
-			Checker: srvt.CheckerError(http.StatusBadRequest, "Already exists"),
+			Checker: srvt.CheckError{http.StatusBadRequest, "Already exists"},
 		},
 	}
 	srvt.Run(t, tests, server.HandlerFunc(SignupHandler))

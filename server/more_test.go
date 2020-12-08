@@ -22,7 +22,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	. "github.com/JBoudou/Itero/server"
@@ -42,7 +41,7 @@ func precheck(t *testing.T) {
 //
 // The returned function checks that the statuc code and the encoded string are as expected.
 func checkerJSONString(expectCode int, expectBody string) srvt.Checker {
-	return func(t *testing.T, response *http.Response, req *http.Request) {
+	return srvt.CheckerFun(func(t *testing.T, response *http.Response, req *http.Request) {
 		if response.StatusCode != expectCode {
 			t.Errorf("Wrong status code. Got %d. Expect %d", response.StatusCode, expectCode)
 		}
@@ -58,27 +57,7 @@ func checkerJSONString(expectCode int, expectBody string) srvt.Checker {
 		if body != expectBody {
 			t.Errorf("Wrong body. Got %s. Expect %s", body, expectBody)
 		}
-	}
-}
-
-// checkerJSONString returns a TestCheckerto check responses whose body is a JSON object
-// representing a string.
-//
-// The returned function checks that the statuc code and the encoded string are as expected.
-func checkerRawString(expectCode int, expectBody string) srvt.Checker {
-	return func(t *testing.T, response *http.Response, req *http.Request) {
-		if response.StatusCode != expectCode {
-			t.Errorf("Wrong status code. Got %d. Expect %d", response.StatusCode, expectCode)
-		}
-
-		var buff bytes.Buffer
-		if _, err := buff.ReadFrom(response.Body); err != nil {
-			t.Fatalf("Error reading body: %s", err)
-		}
-		if body := strings.TrimSpace(string(buff.Bytes())); body != expectBody {
-			t.Errorf("Wrong body. Got %s. Expect %s", body, expectBody)
-		}
-	}
+	})
 }
 
 type handlerArgs struct {
@@ -151,7 +130,7 @@ func TestHandleFunc(t *testing.T) {
 				Method: "GET",
 				Target: &tError,
 			},
-			checker: checkerRawString(http.StatusPaymentRequired, "Flublu"),
+			checker: srvt.CheckError{http.StatusPaymentRequired, "Flublu"},
 		},
 		{
 			name: "panic",
@@ -165,7 +144,7 @@ func TestHandleFunc(t *testing.T) {
 				Method: "GET",
 				Target: &tPanic,
 			},
-			checker: checkerRawString(http.StatusPaymentRequired, "Barbaz"),
+			checker: srvt.CheckError{http.StatusPaymentRequired, "Barbaz"},
 		},
 		{
 			name: "struct",
@@ -182,10 +161,10 @@ func TestHandleFunc(t *testing.T) {
 				Method: "GET",
 				Target: &tStruct,
 			},
-			checker: srvt.CheckerJSON(http.StatusOK, struct {
+			checker: srvt.CheckJSON{http.StatusOK, struct {
 				A int
 				B string
-			}{A: 42, B: "Foobar"}),
+			}{A: 42, B: "Foobar"}},
 		},
 	}
 
@@ -200,7 +179,7 @@ func TestHandleFunc(t *testing.T) {
 			}
 			http.DefaultServeMux.ServeHTTP(wr, req)
 
-			tt.checker(t, wr.Result(), req)
+			tt.checker.Check(t, wr.Result(), req)
 		})
 	}
 }

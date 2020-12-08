@@ -147,5 +147,5 @@ func UninomialBallotHandler(ctx context.Context, response server.Response, reque
 	}
 
 	allAlternatives(ctx, pollInfo, &answer.Alternatives)
-	response.SendJSON(ctx, answer)
+	response.SendJSON(ctx, &answer)
 }

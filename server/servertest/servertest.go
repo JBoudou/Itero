@@ -18,8 +18,6 @@
 package servertest
 
 import (
-	"bytes"
-	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -69,7 +67,7 @@ func (self *Request) Make() (req *http.Request, err error) {
 	if req.Method == "POST" {
 		req.Header.Add("Origin", server.BaseURL())
 	}
-	
+
 	if self.UserId != nil {
 		var sessionId string
 		sessionId, err = server.MakeSessionId()
@@ -81,12 +79,9 @@ func (self *Request) Make() (req *http.Request, err error) {
 		session := server.NewSession(clientStore, &server.SessionOptions, sessionId, user)
 		clientStore.Save(req, nil, session)
 	}
-	
+
 	return
 }
-
-// Checker is a signature for functions that check the result of a request on a Handler.
-type Checker = func(t *testing.T, response *http.Response, req *http.Request)
 
 // Test represents a test to be executed by Run().
 //
@@ -120,7 +115,7 @@ func Run(t *testing.T, tests []Test, handler server.Handler) {
 			}
 			mock := httptest.NewRecorder()
 			server.NewHandlerWrapper("/a/test", handler).ServeHTTP(mock, req)
-			tt.Checker(t, mock.Result(), req)
+			tt.Checker.Check(t, mock.Result(), req)
 		})
 	}
 }
@@ -129,71 +124,4 @@ func Run(t *testing.T, tests []Test, handler server.Handler) {
 func RunFunc(t *testing.T, tests []Test, handler server.HandleFunction) {
 	t.Helper()
 	Run(t, tests, server.HandlerFunc(handler))
-}
-
-// CheckerJSON returns a Checker to check responses whose body is a JSON object.
-//
-// The returned function checks that the statuc code and the body are as expected.
-func CheckerJSON(expectCode int, expectBody interface{}) Checker {
-	return func(t *testing.T, response *http.Response, req *http.Request) {
-		t.Helper()
-		if response.StatusCode != expectCode {
-			t.Errorf("Wrong status code. Got %d. Expect %d", response.StatusCode, expectCode)
-		}
-
-		var body []byte
-		var buff bytes.Buffer
-		if _, err := buff.ReadFrom(response.Body); err != nil {
-			t.Fatalf("Error reading body: %s", err)
-		}
-		body = make([]byte, buff.Len())
-		if _, err := buff.Read(body); err != nil {
-			t.Fatalf("Error reading body: %s", err)
-		}
-		if err := json.Compact(&buff, body); err != nil {
-			t.Fatalf("Error reading body: %s", err)
-		}
-		body = buff.Bytes()
-
-		// We assume json.Marshal produces compact JSON.
-		expectBodyEncoded, err := json.Marshal(expectBody)
-		if err != nil {
-			t.Fatalf("Error encoding body: %s", err)
-		}
-
-		if !bytes.Equal(body, expectBodyEncoded) {
-			t.Errorf("Wrong body. Got %s. Expect %s", body, expectBodyEncoded)
-		}
-	}
-}
-
-func CheckerError(expectCode int, expectBody string) Checker {
-	return func(t *testing.T, response *http.Response, req *http.Request) {
-		t.Helper()
-		if response.StatusCode != expectCode {
-			t.Errorf("Wrong status code. Got %d. Expect %d", response.StatusCode, expectCode)
-		}
-
-		var buff bytes.Buffer
-		if _, err := buff.ReadFrom(response.Body); err != nil {
-			t.Fatalf("Error reading body: %s", err)
-		}
-		body := strings.TrimSpace(string(buff.Bytes()))
-
-		if body != expectBody {
-			t.Errorf("Wrong error. Got %s. Expect %s.", body, expectBody)
-		}
-	}
-}
-
-// CheckerJSONString returns a Checker to check status code.
-//
-// The returned function checks that the statuc code is as expected. The body is not checked.
-func CheckerStatus(expectCode int) Checker {
-	return func(t *testing.T, response *http.Response, req *http.Request) {
-		t.Helper()
-		if response.StatusCode != expectCode {
-			t.Errorf("Wrong status code. Got %d. Expect %d", response.StatusCode, expectCode)
-		}
-	}
 }
