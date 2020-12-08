@@ -52,6 +52,15 @@ func TestPollSegment(t *testing.T) {
 	}
 }
 
+type partialPollAnswer struct {
+	Title        string
+	Description  string
+	Admin        string
+	CurrentRound uint8
+	Ballot       uint8
+	Information  uint8
+}
+
 func TestPollHandler(t *testing.T) {
 	precheck(t)
 
@@ -144,10 +153,15 @@ func TestPollHandler(t *testing.T) {
 		{
 			Name: "Ok Hidden Registered",
 			Request: srvt.Request{ Target: &target1, UserId: &userId },
-			Checker: srvt.CheckJSON{Body: PollAnswer{
-				Ballot: BallotTypeUninomial,
-				Information: InformationTypeNoneYet,
-			}},
+			Checker: srvt.CheckJSON{
+				Body: &partialPollAnswer{
+					Title: "Test",
+					Admin: " Test ",
+					Ballot: BallotTypeUninomial,
+					Information: InformationTypeNoneYet,
+				},
+				Partial: true,
+			},
 		},
 		{
 			Name: "Ok Invited",
@@ -158,10 +172,15 @@ func TestPollHandler(t *testing.T) {
 				}
 			},
 			Request: srvt.Request{ Target: &target2, UserId: &userId },
-			Checker: srvt.CheckJSON{Body: PollAnswer{
-				Ballot: BallotTypeUninomial,
-				Information: InformationTypeNoneYet,
-			}},
+			Checker: srvt.CheckJSON{
+				Body: &partialPollAnswer{
+					Title: "Test",
+					Admin: " Test ",
+					Ballot: BallotTypeUninomial,
+					Information: InformationTypeNoneYet,
+				},
+				Partial: true,
+			},
 		},
 		{
 			Name: "Ok next round",
@@ -172,10 +191,16 @@ func TestPollHandler(t *testing.T) {
 				}
 			},
 			Request: srvt.Request{ Target: &target1, UserId: &userId },
-			Checker: srvt.CheckJSON{Body: PollAnswer{
-				Ballot: BallotTypeUninomial,
-				Information: InformationTypeCounts,
-			}},
+			Checker: srvt.CheckJSON{
+				Body: &partialPollAnswer{
+					Title: "Test",
+					Admin: " Test ",
+					CurrentRound: 1,
+					Ballot: BallotTypeUninomial,
+					Information: InformationTypeCounts,
+				},
+				Partial: true,
+			},
 		},
 		{
 			Name: "Ok closed",
@@ -186,10 +211,16 @@ func TestPollHandler(t *testing.T) {
 				}
 			},
 			Request: srvt.Request{ Target: &target1, UserId: &userId },
-			Checker: srvt.CheckJSON{Body: PollAnswer{
-				Ballot: BallotTypeClosed,
-				Information: InformationTypeCounts,
-			}},
+			Checker: srvt.CheckJSON{
+				Body: &partialPollAnswer{
+					Title: "Test",
+					Admin: " Test ",
+					CurrentRound: 1,
+					Ballot: BallotTypeClosed,
+					Information: InformationTypeCounts,
+				},
+				Partial: true,
+			},
 		},
 	}
 	srvt.RunFunc(t, tests, PollHandler)

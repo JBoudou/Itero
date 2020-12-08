@@ -18,7 +18,9 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
+	"time"
 
 	"github.com/JBoudou/Itero/b64buff"
 	"github.com/JBoudou/Itero/db"
@@ -136,8 +138,13 @@ const (
 )
 
 type PollAnswer struct {
-	Ballot      uint8
-	Information uint8
+	Title        string
+	Description  string
+	Admin        string
+	CreationTime time.Time
+	CurrentRound uint8
+	Ballot       uint8
+	Information  uint8
 }
 
 func PollHandler(ctx context.Context, response server.Response, request *server.Request) {
@@ -146,14 +153,28 @@ func PollHandler(ctx context.Context, response server.Response, request *server.
 
 	// TODO really compute the values
 	answer := PollAnswer{
-		Ballot:      BallotTypeUninomial,
-		Information: InformationTypeCounts,
+		Ballot:       BallotTypeUninomial,
+		Information:  InformationTypeCounts,
+		CurrentRound: pollInfo.CurrentRound,
 	}
 	if !pollInfo.Active {
 		answer.Ballot = BallotTypeClosed
 	}
 	if pollInfo.CurrentRound == 0 {
 		answer.Information = InformationTypeNoneYet
+	}
+
+	// Additional informations for display
+	const qSelect = `
+		SELECT p.Title, p.Description, u.Name, p.Created
+		  FROM Polls AS p, Users AS u
+		 WHERE p.Id = ?
+		   AND p.Admin = u.Id`
+	row := db.DB.QueryRowContext(ctx, qSelect, pollInfo.Id)
+	var desc sql.NullString
+	must(row.Scan(&answer.Title, &desc, &answer.Admin, &answer.CreationTime))
+	if desc.Valid {
+		answer.Description = desc.String
 	}
 
 	response.SendJSON(ctx, answer)
