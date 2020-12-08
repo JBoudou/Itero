@@ -19,7 +19,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"net/http"
 	"reflect"
 	"testing"
 
@@ -184,13 +183,13 @@ func TestUninomialBallotHandler(t *testing.T) {
 		{
 			Name:    "No Ballot",
 			Request: request,
-			Checker: srvt.CheckJSON{http.StatusOK, &UninomialBallotAnswer{Alternatives: alternatives}},
+			Checker: srvt.CheckJSON{Body: &UninomialBallotAnswer{Alternatives: alternatives}},
 		},
 		{
 			Name:    "Current ballot",
 			Update:  vote(0, 0),
 			Request: request,
-			Checker: srvt.CheckJSON{http.StatusOK, &UninomialBallotAnswer{
+			Checker: srvt.CheckJSON{Body: &UninomialBallotAnswer{
 				Current:      noVote,
 				Alternatives: alternatives,
 			}},
@@ -202,7 +201,7 @@ func TestUninomialBallotHandler(t *testing.T) {
 				mustt(t, err)
 			},
 			Request: request,
-			Checker: srvt.CheckJSON{http.StatusOK, &UninomialBallotAnswer{
+			Checker: srvt.CheckJSON{Body: &UninomialBallotAnswer{
 				Previous:     noVote,
 				Alternatives: alternatives,
 			}},
@@ -211,7 +210,7 @@ func TestUninomialBallotHandler(t *testing.T) {
 			Name:    "Both ballots",
 			Update:  vote(1, 1),
 			Request: request,
-			Checker: srvt.CheckJSON{http.StatusOK, &UninomialBallotAnswer{
+			Checker: srvt.CheckJSON{Body: &UninomialBallotAnswer{
 				Previous:     noVote,
 				Current:      yesVote,
 				Alternatives: alternatives,

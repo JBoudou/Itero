@@ -161,7 +161,7 @@ func TestHandleFunc(t *testing.T) {
 				Method: "GET",
 				Target: &tStruct,
 			},
-			checker: srvt.CheckJSON{http.StatusOK, struct {
+			checker: srvt.CheckJSON{Body: struct {
 				A int
 				B string
 			}{A: 42, B: "Foobar"}},

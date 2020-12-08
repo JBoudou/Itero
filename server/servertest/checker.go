@@ -41,8 +41,9 @@ func (self CheckerFun) Check(t *testing.T, response *http.Response, request *htt
 
 // CheckJSON checks that the response body is similar to the JSON marshaling of a given value.
 type CheckJSON struct {
-	Code int
-	Body interface{}
+	Code    int // If zero, http.StatusOK is used instead.
+	Body    interface{}
+	Partial bool // If true, Body may lack some field of the response.
 }
 
 // Check implements Checker.
@@ -57,6 +58,17 @@ func (self CheckJSON) Check(t *testing.T, response *http.Response, request *http
 	if response.StatusCode != expectCode {
 		t.Errorf("Wrong status code. Got %d. Expect %d", response.StatusCode, expectCode)
 	}
+
+	// Body
+	if self.Partial {
+		self.partial(t, response)
+	} else {
+		self.full(t, response)
+	}
+}
+
+func (self CheckJSON) full(t *testing.T, response *http.Response) {
+	t.Helper()
 
 	var body []byte
 	var buff bytes.Buffer
@@ -82,6 +94,30 @@ func (self CheckJSON) Check(t *testing.T, response *http.Response, request *http
 		t.Errorf("Wrong body. Got %s. Expect %s", body, expectBodyEncoded)
 	}
 }
+
+func (self CheckJSON) partial(t *testing.T, response *http.Response) {
+	t.Helper()
+
+	expectJSON, err := json.Marshal(self.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { json.Unmarshal(expectJSON, self.Body) } ()
+
+	bodyDecoder := json.NewDecoder(response.Body)
+	if err = bodyDecoder.Decode(self.Body); err != nil {
+		t.Fatal(err)
+	}
+	gotJSON, err := json.Marshal(self.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(gotJSON, expectJSON) {
+		t.Errorf("Got %s. Expect %s.", gotJSON, expectJSON)
+	}
+}
+
 
 /* CheckError */
 
