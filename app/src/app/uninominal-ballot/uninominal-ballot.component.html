@@ -9,9 +9,11 @@
 </div>
 <form *ngIf="!!answer" class="basicform" [formGroup]="form">
   <label i18n>Your choice:</label>
-  <select>
-    <option *ngFor="let alt of answer.Alternatives">{{alt.Name}}</option>
-  </select>
+  <mat-form-field appearance="outline">
+    <mat-select>
+      <mat-option *ngFor="let alt of answer.Alternatives" [value]="alt.Id">{{alt.Name}}</mat-option>
+    </mat-select>
+  </mat-form-field>
   <div class="formactions">
     <button type="submit" i18n>Vote</button>
   </div>

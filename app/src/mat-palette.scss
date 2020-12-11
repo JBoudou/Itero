@@ -1,0 +1,48 @@
+// We define the palette in SCSS instead of SASS, because maps suck in SASS :(
+@use 'sass:color';
+
+$maincolor: #602c57;
+//$maincolor: #613613
+//$maincolor: #85200b
+//$maincolor: #5421ad
+//$maincolor: #d48500
+
+$userbuttonbgcolor: color.adjust($maincolor, $saturation: -10%, $lightness: 50%);
+$softbgcolor: color.adjust($userbuttonbgcolor, $lightness: 20%);
+
+$fgOnMaincolor: white;
+$useboxfgcolor: color.change($maincolor, $lightness: 16%);
+$errorcolor: red;
+
+$itero-mat-maincolor: (
+  50: #f4e5f0,
+  100: #e5bddb,
+  200: #d794c3,
+  300: #cc6dab,
+  400: #c65298,
+  500: #c43b85,
+  600: #b2397f,
+  700: #9c3674,
+  800: #86336b,
+  900: #602c57,
+  A100: #d5b6d0,
+  A200: #be85b5,
+  A400: #972a8a,
+  A700: #6a006e,
+  contrast: (
+    50: $useboxfgcolor,
+    100: $useboxfgcolor,
+    200: $useboxfgcolor,
+    300: $fgOnMaincolor,
+    400: $fgOnMaincolor,
+    500: $fgOnMaincolor,
+    600: $fgOnMaincolor,
+    700: $fgOnMaincolor,
+    800: $fgOnMaincolor,
+    900: $fgOnMaincolor,
+    A100: $useboxfgcolor,
+    A200: $useboxfgcolor,
+    A400: $fgOnMaincolor,
+    A700: $fgOnMaincolor
+  )
+);

@@ -1,16 +1,5 @@
 @use 'sass:color'
-
-$maincolor: #602c57
-//$maincolor: #613613
-//$maincolor: #85200b
-//$maincolor: #5421ad
-//$maincolor: #d48500
-
-$userbuttonbgcolor: color.adjust($maincolor, $saturation: -10%, $lightness: 50%)
-$softbgcolor: color.adjust($userbuttonbgcolor, $lightness: 20%)
-
-$fgOnMaincolor: white
-$errorcolor: red
+@import 'mat-palette'
 
 $contmaxwidth: 1100px
 $contpadding: 8px
@@ -30,8 +19,6 @@ body
   max-width: $contmaxwidth
   margin: 0 auto
   padding: 0 $contpadding
-
-$useboxfgcolor: color.change($maincolor, $lightness: 16%)
 
 @mixin userbox
   border: solid 1px $maincolor
@@ -73,7 +60,7 @@ form.basicform
   display: grid
   grid-template-columns: min-content min-content
   gap: 4px
-  align-items: center
+  align-items: baseline
   label, input
     grid-area: auto
   .formerrors
@@ -90,3 +77,20 @@ form.basicform
     flex-flow: row-reverse
     button
       margin-left: 4px
+
+@import '~@angular/material/theming'
+@include mat-core()
+$itero-mat-primary: mat-palette($itero-mat-maincolor, 900, A100, 900)
+$itero-mat-accent: mat-palette($itero-mat-maincolor, A400, A200, A700)
+$itero-mat-theme: mat-dark-theme(( color: ( primary: $itero-mat-primary, accent: $itero-mat-accent)))
+@include angular-material-theme($itero-mat-theme)
+
+.mat-form-field-wrapper
+  padding: 0
+  .mat-form-field-infix
+    padding: 4px 0
+    border-top: 0.3em solid transparent
+    .mat-select-arrow-wrapper
+      transform: none
+  .mat-form-field-outline > div
+    background-color: $softbgcolor

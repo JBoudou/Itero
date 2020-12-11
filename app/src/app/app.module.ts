@@ -3,6 +3,9 @@ import { NgModule } from '@angular/core';
 import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { ReactiveFormsModule } from '@angular/forms';
 
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
+
 import { AppRoutingModule } from './app-routing.module';
 import { SessionInterceptor } from './session/session.interceptor';
 
@@ -16,6 +19,7 @@ import { SignupComponent } from './signup/signup.component';
 import { PollComponent } from './poll/poll.component';
 import { PollBallotDirective, PollInformationDirective } from './poll/directives';
 import { UninominalBallotComponent } from './uninominal-ballot/uninominal-ballot.component';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 @NgModule({
   declarations: [
@@ -35,7 +39,10 @@ import { UninominalBallotComponent } from './uninominal-ballot/uninominal-ballot
     BrowserModule,
     AppRoutingModule,
     HttpClientModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    BrowserAnimationsModule,
+    MatFormFieldModule,
+    MatSelectModule
   ],
   providers: [
     { provide: HTTP_INTERCEPTORS, useClass: SessionInterceptor, multi: true }
