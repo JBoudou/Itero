@@ -19,6 +19,7 @@ package main
 import (
 	"net/http"
 	"testing"
+	"strconv"
 
 	"github.com/JBoudou/Itero/db"
 	dbt "github.com/JBoudou/Itero/db/dbtest"
@@ -29,9 +30,10 @@ func TestCountInfoHandler(t *testing.T) {
 	precheck(t)
 
 	var env dbt.Env
+	defer env.Close()
 	var users [3]uint32
-	for i, _ := range users {
-		users[i] = env.CreateUserWith(string(i))
+	for i := range users {
+		users[i] = env.CreateUserWith(strconv.FormatInt(int64(i), 10))
 	}
 
 	pollSegment := PollSegment{Salt: 42}

@@ -33,6 +33,7 @@ type CountInfoAnswer struct {
 	Result     []CountInfoEntry
 }
 
+// CountInfoEntry sends the plurality result of the previous round.
 func CountInfoHandler(ctx context.Context, response server.Response, request *server.Request) {
 	pollInfo, err := checkPollAccess(ctx, request)
 	must(err)
@@ -47,9 +48,9 @@ func CountInfoHandler(ctx context.Context, response server.Response, request *se
 
 	const (
 		qCount = `
-		  SELECT a.Id, a.Name, IFNULL(b.Count,0)
+		  SELECT a.Id, a.Name, a.Cost, IFNULL(b.Count,0)
 		    FROM (
-		          SELECT Poll, Id, Name
+		          SELECT *
 		            FROM Alternatives
 		            WHERE Poll = ?
 		        ) AS a LEFT JOIN (
@@ -66,8 +67,8 @@ func CountInfoHandler(ctx context.Context, response server.Response, request *se
 	for i := 0; rows.Next(); i++ {
 		must(rows.Scan(&answer.Result[i].Alternative.Id,
 			&answer.Result[i].Alternative.Name,
+			&answer.Result[i].Alternative.Cost,
 			&answer.Result[i].Count))
-		answer.Result[i].Alternative.Cost = 1.
 	}
 
 	response.SendJSON(ctx, answer)
