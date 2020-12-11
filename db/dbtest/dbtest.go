@@ -19,6 +19,7 @@ package dbtest
 
 import (
 	"database/sql"
+	"testing"
 
 	"github.com/JBoudou/Itero/db"
 )
@@ -48,17 +49,30 @@ func (self *Env) Close() {
 	}
 }
 
+func (self *Env) Must(t *testing.T) {
+	if self.Error != nil {
+		t.Helper()
+		t.Fatal(self.Error)
+	}
+}
+
 // CreateUser adds a user to the database. The user has name ' Test ' (mind the spaces), email
 // address 'test@example.test', and password 'XYZ'. It is deleted by Close.
-func (self *Env) CreateUser() (userId uint32) {
+func (self *Env) CreateUser() uint32 {
+	return self.CreateUserWith("")
+}
+
+// CreateUser adds a user to the database. The user has name ' Test<salt> ' (mind the spaces), email
+// address 'test<salt>@example.test', and password 'XYZ'. It is deleted by Close.
+func (self *Env) CreateUserWith(salt string) (userId uint32) {
 	if self.Error != nil {
 		return
 	}
-	const query = `INSERT INTO Users(Name, Email, Passwd)
-	   VALUES(' Test ', 'test@example.test',
-	   X'2e43477a2da06cb4aba764381086cbc9323945eb1bffb232f221e374af44f803')`
+	const query = `
+	   INSERT INTO Users(Name, Email, Passwd)
+	   VALUES(?, ?, X'2e43477a2da06cb4aba764381086cbc9323945eb1bffb232f221e374af44f803')`
 	var result sql.Result
-	result, self.Error = db.DB.Exec(query)
+	result, self.Error = db.DB.Exec(query, " Test"+salt+" ", "test"+salt+"@example.test")
 	userId = self.extractId(result)
 
 	self.Defer(func() {
@@ -69,13 +83,21 @@ func (self *Env) CreateUser() (userId uint32) {
 
 // CreatePoll adds a poll to the database. The poll has Salt 42, MaxNbRounds 3, and 2 alternatives
 // 'No' and 'Yes' (in that order). The poll is deleted by Close.
-func (self *Env) CreatePoll(title string, admin uint32, publicity uint8) (pollId uint32) {
+func (self *Env) CreatePoll(title string, admin uint32, publicity uint8) uint32 {
+	return self.CreatePollWith(title, admin, publicity, []string{"No", "Yes"})
+}
+
+// CreatePoll adds a poll to the database. The poll has Salt 42, MaxNbRounds 3, and the alternatives
+// given as arguments. All alternatives have Cost 1. The poll is deleted by Close.
+func (self *Env) CreatePollWith(title string, admin uint32, publicity uint8,
+	alternatives []string) (pollId uint32) {
+
 	const (
 		qCreatePoll = `
 			INSERT INTO Polls(Title, Admin, Salt, NbChoices, Publicity, MaxNbRounds)
-			VALUE (?, ?, 42, 2, ?, 3)`
-		qCreateAlternatives = `
-			INSERT INTO Alternatives(Poll, Id, Name) VALUES (?, 0, 'No'), (?, 1, 'Yes')`
+			VALUE (?, ?, 42, ?, ?, 3)`
+		qCreateAlternative = `
+			INSERT INTO Alternatives(Poll, Id, Name) VALUE (?, ?, ?)`
 		qRemovePoll = `
 			DELETE FROM Polls WHERE Id = ?`
 	)
@@ -86,9 +108,12 @@ func (self *Env) CreatePoll(title string, admin uint32, publicity uint8) (pollId
 
 	var tx *sql.Tx
 	tx, self.Error = db.DB.Begin()
-	result := self.execTx(tx, qCreatePoll, title, admin, publicity)
+	result := self.execTx(tx, qCreatePoll, title, admin, len(alternatives), publicity)
 	pollId = self.extractId(result)
-	self.execTx(tx, qCreateAlternatives, pollId, pollId)
+	altStmt := self.prepareTx(tx, qCreateAlternative)
+	for i, alt := range alternatives {
+		self.execStmt(altStmt, pollId, i, alt)
+	}
 	self.closeTx(tx)
 
 	self.Defer(func() {
@@ -97,11 +122,63 @@ func (self *Env) CreatePoll(title string, admin uint32, publicity uint8) (pollId
 	return
 }
 
-func (self *Env) execTx(tx *sql.Tx, query string, args... interface{}) (ret sql.Result) {
+// NextRound advances a poll to the next round.
+func (self *Env) NextRound(pollId uint32) {
+	const qNext = `UPDATE Polls SET CurrentRound = CurrentRound + 1 WHERE Id = ?`
+	if self.Error == nil {
+		_, self.Error = db.DB.Exec(qNext, pollId)
+	}
+	return
+}
+
+// Vote submits a ballot. If the user does not participate yet in the poll, it is added to the
+// participant. No other check is done.
+func (self *Env) Vote(pollId uint32, round uint8, userId uint32, alternative uint8) {
+	const (
+		qCheckParticipant = `SELECT 1 FROM Participants WHERE Poll = ? AND User = ?`
+		qAddParticipant = `INSERT INTO Participants (Poll, User) VALUE (?, ?)`
+		qVote = `INSERT INTO Ballots (Poll, Round, User, Alternative) VALUE (?, ?, ?, ?)`
+	)
+
+	// Create transaction
+	var tx *sql.Tx
+	if self.Error == nil {
+		tx, self.Error = db.DB.Begin()
+	}
+	if self.Error != nil {
+		return
+	}
+	defer self.closeTx(tx)
+
+	// Ensure the user participate in the poll
+	var rows *sql.Rows
+	rows, self.Error = tx.Query(qCheckParticipant, pollId, userId)
+	if self.Error != nil {
+		return
+	}
+	if !rows.Next() {
+		_, self.Error = tx.Exec(qAddParticipant, pollId, userId)
+	} else {
+		self.Error = rows.Close()
+	}
+
+	// Vote
+	self.execTx(tx, qVote, pollId, round, userId, alternative)
+}
+
+func (self *Env) execTx(tx *sql.Tx, query string, args ...interface{}) (ret sql.Result) {
 	if self.Error != nil {
 		return
 	}
 	ret, self.Error = tx.Exec(query, args...)
+	return
+}
+
+func (self *Env) prepareTx(tx *sql.Tx, query string) (ret *sql.Stmt) {
+	if self.Error != nil {
+		return
+	}
+	ret, self.Error = tx.Prepare(query)
 	return
 }
 
@@ -111,6 +188,14 @@ func (self *Env) closeTx(tx *sql.Tx) {
 	} else {
 		self.Error = tx.Commit()
 	}
+}
+
+func (self *Env) execStmt(stmt *sql.Stmt, args ...interface{}) (ret sql.Result) {
+	if self.Error != nil {
+		return
+	}
+	ret, self.Error = stmt.Exec(args...)
+	return
 }
 
 func (self *Env) extractId(result sql.Result) uint32 {

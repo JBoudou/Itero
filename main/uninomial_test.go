@@ -27,14 +27,9 @@ import (
 	srvt "github.com/JBoudou/Itero/server/servertest"
 )
 
-func mustt(t *testing.T, err error) {
-	t.Helper()
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
 func TestAllAlternatives(t *testing.T) {
+	precheck(t)
+
 	var env dbt.Env
 	defer env.Close()
 
@@ -61,6 +56,8 @@ var (
 )
 
 func TestUninomialBallotAnswer_MarshalJSON(t *testing.T) {
+	precheck(t)
+
 	tests := []struct {
 		name        string
 		answer      UninomialBallotAnswer
@@ -157,10 +154,7 @@ func TestUninomialBallotHandler(t *testing.T) {
 	pollSegment.Id = env.CreatePoll("UninomialBallotHandler", userId, db.PollPublicityPublic)
 	mustt(t, env.Error)
 
-	encoded, err := pollSegment.Encode()
-	mustt(t, err)
-	target := "/a/test/" + encoded
-	request := srvt.Request{Target: &target, UserId: &userId}
+	request := makePollRequest(t, pollSegment, &userId)
 
 	alternatives := []PollAlternative{
 		{Id: 0, Name: "No", Cost: 1.},
@@ -169,7 +163,6 @@ func TestUninomialBallotHandler(t *testing.T) {
 
 	const (
 		qVote      = `INSERT INTO Ballots(User, Poll, Alternative, Round) VALUE (?, ?, ?, ?)`
-		qNextRound = `UPDATE Polls SET CurrentRound = CurrentRound + 1 WHERE Id = ?`
 	)
 
 	vote := func(alternative, round uint8) func(t *testing.T) {
@@ -197,8 +190,8 @@ func TestUninomialBallotHandler(t *testing.T) {
 		{
 			Name: "Previous ballot",
 			Update: func(t *testing.T) {
-				_, err := db.DB.Exec(qNextRound, pollSegment.Id)
-				mustt(t, err)
+				env.NextRound(pollSegment.Id)
+				env.Must(t)
 			},
 			Request: request,
 			Checker: srvt.CheckJSON{Body: &UninomialBallotAnswer{

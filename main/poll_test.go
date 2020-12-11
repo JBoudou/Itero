@@ -68,15 +68,10 @@ func TestPollHandler(t *testing.T) {
 	defer env.Close()
 
 	userId := env.CreateUser()
-	if env.Error != nil {
-		t.Fatalf("Env failed: %s", env.Error)
-	}
+	env.Must(t)
 
 	const (
 		qParticipate = `INSERT INTO Participants (Poll, User) VALUE (?, ?)`
-		qNextRound =
-			`UPDATE Polls SET CurrentRound = CurrentRound + 1 AND CurrentRoundStart = Now()
-			 WHERE Id = ?`
 		qClosePoll = `UPDATE Polls SET Active = false WHERE Id = ?`
 	)
 
@@ -96,9 +91,7 @@ func TestPollHandler(t *testing.T) {
 		segment.Salt = 42
 		return func(t *testing.T) {
 			segment.Id = env.CreatePoll("Test", userId, publicity)
-			if env.Error != nil {
-				t.Fatal(env.Error)
-			}
+			env.Must(t)
 			encoded, err := segment.Encode()
 			if err != nil {
 				t.Fatal(err)
@@ -142,10 +135,8 @@ func TestPollHandler(t *testing.T) {
 			Name: "Late public poll",
 			Update:  func(t *testing.T) {
 				createPoll(&segment3, &target3, db.PollPublicityPublic)(t)
-				_, err := db.DB.Exec(qNextRound, segment3.Id)
-				if err != nil {
-					t.Fatal(err)
-				}
+				env.NextRound(segment3.Id)
+				env.Must(t)
 			},
 			Request: srvt.Request{ Target: &target3, UserId: &userId },
 			Checker: srvt.CheckError{http.StatusForbidden, "Too late"},
@@ -185,10 +176,8 @@ func TestPollHandler(t *testing.T) {
 		{
 			Name: "Ok next round",
 			Update: func(t *testing.T) {
-				_, err := db.DB.Exec(qNextRound, segment1.Id)
-				if err != nil {
-					t.Fatal(err)
-				}
+				env.NextRound(segment1.Id)
+				env.Must(t)
 			},
 			Request: srvt.Request{ Target: &target1, UserId: &userId },
 			Checker: srvt.CheckJSON{

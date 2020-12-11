@@ -22,7 +22,15 @@ import (
 	"github.com/JBoudou/Itero/config"
 	"github.com/JBoudou/Itero/db"
 	"github.com/JBoudou/Itero/server"
+	srvt "github.com/JBoudou/Itero/server/servertest"
 )
+
+func mustt(t *testing.T, err error) {
+	t.Helper()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
 
 func precheck(t *testing.T) {
 	if !(config.Ok && db.Ok && server.Ok) {
@@ -30,4 +38,11 @@ func precheck(t *testing.T) {
 		t.Log("Check that there is a configuration file in main/. (or a link to the main configuation file).")
 		t.SkipNow()
 	}
+}
+
+func makePollRequest(t *testing.T, pollSegment PollSegment, userId *uint32) srvt.Request {
+	encoded, err := pollSegment.Encode()
+	mustt(t, err)
+	target := "/a/test/" + encoded
+	return srvt.Request{Target: &target, UserId: userId}
 }

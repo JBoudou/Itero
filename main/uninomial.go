@@ -114,8 +114,8 @@ func UninomialBallotHandler(ctx context.Context, response server.Response, reque
 
 	const qGetBallots = `
 		SELECT Round, Alternative FROM Ballots
-		WHERE User = ? AND Poll = ? AND Round IN (?, ?)
-		ORDER BY Round`
+		 WHERE User = ? AND Poll = ? AND Round IN (?, ?)
+		 ORDER BY Round`
 	var answer UninomialBallotAnswer
 
 	var previousRound uint8
