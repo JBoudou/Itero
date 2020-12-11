@@ -1,0 +1,16 @@
+// We define the fonts in SCSS instead of SASS, because maps suck in SASS :(
+@import '~@angular/material/theming';
+
+$mainfont: 'Asap';
+$fontsize: 12pt;
+
+$titlefont: 'Overpass';
+
+$itero-mat-typography: mat-typography-config(
+  $font-family: $mainfont,
+  $body-1:    mat-typography-level($fontsize, 1.2),
+  $headline:  mat-typography-level(32px,      1.2, $font-family: $titlefont),
+  $title:     mat-typography-level($fontsize, 1.2, $font-family: $titlefont),
+  $button:    mat-typography-level($fontsize, 1.2),
+  $input:     mat-typography-level($fontsize, 1.2),
+);

@@ -1,5 +1,6 @@
 @use 'sass:color'
-@import 'mat-palette'
+@import 'colors'
+@import 'typo'
 
 $contmaxwidth: 1100px
 $contpadding: 8px
@@ -7,10 +8,9 @@ $contpadding: 8px
 $navbarheight: 40px
 
 $userboxpadding: 4px
-$fontsize: 12pt
 
 body
-  font-family: "Droid Sans", sans-serif
+  font-family: "Asap", sans-serif
   font-size: $fontsize
   margin: #{$navbarheight + 16} 8px 8px
   color: color.adjust($maincolor, $lightness: -25%)
@@ -78,12 +78,12 @@ form.basicform
     button
       margin-left: 4px
 
-@import '~@angular/material/theming'
 @include mat-core()
 $itero-mat-primary: mat-palette($itero-mat-maincolor, 900, A100, 900)
 $itero-mat-accent: mat-palette($itero-mat-maincolor, A400, A200, A700)
 $itero-mat-theme: mat-light-theme(( color: ( primary: $itero-mat-primary, accent: $itero-mat-accent)))
 @include angular-material-theme($itero-mat-theme)
+@include angular-material-typography($itero-mat-typography)
 
 .mat-form-field-wrapper
   padding: 0
