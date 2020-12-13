@@ -15,7 +15,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import { Component, OnInit, Type, ViewChild, ComponentFactoryResolver, ViewEncapsulation } from '@angular/core';
+import { Component, OnInit, Type, ViewChild, ViewContainerRef, ComponentFactoryResolver, ViewEncapsulation } from '@angular/core';
 import { ActivatedRoute, ParamMap } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 
@@ -36,6 +36,7 @@ export class PollComponent implements OnInit {
   answer: PollAnswer;
 
   @ViewChild(PollBallotDirective, { static: true }) ballot: PollBallotDirective;
+  @ViewChild(PollInformationDirective, { static: true }) information: PollInformationDirective;
 
   constructor(
     private route: ActivatedRoute,
@@ -58,21 +59,27 @@ export class PollComponent implements OnInit {
     [BallotType.Uninomial, UninominalBallotComponent]
   ]);
 
+  private static informationMap = new Map<InformationType, Type<any>>([
+//    [InformationType.Counts, CountsInformationComponent]
+  ]);
+
   private retrieveTypes(): void {
     this.http.get<PollAnswer>('/a/poll/' + this.segment).subscribe({
       next: (answer: PollAnswer) => {
         this.answer = answer;
 
         if (PollComponent.ballotMap.has(this.answer.Ballot)) {
-          this.loadBallot(PollComponent.ballotMap.get(this.answer.Ballot));
+          this.loadSubComponent(this.ballot.viewContainerRef, PollComponent.ballotMap.get(this.answer.Ballot));
+        }
+        if (PollComponent.informationMap.has(this.answer.Information)) {
+          this.loadSubComponent(this.information.viewContainerRef, PollComponent.informationMap.get(this.answer.Information));
         }
       }
     });
   }
 
-  private loadBallot(type: Type<any>): void {
+  private loadSubComponent(viewContainerRef: ViewContainerRef, type: Type<any>): void {
     const componentFactory = this.componentFactoryResolver.resolveComponentFactory(type);
-    const viewContainerRef = this.ballot.viewContainerRef;
     viewContainerRef.clear();
     const componentRef = viewContainerRef.createComponent<PollSubComponent>(componentFactory);
     componentRef.instance.pollSegment = this.segment;
