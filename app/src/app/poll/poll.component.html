@@ -13,7 +13,7 @@
   <div id="pollinformation">
     <h4 *ngIf="hasAnswer()">{answer.CurrentRound, plural, =0 {No previous round} other {Previous round}}</h4>
     <div PollInformation>
-      <p *ngIf="hasAnswer() && answer.CurrentRound">No information available for that round.</p>
+      <p *ngIf="noInformation()">No information available for that round.</p>
     </div>
   </div>
 </div>

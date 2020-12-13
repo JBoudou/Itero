@@ -20,6 +20,7 @@ import { PollComponent } from './poll/poll.component';
 import { PollBallotDirective, PollInformationDirective } from './poll/directives';
 import { UninominalBallotComponent } from './uninominal-ballot/uninominal-ballot.component';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { CountsInformationComponent } from './counts-information/counts-information.component';
 
 @NgModule({
   declarations: [
@@ -33,7 +34,8 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
     PollComponent,
     PollBallotDirective,
     PollInformationDirective,
-    UninominalBallotComponent
+    UninominalBallotComponent,
+    CountsInformationComponent
   ],
   imports: [
     BrowserModule,

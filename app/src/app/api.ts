@@ -73,3 +73,12 @@ export interface UninomialBallotAnswer {
   Current?: number;
   Alternatives: Array<PollAlternative>;
 }
+
+export class CountInfoEntry {
+  Alternative: PollAlternative;
+  Count: number;
+}
+
+export class CountInfoAnswer {
+  Result: Array<CountInfoEntry>;
+}

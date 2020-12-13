@@ -22,7 +22,8 @@ import { HttpClient } from '@angular/common/http';
 import { PollAnswer, BallotType, InformationType } from '../api';
 import { PollBallotDirective, PollInformationDirective } from './directives';
 import { PollSubComponent } from './common';
-import {UninominalBallotComponent} from '../uninominal-ballot/uninominal-ballot.component';
+import { UninominalBallotComponent } from '../uninominal-ballot/uninominal-ballot.component';
+import { CountsInformationComponent } from '../counts-information/counts-information.component';
 
 @Component({
   selector: 'app-poll',
@@ -55,12 +56,18 @@ export class PollComponent implements OnInit {
     return typeof this.answer !== 'undefined';
   }
 
+  noInformation(): boolean {
+    return this.hasAnswer() &&
+      this.answer.CurrentRound > 0 &&
+      !PollComponent.informationMap.has(this.answer.Information);
+  }
+
   private static ballotMap = new Map<BallotType, Type<any>>([
     [BallotType.Uninomial, UninominalBallotComponent]
   ]);
 
   private static informationMap = new Map<InformationType, Type<any>>([
-//    [InformationType.Counts, CountsInformationComponent]
+    [InformationType.Counts, CountsInformationComponent]
   ]);
 
   private retrieveTypes(): void {
@@ -69,10 +76,12 @@ export class PollComponent implements OnInit {
         this.answer = answer;
 
         if (PollComponent.ballotMap.has(this.answer.Ballot)) {
-          this.loadSubComponent(this.ballot.viewContainerRef, PollComponent.ballotMap.get(this.answer.Ballot));
+          this.loadSubComponent(this.ballot.viewContainerRef,
+                                PollComponent.ballotMap.get(this.answer.Ballot));
         }
         if (PollComponent.informationMap.has(this.answer.Information)) {
-          this.loadSubComponent(this.information.viewContainerRef, PollComponent.informationMap.get(this.answer.Information));
+          this.loadSubComponent(this.information.viewContainerRef,
+                                PollComponent.informationMap.get(this.answer.Information));
         }
       }
     });
