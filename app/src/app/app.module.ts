@@ -5,6 +5,7 @@ import { ReactiveFormsModule } from '@angular/forms';
 
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
+import { GoogleChartsModule } from 'angular-google-charts';
 
 import { AppRoutingModule } from './app-routing.module';
 import { SessionInterceptor } from './session/session.interceptor';
@@ -44,7 +45,8 @@ import { CountsInformationComponent } from './counts-information/counts-informat
     ReactiveFormsModule,
     BrowserAnimationsModule,
     MatFormFieldModule,
-    MatSelectModule
+    MatSelectModule,
+    GoogleChartsModule
   ],
   providers: [
     { provide: HTTP_INTERCEPTORS, useClass: SessionInterceptor, multi: true }

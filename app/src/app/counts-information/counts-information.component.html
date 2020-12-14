@@ -1,3 +1,6 @@
-<table *ngIf="!!data">
-  <tr *ngFor="let entry of data"><td>{{entry.name}}</td><td>{{entry.value}}</td></tr>
-</table>
+<google-chart style="width: 400px;"
+     [type]="'BarChart'"
+     [columns]="columns"
+     [data]="data"
+     [options]="options"
+></google-chart>
