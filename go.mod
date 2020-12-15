@@ -1,6 +1,6 @@
 module github.com/JBoudou/Itero
 
-go 1.14
+go 1.15
 
 require (
 	github.com/go-sql-driver/mysql v1.5.0
