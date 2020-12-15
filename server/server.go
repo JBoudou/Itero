@@ -49,7 +49,7 @@ const (
 	sessionKeyUserId    = "uid"
 	sessionKeyDeadline  = "dl"
 
-	defaultPort = ":443"
+	defaultPort   = ":443"
 	sessionHeader = "X-CSRF"
 
 	wwwroot = "app/dist/app"
@@ -89,9 +89,17 @@ func init() {
 	// Session
 	sessionStore = gs.NewCookieStore(cfg.SessionKeys...)
 	sessionStore.MaxAge(sessionMaxAge)
-	sessionStore.Options.Domain = cfg.Address
+	sessionStore.Options.Domain = HostOnly(cfg.Address)
 	sessionStore.Options.SameSite = http.SameSiteLaxMode
 	SessionOptions = *sessionStore.Options
+}
+
+// HostOnly returns the host part of an address, without the port.
+func HostOnly(address string) string {
+	if !strings.Contains(address, ":") {
+		return address
+	}
+	return strings.Split(address, ":")[0]
 }
 
 // User represents a logged user.
@@ -100,7 +108,7 @@ type User struct {
 	Id   uint32
 }
 
-var	interceptorChain = alice.New(logger.Constructor, addRequestInfo)
+var interceptorChain = alice.New(logger.Constructor, addRequestInfo)
 
 func addRequestInfo(next http.Handler) http.Handler {
 	return http.HandlerFunc(
@@ -110,7 +118,7 @@ func addRequestInfo(next http.Handler) http.Handler {
 				panic(err)
 			}
 			next.ServeHTTP(wr, req)
-	})
+		})
 }
 
 type oneFile struct {
