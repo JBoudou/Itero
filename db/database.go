@@ -48,7 +48,8 @@ var (
 	RoundTypeFreelyAsynchronous uint8
 )
 
-const dsnOptions = `parseTime=true&sql_mode=%27TRADITIONAL%2CNO_ENGINE_SUBSTITUTION%2CONLY_FULL_GROUP_BY%27`
+const dsnOptions = `parseTime=true&` +
+	`sql_mode=%27TRADITIONAL%2CNO_ENGINE_SUBSTITUTION%2CONLY_FULL_GROUP_BY%27`
 
 type myConfig struct {
 	DSN string
@@ -63,7 +64,7 @@ func init() {
 	// Read conf
 	cfg := myConfig{
 		MaxIdleConns: 2,
-		MaxIdleTime: "2m",
+		MaxIdleTime:  "2m",
 	}
 	if err := config.Value("database", &cfg); err != nil {
 		log.Print(err)
