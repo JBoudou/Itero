@@ -81,6 +81,7 @@ func init() {
 	var err error
 	DB, err = sql.Open("mysql", cfg.DSN)
 	must(err, "Error initializing database:")
+	must(DB.Ping(), "Error connecting the the database:")
 
 	// configure DB
 	if dur, err := time.ParseDuration(cfg.MaxLifetime); err == nil {
@@ -142,6 +143,6 @@ func fillVars(table string, assoc map[string]*uint8) {
 
 func must(err error, msg string) {
 	if err != nil {
-		log.Fatal(msg, err)
+		log.Fatal(msg, " ", err)
 	}
 }
