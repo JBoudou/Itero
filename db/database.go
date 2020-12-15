@@ -54,13 +54,17 @@ type myConfig struct {
 	DSN string
 
 	MaxLifetime  string
+	MaxIdleTime  string
 	MaxIdleConns int
 	MaxOpenConns int
 }
 
 func init() {
 	// Read conf
-	cfg := myConfig{MaxIdleConns: 2}
+	cfg := myConfig{
+		MaxIdleConns: 2,
+		MaxIdleTime: "2m",
+	}
 	if err := config.Value("database", &cfg); err != nil {
 		log.Print(err)
 		log.Println("WARNING: Package db not usable because there is no configuration for it.")
@@ -80,6 +84,9 @@ func init() {
 	// configure DB
 	if dur, err := time.ParseDuration(cfg.MaxLifetime); err == nil {
 		DB.SetConnMaxLifetime(dur)
+	}
+	if dur, err := time.ParseDuration(cfg.MaxIdleTime); err == nil {
+		DB.SetConnMaxIdleTime(dur)
 	}
 	DB.SetMaxIdleConns(cfg.MaxIdleConns)
 	DB.SetMaxOpenConns(cfg.MaxOpenConns)
