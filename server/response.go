@@ -95,6 +95,7 @@ func (self response) SendJSON(ctx context.Context, data interface{}) {
 		self.SendError(ctx, err)
 		return
 	}
+	self.writer.Header().Add("content-type", "application/JSON")
 	if _, err = self.writer.Write(buff); err != nil {
 		logger.Printf(ctx, "Write error: %v", err)
 	}

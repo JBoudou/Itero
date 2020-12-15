@@ -23,6 +23,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -55,6 +56,12 @@ func TestResponse_SendJSON(t *testing.T) {
 		result := mock.Result()
 		if result.StatusCode < 200 || result.StatusCode >= 300 {
 			t.Errorf("Wrong StatusCode %d", result.StatusCode)
+		}
+
+		// Check content-type
+		header := result.Header
+		if !strings.Contains(header.Get("content-type"), "application/JSON") {
+			t.Errorf("Content-Type doesn't contain application/JSON")
 		}
 
 		// Read the body
