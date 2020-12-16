@@ -254,13 +254,26 @@ func TestBuffer_B64Reader(t *testing.T) {
 	}
 }
 
-func TestRandom(t *testing.T) {
+func TestNewRandom(t *testing.T) {
 	for _, size := range []uint32{0, 1, 2, 10, 50, 64} {
-		buffer, err := Random(size)
+		buffer, err := NewRandom(size)
 		if err != nil {
 			t.Fatal(err)
 		}
 		got := buffer.Len()
+		if got < size {
+			t.Errorf("Got %d. Expect %d.", got, size)
+		}
+	}
+}
+
+func TestRandomString(t *testing.T) {
+	for _, size := range []uint32{0, 1, 2, 10, 50, 64} {
+		str, err := RandomString(size)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := uint32(len(str))
 		if got < size {
 			t.Errorf("Got %d. Expect %d.", got, size)
 		}

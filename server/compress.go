@@ -8,6 +8,7 @@ package server
 import (
 	"compress/flate"
 	"compress/gzip"
+	"crypto/rand"
 	"io"
 	"net/http"
 	"strings"
@@ -57,12 +58,12 @@ func (w *compressResponseWriter) Flush() {
 	}
 }
 
-// CompressHandler gzip compresses HTTP responses for clients that support it
+// Compress gzip compresses HTTP responses for clients that support it
 // via the 'Accept-Encoding' header.
 //
 // Compressing TLS traffic may leak the page contents to an attacker if the
 // page contains user input: http://security.stackexchange.com/a/102015/12208
-func CompressHandler(h http.Handler) http.Handler {
+func Compress(h http.Handler) http.Handler {
 	return CompressHandlerLevel(h, gzip.DefaultCompression)
 }
 
@@ -157,21 +158,10 @@ func CompressHandlerLevel(h http.Handler, level int) http.Handler {
 }
 
 func breachString() (ret string, err error) {
-	var rnd *b64buff.Buffer
-	if rnd, err = b64buff.Random(198); err != nil {
-		return "", err
-	}
-	bits := rnd.B64Reader()
-
 	buff := make([]byte, 1)
-	if _, err := bits.Read(buff); err != nil {
+	if _, err := rand.Reader.Read(buff); err != nil {
 		return "", err
 	}
-	size := buff[0] & 0x1F
-	
-	buff = make([]byte, size)
-	if _, err := bits.Read(buff); err != nil {
-		return "", err
-	}
-	return string(buff), nil
+	size := uint32(buff[0]) & 0x1F
+	return b64buff.RandomString(size)
 }

@@ -18,13 +18,12 @@ package server
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"time"
 
+	"github.com/JBoudou/Itero/b64buff"
 	"github.com/JBoudou/Itero/server/logger"
 
 	gs "github.com/gorilla/sessions"
@@ -141,11 +140,7 @@ func (self response) SendLoginAccepted(ctx context.Context, user User, req *Requ
 //
 // This is a low level function, made available for tests.
 func MakeSessionId() (string, error) {
-	b := make([]byte, 3)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-	return base64.URLEncoding.EncodeToString(b), nil
+	return b64buff.RandomString(4)
 }
 
 // NewSession creates a new session for the given user.

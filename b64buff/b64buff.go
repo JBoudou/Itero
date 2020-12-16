@@ -62,7 +62,7 @@ func init() {
 }
 
 // Random create a Buffer containing at least nbBits random bits.
-func Random(nbBits uint32) (ret *Buffer, err error) {
+func NewRandom(nbBits uint32) (ret *Buffer, err error) {
 	ret = &Buffer{}
 
 	nbBytes := (nbBits + 5) / 6
@@ -263,4 +263,20 @@ func (self *Buffer) AlignRead() (ret byte) {
 	self.readSize = 0
 	self.readMore = 0
 	return
+}
+
+// RandomString produces a random readable string of the given length.
+// The returned string is a valid B64 encoded random value.
+func RandomString(length uint32) (ret string, err error) {
+	var rnd *Buffer
+	if rnd, err = NewRandom(length * 6); err != nil {
+		return "", err
+	}
+	bits := rnd.B64Reader()
+
+	buff := make([]byte, length)
+	if _, err := bits.Read(buff); err != nil {
+		return "", err
+	}
+	return string(buff), nil
 }

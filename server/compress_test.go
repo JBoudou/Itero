@@ -23,7 +23,7 @@ import (
 var contentType = "text/plain; charset=utf-8"
 
 func compressedRequest(w *httptest.ResponseRecorder, compression string) {
-	CompressHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	Compress(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Length", strconv.Itoa(9*1024))
 		w.Header().Set("Content-Type", contentType)
 		for i := 0; i < 1024; i++ {
@@ -97,7 +97,7 @@ func TestAcceptEncodingIsDropped(t *testing.T) {
 	}
 
 	for _, tCase := range tCases {
-		ch := CompressHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ch := Compress(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			acceptEnc := r.Header.Get(acceptEncoding)
 			if acceptEnc == "" && tCase.isPresent {
 				t.Fatalf("%s: expected 'Accept-Encoding' header to be present but was not", tCase.name)
@@ -179,7 +179,7 @@ func TestCompressFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	s := httptest.NewServer(CompressHandler(http.FileServer(http.Dir(dir))))
+	s := httptest.NewServer(Compress(http.FileServer(http.Dir(dir))))
 	defer s.Close()
 
 	url := &url.URL{Scheme: "http", Host: s.Listener.Addr().String(), Path: "/hello.txt"}
@@ -257,7 +257,7 @@ func TestCompressHandlerPreserveInterfaces(t *testing.T) {
 			t.Errorf("ResponseWriter lost http.Hijacker interface for %q", comp)
 		}
 	})
-	h = CompressHandler(h)
+	h = Compress(h)
 	var rw fullyFeaturedResponseWriter
 	r, err := http.NewRequest("GET", "/", nil)
 	if err != nil {
@@ -288,7 +288,7 @@ func TestCompressHandlerDoesntInventInterfaces(t *testing.T) {
 		}
 	})
 
-	h = CompressHandler(h)
+	h = Compress(h)
 
 	var rw paltryResponseWriter
 	r, err := http.NewRequest("GET", "/", nil)

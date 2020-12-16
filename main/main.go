@@ -26,10 +26,10 @@ import (
 func main() {
 	server.HandleFunc("/a/login", LoginHandler)
 	server.HandleFunc("/a/signup", SignupHandler)
-	server.HandleFunc("/a/list", ListHandler, server.CompressHandler)
+	server.HandleFunc("/a/list", ListHandler, server.Compress)
 	server.HandleFunc("/a/poll/", PollHandler)
-	server.HandleFunc("/a/ballot/uninominal/", UninomialBallotHandler, server.CompressHandler)
-	server.HandleFunc("/a/info/count/", CountInfoHandler, server.CompressHandler)
+	server.HandleFunc("/a/ballot/uninominal/", UninomialBallotHandler, server.Compress)
+	server.HandleFunc("/a/info/count/", CountInfoHandler, server.Compress)
 
 	log.Println("Server starting")
 	if err := server.Start(); err != nil {
