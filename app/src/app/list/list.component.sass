@@ -1,17 +1,17 @@
-@use '../../styles.sass'
+@import '../../colors'
 table#polllist
-  border: solid 1px styles.$maincolor
+  border: solid 1px $maincolor
   border-collapse: collapse
   td, th
     padding: 2px 4px
   tr.tableheader
-    background-color: styles.$softbgcolor
+    background-color: $softbgcolor
   tr.poll
     cursor: pointer
     td
-      border-top: solid 1px styles.$maincolor
+      border-top: solid 1px $maincolor
     &:hover
-      background-color: styles.$softbgcolor
+      background-color: $softbgcolor
     td.round, td.deadline
       text-align: center
     td.action
@@ -28,4 +28,3 @@ table#polllist
         background-color: lightgreen
       .modi
         background-color: orange
-      

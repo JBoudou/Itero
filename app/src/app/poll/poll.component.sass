@@ -1,5 +1,5 @@
-@use '../../styles.sass'
 @use 'sass:color'
+@import '../../colors'
 
 #pollmain
   display: grid
@@ -7,16 +7,16 @@
   gap: 4px
   #pollheader
     grid-area: span 1 / span 2
-    border-bottom: solid 1px styles.$maincolor
+    border-bottom: solid 1px $maincolor
     #pollcreation
       font-size: smaller
       font-style: italic
   #pollballot
-    border-right: solid 1px styles.$maincolor
+    border-right: solid 1px $maincolor
     padding-right: 8px
     form.basicform
       grid-template-columns: auto auto
-      box-shadow: 2px 6px 12px color.change(color.adjust(styles.$maincolor, $saturation: -20%), $lightness: 85%)
+      box-shadow: 2px 6px 12px color.change(color.adjust($maincolor, $saturation: -20%), $lightness: 85%)
       padding: 4px
   #pollinformation
     margin-left: 8px

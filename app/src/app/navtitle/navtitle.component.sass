@@ -1,18 +1,21 @@
 @use 'sass:color'
-@use '../../styles.sass'
+@import '../../colors'
+@import '../../typo'
+@import '../../sizes'
+
 div#navtitle
-  background-color: styles.$maincolor
-  color: styles.$fgOnMaincolor
+  background-color: $maincolor
+  color: $fgOnMaincolor
   position: fixed
   top: 0
   left: 0
   width: 100%
-  height: styles.$navbarheight
+  height: $navbarheight
   .titles
     float: left
     h1, h2
       display: inline
-      font-family: styles.$titlefont
+      font-family: $titlefont
       position: relative
       top: 3pt
     h2
@@ -22,14 +25,14 @@ div#navtitle
   nav
     float: right
     $innermargin: 4px
-    $border: solid 1px styles.$fgOnMaincolor
+    $border: solid 1px $fgOnMaincolor
     a
       display: inline-flex
       border-right: $border
       margin: $innermargin 0 0 0
       padding: 0 6px
-      height: styles.$navbarheight - (2 * $innermargin)
-      color: styles.$fgOnMaincolor
+      height: $navbarheight - (2 * $innermargin)
+      color: $fgOnMaincolor
       text-decoration: none
       cursor: pointer
       .navitem
@@ -37,9 +40,9 @@ div#navtitle
       &:first-child
         border-left: $border
       &:hover
-        background-color: color.adjust(styles.$maincolor, $lightness: 20%)
+        background-color: color.adjust($maincolor, $lightness: 20%)
       &.active
-        background-color: color.adjust(styles.$maincolor, $lightness: 10%)
+        background-color: color.adjust($maincolor, $lightness: 10%)
       &.active:hover
-        background-color: color.adjust(styles.$maincolor, $lightness: 30%)
+        background-color: color.adjust($maincolor, $lightness: 30%)
 

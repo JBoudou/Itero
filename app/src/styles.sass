@@ -1,13 +1,8 @@
 @use 'sass:color'
 @import 'colors'
 @import 'typo'
-
-$contmaxwidth: 1100px
-$contpadding: 8px
-
-$navbarheight: 40px
-
-$userboxpadding: 4px
+@import 'sizes'
+@import 'mixins'
 
 body
   font-family: "Asap", sans-serif
@@ -19,22 +14,6 @@ body
   max-width: $contmaxwidth
   margin: 0 auto
   padding: 0 $contpadding
-
-@mixin userbox
-  border: solid 1px $maincolor
-  border-radius: 3px
-  padding: $userboxpadding
-  color: $useboxfgcolor
-
-@mixin userinput
-  @include userbox
-  background-color: $softbgcolor
-
-@mixin userbutton
-  @include userbox
-  background-color: $userbuttonbgcolor
-  padding: $userboxpadding #{$userboxpadding * 2}
-  font-size: $fontsize
 
 form.basicform
   label

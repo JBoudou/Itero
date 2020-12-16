@@ -1,9 +1,10 @@
-@use '../../styles.sass'
+@import '../../typo'
+@import '../../mixins'
 
 .previousVotes
-  font-size: styles.$fontsize - 1
+  font-size: $fontsize - 1
   line-height: 1.4
   .vote
-    @include styles.userinput
+    @include userinput
     padding-top: 1px
     padding-bottom: 1px
