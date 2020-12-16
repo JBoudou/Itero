@@ -74,9 +74,6 @@ func NewRequest(basePattern string, original *http.Request) (req Request) {
 // This method returns nil only if the method is POST and
 // there is an Origin header with the correct host.
 func (self *Request) CheckPOST(ctx context.Context) error {
-	if self.SessionError != nil {
-		return self.SessionError
-	}
 	if self.original.Method != "POST" {
 		return NewHttpError(http.StatusForbidden, "Unauthorized", "Not a POST")
 	}
