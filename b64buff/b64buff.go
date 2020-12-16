@@ -23,16 +23,18 @@ package b64buff
 
 import (
 	"bytes"
+	"crypto/rand"
 	"errors"
+	"io"
 )
 
 // Buffer is a bit buffer.
 type Buffer struct {
-	buff      bytes.Buffer
+	buff bytes.Buffer
 
 	// The readSize lower bits of readMore contains bits to read.
-	readMore  byte
-	readSize  uint8
+	readMore byte
+	readSize uint8
 
 	// The writeSize upper bits (6 based) of writeMore contains bits to write.
 	writeMore byte
@@ -40,12 +42,13 @@ type Buffer struct {
 }
 
 const encoding = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_"
+
 var decoding [256]byte
 
 var (
-	WrongNbBits = errors.New("Impossible number of bits")
+	WrongNbBits   = errors.New("Impossible number of bits")
 	NotEnoughData = errors.New("No enough data to read")
-	NotAligned = errors.New("Buffer not aligned")
+	NotAligned    = errors.New("Buffer not aligned")
 	EncodingError = errors.New("Error in encoding")
 )
 
@@ -56,6 +59,24 @@ func init() {
 	for i := 0; i < len(encoding); i++ {
 		decoding[encoding[i]] = byte(i)
 	}
+}
+
+// Random create a Buffer containing at least nbBits random bits.
+func Random(nbBits uint32) (ret *Buffer, err error) {
+	ret = &Buffer{}
+
+	nbBytes := (nbBits + 5) / 6
+	buff := make([]byte, nbBytes)
+	if _, err := rand.Reader.Read(buff); err != nil {
+		return ret, err
+	}
+
+	for i := range buff {
+		buff[i] &= 0x3F
+	}
+
+	ret.buff.Write(buff)
+	return
 }
 
 // Len returns the number of bits in the buffer.
@@ -72,10 +93,10 @@ func (self *Buffer) WriteUInt32(data uint32, nbBits uint8) error {
 		return WrongNbBits
 	}
 
-	if self.writeSize + nbBits < 6 {
+	if self.writeSize+nbBits < 6 {
 		mask := uint32(0x3F) >> (6 - nbBits)
 		self.writeSize += nbBits
-		self.writeMore |= byte(data & mask) << (6 - self.writeSize)
+		self.writeMore |= byte(data&mask) << (6 - self.writeSize)
 		return nil
 	}
 
@@ -103,7 +124,7 @@ func (self *Buffer) WriteUInt32(data uint32, nbBits uint8) error {
 	if nbBits > 0 {
 		diff := 6 - nbBits
 		mask := uint32(0x3F) >> diff
-		self.writeMore = byte(data & mask) << diff
+		self.writeMore = byte(data&mask) << diff
 		self.writeSize = nbBits
 	}
 	return nil
@@ -124,7 +145,7 @@ func (self *Buffer) ReadUInt32(nbBits uint8) (ret uint32, err error) {
 	if nbBits <= self.readSize {
 		self.readSize -= nbBits
 		mask := (byte(0x3F) >> (6 - nbBits)) << self.readSize
-		ret = uint32(self.readMore & mask) >> self.readSize
+		ret = uint32(self.readMore&mask) >> self.readSize
 		self.readMore &^= mask
 		return
 	}
@@ -154,12 +175,12 @@ func (self *Buffer) ReadUInt32(nbBits uint8) (ret uint32, err error) {
 			}
 			self.readSize = 6 - nbBits
 			mask := (uint8(0x3F) >> self.readSize) << self.readSize
-			ret |= uint32(self.readMore & mask) >> self.readSize
+			ret |= uint32(self.readMore&mask) >> self.readSize
 			self.readMore &^= mask
 		} else {
 			diff := 6 - nbBits
 			mask := uint8(0x3F) << diff
-			ret |= uint32(self.writeMore & mask) >> diff
+			ret |= uint32(self.writeMore&mask) >> diff
 			self.writeSize -= nbBits
 			self.writeMore = (self.writeMore &^ mask) << nbBits
 		}
@@ -207,4 +228,39 @@ func (self *Buffer) ReadAllB64() (ret string, err error) {
 	}
 	self.buff.Reset()
 	return string(to), nil
+}
+
+type b64Reader struct {
+	buffer *Buffer
+}
+
+func (self b64Reader) Read(p []byte) (n int, err error) {
+	if self.buffer.readSize != 0 {
+		return 0, NotAligned
+	}
+
+	n, err = self.buffer.buff.Read(p)
+	for i := 0; i < n; i++ {
+		p[i] = encoding[p[i]]
+	}
+	return
+}
+
+// B64Reader return a encoded reader on the Buffer.
+//
+// Calling Read on the returned value fail if the read is not aligned.
+// The read is aligned if the sum of read bits from the buffer can be divided by 6.
+func (self *Buffer) B64Reader() io.Reader {
+	return b64Reader{self}
+}
+
+// AlignRead forces the read to be aligned, by discarding surnumerous bits.
+//
+// The discarded bits are the less significant bits that would have been returned by a call
+// to ReadUInt32. Those bits are returned by the method.
+func (self *Buffer) AlignRead() (ret byte) {
+	ret = self.readMore
+	self.readSize = 0
+	self.readMore = 0
+	return
 }

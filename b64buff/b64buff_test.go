@@ -236,3 +236,80 @@ func TestThroughB64(t *testing.T) {
 		})
 	}
 }
+
+func TestBuffer_B64Reader(t *testing.T) {
+	for _, b64 := range []string{ "0101abdc99" } {
+		buffer := &Buffer{}
+		if err := buffer.WriteB64(b64); err != nil {
+			t.Fatal(err)
+		}
+		tmp := make([]byte, len(b64))
+		if _, err := buffer.B64Reader().Read(tmp); err != nil {
+			t.Fatal(err)
+		}
+		got := string(tmp)
+		if got != b64 {
+			t.Errorf("Got %s. Expect %s.", got, b64)
+		}
+	}
+}
+
+func TestRandom(t *testing.T) {
+	for _, size := range []uint32{0, 1, 2, 10, 50, 64} {
+		buffer, err := Random(size)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := buffer.Len()
+		if got < size {
+			t.Errorf("Got %d. Expect %d.", got, size)
+		}
+	}
+}
+
+func TestBuffer_AlignRead(t *testing.T) {
+	tests := []struct{
+		name string
+		data uint32
+		bitsWr uint8
+		bitsRd uint8
+		expect byte
+	}{
+		{
+			name: "Zero",
+			data: 0x3F,
+			bitsWr: 6,
+			bitsRd: 0,
+			expect: 0,
+		},
+		{
+			name: "Three",
+			data: 0x3C,
+			bitsWr: 6,
+			bitsRd: 3,
+			expect: 4,
+		},
+		{
+			name: "Full",
+			data: 0xFFF,
+			bitsWr: 12,
+			bitsRd: 6,
+			expect: 0,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			buffer := &Buffer{}
+			if err := buffer.WriteUInt32(tt.data, tt.bitsWr); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := buffer.ReadUInt32(tt.bitsRd); err != nil {
+				t.Fatal(err)
+			}
+			got := buffer.AlignRead()
+			if got != tt.expect {
+				t.Errorf("Got %d. Expect %d.", got, tt.expect)
+			}
+		})
+	}
+}
