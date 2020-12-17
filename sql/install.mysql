@@ -184,7 +184,7 @@ CREATE TABLE Polls (
 
   # The poll ends as soon as one of the following condition holds:
   #  - CurrentRound >= MaxNbRounds
-  #  - CURRENT_TIMESTAMP() >= Deadline AND CurrentRound >= MinNbRounds
+  #  - Deadline <= CURRENT_TIMESTAMP() AND CurrentRound >= MinNbRounds
   MinNbRounds       smallint unsigned NOT NULL  DEFAULT 2,
   MaxNbRounds       smallint unsigned           DEFAULT 10,
   Deadline          datetime,
@@ -194,7 +194,7 @@ CREATE TABLE Polls (
   #  - (CurrentRound > 0 OR Publicity is 'Invited') AND
   #    RoundThreshold = 0 AND one participant moved for this round
   #  - (CurrentRound > 0 OR Publicity is 'Invited') AND
-  #    RoundThreshold > 0 AND the proportion of participants who moved for this round > RoundThreshold
+  #    RoundThreshold > 0 AND the proportion of participants who moved for this round >= RoundThreshold
   MaxRoundDuration  time                        DEFAULT '24:00:00',
   RoundThreshold    double unsigned   NOT NULL  DEFAULT 1,
 
@@ -253,9 +253,6 @@ BEGIN
   END IF;
   IF CurrentRound > MaxNbRounds THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'CurrentRound must be at most MaxNbRounds';
-  END IF;
-  IF CurrentRoundStart > Deadline THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'CurrentRoundStart must be before Deadline';
   END IF;
 END;
 //

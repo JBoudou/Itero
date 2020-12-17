@@ -78,3 +78,13 @@ func Send(evt Event) error {
 func AddReceiver(rcv Receiver) error {
 	return DefaultManager.AddReceiver(rcv)
 }
+
+// ReceiverFunc turn a function into a stateless Receiver, whose Close method does nothing.
+type ReceiverFunc func(Event)
+
+func (self ReceiverFunc) Receive(evt Event) {
+	self(evt)
+}
+
+func (self ReceiverFunc) Close() {
+}
