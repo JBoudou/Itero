@@ -69,11 +69,15 @@ func ListHandler(ctx context.Context, response server.Response, request *server.
 	          CASE WHEN a.User IS NULL THEN 'Part'
 	               WHEN a.LastRound >= p.CurrentRound THEN 'Modi'
 	               ELSE 'Vote' END AS Action
-	     FROM Polls AS p LEFT OUTER JOIN Participants AS a ON p.Id = a.Poll
+	     FROM Polls AS p LEFT OUTER JOIN (
+	              SELECT Poll, User, LastRound
+	               FROM Participants
+	              WHERE User = ?
+	          ) AS a ON p.Id = a.Poll
 	    WHERE p.Active
-	      AND ((a.User IS NULL AND p.CurrentRound = 0 AND p.Publicity <= ?) OR a.User = ?)
+	      AND ((p.CurrentRound = 0 AND p.Publicity <= ?) OR a.User IS NOT NULL)
 	 ORDER BY Action DESC, Deadline ASC`
-	rows, err := db.DB.QueryContext(ctx, query, db.PollPublicityPublicRegistered, request.User.Id)
+	rows, err := db.DB.QueryContext(ctx, query, request.User.Id, db.PollPublicityPublicRegistered)
 	if err != nil {
 		response.SendError(ctx, err)
 		return

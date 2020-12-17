@@ -30,15 +30,15 @@ import (
 )
 
 func TestListHandler(t *testing.T) {
+	// BEWARE! This test is sequential!
 	precheck(t)
 
 	env := new(dbt.Env)
 	defer env.Close()
 
 	userId := env.CreateUser()
-	if env.Error != nil {
-		t.Fatalf("Env failed: %s", env.Error)
-	}
+	otherId := env.CreateUserWith("other")
+	env.Must(t)
 
 	const (
 		qParticipate = `INSERT INTO Participants(Poll, User) VALUE (?, ?)`
@@ -113,6 +113,7 @@ func TestListHandler(t *testing.T) {
 	}
 
 	tests := []srvt.Test{
+		// BEWARE! This test is sequential!
 		{
 			Name: "No session",
 			// TODO fix this test once implemented
@@ -124,6 +125,17 @@ func TestListHandler(t *testing.T) {
 				poll1Id = env.CreatePoll(poll1Title, userId, db.PollPublicityPublicRegistered)
 				if env.Error != nil {
 					t.Fatalf("Env: %s", env.Error)
+				}
+			},
+			Request: srvt.Request{UserId: &userId},
+			Checker: checker([]maker{makePollEntry(poll1Title, &poll1Id, "Part")}, []maker{}),
+		},
+		{
+			Name: "Other participate",
+			Update: func(t *testing.T) {
+				_, err := db.DB.Exec(qParticipate, poll1Id, otherId)
+				if err != nil {
+					t.Fatal(err)
 				}
 			},
 			Request: srvt.Request{UserId: &userId},
