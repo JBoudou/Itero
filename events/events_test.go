@@ -14,59 +14,15 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-package events
+package events_test
 
 import (
 	"testing"
+
+	. "github.com/JBoudou/Itero/events"
+	. "github.com/JBoudou/Itero/events/eventstest"
 )
 
-type managerMock struct {
-	t           *testing.T
-	send        func(Event) error
-	addReceiver func(Receiver) error
-	_close      func() error
-}
-
-func (self *managerMock) Send(evt Event) error {
-	if self.send == nil {
-		self.t.Fatal("Send unexpectedly called")
-	}
-	return self.send(evt)
-}
-
-func (self *managerMock) AddReceiver(rcv Receiver) error {
-	if self.addReceiver == nil {
-		self.t.Fatal("AddReceiver unexpectedly called")
-	}
-	return self.addReceiver(rcv)
-}
-
-func (self *managerMock) Close() error {
-	if self._close == nil {
-		self.t.Fatal("Close unexpectedly called")
-	}
-	return self._close()
-}
-
-type receiverMock struct {
-	t *testing.T
-	receive func(Event)
-	_close func()
-}
-
-func (self *receiverMock) Receive(evt Event) {
-	if self.receive == nil {
-		self.t.Fatal("Receive unexpectedly called")
-	}
-	self.receive(evt)
-}
-
-func (self *receiverMock) Close() {
-	if self._close == nil {
-		self.t.Fatal("Close unexpectedly called")
-	}
-	self._close()
-}
 
 func TestSend(t *testing.T) {
 	stack := make([]Event, 0, 1)
@@ -74,7 +30,7 @@ func TestSend(t *testing.T) {
 		stack = append(stack, evt)
 		return nil
 	}
-	DefaultManager = &managerMock{t: t, send: spy}
+	DefaultManager = &ManagerMock{T: t, Send_: spy}
 	if err := Send(27); err != nil {
 		t.Fatal(err)
 	}
@@ -92,14 +48,14 @@ func TestAddReceiver(t *testing.T) {
 		stack = append(stack, rcv)
 		return nil
 	}
-	DefaultManager = &managerMock{t: t, addReceiver: spy}
-	if err := AddReceiver(&receiverMock{t: t}); err != nil {
+	DefaultManager = &ManagerMock{T: t, AddReceiver_: spy}
+	if err := AddReceiver(&ReceiverMock{T: t}); err != nil {
 		t.Fatal(err)
 	}
 	if len(stack) != 1 {
 		t.Fatalf("Wrong number of call to DefaultManager.Send (%d)", len(stack))
 	}
-	if r, ok := stack[0].(*receiverMock); !ok || r.t != t {
+	if r, ok := stack[0].(*ReceiverMock); !ok || r.T != t {
 		t.Errorf("Got unexpected %v.", stack[0])
 	}
 }

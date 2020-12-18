@@ -24,6 +24,10 @@ import (
 )
 
 func main() {
+	// Services
+	StartNextRound()
+
+	// Handlers
 	server.HandleFunc("/a/login", LoginHandler)
 	server.HandleFunc("/a/signup", SignupHandler)
 	server.HandleFunc("/a/list", ListHandler, server.Compress)

@@ -24,11 +24,7 @@ import (
 	"github.com/JBoudou/Itero/events"
 )
 
-type NextRoundEvent struct {
-	Poll uint32
-}
-
-type PollClosedEvent struct {
+type ClosePollEvent struct {
 	Poll uint32
 }
 
@@ -128,7 +124,7 @@ func roundCheckAllPolls() error {
 
 	// Send events
 	for id := range closeSet {
-		events.Send(PollClosedEvent{id})
+		events.Send(ClosePollEvent{id})
 		delete(nextSet, id)
 	}
 	for id := range nextSet {
