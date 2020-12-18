@@ -23,39 +23,15 @@ import (
 	"github.com/JBoudou/Itero/db"
 	dbt "github.com/JBoudou/Itero/db/dbtest"
 	"github.com/JBoudou/Itero/events"
+	"github.com/JBoudou/Itero/events/eventstest"
 )
-
-// TODO: We should have that in an eventstest package.
-type eventsReceiverMock struct {
-	t       *testing.T
-	receive func(events.Event)
-	_close  func()
-}
-
-func (self eventsReceiverMock) Receive(evt events.Event) {
-	if self.receive == nil {
-		self.t.Fatal("Receive unexpectedly called.")
-	}
-	self.receive(evt)
-}
-
-func (self eventsReceiverMock) Close() {
-	if self._close == nil {
-		self.t.Fatal("Close unexpectedly called.")
-	}
-	self._close()
-}
 
 func TestRoundCheckAllPolls_Close(t *testing.T) {
 	const (
-		qSetMinMax       = `UPDATE Polls SET MinNbRounds = 1, MaxNbRounds = 2 WHERE Id = ?`
-		qSetRound        = `UPDATE Polls SET CurrentRound = ? WHERE Id = ?`
-		qSetExpiredPoll  = `UPDATE Polls SET Deadline = CURRENT_TIMESTAMP() WHERE Id = ?`
-		qSetExpiredRound = `
-		  UPDATE Polls
-		     SET CurrentRoundStart = SUBTIME(CURRENT_TIMESTAMP(), MaxRoundDuration)
-		   WHERE Id = ?`
-		qIsActive = `SELECT Active FROM Polls WHERE Id = ?`
+		qSetMinMax      = `UPDATE Polls SET MinNbRounds = 1, MaxNbRounds = 2 WHERE Id = ?`
+		qSetRound       = `UPDATE Polls SET CurrentRound = ? WHERE Id = ?`
+		qSetExpiredPoll = `UPDATE Polls SET Deadline = CURRENT_TIMESTAMP() WHERE Id = ?`
+		qIsActive       = `SELECT Active FROM Polls WHERE Id = ?`
 	)
 
 	// Tests are independent.
@@ -63,80 +39,37 @@ func TestRoundCheckAllPolls_Close(t *testing.T) {
 	tests := []struct {
 		round        int  // CurrentRound
 		expiredPoll  bool // whether Deadline >= CURRENT_TIMESTAMP()
-		expiredRound bool // whether ADDTIME(CurrentRoundStart, MaxRoundDuration) >= CURRENT_TIMESTAMP
 		expectClosed bool
 	}{
 		// This test is exhaustive.
 		{
 			round:        0,
 			expiredPoll:  false,
-			expiredRound: false,
-			expectClosed: false,
-		},
-		{
-			round:        0,
-			expiredPoll:  false,
-			expiredRound: true,
 			expectClosed: false,
 		},
 		{
 			round:        0,
 			expiredPoll:  true,
-			expiredRound: false,
-			expectClosed: false,
-		},
-		{
-			round:        0,
-			expiredPoll:  true,
-			expiredRound: true,
-			expectClosed: true,
-		},
-		{
-			round:        1,
-			expiredPoll:  false,
-			expiredRound: false,
 			expectClosed: false,
 		},
 		{
 			round:        1,
 			expiredPoll:  false,
-			expiredRound: true,
-			expectClosed: true,
+			expectClosed: false,
 		},
 		{
 			round:        1,
 			expiredPoll:  true,
-			expiredRound: false,
-			expectClosed: true,
-		},
-		{
-			round:        1,
-			expiredPoll:  true,
-			expiredRound: true,
 			expectClosed: true,
 		},
 		{
 			round:        2,
 			expiredPoll:  false,
-			expiredRound: false,
-			expectClosed: true,
-		},
-		{
-			round:        2,
-			expiredPoll:  false,
-			expiredRound: true,
 			expectClosed: true,
 		},
 		{
 			round:        2,
 			expiredPoll:  true,
-			expiredRound: false,
-			expectClosed: true,
-		},
-		{
-			round:        2,
-			expiredPoll:  true,
-			expiredRound: true,
 			expectClosed: true,
 		},
 	}
@@ -155,33 +88,23 @@ func TestRoundCheckAllPolls_Close(t *testing.T) {
 			if err == nil && tt.expiredPoll {
 				_, err = db.DB.Exec(qSetExpiredPoll, pollId)
 			}
-			if err == nil && tt.expiredRound {
-				_, err = db.DB.Exec(qSetExpiredRound, pollId)
-			}
 			mustt(t, err)
 
 			originalManager := events.DefaultManager
-			events.DefaultManager = events.NewAsyncManager(4)
 			closed := false
-			synchro := make(chan bool)
-			events.AddReceiver(eventsReceiverMock{
-				t: t,
-				receive: func(evt events.Event) {
+			events.DefaultManager = &eventstest.ManagerMock{
+				T: t,
+				Send_: func(evt events.Event) error {
 					if closeEvent, ok := evt.(ClosePollEvent); ok && closeEvent.Poll == pollId {
 						closed = true
 					}
+					return nil
 				},
-				_close: func() {
-					synchro <- true
-				},
-			})
+			}
 
-			mustt(t, roundCheckAllPolls())
+			mustt(t, newClosePoll().fullCheck())
 
-			fakeManager := events.DefaultManager
 			events.DefaultManager = originalManager
-			fakeManager.Close()
-			<-synchro
 
 			var active bool
 			row := db.DB.QueryRow(qIsActive, pollId)

@@ -34,7 +34,7 @@ type NextRoundEvent struct {
 }
 
 const (
-	// The time to wait when there seems to be no forthcoming deadline;
+	// The time to wait when there seems to be no forthcoming deadline.
 	nextRoundDefaultWaitDuration = time.Hour
 	// Run fullCheck instead of checkOne once every nextRoundFullCheckFreq steps.
 	nextRoundFullCheckFreq = 5
@@ -50,7 +50,7 @@ type nextRound struct {
 func newNextRound() *nextRound {
 	return &nextRound{
 		adjust: 10 * time.Minute,
-		warn:   log.New(os.Stderr, "nextRound", log.LstdFlags|log.Lshortfile),
+		warn:   log.New(os.Stderr, "nextRound", log.LstdFlags|log.Lshortfile|log.Lmsgprefix),
 	}
 }
 
@@ -82,7 +82,7 @@ func (self *nextRound) fullCheck() error {
 		qNextRound = `UPDATE Polls SET CurrentRound = CurrentRound + 1 WHERE Id = ?`
 	)
 	nextSet := make(map[uint32]bool)
-	if collectUI32Id(nextSet, tx, qSelectNext, db.PollPublicityInvited); err != nil {
+	if err := collectUI32Id(nextSet, tx, qSelectNext, db.PollPublicityInvited); err != nil {
 		return err
 	}
 	if err := execOnUI32Id(nextSet, tx, qNextRound); err != nil {
@@ -147,7 +147,7 @@ func (self *nextRound) updateLastCheck() {
 	self.adjust = (self.adjust + time.Since(self.lastCheck)) / 2
 }
 
-func (self *nextRound) nextRoundAlarm() (ret alarm.Event) {
+func (self *nextRound) nextAlarm() (ret alarm.Event) {
 	const (
 		qNext = `
 		  SELECT Id, ADDTIME(CurrentRoundStart, MaxRoundDuration) AS Next, CURRENT_TIMESTAMP()
@@ -180,19 +180,18 @@ func (self *nextRound) run() {
 
 	self.updateLastCheck()
 	self.fullCheck()
-	at.Send <- self.nextRoundAlarm()
+	at.Send <- self.nextAlarm()
 
 	for {
 		select {
 		case evt, ok := <-at.Receive:
 			if !ok {
 				self.warn.Print("Alarm closed. Stopping.")
-				break;
+				break
 			}
 
-			log.Printf("DEBUG nextRound received %v.", evt)
 			self.updateLastCheck()
-			
+
 			var err error
 			makeFullCheck := self.step >= nextRoundFullCheckFreq || evt.Data == nil
 			if makeFullCheck {
@@ -211,7 +210,7 @@ func (self *nextRound) run() {
 				self.step = 0
 			}
 
-			at.Send <- self.nextRoundAlarm()
+			at.Send <- self.nextAlarm()
 		}
 	}
 }

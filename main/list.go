@@ -65,7 +65,7 @@ func ListHandler(ctx context.Context, response server.Response, request *server.
 
 	const query = `
 	   SELECT p.Id, p.Salt, p.Title, p.CurrentRound, p.MaxNbRounds,
-	          addtime(p.CurrentRoundStart, p.MaxRoundDuration) AS Deadline,
+	          ADDTIME(p.CurrentRoundStart, p.MaxRoundDuration) AS Deadline,
 	          CASE WHEN a.User IS NULL THEN 'Part'
 	               WHEN a.LastRound >= p.CurrentRound THEN 'Modi'
 	               ELSE 'Vote' END AS Action
