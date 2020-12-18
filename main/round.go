@@ -17,6 +17,9 @@
 package main
 
 import (
+	"time"
+
+	"github.com/JBoudou/Itero/alarm"
 	"github.com/JBoudou/Itero/db"
 	"github.com/JBoudou/Itero/events"
 )
@@ -29,6 +32,8 @@ type PollClosedEvent struct {
 	Poll uint32
 }
 
+// roundCheckAllPolls increments the round of any poll that need it, and closes any poll that must
+// be closed.
 func roundCheckAllPolls() error {
 	tx, err := db.DB.Begin()
 	if err != nil {
@@ -131,4 +136,20 @@ func roundCheckAllPolls() error {
 	}
 
 	return nil
+}
+
+func nextRoundAlarm(lastCheck time.Time) (evt alarm.Event, err error) {
+	const (
+		qNext = `
+		  SELECT Id, ADDTIME(CurrentRoundStart, MaxRoundDuration) AS Next FROM Polls
+		   WHERE Active AND Next >= ?
+		   ORDER BY Next ASC LIMIT 1`
+		qClose = `
+		  SELECT Id, Deadline FROM Polls
+		   WHERE Active AND Deadline > ?
+		   ORDER BY Deadline ASC LIMIT 1`
+// SELECT X.Id, X.Next, CURRENT_TIMESTAMP() FROM (SELECT Id, Active, CASE WHEN Deadline IS NULL OR Deadline > ADDTIME(CurrentRoundStart, MaxRoundDuration) THEN ADDTIME(CurrentRoundStart, MaxRoundDuration) ELSE Deadline END AS Next FROM Polls) AS X WHERE X.Active AND X.Next IS NOT NULL ORDER BY X.Next ASC LIMIT 1;
+	)
+
+	return
 }
