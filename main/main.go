@@ -26,6 +26,7 @@ import (
 func main() {
 	// Services
 	StartNextRound()
+	StartClosePoll()
 
 	// Handlers
 	server.HandleFunc("/a/login", LoginHandler)

@@ -161,6 +161,7 @@ func (self *nextRound) nextAlarm() (ret alarm.Event) {
 	row := db.DB.QueryRow(qNext, self.lastCheck)
 	switch err := row.Scan(&pollId, &ret.Time, &timestamp); {
 	case err == nil:
+		log.Printf("DEBUG nextRound lastCheck %v, raw next %v.", self.lastCheck, ret.Time)
 		self.adjust = (self.adjust + time.Since(timestamp)) / 2
 		ret.Time = ret.Time.Add(self.adjust)
 		ret.Data = pollId

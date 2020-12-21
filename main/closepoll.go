@@ -136,7 +136,7 @@ func (self *closePoll) updateLastCheck() {
 func (self *closePoll) nextAlarm() (ret alarm.Event) {
 	const (
 		qNext = `
-		  SELECT Id, Deadline FROM Polls
+		  SELECT Id, Deadline, CURRENT_TIMESTAMP() FROM Polls
 		   WHERE Active AND Deadline >= ?
 		   ORDER BY Deadline ASC LIMIT 1`
 	)
@@ -174,6 +174,7 @@ func (self *closePoll) run(evtChan <-chan events.Event) {
 				self.warn.Print("Alarm closed. Stopping.")
 				break
 			}
+			log.Printf("DEBUG closePoll received alarm %v.", evt)
 
 			self.updateLastCheck()
 
@@ -207,6 +208,9 @@ func (self *closePoll) run(evtChan <-chan events.Event) {
 				evtChan = nil
 				continue
 			}
+			log.Printf("DEBUG closePoll received event %v.", evt)
+
+			// TODO remove this useless check (should panic when the event has wrong type).
 			var nextEvt NextRoundEvent
 			if nextEvt, ok = evt.(NextRoundEvent); !ok {
 				self.warn.Printf("Unhandled event %v.", evt)
@@ -232,4 +236,16 @@ func (self *closePoll) run(evtChan <-chan events.Event) {
 			}
 		}
 	}
+}
+
+func StartClosePoll() {
+	ch := make(chan events.Event, 16)
+	events.AddReceiver(events.AsyncForwarder{
+		Filter: func(evt events.Event) bool {
+			_, ok := evt.(NextRoundEvent)
+			return ok
+		},
+		Chan: ch,
+	})
+	go newClosePoll().run(ch)
 }

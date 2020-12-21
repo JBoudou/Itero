@@ -88,3 +88,20 @@ func (self ReceiverFunc) Receive(evt Event) {
 
 func (self ReceiverFunc) Close() {
 }
+
+// AsyncForwarder is a simple Receiver that forward events through a channel.
+type AsyncForwarder struct {
+	// Filter returns true for events that must be forwarded through the channel.
+	Filter func(Event) bool
+	Chan chan<- Event
+}
+
+func (self AsyncForwarder) Receive(evt Event) {
+	if self.Filter(evt) {
+		self.Chan <- evt
+	}
+}
+
+func (self AsyncForwarder) Close() {
+	close(self.Chan)
+}
