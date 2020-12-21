@@ -30,28 +30,35 @@ type VoteEvent struct {
 	Poll uint32
 }
 
-type VoteQuery struct {
+type UninomialVoteQuery struct {
 	Blank       bool `json:",omitempty"`
 	Alternative uint8
 }
 
-func VoteHandler(ctx context.Context, response server.Response, request *server.Request) {
+func UninomialVoteHandler(ctx context.Context, response server.Response, request *server.Request) {
 	if err := request.CheckPOST(ctx); err != nil {
 		response.SendError(ctx, err)
 		return
 	}
 	pollInfo, err := checkPollAccess(ctx, request)
 	must(err)
+	if getBallotType(pollInfo) != BallotTypeUninomial {
+		err = server.NewHttpError(http.StatusBadRequest, "Wrong poll", "Poll is not uninomial")
+		response.SendError(ctx, err)
+		return
+	}
 
-	var voteQuery VoteQuery
+	var voteQuery UninomialVoteQuery
 	if err := request.UnmarshalJSONBody(&voteQuery); err != nil {
 		logger.Print(ctx, err)
-		err = server.NewHttpError(http.StatusBadRequest, "Wrong request", "Unable to read VoteQuery")
+		err = server.NewHttpError(http.StatusBadRequest, "Wrong request",
+			"Unable to read UninomialVoteQuery")
 		response.SendError(ctx, err)
 		return
 	}
 
 	const (
+		qDeleteBallot       = `DELETE FROM Ballots WHERE User = ? AND Poll = ? AND Round = ?`
 		qInsertBallot       = `INSERT INTO Ballots (User, Poll, Alternative, Round) VALUE (?, ?, ?, ?)`
 		qUpdateParticipants = `UPDATE Participants SET LastRound = ? WHERE User = ? AND Poll = ?`
 	)
@@ -65,6 +72,8 @@ func VoteHandler(ctx context.Context, response server.Response, request *server.
 		}
 	}()
 
+	_, err = tx.ExecContext(ctx, qDeleteBallot, request.User.Id, pollInfo.Id, pollInfo.CurrentRound)
+	must(err)
 	if !voteQuery.Blank {
 		_, err = tx.ExecContext(ctx, qInsertBallot, request.User.Id, pollInfo.Id, voteQuery.Alternative,
 			pollInfo.CurrentRound)

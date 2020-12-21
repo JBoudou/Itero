@@ -129,13 +129,29 @@ func checkPollAccess(ctx context.Context, request *server.Request) (poll PollInf
 
 const (
 	BallotTypeClosed    = iota
-	BallotTypeUninomial = iota
+	BallotTypeUninomial
 )
+
+func getBallotType(pollInfo PollInfo) uint8 {
+	// TODO really compute the value
+	if !pollInfo.Active {
+		return BallotTypeClosed
+	}
+	return BallotTypeUninomial
+}
 
 const (
 	InformationTypeNoneYet = iota
-	InformationTypeCounts  = iota
+	InformationTypeCounts
 )
+
+func getInformationType(pollInfo PollInfo) uint8 {
+	// TODO really compute the value
+	if pollInfo.CurrentRound == 0 {
+		return InformationTypeNoneYet
+	}
+	return InformationTypeCounts
+}
 
 type PollAnswer struct {
 	Title        string
@@ -151,17 +167,10 @@ func PollHandler(ctx context.Context, response server.Response, request *server.
 	pollInfo, err := checkPollAccess(ctx, request)
 	must(err)
 
-	// TODO really compute the values
 	answer := PollAnswer{
-		Ballot:       BallotTypeUninomial,
-		Information:  InformationTypeCounts,
+		Ballot:       getBallotType(pollInfo),
+		Information:  getInformationType(pollInfo),
 		CurrentRound: pollInfo.CurrentRound,
-	}
-	if !pollInfo.Active {
-		answer.Ballot = BallotTypeClosed
-	}
-	if pollInfo.CurrentRound == 0 {
-		answer.Information = InformationTypeNoneYet
 	}
 
 	// Additional informations for display

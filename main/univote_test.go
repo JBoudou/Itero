@@ -86,7 +86,9 @@ func TestVoteHandler(t *testing.T) {
 	forbiddenSegment.Id = env.CreatePoll("Forbidden", userId, db.PollPublicityInvited)
 	env.Must(t)
 
-	makeRequest := func(userId *uint32, pollSegment PollSegment, vote VoteQuery) (req srvt.Request) {
+	makeRequest := func(userId *uint32, pollSegment PollSegment,
+		vote UninomialVoteQuery) (req srvt.Request) {
+
 		req = makePollRequest(t, pollSegment, userId)
 		b, err := json.Marshal(vote)
 		mustt(t, err)
@@ -98,27 +100,27 @@ func TestVoteHandler(t *testing.T) {
 	tests := []srvt.Test{
 		{
 			Name:    "No user",
-			Request: makeRequest(nil, pollSegment, VoteQuery{}),
+			Request: makeRequest(nil, pollSegment, UninomialVoteQuery{}),
 			Checker: srvt.CheckStatus{http.StatusForbidden},
 		},
 		{
 			Name:    "Forbidden",
-			Request: makeRequest(&userId, forbiddenSegment, VoteQuery{}),
+			Request: makeRequest(&userId, forbiddenSegment, UninomialVoteQuery{}),
 			Checker: srvt.CheckStatus{http.StatusForbidden},
 		},
 		{
 			Name:    "First vote",
-			Request: makeRequest(&userId, pollSegment, VoteQuery{Alternative: 1}),
+			Request: makeRequest(&userId, pollSegment, UninomialVoteQuery{Alternative: 1}),
 			Checker: voteChecker{poll: pollSegment.Id, user: userId, round: 0, alternative: 1},
 		},
 		{
 			Name: "Change vote",
-			Request: makeRequest(&userId, pollSegment, VoteQuery{Alternative: 0}),
+			Request: makeRequest(&userId, pollSegment, UninomialVoteQuery{Alternative: 0}),
 			Checker: voteChecker{poll: pollSegment.Id, user: userId, round: 0, alternative: 0},
 		},
 		{
 			Name: "Change vote again",
-			Request: makeRequest(&userId, pollSegment, VoteQuery{Alternative: 1}),
+			Request: makeRequest(&userId, pollSegment, UninomialVoteQuery{Alternative: 1}),
 			Checker: voteChecker{poll: pollSegment.Id, user: userId, round: 0, alternative: 1},
 		},
 		{
@@ -127,20 +129,30 @@ func TestVoteHandler(t *testing.T) {
 				env.NextRound(pollSegment.Id)
 				env.Must(t)
 			},
-			Request: makeRequest(&userId, pollSegment, VoteQuery{Blank: true}),
+			Request: makeRequest(&userId, pollSegment, UninomialVoteQuery{Blank: true}),
 			Checker: voteChecker{poll: pollSegment.Id, user: userId, round: 1, blank: true},
 		},
 		{
 			Name: "Change to non-blank",
-			Request: makeRequest(&userId, pollSegment, VoteQuery{Alternative: 1}),
+			Request: makeRequest(&userId, pollSegment, UninomialVoteQuery{Alternative: 1}),
 			Checker: voteChecker{poll: pollSegment.Id, user: userId, round: 1, alternative: 1},
 		},
 		{
 			Name: "Change to blank",
-			Request: makeRequest(&userId, pollSegment, VoteQuery{Blank: true}),
+			Request: makeRequest(&userId, pollSegment, UninomialVoteQuery{Blank: true}),
 			Checker: voteChecker{poll: pollSegment.Id, user: userId, round: 1, blank: true},
+		},
+		{
+			Name: "Inactive",
+			Update: func(t *testing.T) {
+				const qInactivate = `UPDATE Polls SET Active = FALSE WHERE Id = ?`
+				_, err := db.DB.Exec(qInactivate, pollSegment.Id)
+				mustt(t, err)
+			},
+			Request: makeRequest(&userId, pollSegment, UninomialVoteQuery{}),
+			Checker: srvt.CheckStatus{http.StatusBadRequest},
 		},
 	}
 
-	srvt.RunFunc(t, tests, VoteHandler)
+	srvt.RunFunc(t, tests, UninomialVoteHandler)
 }

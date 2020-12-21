@@ -34,6 +34,7 @@ func main() {
 	server.HandleFunc("/a/list", ListHandler, server.Compress)
 	server.HandleFunc("/a/poll/", PollHandler)
 	server.HandleFunc("/a/ballot/uninominal/", UninomialBallotHandler, server.Compress)
+	server.HandleFunc("/a/vote/uninominal/", UninomialVoteHandler)
 	server.HandleFunc("/a/info/count/", CountInfoHandler, server.Compress)
 
 	log.Println("Server starting")
