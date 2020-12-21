@@ -17,55 +17,31 @@
 package main
 
 import (
-	"database/sql"
-	"errors"
-	"fmt"
 	"log"
-	"os"
-	"time"
 
 	"github.com/JBoudou/Itero/alarm"
-	"github.com/JBoudou/Itero/db"
 	"github.com/JBoudou/Itero/events"
 )
 
+// ClosePollEvent is type of events send when a poll is closed.
 type ClosePollEvent struct {
 	Poll uint32
 }
 
-const (
-	// The time to wait when there seems to be no forthcoming deadline.
-	closePollDefaultWaitDuration = time.Hour
-	// Run fullCheck instead of checkOne once every closePollFullCheckFreq steps.
-	closePollFullCheckFreq = 5
-)
-
+// closePoll represents a running closePoll service.
 type closePoll struct {
-	lastCheck time.Time
-	adjust    time.Duration
-	step      uint8
-	warn      *log.Logger
+	pollService
 }
 
 func newClosePoll() *closePoll {
 	return &closePoll{
-		adjust: 10 * time.Minute,
-		warn:   log.New(os.Stderr, "closePoll", log.LstdFlags|log.Lshortfile|log.Lmsgprefix),
+		pollService: newPollService("closePoll", func(pollId uint32) events.Event {
+			return ClosePollEvent{pollId};
+		}),
 	}
 }
 
 func (self *closePoll) fullCheck() error {
-	tx, err := db.DB.Begin()
-	if err != nil {
-		return err
-	}
-	commited := false
-	defer func() {
-		if !commited {
-			tx.Rollback()
-		}
-	}()
-
 	const (
 		qSelectClose = `
 		  SELECT Id
@@ -76,27 +52,7 @@ func (self *closePoll) fullCheck() error {
 		    FOR UPDATE`
 		qClosePoll = `UPDATE Polls SET Active = false WHERE Id = ?`
 	)
-	closeSet := make(map[uint32]bool)
-	if err := collectUI32Id(closeSet, tx, qSelectClose); err != nil {
-		return err
-	}
-	if err := execOnUI32Id(closeSet, tx, qClosePoll); err != nil {
-		return err
-	}
-
-	// Commit
-	if err := tx.Commit(); err != nil {
-		return err
-	}
-	commited = true
-
-	// Send events
-	for id := range closeSet {
-		events.Send(ClosePollEvent{id})
-	}
-
-	log.Print("closeSet fullCkeck terminated.")
-	return nil
+	return self.fullCheck_helper(qSelectClose, qClosePoll)
 }
 
 func (self *closePoll) checkOne(pollId uint32) error {
@@ -105,59 +61,17 @@ func (self *closePoll) checkOne(pollId uint32) error {
 	   WHERE Id = ? AND Active
 	     AND ( CurrentRound >= MaxNbRounds
 	           OR (CurrentRound >= MinNbRounds AND Deadline <= CURRENT_TIMESTAMP) )`
-
-	result, err := db.DB.Exec(qUpdate, pollId)
-	if err != nil {
-		return err
-	}
-	affected, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if affected > 1 {
-		return errors.New(fmt.Sprintf("More than one poll with Id %d. No event send.", pollId))
-	}
-	if affected == 1 {
-		events.Send(ClosePollEvent{pollId})
-	}
-
-	log.Printf("closePoll check for poll %d terminated.", pollId)
-	return nil
+	return self.checkOne_helper(qUpdate, pollId)
 }
 
-func (self *closePoll) updateLastCheck() {
-	row := db.DB.QueryRow(`SELECT CURRENT_TIMESTAMP()`)
-	if err := row.Scan(&self.lastCheck); err != nil {
-		self.warn.Print(err)
-	}
-	self.adjust = (self.adjust + time.Since(self.lastCheck)) / 2
-}
-
-func (self *closePoll) nextAlarm() (ret alarm.Event) {
+func (self *closePoll) nextAlarm() alarm.Event {
 	const (
 		qNext = `
 		  SELECT Id, Deadline, CURRENT_TIMESTAMP() FROM Polls
 		   WHERE Active AND Deadline >= ?
 		   ORDER BY Deadline ASC LIMIT 1`
 	)
-
-	var pollId uint32
-	var timestamp time.Time
-	row := db.DB.QueryRow(qNext, self.lastCheck)
-	switch err := row.Scan(&pollId, &ret.Time, &timestamp); {
-	case err == nil:
-		self.adjust = (self.adjust + time.Since(timestamp)) / 2
-		ret.Time = ret.Time.Add(self.adjust)
-		ret.Data = pollId
-	default:
-		if !errors.Is(err, sql.ErrNoRows) {
-			self.warn.Print(err)
-		}
-		ret.Time = time.Now().Add(closePollDefaultWaitDuration)
-	}
-
-	log.Printf("Next closePoll alarm at %v.", ret.Time)
-	return
+	return self.nextAlarm_helper(qNext)
 }
 
 func (self *closePoll) run(evtChan <-chan events.Event) {
@@ -174,12 +88,11 @@ func (self *closePoll) run(evtChan <-chan events.Event) {
 				self.warn.Print("Alarm closed. Stopping.")
 				break
 			}
-			log.Printf("DEBUG closePoll received alarm %v.", evt)
 
 			self.updateLastCheck()
 
 			var err error
-			makeFullCheck := self.step >= closePollFullCheckFreq || evt.Data == nil
+			makeFullCheck := self.step >= pollServiceFullCheckFreq || evt.Data == nil
 			if makeFullCheck {
 				err = self.fullCheck()
 			} else {
@@ -188,12 +101,6 @@ func (self *closePoll) run(evtChan <-chan events.Event) {
 			if err != nil {
 				self.warn.Print(err)
 				continue
-			}
-
-			if makeFullCheck {
-				self.step++
-			} else {
-				self.step = 0
 			}
 
 			// Do not send if the channel has been closed.
@@ -208,17 +115,10 @@ func (self *closePoll) run(evtChan <-chan events.Event) {
 				evtChan = nil
 				continue
 			}
-			log.Printf("DEBUG closePoll received event %v.", evt)
-
-			// TODO remove this useless check (should panic when the event has wrong type).
-			var nextEvt NextRoundEvent
-			if nextEvt, ok = evt.(NextRoundEvent); !ok {
-				self.warn.Printf("Unhandled event %v.", evt)
-				continue
-			}
+			nextEvt := evt.(NextRoundEvent)
 
 			var err error
-			makeFullCheck := self.step >= closePollFullCheckFreq
+			makeFullCheck := self.step >= pollServiceFullCheckFreq
 			if makeFullCheck {
 				err = self.fullCheck()
 			} else {
@@ -228,16 +128,14 @@ func (self *closePoll) run(evtChan <-chan events.Event) {
 				self.warn.Print(err)
 				continue
 			}
-
-			if makeFullCheck {
-				self.step++
-			} else {
-				self.step = 0
-			}
 		}
 	}
 }
 
+// StartClosePoll starts the closePoll service.
+//
+// The closePoll service receives NextRoundEvents, closes polls when they need to be, and send
+// ClosePollEvents.
 func StartClosePoll() {
 	ch := make(chan events.Event, 16)
 	events.AddReceiver(events.AsyncForwarder{

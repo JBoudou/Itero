@@ -20,7 +20,6 @@ import (
 	"database/sql"
 	"strconv"
 	"testing"
-	"time"
 
 	"github.com/JBoudou/Itero/db"
 	dbt "github.com/JBoudou/Itero/db/dbtest"
@@ -291,22 +290,6 @@ func TestNextRound_checkOne(t *testing.T) {
 				t.Errorf("Wrong round. Got %d. Expect %d.", gotRound, expectRound)
 			}
 		})
-	}
-}
-
-func TestNextRound_updateLastCheck(t *testing.T) {
-	nextRound := newNextRound()
-	nextRound.adjust = 0
-	nextRound.updateLastCheck()
-	now := time.Now()
-	if nextRound.adjust < 0 {
-		nextRound.adjust = -nextRound.adjust
-	}
-	if nextRound.lastCheck.Before(now.Add(-2*(nextRound.adjust+time.Millisecond))) {
-		t.Errorf("lastCheck too early")
-	}
-	if nextRound.lastCheck.After(now.Add(2*(nextRound.adjust+time.Millisecond))) {
-		t.Errorf("lastCheck too late")
 	}
 }
 
