@@ -82,3 +82,8 @@ export class CountInfoEntry {
 export class CountInfoAnswer {
   Result: Array<CountInfoEntry>;
 }
+
+export class UninomialVoteQuery {
+  Blank?: boolean;
+  Alternative?: number;
+}

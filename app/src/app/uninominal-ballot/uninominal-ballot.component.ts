@@ -16,10 +16,10 @@
 
 import { HttpClient } from '@angular/common/http';
 import { Component, Input, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup } from '@angular/forms';
+import { FormBuilder, Validators } from '@angular/forms';
 
 import { PollSubComponent } from '../poll/common';
-import { PollAlternative, UninomialBallotAnswer } from '../api';
+import { PollAlternative, UninomialBallotAnswer, UninomialVoteQuery } from '../api';
 
 @Component({
   selector: 'app-uninominal-ballot',
@@ -33,8 +33,10 @@ export class UninominalBallotComponent implements OnInit, PollSubComponent {
   answer: UninomialBallotAnswer;
 
   form = this.formBuilder.group({
-    Choice: [''],
+    Choice: ['', [Validators.required]],
   });
+
+  lastVote: UninomialVoteQuery;
 
   constructor(
     private http: HttpClient,
@@ -49,6 +51,21 @@ export class UninominalBallotComponent implements OnInit, PollSubComponent {
     });
   }
 
+  onVote(): void {
+    this.vote({Alternative: this.form.value.Choice})
+  }
+
+  onAbstain(): void {
+    this.vote({Blank: true})
+  }
+
+  private vote(vote: UninomialVoteQuery): void {
+    this.http.post('/a/vote/uninominal/' + this.pollSegment, vote)
+      .subscribe({
+        next: _ => this.lastVote = vote,
+      });
+  }
+
   hasPrevious(): boolean {
     return this.answer !== undefined && this.answer.Previous !== undefined;
   }
@@ -58,11 +75,19 @@ export class UninominalBallotComponent implements OnInit, PollSubComponent {
   }
 
   hasCurrent(): boolean {
-    return this.answer != undefined && this.answer.Current !== undefined;
+    return !this.hasJust() && this.answer != undefined && this.answer.Current !== undefined;
   }
 
   current(): string|null {
     return this.nameOf(this.answer.Current);
+  }
+
+  hasJust(): boolean {
+    return !!this.lastVote;
+  }
+
+  just(): string|null {
+    return this.nameOf(this.lastVote.Alternative);
   }
 
   private nameOf(id: number|undefined): string|null {
