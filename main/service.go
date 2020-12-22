@@ -29,13 +29,6 @@ import (
 	"github.com/JBoudou/Itero/events"
 )
 
-const (
-	// The time to wait when there seems to be no forthcoming deadline.
-	pollServiceDefaultWaitDuration = time.Hour
-	// Run fullCheck instead of checkOne once every pollServiceFullCheckFreq steps.
-	pollServiceFullCheckFreq = 5
-)
-
 // pollService is the base classes of some services like nextRound and closePoll.
 type pollService struct {
 	lastCheck time.Time
@@ -172,8 +165,8 @@ func (self *pollService) updateLastCheck() {
 // The query must take one parameter, which is set to lastCheck, and must return 3 values: the id
 // (uint32) to inspect when the alarm will fire, the time the alarm must fire, and the current time
 // for the database. This query must return zero or one row. If it returns zero row, the returned
-// event has Time computed using pollServiceDefaultWaitDuration and Data nil.
-func (self *pollService) nextAlarm_helper(qNext string) (ret alarm.Event) {
+// event has Time computed using defaultWait and Data nil.
+func (self *pollService) nextAlarm_helper(qNext string, defaultWait time.Duration) (ret alarm.Event) {
 	var pollId uint32
 	var timestamp time.Time
 	row := db.DB.QueryRow(qNext, self.lastCheck)
@@ -186,7 +179,7 @@ func (self *pollService) nextAlarm_helper(qNext string) (ret alarm.Event) {
 		if !errors.Is(err, sql.ErrNoRows) {
 			self.warn.Print(err)
 		}
-		ret.Time = time.Now().Add(pollServiceDefaultWaitDuration)
+		ret.Time = time.Now().Add(defaultWait)
 	}
 
 	log.Printf("%s Next alarm at %v.", self.serviceName, ret.Time)

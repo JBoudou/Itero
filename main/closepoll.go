@@ -18,6 +18,7 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"github.com/JBoudou/Itero/alarm"
 	"github.com/JBoudou/Itero/events"
@@ -27,6 +28,13 @@ import (
 type ClosePollEvent struct {
 	Poll uint32
 }
+
+const (
+	// The time to wait when there seems to be no forthcoming deadline.
+	closePollDefaultWaitDuration = 12 * time.Hour
+	// Run fullCheck instead of checkOne once every closePollFullCheckFreq steps.
+	closePollFullCheckFreq = 7
+)
 
 // closePoll represents a running closePoll service.
 type closePoll struct {
@@ -71,7 +79,7 @@ func (self *closePoll) nextAlarm() alarm.Event {
 		   WHERE Active AND Deadline >= ?
 		   ORDER BY Deadline ASC LIMIT 1`
 	)
-	return self.nextAlarm_helper(qNext)
+	return self.nextAlarm_helper(qNext, closePollDefaultWaitDuration)
 }
 
 func (self *closePoll) run(evtChan <-chan events.Event) {
@@ -92,7 +100,7 @@ func (self *closePoll) run(evtChan <-chan events.Event) {
 			self.updateLastCheck()
 
 			var err error
-			makeFullCheck := self.step >= pollServiceFullCheckFreq || evt.Data == nil
+			makeFullCheck := self.step >= closePollFullCheckFreq || evt.Data == nil
 			if makeFullCheck {
 				err = self.fullCheck()
 			} else {
@@ -118,7 +126,7 @@ func (self *closePoll) run(evtChan <-chan events.Event) {
 			nextEvt := evt.(NextRoundEvent)
 
 			var err error
-			makeFullCheck := self.step >= pollServiceFullCheckFreq
+			makeFullCheck := self.step >= closePollFullCheckFreq
 			if makeFullCheck {
 				err = self.fullCheck()
 			} else {

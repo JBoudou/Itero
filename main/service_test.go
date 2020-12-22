@@ -42,6 +42,7 @@ func TestPollService_updateLastCheck(t *testing.T) {
 
 func TestPollService_nextAlarm_helper(t *testing.T) {
 	lastCheck := time.Now()
+	const defaultWait = time.Hour
 
 	tests := []struct {
 		name   string
@@ -56,7 +57,7 @@ func TestPollService_nextAlarm_helper(t *testing.T) {
 		{
 			name:   "Default",
 			query:  `SELECT Id, ?, CURRENT_TIMESTAMP() FROM Polls WHERE Id = 0 AND Id != 0`,
-			expect: alarm.Event{Time: time.Now().Add(pollServiceDefaultWaitDuration)},
+			expect: alarm.Event{Time: time.Now().Add(defaultWait)},
 		},
 	}
 	for _, tt := range tests {
@@ -65,7 +66,7 @@ func TestPollService_nextAlarm_helper(t *testing.T) {
 			service.lastCheck = lastCheck
 			service.adjust = 0
 
-			got := service.nextAlarm_helper(tt.query)
+			got := service.nextAlarm_helper(tt.query, defaultWait)
 
 			diff := tt.expect.Time.Sub(got.Time)
 			if diff < 0 {

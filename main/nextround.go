@@ -18,6 +18,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/JBoudou/Itero/alarm"
 	"github.com/JBoudou/Itero/db"
@@ -28,6 +29,13 @@ import (
 type NextRoundEvent struct {
 	Poll uint32
 }
+
+const (
+	// The time to wait when there seems to be no forthcoming deadline.
+	nextRoundDefaultWaitDuration = time.Hour
+	// Run fullCheck instead of checkOne once every nextRoundFullCheckFreq steps.
+	nextRoundFullCheckFreq = 5
+)
 
 type nextRound struct {
 	pollService
@@ -86,7 +94,7 @@ func (self *nextRound) nextAlarm() alarm.Event {
 		   WHERE Active HAVING Next >= ?
 		   ORDER BY Next ASC LIMIT 1`
 	)
-	return self.nextAlarm_helper(qNext)
+	return self.nextAlarm_helper(qNext, nextRoundDefaultWaitDuration)
 }
 
 func (self *nextRound) run() {
@@ -107,7 +115,7 @@ func (self *nextRound) run() {
 			self.updateLastCheck()
 
 			var err error
-			makeFullCheck := self.step >= pollServiceFullCheckFreq || evt.Data == nil
+			makeFullCheck := self.step >= nextRoundFullCheckFreq || evt.Data == nil
 			if makeFullCheck {
 				err = self.fullCheck()
 			} else {
