@@ -196,7 +196,7 @@ func TestSignupHandler_Success(t *testing.T) {
 	}
 	sRequest := server.NewRequest("/a/test", hRequest)
 
-	SignupHandler(hRequest.Context(), response, &sRequest)
+	SignupHandler(hRequest.Context(), response, sRequest)
 
 	if !called {
 		t.Fatal("SendLoginAccepted not called")

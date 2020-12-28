@@ -57,7 +57,7 @@ func TestNewRequest(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := NewRequest(tt.args.basePattern, tt.args.original)
 			tt.expect.original = tt.args.original
-			if !reflect.DeepEqual(got, tt.expect) {
+			if !reflect.DeepEqual(*got, tt.expect) {
 				t.Errorf("Got %v. Expect %v", got, tt.expect)
 			}
 		})
@@ -150,7 +150,7 @@ func TestLoginThenNewRequest(t *testing.T) {
 			tt.addSession(t, result, originalRequest)
 
 			got := NewRequest(fullPath, originalRequest)
-			tt.checker(t, &got, originalRequest)
+			tt.checker(t, got, originalRequest)
 		})
 	}
 }

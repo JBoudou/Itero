@@ -54,8 +54,8 @@ type Request struct {
 
 // NewRequest is the only constructor for Request.
 // It is a low-level function that should not be used outside the package and tests.
-func NewRequest(basePattern string, original *http.Request) (req Request) {
-	req.original = original
+func NewRequest(basePattern string, original *http.Request) (req *Request) {
+	req = &Request{ original: original }
 
 	var session *gs.Session
 	session, req.SessionError = sessionStore.Get(original, sessionName)

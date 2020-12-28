@@ -58,12 +58,20 @@ func NewHandlerWrapper(pattern string, handler Handler) HandlerWrapper {
 	return HandlerWrapper{pattern: pattern, handler: handler}
 }
 
-// ServeHTTP implements http.Handler.
-func (self HandlerWrapper) ServeHTTP(wr http.ResponseWriter, original *http.Request) {
-	ctx := original.Context()
-	response := response{wr}
-	request := NewRequest(self.pattern, original)
+// MakeParams converts http.Handler parameters into Handler parameters.
+// This is a low-level method, to be used with caution, mainly in tests.
+func (self HandlerWrapper) MakeParams(wr http.ResponseWriter,
+	original *http.Request) (ctx context.Context, resp Response, request *Request) {
+	ctx = original.Context()
+	resp = response{wr}
+	request = NewRequest(self.pattern, original)
+	return
+}
 
+// Exec executes the underlying Handler.
+// This method handles HttpError panics and turn them into call to response.SendError.
+// This is a low-level method, to be used with caution, mainly in tests.
+func (self HandlerWrapper) Exec(ctx context.Context, response Response, request *Request) {
 	defer func() {
 		if thrown := recover(); thrown != nil {
 			err := thrown.(error)
@@ -76,12 +84,17 @@ func (self HandlerWrapper) ServeHTTP(wr http.ResponseWriter, original *http.Requ
 		}
 	}()
 
-	self.handler.Handle(ctx, response, &request)
+	self.handler.Handle(ctx, response, request)
+}
+
+// ServeHTTP implements http.Handler.
+func (self HandlerWrapper) ServeHTTP(wr http.ResponseWriter, original *http.Request) {
+	self.Exec(self.MakeParams(wr, original))
 }
 
 // Handle registers the handler for the given pattern.
 // See http.ServeMux for a description of the pattern format.
-func Handle(pattern string, handler Handler, interceptors... Interceptor) {
+func Handle(pattern string, handler Handler, interceptors ...Interceptor) {
 	packed := interceptorChain.Append(interceptors...).
 		Then(HandlerWrapper{pattern: pattern, handler: handler})
 	http.Handle(pattern, packed)
@@ -89,7 +102,7 @@ func Handle(pattern string, handler Handler, interceptors... Interceptor) {
 
 // Handle registers the handler function for the given pattern.
 // See http.ServeMux for a description of the pattern format.
-func HandleFunc(pattern string, fct HandleFunction, interceptors... Interceptor) {
+func HandleFunc(pattern string, fct HandleFunction, interceptors ...Interceptor) {
 	packed := interceptorChain.Append(interceptors...).
 		Then(HandlerWrapper{pattern: pattern, handler: HandlerFunc(fct)})
 	http.Handle(pattern, packed)
