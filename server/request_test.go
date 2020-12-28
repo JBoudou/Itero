@@ -55,7 +55,7 @@ func TestNewRequest(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := NewRequest(tt.args.basePattern, tt.args.original)
+			got := newRequest(tt.args.basePattern, tt.args.original)
 			tt.expect.original = tt.args.original
 			if !reflect.DeepEqual(*got, tt.expect) {
 				t.Errorf("Got %v. Expect %v", got, tt.expect)
@@ -149,7 +149,7 @@ func TestLoginThenNewRequest(t *testing.T) {
 			}
 			tt.addSession(t, result, originalRequest)
 
-			got := NewRequest(fullPath, originalRequest)
+			got := newRequest(fullPath, originalRequest)
 			tt.checker(t, got, originalRequest)
 		})
 	}
@@ -270,7 +270,7 @@ func TestRequest_CheckPOST(t *testing.T) {
 			for name, value := range tt.headers {
 				request.Header.Add(name, value)
 			}
-			self := NewRequest(target, request)
+			self := newRequest(target, request)
 
 			if tt.address != "" {
 				cfg.Address = tt.address

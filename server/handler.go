@@ -64,7 +64,7 @@ func (self HandlerWrapper) MakeParams(wr http.ResponseWriter,
 	original *http.Request) (ctx context.Context, resp Response, request *Request) {
 	ctx = original.Context()
 	resp = response{wr}
-	request = NewRequest(self.pattern, original)
+	request = newRequest(self.pattern, original)
 	return
 }
 

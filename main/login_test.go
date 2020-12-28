@@ -19,6 +19,7 @@ package main
 import (
 	"context"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/JBoudou/Itero/db"
@@ -135,51 +136,15 @@ func TestSignupHandler_Error(t *testing.T) {
 	srvt.Run(t, tests, server.HandlerFunc(SignupHandler))
 }
 
-type mockResponse struct {
-	t        *testing.T
-	jsonFct  func(*testing.T, context.Context, interface{})
-	errorFct func(*testing.T, context.Context, error)
-	loginFct func(*testing.T, context.Context, server.User, *server.Request)
-}
-
-func (self mockResponse) SendJSON(ctx context.Context, data interface{}) {
-	self.t.Helper()
-	if self.jsonFct == nil {
-		self.t.Errorf("SendJSON called with data %v", data)
-		return
-	}
-	self.jsonFct(self.t, ctx, data)
-}
-
-func (self mockResponse) SendError(ctx context.Context, err error) {
-	self.t.Helper()
-	if self.errorFct == nil {
-		self.t.Errorf("SendError called with error %s", err)
-		return
-	}
-	self.errorFct(self.t, ctx, err)
-}
-
-func (self mockResponse) SendLoginAccepted(ctx context.Context, user server.User,
-	request *server.Request) {
-
-	self.t.Helper()
-	if self.loginFct == nil {
-		self.t.Errorf("SendLoginAccepted called with user %v", user)
-		return
-	}
-	self.loginFct(self.t, ctx, user, request)
-}
-
 func TestSignupHandler_Success(t *testing.T) {
 	precheck(t)
 
 	const name = "toto_my_test_user_with_a_long_name"
 	var called bool
 	var userId uint32
-	response := mockResponse{
-		t: t,
-		loginFct: func(t *testing.T, ctx context.Context, user server.User, request *server.Request) {
+	response := srvt.MockResponse{
+		T: t,
+		LoginFct: func(t *testing.T, ctx context.Context, user server.User, request *server.Request) {
 			if user.Name != name {
 				t.Errorf("Wrong name. Got %s. Expect %s.", user.Name, name)
 			}
@@ -194,9 +159,9 @@ func TestSignupHandler_Success(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sRequest := server.NewRequest("/a/test", hRequest)
-
-	SignupHandler(hRequest.Context(), response, sRequest)
+	wrapper := server.NewHandlerWrapper("/a/test", server.HandlerFunc(SignupHandler))
+	ctx, _, sRequest := wrapper.MakeParams(httptest.NewRecorder(), hRequest)
+	wrapper.Exec(ctx, response, sRequest)
 
 	if !called {
 		t.Fatal("SendLoginAccepted not called")
