@@ -114,8 +114,10 @@ func Run(t *testing.T, tests []Test, handler server.Handler) {
 				t.Fatalf("Error creating request: %s", err)
 			}
 			mock := httptest.NewRecorder()
-			server.NewHandlerWrapper("/a/test", handler).ServeHTTP(mock, req)
-			tt.Checker.Check(t, mock.Result(), req)
+			wrapper := server.NewHandlerWrapper("/a/test", handler)
+			ctx, sResp, sReq := wrapper.MakeParams(mock, req)
+			wrapper.Exec(ctx, sResp, sReq)
+			tt.Checker.Check(t, mock.Result(), sReq)
 		})
 	}
 }

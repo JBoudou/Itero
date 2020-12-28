@@ -41,7 +41,7 @@ func precheck(t *testing.T) {
 //
 // The returned function checks that the statuc code and the encoded string are as expected.
 func checkerJSONString(expectCode int, expectBody string) srvt.Checker {
-	return srvt.CheckerFun(func(t *testing.T, response *http.Response, req *http.Request) {
+	return srvt.CheckerFun(func(t *testing.T, response *http.Response, req *Request) {
 		if response.StatusCode != expectCode {
 			t.Errorf("Wrong status code. Got %d. Expect %d", response.StatusCode, expectCode)
 		}
@@ -179,7 +179,8 @@ func TestHandleFunc(t *testing.T) {
 			}
 			http.DefaultServeMux.ServeHTTP(wr, req)
 
-			tt.checker.Check(t, wr.Result(), req)
+			// TODO: replace the dummy request with a better one.
+			tt.checker.Check(t, wr.Result(), &Request{})
 		})
 	}
 }

@@ -26,6 +26,7 @@ import (
 
 	"github.com/JBoudou/Itero/db"
 	dbt "github.com/JBoudou/Itero/db/dbtest"
+	"github.com/JBoudou/Itero/server"
 	srvt "github.com/JBoudou/Itero/server/servertest"
 )
 
@@ -66,7 +67,7 @@ func TestListHandler(t *testing.T) {
 	}
 
 	checker := func(include []maker, exclude []maker) srvt.Checker {
-		return srvt.CheckerFun(func(t *testing.T, response *http.Response, req *http.Request) {
+		return srvt.CheckerFun(func(t *testing.T, response *http.Response, req *server.Request) {
 			if response.StatusCode != http.StatusOK {
 				t.Errorf("Wrong status code. Got %d. Expect %d", response.StatusCode, http.StatusOK)
 			}

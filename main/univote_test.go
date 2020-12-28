@@ -25,6 +25,7 @@ import (
 
 	"github.com/JBoudou/Itero/db"
 	dbt "github.com/JBoudou/Itero/db/dbtest"
+	"github.com/JBoudou/Itero/server"
 	srvt "github.com/JBoudou/Itero/server/servertest"
 )
 
@@ -36,7 +37,7 @@ type voteChecker struct {
 	alternative uint8
 }
 
-func (self voteChecker) Check(t *testing.T, response *http.Response, request *http.Request) {
+func (self voteChecker) Check(t *testing.T, response *http.Response, request *server.Request) {
 	srvt.CheckStatus{http.StatusOK}.Check(t, response, request)
 
 	const qCheck = `
@@ -44,7 +45,6 @@ func (self voteChecker) Check(t *testing.T, response *http.Response, request *ht
 		  FROM Participants AS p LEFT OUTER JOIN Ballots AS b
 			  ON (p.Poll, p.User, p.LastRound) = (b.Poll, b.User, b.Round)
 		 WHERE p.Poll = ? AND p.User = ?`
-
 
 	row := db.DB.QueryRow(qCheck, self.poll, self.user)
 	var gotRound, gotAlternative sql.NullInt32
@@ -114,12 +114,12 @@ func TestVoteHandler(t *testing.T) {
 			Checker: voteChecker{poll: pollSegment.Id, user: userId, round: 0, alternative: 1},
 		},
 		{
-			Name: "Change vote",
+			Name:    "Change vote",
 			Request: makeRequest(&userId, pollSegment, UninomialVoteQuery{Alternative: 0}),
 			Checker: voteChecker{poll: pollSegment.Id, user: userId, round: 0, alternative: 0},
 		},
 		{
-			Name: "Change vote again",
+			Name:    "Change vote again",
 			Request: makeRequest(&userId, pollSegment, UninomialVoteQuery{Alternative: 1}),
 			Checker: voteChecker{poll: pollSegment.Id, user: userId, round: 0, alternative: 1},
 		},
@@ -133,12 +133,12 @@ func TestVoteHandler(t *testing.T) {
 			Checker: voteChecker{poll: pollSegment.Id, user: userId, round: 1, blank: true},
 		},
 		{
-			Name: "Change to non-blank",
+			Name:    "Change to non-blank",
 			Request: makeRequest(&userId, pollSegment, UninomialVoteQuery{Alternative: 1}),
 			Checker: voteChecker{poll: pollSegment.Id, user: userId, round: 1, alternative: 1},
 		},
 		{
-			Name: "Change to blank",
+			Name:    "Change to blank",
 			Request: makeRequest(&userId, pollSegment, UninomialVoteQuery{Blank: true}),
 			Checker: voteChecker{poll: pollSegment.Id, user: userId, round: 1, blank: true},
 		},

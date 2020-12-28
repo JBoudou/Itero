@@ -22,18 +22,20 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/JBoudou/Itero/server"
 )
 
 // Checker checks that a given response is as expected.
 type Checker interface {
-	Check(t *testing.T, response *http.Response, request *http.Request)
+	Check(t *testing.T, response *http.Response, request *server.Request)
 }
 
 /* ChecherFun */
 
-type CheckerFun func(t *testing.T, response *http.Response, request *http.Request)
+type CheckerFun func(t *testing.T, response *http.Response, request *server.Request)
 
-func (self CheckerFun) Check(t *testing.T, response *http.Response, request *http.Request) {
+func (self CheckerFun) Check(t *testing.T, response *http.Response, request *server.Request) {
 	self(t, response, request)
 }
 
@@ -47,7 +49,7 @@ type CheckJSON struct {
 }
 
 // Check implements Checker.
-func (self CheckJSON) Check(t *testing.T, response *http.Response, request *http.Request) {
+func (self CheckJSON) Check(t *testing.T, response *http.Response, request *server.Request) {
 	t.Helper()
 
 	// Code
@@ -128,7 +130,7 @@ type CheckError struct {
 }
 
 // Check implements Checker.
-func (self CheckError) Check(t *testing.T, response *http.Response, request *http.Request) {
+func (self CheckError) Check(t *testing.T, response *http.Response, request *server.Request) {
 	t.Helper()
 	if response.StatusCode != self.Code {
 		t.Errorf("Wrong status code. Got %d. Expect %d", response.StatusCode, self.Code)
@@ -153,7 +155,7 @@ type CheckStatus struct {
 }
 
 // Check implements Checker.
-func (self CheckStatus) Check(t *testing.T, response *http.Response, request *http.Request) {
+func (self CheckStatus) Check(t *testing.T, response *http.Response, request *server.Request) {
 	t.Helper()
 	if response.StatusCode != self.Code {
 		t.Errorf("Wrong status code. Got %d. Expect %d", response.StatusCode, self.Code)
