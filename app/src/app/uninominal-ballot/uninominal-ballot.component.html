@@ -10,7 +10,7 @@
     Your vote for <span class="vote">{{just()}}</span> has been taken into account.
   </p>
 </div>
-<form *ngIf="!!answer" class="basicform" [formGroup]="form">
+<form *ngIf="!!answer && !hasJust()" class="basicform" [formGroup]="form">
   <label i18n>Your choice:</label>
   <mat-form-field appearance="outline">
     <mat-select formControlName="Choice">

@@ -123,16 +123,9 @@ func (self *closePoll) run(evtChan <-chan events.Event) {
 				evtChan = nil
 				continue
 			}
-			nextEvt := evt.(NextRoundEvent)
 
-			var err error
-			makeFullCheck := self.step >= closePollFullCheckFreq
-			if makeFullCheck {
-				err = self.fullCheck()
-			} else {
-				err = self.checkOne(nextEvt.Poll)
-			}
-			if err != nil {
+			nextEvt := evt.(NextRoundEvent)
+			if err := self.checkOne(nextEvt.Poll); err != nil {
 				self.warn.Print(err)
 				continue
 			}

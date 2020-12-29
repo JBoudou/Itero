@@ -19,6 +19,7 @@ package main
 import (
 	"fmt"
 	"time"
+	"log"
 
 	"github.com/JBoudou/Itero/alarm"
 	"github.com/JBoudou/Itero/db"
@@ -97,7 +98,7 @@ func (self *nextRound) nextAlarm() alarm.Event {
 	return self.nextAlarm_helper(qNext, nextRoundDefaultWaitDuration)
 }
 
-func (self *nextRound) run() {
+func (self *nextRound) run(evtChan <-chan events.Event) {
 	at := alarm.New(1)
 
 	self.updateLastCheck()
@@ -127,11 +128,33 @@ func (self *nextRound) run() {
 			}
 
 			at.Send <- self.nextAlarm()
+
+		case evt, ok := <-evtChan:
+			if !ok {
+				log.Print("Event manager closing makes nextRound to close too.")
+				close(at.Send)
+				evtChan = nil
+				continue
+			}
+
+			voteEvt := evt.(VoteEvent)
+			if err := self.checkOne(voteEvt.Poll); err != nil {
+				self.warn.Print(err)
+				continue
+			}
 		}
 	}
 }
 
 // StartNextRound starts the nextRound service.
 func StartNextRound() {
-	go newNextRound().run()
+	ch := make(chan events.Event, 64)
+	events.AddReceiver(events.AsyncForwarder{
+		Filter: func(evt events.Event) bool {
+			_, ok := evt.(VoteEvent)
+			return ok
+		},
+		Chan: ch,
+	})
+	go newNextRound().run(ch)
 }
