@@ -7,7 +7,7 @@
     <th i18n>Action</th>
   </tr>
   <tbody>
-  <tr *ngFor="let poll of polls" class="poll" (click)="go(poll.s)">
+  <tr *ngFor="let poll of polls" class="poll">
     <td class="title">{{poll.t}}</td>
     <td class="round">{{poll.c}}/{{poll.m}}</td>
     <td class="deadline" i18n>
@@ -20,7 +20,7 @@
       Year {{{poll.d | date:'longDate'}}}
       }
     </td>
-    <td class="action" [ngSwitch]="poll.a">
+    <td class="action" [ngSwitch]="poll.a" (click)="go(poll.s)">
       <span class ="part" *ngSwitchCase="'Part'" i18n>Join</span>
       <span class ="vote" *ngSwitchCase="'Vote'" i18n>Vote</span>
       <span class ="modi" *ngSwitchCase="'Modi'" i18n>Modify</span>
