@@ -14,11 +14,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { HttpClient } from '@angular/common/http';
-import { Component, Input, OnInit } from '@angular/core';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 
-import { PollSubComponent } from '../poll/common';
+import { PollSubComponent, ServerError } from '../poll/common';
 import { PollAlternative, UninomialBallotAnswer, UninomialVoteQuery } from '../api';
 
 @Component({
@@ -29,6 +29,7 @@ import { PollAlternative, UninomialBallotAnswer, UninomialVoteQuery } from '../a
 export class UninominalBallotComponent implements OnInit, PollSubComponent {
 
   @Input() pollSegment: string;
+  @Output() errors = new EventEmitter<ServerError>();
 
   answer: UninomialBallotAnswer;
 
@@ -47,6 +48,9 @@ export class UninominalBallotComponent implements OnInit, PollSubComponent {
     this.http.get<UninomialBallotAnswer>('/a/ballot/uninominal/' + this.pollSegment).subscribe({
       next: (answer: UninomialBallotAnswer) => {
         this.answer = answer;
+      },
+      error: (err: HttpErrorResponse) => {
+        this.errors.emit({status: err.status, message: err.error.trim()});
       }
     });
   }

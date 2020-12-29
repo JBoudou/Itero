@@ -14,6 +14,14 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import { Observable } from 'rxjs';
+
+export class ServerError {
+  status: number;
+  message: string;
+}
+
 export interface PollSubComponent {
   pollSegment: string;
+  errors: Observable<ServerError>;
 }

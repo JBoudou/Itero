@@ -14,10 +14,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Component, Input, OnInit } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 
-import { PollSubComponent } from '../poll/common';
+import { PollSubComponent, ServerError } from '../poll/common';
 import { CountInfoEntry, CountInfoAnswer } from '../api';
 
 function extractFontFamily(css: string): string {
@@ -46,6 +46,7 @@ function extractFontSize(css: string): number {
 export class CountsInformationComponent implements OnInit, PollSubComponent {
 
   @Input() pollSegment: string;
+  @Output() errors = new EventEmitter<ServerError>();
 
   data: any[][];
 
@@ -91,7 +92,6 @@ export class CountsInformationComponent implements OnInit, PollSubComponent {
     this.options.fontName = extractFontFamily(style.fontFamily);
     this.options.fontSize = fontSize * 0.9;
     this.options.annotations.textStyle.fontSize = fontSize * 0.75;
-    console.log(fontSize);
 
     this.http.get<CountInfoAnswer>('/a/info/count/' + this.pollSegment).subscribe({
       next: (answer: CountInfoAnswer) => {
@@ -121,7 +121,9 @@ export class CountsInformationComponent implements OnInit, PollSubComponent {
           var style = CountsInformationComponent.palette[this.data.length % CountsInformationComponent.palette.length];
           this.data.push([shortName, entry.Count, tooltip, annotation, style]);
         }
-        console.log(this.data);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.errors.emit({status: err.status, message: err.error.trim()});
       }
     });
   }

@@ -17,3 +17,6 @@
     </div>
   </div>
 </div>
+<div *ngIf="!!error" class="error">
+  <p i18n>Unexpected error {{ error.status }}: {{ error.message }}.</p>
+</div>

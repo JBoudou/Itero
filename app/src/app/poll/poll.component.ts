@@ -17,11 +17,13 @@
 
 import { Component, OnInit, Type, ViewChild, ViewContainerRef, ComponentFactoryResolver, ViewEncapsulation } from '@angular/core';
 import { ActivatedRoute, ParamMap } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+
+import { Subscription } from 'rxjs';
 
 import { PollAnswer, BallotType, InformationType } from '../api';
 import { PollBallotDirective, PollInformationDirective } from './directives';
-import { PollSubComponent } from './common';
+import { PollSubComponent, ServerError } from './common';
 import { UninominalBallotComponent } from '../uninominal-ballot/uninominal-ballot.component';
 import { CountsInformationComponent } from '../counts-information/counts-information.component';
 
@@ -35,6 +37,9 @@ export class PollComponent implements OnInit {
 
   segment: string;
   answer: PollAnswer;
+
+  error: ServerError;
+  errorSubscription: Subscription[] = [undefined, undefined];
 
   @ViewChild(PollBallotDirective, { static: true }) ballot: PollBallotDirective;
   @ViewChild(PollInformationDirective, { static: true }) information: PollInformationDirective;
@@ -53,7 +58,8 @@ export class PollComponent implements OnInit {
   }
 
   hasAnswer(): boolean {
-    return typeof this.answer !== 'undefined';
+    return typeof this.error == 'undefined' &&
+           typeof this.answer !== 'undefined';
   }
 
   noInformation(): boolean {
@@ -74,24 +80,45 @@ export class PollComponent implements OnInit {
     this.http.get<PollAnswer>('/a/poll/' + this.segment).subscribe({
       next: (answer: PollAnswer) => {
         this.answer = answer;
-
         if (PollComponent.ballotMap.has(this.answer.Ballot)) {
-          this.loadSubComponent(this.ballot.viewContainerRef,
+          this.loadSubComponent(0, this.ballot.viewContainerRef,
                                 PollComponent.ballotMap.get(this.answer.Ballot));
         }
         if (PollComponent.informationMap.has(this.answer.Information)) {
-          this.loadSubComponent(this.information.viewContainerRef,
+          this.loadSubComponent(1, this.information.viewContainerRef,
                                 PollComponent.informationMap.get(this.answer.Information));
         }
+      },
+      error: (err: HttpErrorResponse) => {
+        this.registerError({status: err.status, message: err.error.trim()});
       }
     });
   }
 
-  private loadSubComponent(viewContainerRef: ViewContainerRef, type: Type<any>): void {
+  private loadSubComponent(subcriptionIndex: number,
+                           viewContainerRef: ViewContainerRef,
+                           type: Type<any>): void {
+    if (!!this.errorSubscription[subcriptionIndex]) {
+      this.errorSubscription[subcriptionIndex].unsubscribe();
+    }
     const componentFactory = this.componentFactoryResolver.resolveComponentFactory(type);
     viewContainerRef.clear();
     const componentRef = viewContainerRef.createComponent<PollSubComponent>(componentFactory);
     componentRef.instance.pollSegment = this.segment;
+    this.errorSubscription[subcriptionIndex] = componentRef.instance.errors.subscribe({
+      next: (err: ServerError) => {
+        this.registerError(err);
+      }
+    });
+  }
+
+  private registerError(err: ServerError) {
+    this.error = err;
+    for (let i = 0; i < 2; i++) {
+      this.errorSubscription[i] = undefined;
+    }
+    this.ballot.viewContainerRef.clear();
+    this.information.viewContainerRef.clear();
   }
 
 }
