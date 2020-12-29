@@ -18,44 +18,44 @@ import { Component, OnInit } from '@angular/core';
 import {Router} from '@angular/router';
 import {HttpClient} from '@angular/common/http';
 
-import { ListAnswerEntry } from '../api';
+import { ListAnswerEntry, PollAction } from '../api';
 
 function mapListAnswerEntry(e: ListAnswerEntry): ListAnswerEntry {
   const today = new Date(Date.now());
   today.setHours(0, 0, 0);
 
-  if (e.d as string == '⋅') {
-    e.d = today;
+  if (e.Deadline as string == '⋅') {
+    e.Deadline = today;
     e.deadlineCategory = 'None';
     return e;
   }
 
-  e.d = new Date(e.d);
-  if (e.d < today) {
+  e.Deadline = new Date(e.Deadline);
+  if (e.Deadline < today) {
     e.deadlineCategory = 'None';
     return e;
   }
 
   const tomorrow = new Date(today.valueOf() + (24 * 3600 * 1000));
-  if (e.d < tomorrow) {
+  if (e.Deadline < tomorrow) {
     e.deadlineCategory = 'Today';
     return e;
   }
 
   const afterTomorrow = new Date(today.valueOf() + (2 * 24 * 3600 * 1000));
-  if (e.d < afterTomorrow) {
+  if (e.Deadline < afterTomorrow) {
     e.deadlineCategory = 'Tomorrow';
     return e;
   }
 
   const nextWeek = new Date(today.valueOf() + (8 * 24 * 3600 * 1000));
-  if (e.d < nextWeek) {
+  if (e.Deadline < nextWeek) {
     e.deadlineCategory = 'Week';
     return e;
   }
 
   const nextMonth =  new Date(today.valueOf() + (33 * 24 * 3600 * 1000));
-  if (e.d < nextMonth) {
+  if (e.Deadline < nextMonth) {
     e.deadlineCategory = 'Month';
     return e;
   }
@@ -81,6 +81,23 @@ export class ListComponent implements OnInit {
     private http: HttpClient
   ) {
     this.polls = [];
+  }
+
+  pollActionString(poll: ListAnswerEntry): String {
+    switch (poll.Action) {
+    case PollAction.Vote:
+      return 'Vote';
+    case PollAction.Modi:
+      return 'Modi';
+    case PollAction.Part:
+      return 'Part';
+    case PollAction.Term:
+      return 'Term';
+    }
+  }
+
+  terminated(poll: ListAnswerEntry): boolean {
+    return poll.Action == PollAction.Term;
   }
 
   ngOnInit(): void {

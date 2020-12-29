@@ -8,22 +8,24 @@
   </tr>
   <tbody>
   <tr *ngFor="let poll of polls" class="poll">
-    <td class="title">{{poll.t}}</td>
-    <td class="round">{{poll.c}}/{{poll.m}}</td>
-    <td class="deadline" i18n>
+    <td class="title">{{poll.Title}}</td>
+    <td *ngIf=" terminated(poll)" class="terminated" colspan=2 i18n>Terminated</td>
+    <td *ngIf="!terminated(poll)" class="round">{{poll.CurrentRound + 1}}/{{poll.MaxRound}}</td>
+    <td *ngIf="!terminated(poll)" class="deadline" i18n>
       {poll.deadlineCategory, select,
       None {None}
-      Today {Today at {{poll.d | date:'h:mm aa'}}}
-      Tomorrow {Tomorrow at {{poll.d | date:'h:mm aa'}}}
-      Week {Next {{poll.d | date:'EEEE'}} at {{poll.d | date:'h aa'}}}
-      Month {{{poll.d | date:'MMMM d'}}, at {{poll.d | date:'h aa'}}}
-      Year {{{poll.d | date:'longDate'}}}
+      Today {Today at {{poll.Deadline | date:'h:mm aa'}}}
+      Tomorrow {Tomorrow at {{poll.Deadline | date:'h:mm aa'}}}
+      Week {Next {{poll.Deadline | date:'EEEE'}} at {{poll.Deadline | date:'h aa'}}}
+      Month {{{poll.Deadline | date:'MMMM d'}}, at {{poll.Deadline | date:'h aa'}}}
+      Year {{{poll.Deadline | date:'longDate'}}}
       }
     </td>
-    <td class="action" [ngSwitch]="poll.a" (click)="go(poll.s)">
+    <td class="action" [ngSwitch]="pollActionString(poll)" (click)="go(poll.Segment)">
       <span class ="part" *ngSwitchCase="'Part'" i18n>Join</span>
       <span class ="vote" *ngSwitchCase="'Vote'" i18n>Vote</span>
       <span class ="modi" *ngSwitchCase="'Modi'" i18n>Modify</span>
+      <span class ="term" *ngSwitchCase="'Term'" i18n>Result</span>
     </td>
   </tr>
   </tbody>

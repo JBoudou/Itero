@@ -45,13 +45,20 @@ func (self *NuDate) UnmarshalJSON(raw []byte) (err error) {
 	return
 }
 
+const (
+	PollActionVote = iota
+	PollActionModif
+	PollActionPart
+	PollActionTerm
+)
+
 type listAnswerEntry struct {
-	Segment      string `json:"s"`
-	Title        string `json:"t"`
-	CurrentRound uint8  `json:"c"`
-	MaxRound     uint8  `json:"m"`
-	Deadline     NuDate `json:"d"`
-	Action       string `json:"a"` // TODO Use an "enum" ?
+	Segment      string
+	Title        string
+	CurrentRound uint8 
+	MaxRound     uint8 
+	Deadline     NuDate
+	Action       uint8
 }
 
 func ListHandler(ctx context.Context, response server.Response, request *server.Request) {
@@ -66,17 +73,17 @@ func ListHandler(ctx context.Context, response server.Response, request *server.
 	const query = `
 	   SELECT p.Id, p.Salt, p.Title, p.CurrentRound, p.MaxNbRounds,
 	          ADDTIME(p.CurrentRoundStart, p.MaxRoundDuration) AS Deadline,
-	          CASE WHEN a.User IS NULL THEN 'Part'
-	               WHEN a.LastRound >= p.CurrentRound THEN 'Modi'
-	               ELSE 'Vote' END AS Action
+	          CASE WHEN !p.Active THEN 3
+	               WHEN a.User IS NULL THEN 2
+	               WHEN a.LastRound >= p.CurrentRound THEN 1
+	               ELSE 0 END AS Action
 	     FROM Polls AS p LEFT OUTER JOIN (
 	              SELECT Poll, User, LastRound
 	               FROM Participants
 	              WHERE User = ?
 	          ) AS a ON p.Id = a.Poll
-	    WHERE p.Active
-	      AND ((p.CurrentRound = 0 AND p.Publicity <= ?) OR a.User IS NOT NULL)
-	 ORDER BY Action DESC, Deadline ASC`
+	    WHERE (p.Active AND p.CurrentRound = 0 AND p.Publicity <= ?) OR a.User IS NOT NULL
+	 ORDER BY Action ASC, Deadline ASC`
 	rows, err := db.DB.QueryContext(ctx, query, request.User.Id, db.PollPublicityPublicRegistered)
 	if err != nil {
 		response.SendError(ctx, err)

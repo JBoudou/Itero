@@ -31,13 +31,20 @@ export class SignupQuery {
 // Null-able Date
 export type NuDate = Date | '.'
 
+export enum PollAction {
+  Vote,
+  Modi,
+  Part,
+  Term
+}
+
 export class ListAnswerEntry {
-  s: string; // segment
-  t: string; // title
-  c: number; // current round
-  m: number; // max nb rounds
-  d: NuDate; // deadline
-  a: string; // action (abbreviated)
+  Segment:      string;
+  Title:        string;
+  CurrentRound: number;
+  MaxRound:     number;
+  Deadline:     NuDate;
+  Action:       PollAction;
 
   deadlineCategory?: string;
 }

@@ -6,7 +6,7 @@
   </div>
   <div id="pollballot">
     <h4 *ngIf="hasAnswer()" i18n>
-      {answer.CurrentRound, plural, =0 {First round} =1 {Second round} =2 {Third round} other {{{answer.CurrentRound}}nd round}}
+      {answer.CurrentRound, plural, =0 {First round} =1 {Second round} =2 {Third round} other {{{answer.CurrentRound + 1}}nd round}}
     </h4>
     <ng-template PollBallot></ng-template>
   </div>

@@ -43,6 +43,7 @@ func TestListHandler(t *testing.T) {
 
 	const (
 		qParticipate = `INSERT INTO Participants(Poll, User) VALUE (?, ?)`
+		qTerminate = `UPDATE Polls SET Active = FALSE WHERE Id = ?`
 
 		poll1Title = "Test 1"
 		poll2Title = "Test 2"
@@ -55,7 +56,7 @@ func TestListHandler(t *testing.T) {
 
 	type maker = func(t *testing.T) listAnswerEntry
 
-	makePollEntry := func(title string, id *uint32, action string) maker {
+	makePollEntry := func(title string, id *uint32, action uint8) maker {
 		return func(t *testing.T) listAnswerEntry {
 			segment, err := PollSegment{Id: *id, Salt: 42}.Encode()
 			if err != nil {
@@ -129,7 +130,7 @@ func TestListHandler(t *testing.T) {
 				}
 			},
 			Request: srvt.Request{UserId: &userId},
-			Checker: checker([]maker{makePollEntry(poll1Title, &poll1Id, "Part")}, []maker{}),
+			Checker: checker([]maker{makePollEntry(poll1Title, &poll1Id, PollActionPart)}, []maker{}),
 		},
 		{
 			Name: "Other participate",
@@ -140,7 +141,7 @@ func TestListHandler(t *testing.T) {
 				}
 			},
 			Request: srvt.Request{UserId: &userId},
-			Checker: checker([]maker{makePollEntry(poll1Title, &poll1Id, "Part")}, []maker{}),
+			Checker: checker([]maker{makePollEntry(poll1Title, &poll1Id, PollActionPart)}, []maker{}),
 		},
 		{
 			Name: "HiddenRegistered Poll",
@@ -152,8 +153,8 @@ func TestListHandler(t *testing.T) {
 			},
 			Request: srvt.Request{UserId: &userId},
 			Checker: checker(
-				[]maker{makePollEntry(poll1Title, &poll1Id, "Part")},
-				[]maker{makePollEntry(poll2Title, &poll2Id, "Vote")}),
+				[]maker{makePollEntry(poll1Title, &poll1Id, PollActionPart)},
+				[]maker{makePollEntry(poll2Title, &poll2Id, PollActionVote)}),
 		},
 		{
 			Name: "HiddenRegistered Poll Participate",
@@ -165,8 +166,22 @@ func TestListHandler(t *testing.T) {
 			},
 			Request: srvt.Request{UserId: &userId},
 			Checker: checker([]maker{
-				makePollEntry(poll1Title, &poll1Id, "Part"),
-				makePollEntry(poll2Title, &poll2Id, "Vote"),
+				makePollEntry(poll1Title, &poll1Id, PollActionPart),
+				makePollEntry(poll2Title, &poll2Id, PollActionVote),
+			}, []maker{}),
+		},
+		{
+			Name: "Terminated",
+			Update: func(t *testing.T) {
+				_, err := db.DB.Exec(qTerminate, poll2Id)
+				if err != nil {
+					t.Fatal(err)
+				}
+			},
+			Request: srvt.Request{UserId: &userId},
+			Checker: checker([]maker{
+				makePollEntry(poll1Title, &poll1Id, PollActionPart),
+				makePollEntry(poll2Title, &poll2Id, PollActionTerm),
 			}, []maker{}),
 		},
 	}
