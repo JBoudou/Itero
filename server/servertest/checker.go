@@ -28,12 +28,21 @@ import (
 
 // Checker checks that a given response is as expected.
 type Checker interface {
+	// Before is called at the beginning of each test, before the handler is called, but after the
+	// Update function.
+	Before(t *testing.T)
+
+	// Check is called at the end of each test, after the handler has been called. This method must
+	// check that the handler has done its job correctly.
 	Check(t *testing.T, response *http.Response, request *server.Request)
 }
 
 /* ChecherFun */
 
 type CheckerFun func(t *testing.T, response *http.Response, request *server.Request)
+
+func (self CheckerFun) Before(t *testing.T) {
+}
 
 func (self CheckerFun) Check(t *testing.T, response *http.Response, request *server.Request) {
 	self(t, response, request)
@@ -46,6 +55,9 @@ type CheckJSON struct {
 	Code    int // If zero, http.StatusOK is used instead.
 	Body    interface{}
 	Partial bool // If true, Body may lack some field of the response.
+}
+
+func (self CheckJSON) Before(t *testing.T) {
 }
 
 // Check implements Checker.
@@ -129,6 +141,9 @@ type CheckError struct {
 	Body string
 }
 
+func (self CheckError) Before(t *testing.T) {
+}
+
 // Check implements Checker.
 func (self CheckError) Check(t *testing.T, response *http.Response, request *server.Request) {
 	t.Helper()
@@ -152,6 +167,9 @@ func (self CheckError) Check(t *testing.T, response *http.Response, request *ser
 // CheckStatus checks only the statusCode of a response.
 type CheckStatus struct {
 	Code int
+}
+
+func (self CheckStatus) Before(t *testing.T) {
 }
 
 // Check implements Checker.

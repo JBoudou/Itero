@@ -109,6 +109,7 @@ func Run(t *testing.T, tests []Test, handler server.Handler) {
 			if tt.Update != nil {
 				tt.Update(t)
 			}
+			tt.Checker.Before(t)
 			req, err := tt.Request.Make()
 			if err != nil {
 				t.Fatalf("Error creating request: %s", err)

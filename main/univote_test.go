@@ -25,6 +25,8 @@ import (
 
 	"github.com/JBoudou/Itero/db"
 	dbt "github.com/JBoudou/Itero/db/dbtest"
+	"github.com/JBoudou/Itero/events"
+	"github.com/JBoudou/Itero/events/eventstest"
 	"github.com/JBoudou/Itero/server"
 	srvt "github.com/JBoudou/Itero/server/servertest"
 )
@@ -33,9 +35,31 @@ type voteChecker struct {
 	poll  uint32
 	user  uint32
 	round uint8
+
+	originalEventManager events.Manager
+	eventSent            bool
 }
 
-func (self voteChecker) Check(t *testing.T, response *http.Response, request *server.Request) {
+func (self *voteChecker) Before(t *testing.T) {
+	self.eventSent = false
+	self.originalEventManager = events.DefaultManager
+	events.DefaultManager = &eventstest.ManagerMock{
+		T: t,
+		Send_: func(evt events.Event) error {
+			t.Logf("Event received: %v.", evt)
+			if vEvt, ok := evt.(VoteEvent); ok && vEvt.Poll == self.poll {
+				self.eventSent = true
+			}
+			return nil
+		},
+	}
+}
+
+func (self *voteChecker) Check(t *testing.T, response *http.Response, request *server.Request) {
+	defer func() {
+		events.DefaultManager = self.originalEventManager
+	}()
+
 	srvt.CheckStatus{http.StatusOK}.Check(t, response, request)
 
 	var query UninomialVoteQuery
@@ -72,6 +96,10 @@ func (self voteChecker) Check(t *testing.T, response *http.Response, request *se
 			t.Errorf("Wrong alternative. Got %d. Expect %d.", gotAlternative.Int32, query.Alternative)
 		}
 	}
+
+	if !self.eventSent {
+		t.Error("VoteEvent not sent")
+	}
 }
 
 func TestUninomialVoteHandler(t *testing.T) {
@@ -79,7 +107,6 @@ func TestUninomialVoteHandler(t *testing.T) {
 
 	var env dbt.Env
 	defer env.Close()
-
 	userId := env.CreateUser()
 	pollSegment := PollSegment{Salt: 42}
 	pollSegment.Id = env.CreatePoll("Test", userId, db.PollPublicityPublicRegistered)
@@ -112,17 +139,17 @@ func TestUninomialVoteHandler(t *testing.T) {
 		{
 			Name:    "First vote",
 			Request: makeRequest(&userId, pollSegment, UninomialVoteQuery{Alternative: 1}),
-			Checker: voteChecker{poll: pollSegment.Id, user: userId, round: 0},
+			Checker: &voteChecker{poll: pollSegment.Id, user: userId, round: 0},
 		},
 		{
 			Name:    "Change vote",
 			Request: makeRequest(&userId, pollSegment, UninomialVoteQuery{Alternative: 0}),
-			Checker: voteChecker{poll: pollSegment.Id, user: userId, round: 0},
+			Checker: &voteChecker{poll: pollSegment.Id, user: userId, round: 0},
 		},
 		{
 			Name:    "Change vote again",
 			Request: makeRequest(&userId, pollSegment, UninomialVoteQuery{Alternative: 1}),
-			Checker: voteChecker{poll: pollSegment.Id, user: userId, round: 0},
+			Checker: &voteChecker{poll: pollSegment.Id, user: userId, round: 0},
 		},
 		{
 			Name: "First blank",
@@ -131,17 +158,17 @@ func TestUninomialVoteHandler(t *testing.T) {
 				env.Must(t)
 			},
 			Request: makeRequest(&userId, pollSegment, UninomialVoteQuery{Blank: true}),
-			Checker: voteChecker{poll: pollSegment.Id, user: userId, round: 1},
+			Checker: &voteChecker{poll: pollSegment.Id, user: userId, round: 1},
 		},
 		{
 			Name:    "Change to non-blank",
 			Request: makeRequest(&userId, pollSegment, UninomialVoteQuery{Alternative: 1}),
-			Checker: voteChecker{poll: pollSegment.Id, user: userId, round: 1},
+			Checker: &voteChecker{poll: pollSegment.Id, user: userId, round: 1},
 		},
 		{
 			Name:    "Change to blank",
 			Request: makeRequest(&userId, pollSegment, UninomialVoteQuery{Blank: true}),
-			Checker: voteChecker{poll: pollSegment.Id, user: userId, round: 1},
+			Checker: &voteChecker{poll: pollSegment.Id, user: userId, round: 1},
 		},
 		{
 			Name: "Inactive",
