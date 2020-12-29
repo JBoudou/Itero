@@ -17,9 +17,9 @@
 package server
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path"
@@ -50,11 +50,12 @@ type Request struct {
 	RemainingPath []string
 
 	original *http.Request
+	body     []byte
 }
 
 // newRequest is the only constructor for Request.
 func newRequest(basePattern string, original *http.Request) (req *Request) {
-	req = &Request{ original: original }
+	req = &Request{original: original}
 
 	var session *gs.Session
 	session, req.SessionError = sessionStore.Get(original, sessionName)
@@ -76,7 +77,7 @@ func (self *Request) CheckPOST(ctx context.Context) error {
 	if self.original.Method != "POST" {
 		return NewHttpError(http.StatusForbidden, "Unauthorized", "Not a POST")
 	}
-	
+
 	origin := self.original.Header.Values("Origin")
 	if origin == nil || len(origin) != 1 {
 		logger.Print(ctx, "No Origin: header.")
@@ -119,13 +120,15 @@ func URLPortWithDefault(url *url.URL) (port string) {
 }
 
 // UnmarshalJSONBody retrieves the body of the request as a JSON object.
+// Successive calls to this method on the same object store identical objects.
 // See json.Unmarshal for details of the unmarshalling process.
-func (self *Request) UnmarshalJSONBody(dst interface{}) error {
-	var buff bytes.Buffer
-	if _, err := buff.ReadFrom(self.original.Body); err != nil {
-		return err
+func (self *Request) UnmarshalJSONBody(dst interface{}) (err error) {
+	if self.body == nil {
+		if self.body, err = ioutil.ReadAll(self.original.Body); err != nil {
+			return err
+		}
 	}
-	return json.Unmarshal(buff.Bytes(), &dst)
+	return json.Unmarshal(self.body, &dst)
 }
 
 // AddSessionIdToRequest adds a session id to an http.Request.

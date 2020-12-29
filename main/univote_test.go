@@ -30,15 +30,16 @@ import (
 )
 
 type voteChecker struct {
-	poll        uint32
-	user        uint32
-	round       uint8
-	blank       bool
-	alternative uint8
+	poll  uint32
+	user  uint32
+	round uint8
 }
 
 func (self voteChecker) Check(t *testing.T, response *http.Response, request *server.Request) {
 	srvt.CheckStatus{http.StatusOK}.Check(t, response, request)
+
+	var query UninomialVoteQuery
+	mustt(t, request.UnmarshalJSONBody(&query))
 
 	const qCheck = `
 		SELECT p.LastRound, b.Alternative
@@ -60,20 +61,20 @@ func (self voteChecker) Check(t *testing.T, response *http.Response, request *se
 		t.Errorf("Wrong round. Got %v. Expect %d.", gotRound, self.round)
 	}
 
-	if self.blank {
+	if query.Blank {
 		if gotAlternative.Valid {
 			t.Errorf("Non-blank vote %d.", gotAlternative.Int32)
 		}
 	} else {
 		if !gotAlternative.Valid {
-			t.Errorf("Got blank vote. Expect %d.", self.alternative)
-		} else if gotAlternative.Int32 != int32(self.alternative) {
-			t.Errorf("Wrong alternative. Got %d. Expect %d.", gotAlternative.Int32, self.alternative)
+			t.Errorf("Got blank vote. Expect %d.", query.Alternative)
+		} else if gotAlternative.Int32 != int32(query.Alternative) {
+			t.Errorf("Wrong alternative. Got %d. Expect %d.", gotAlternative.Int32, query.Alternative)
 		}
 	}
 }
 
-func TestVoteHandler(t *testing.T) {
+func TestUninomialVoteHandler(t *testing.T) {
 	precheck(t)
 
 	var env dbt.Env
@@ -111,17 +112,17 @@ func TestVoteHandler(t *testing.T) {
 		{
 			Name:    "First vote",
 			Request: makeRequest(&userId, pollSegment, UninomialVoteQuery{Alternative: 1}),
-			Checker: voteChecker{poll: pollSegment.Id, user: userId, round: 0, alternative: 1},
+			Checker: voteChecker{poll: pollSegment.Id, user: userId, round: 0},
 		},
 		{
 			Name:    "Change vote",
 			Request: makeRequest(&userId, pollSegment, UninomialVoteQuery{Alternative: 0}),
-			Checker: voteChecker{poll: pollSegment.Id, user: userId, round: 0, alternative: 0},
+			Checker: voteChecker{poll: pollSegment.Id, user: userId, round: 0},
 		},
 		{
 			Name:    "Change vote again",
 			Request: makeRequest(&userId, pollSegment, UninomialVoteQuery{Alternative: 1}),
-			Checker: voteChecker{poll: pollSegment.Id, user: userId, round: 0, alternative: 1},
+			Checker: voteChecker{poll: pollSegment.Id, user: userId, round: 0},
 		},
 		{
 			Name: "First blank",
@@ -130,17 +131,17 @@ func TestVoteHandler(t *testing.T) {
 				env.Must(t)
 			},
 			Request: makeRequest(&userId, pollSegment, UninomialVoteQuery{Blank: true}),
-			Checker: voteChecker{poll: pollSegment.Id, user: userId, round: 1, blank: true},
+			Checker: voteChecker{poll: pollSegment.Id, user: userId, round: 1},
 		},
 		{
 			Name:    "Change to non-blank",
 			Request: makeRequest(&userId, pollSegment, UninomialVoteQuery{Alternative: 1}),
-			Checker: voteChecker{poll: pollSegment.Id, user: userId, round: 1, alternative: 1},
+			Checker: voteChecker{poll: pollSegment.Id, user: userId, round: 1},
 		},
 		{
 			Name:    "Change to blank",
 			Request: makeRequest(&userId, pollSegment, UninomialVoteQuery{Blank: true}),
-			Checker: voteChecker{poll: pollSegment.Id, user: userId, round: 1, blank: true},
+			Checker: voteChecker{poll: pollSegment.Id, user: userId, round: 1},
 		},
 		{
 			Name: "Inactive",

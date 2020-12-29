@@ -321,3 +321,30 @@ func TestRequest_UnmarshalJSONBody(t *testing.T) {
 		t.Errorf("Got %v. Expect %v.", got, expected)
 	}
 }
+
+func TestRequest_UnmarshalJSONBody_repeat(t *testing.T) {
+	type myStruct struct {
+		Int    int
+		String string
+		Float  float64
+		Slice  []int
+	}
+	sBody := myStruct{Int: 42, String: "foo", Float: 3.14, Slice: []int{1, 2, 3, 5, 8, 13}}
+
+	jBody, err := json.Marshal(sBody)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := Request{original: httptest.NewRequest("GET", "/foo", bytes.NewBuffer(jBody))}
+
+	var got [2]myStruct
+	for i := range got {
+		err = req.UnmarshalJSONBody(&got[i])
+		if err != nil {
+			t.Error(err)
+		}
+	}
+	if !reflect.DeepEqual(got[0], got[1]) {
+		t.Errorf("Differing values: %v then %v.", got[0], got[1])
+	}
+}
