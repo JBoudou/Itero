@@ -3,8 +3,7 @@ import { NgModule } from '@angular/core';
 import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { ReactiveFormsModule } from '@angular/forms';
 
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatSelectModule } from '@angular/material/select';
+import { MatListModule } from '@angular/material/list';
 import { GoogleChartsModule } from 'angular-google-charts';
 
 import { AppRoutingModule } from './app-routing.module';
@@ -44,9 +43,8 @@ import { CountsInformationComponent } from './counts-information/counts-informat
     HttpClientModule,
     ReactiveFormsModule,
     BrowserAnimationsModule,
-    MatFormFieldModule,
-    MatSelectModule,
-    GoogleChartsModule
+    GoogleChartsModule,
+    MatListModule
   ],
   providers: [
     { provide: HTTP_INTERCEPTORS, useClass: SessionInterceptor, multi: true }
