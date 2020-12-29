@@ -176,6 +176,10 @@ func TestPollHandler(t *testing.T) {
 		{
 			Name: "Ok next round",
 			Update: func(t *testing.T) {
+				_, err := db.DB.Exec(qParticipate, segment1.Id, userId)
+				if err != nil {
+					t.Fatal(err)
+				}
 				env.NextRound(segment1.Id)
 				env.Must(t)
 			},

@@ -161,14 +161,10 @@ func TestUninomialBallotHandler(t *testing.T) {
 		{Id: 1, Name: "Yes", Cost: 1.},
 	}
 
-	const (
-		qVote      = `INSERT INTO Ballots(User, Poll, Alternative, Round) VALUE (?, ?, ?, ?)`
-	)
-
 	vote := func(alternative, round uint8) func(t *testing.T) {
 		return func(t *testing.T) {
-			_, err := db.DB.Exec(qVote, userId, pollSegment.Id, alternative, round)
-			mustt(t, err)
+			env.Vote(pollSegment.Id, round, userId, alternative)
+			env.Must(t)
 		}
 	}
 

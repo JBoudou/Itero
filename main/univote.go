@@ -36,18 +36,20 @@ type UninomialVoteQuery struct {
 }
 
 func UninomialVoteHandler(ctx context.Context, response server.Response, request *server.Request) {
+	// Verifications
 	if err := request.CheckPOST(ctx); err != nil {
 		response.SendError(ctx, err)
 		return
 	}
 	pollInfo, err := checkPollAccess(ctx, request)
 	must(err)
-	if getBallotType(pollInfo) != BallotTypeUninomial {
+	if pollInfo.BallotType() != BallotTypeUninomial {
 		err = server.NewHttpError(http.StatusBadRequest, "Wrong poll", "Poll is not uninomial")
 		response.SendError(ctx, err)
 		return
 	}
 
+	// Get query
 	var voteQuery UninomialVoteQuery
 	if err := request.UnmarshalJSONBody(&voteQuery); err != nil {
 		logger.Print(ctx, err)
@@ -58,9 +60,10 @@ func UninomialVoteHandler(ctx context.Context, response server.Response, request
 	}
 
 	const (
-		qDeleteBallot       = `DELETE FROM Ballots WHERE User = ? AND Poll = ? AND Round = ?`
-		qInsertBallot       = `INSERT INTO Ballots (User, Poll, Alternative, Round) VALUE (?, ?, ?, ?)`
-		qUpdateParticipants = `UPDATE Participants SET LastRound = ? WHERE User = ? AND Poll = ?`
+		qDeleteBallot      = `DELETE FROM Ballots WHERE User = ? AND Poll = ? AND Round = ?`
+		qInsertBallot      = `INSERT INTO Ballots (User, Poll, Alternative, Round) VALUE (?, ?, ?, ?)`
+		qInsertParticipant = `INSERT INTO Participants (User, Poll, LastRound) VALUE (?, ?, ?)`
+		qUpdateParticipant = `UPDATE Participants SET LastRound = ? WHERE User = ? AND Poll = ?`
 	)
 
 	tx, err := db.DB.BeginTx(ctx, nil)
@@ -72,16 +75,23 @@ func UninomialVoteHandler(ctx context.Context, response server.Response, request
 		}
 	}()
 
-	_, err = tx.ExecContext(ctx, qDeleteBallot, request.User.Id, pollInfo.Id, pollInfo.CurrentRound)
+	if pollInfo.Participate {
+		_, err = tx.ExecContext(ctx, qDeleteBallot, request.User.Id, pollInfo.Id, pollInfo.CurrentRound)
+	} else {
+		_, err = tx.ExecContext(ctx, qInsertParticipant, request.User.Id, pollInfo.Id,
+			pollInfo.CurrentRound)
+	}
 	must(err)
 	if !voteQuery.Blank {
 		_, err = tx.ExecContext(ctx, qInsertBallot, request.User.Id, pollInfo.Id, voteQuery.Alternative,
 			pollInfo.CurrentRound)
 		must(err)
 	}
-	_, err = tx.ExecContext(ctx, qUpdateParticipants, pollInfo.CurrentRound, request.User.Id,
-		pollInfo.Id)
-	must(err)
+	if pollInfo.Participate {
+		_, err = tx.ExecContext(ctx, qUpdateParticipant, pollInfo.CurrentRound, request.User.Id,
+			pollInfo.Id)
+		must(err)
+	}
 
 	must(tx.Commit())
 	commited = true

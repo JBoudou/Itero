@@ -27,6 +27,8 @@ import (
 	"github.com/JBoudou/Itero/server"
 )
 
+/** PollSegment **/
+
 type PollSegment struct {
 	Id   uint32
 	Salt uint32
@@ -56,11 +58,14 @@ func (self PollSegment) Encode() (str string, err error) {
 	return
 }
 
+/** PollInfo **/
+
 type PollInfo struct {
 	Id           uint32
 	NbChoices    uint8
 	Active       bool
 	CurrentRound uint8
+	Participate  bool
 }
 
 // checkPollAccess ensure that the user can access the poll.
@@ -109,12 +114,10 @@ func checkPollAccess(ctx context.Context, request *server.Request) (poll PollInf
 	// Check participant
 	const qParticipate = `SELECT 1 FROM Participants WHERE Poll = ? AND User = ?`
 	rows, err := db.DB.QueryContext(ctx, qParticipate, poll.Id, request.User.Id)
-	if err != nil || rows.Next() {
+	poll.Participate = err != nil || rows.Next()
+	if poll.Participate {
 		return
 	}
-
-	// Add participant
-	const qRegister = `INSERT INTO Participants(Poll, User) VALUE (?, ?)`
 	if publicity >= db.PollPublicityInvited {
 		err = server.NewHttpError(http.StatusForbidden, "Unauthorized", "Private poll")
 		return
@@ -123,16 +126,11 @@ func checkPollAccess(ctx context.Context, request *server.Request) (poll PollInf
 		err = server.NewHttpError(http.StatusForbidden, "Too late", "Unable to participate now")
 		return
 	}
-	_, err = db.DB.ExecContext(ctx, qRegister, poll.Id, request.User.Id)
+
 	return
 }
 
-const (
-	BallotTypeClosed    = iota
-	BallotTypeUninomial
-)
-
-func getBallotType(pollInfo PollInfo) uint8 {
+func (pollInfo PollInfo) BallotType() uint8 {
 	// TODO really compute the value
 	if !pollInfo.Active {
 		return BallotTypeClosed
@@ -140,18 +138,25 @@ func getBallotType(pollInfo PollInfo) uint8 {
 	return BallotTypeUninomial
 }
 
-const (
-	InformationTypeNoneYet = iota
-	InformationTypeCounts
-)
-
-func getInformationType(pollInfo PollInfo) uint8 {
+func (pollInfo PollInfo) InformationType() uint8 {
 	// TODO really compute the value
 	if pollInfo.CurrentRound == 0 {
 		return InformationTypeNoneYet
 	}
 	return InformationTypeCounts
 }
+
+/** PollHandler **/
+
+const (
+	BallotTypeClosed = iota
+	BallotTypeUninomial
+)
+
+const (
+	InformationTypeNoneYet = iota
+	InformationTypeCounts
+)
 
 type PollAnswer struct {
 	Title        string
@@ -168,8 +173,8 @@ func PollHandler(ctx context.Context, response server.Response, request *server.
 	must(err)
 
 	answer := PollAnswer{
-		Ballot:       getBallotType(pollInfo),
-		Information:  getInformationType(pollInfo),
+		Ballot:       pollInfo.BallotType(),
+		Information:  pollInfo.InformationType(),
 		CurrentRound: pollInfo.CurrentRound,
 	}
 
