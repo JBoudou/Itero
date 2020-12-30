@@ -6,8 +6,12 @@
     On the current round, you've already voted <span class="vote">{{current()}}</span>.
     You may now change this vote, if you want to.
   </p>
-  <p *ngIf="hasJust()">
-    Your vote for <span class="vote">{{just()}}</span> has been taken into account.
+  <p *ngIf="hasJust()" i18n>
+    Your
+    <ng-container *ngIf="lastVote.Blank">blank</ng-container>
+    vote
+    <ng-container *ngIf="!lastVote.Blank">for <span class="vote">{{just()}}</span></ng-container>
+    has been taken into account.
   </p>
 </div>
 <form *ngIf="!!answer && !hasJust()" class="basicform">
