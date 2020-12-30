@@ -16,7 +16,6 @@
 
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
-import { FormBuilder, Validators } from '@angular/forms';
 
 import { PollSubComponent, ServerError } from '../poll/common';
 import { PollAlternative, UninomialBallotAnswer, UninomialVoteQuery } from '../api';
@@ -33,15 +32,12 @@ export class UninominalBallotComponent implements OnInit, PollSubComponent {
 
   answer: UninomialBallotAnswer;
 
-  form = this.formBuilder.group({
-    Choice: ['', [Validators.required]],
-  });
+  selected: number;
 
   lastVote: UninomialVoteQuery;
 
   constructor(
     private http: HttpClient,
-    private formBuilder: FormBuilder,
   ) { }
 
   ngOnInit(): void {
@@ -55,8 +51,20 @@ export class UninominalBallotComponent implements OnInit, PollSubComponent {
     });
   }
 
+  onSelect(id: number): void {
+    this.selected = id;
+  }
+
+  isSelected(id: number): boolean {
+    return this.selected == id;
+  }
+
+  isValid(): boolean {
+    return typeof this.selected != 'undefined';
+  }
+
   onVote(): void {
-    this.vote({Alternative: this.form.value.Choice})
+    this.vote({Alternative: this.selected})
   }
 
   onAbstain(): void {

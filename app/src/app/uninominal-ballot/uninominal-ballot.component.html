@@ -10,13 +10,12 @@
     Your vote for <span class="vote">{{just()}}</span> has been taken into account.
   </p>
 </div>
-<form *ngIf="!!answer && !hasJust()" class="basicform" [formGroup]="form">
-  <label i18n>Your choice:</label>
-  <mat-selection-list [multiple]="false">
-    <mat-list-option class="mat-primary" *ngFor="let alt of answer.Alternatives" [value]="alt.Id">{{alt.Name}}</mat-list-option>
-  </mat-selection-list>
+<form *ngIf="!!answer && !hasJust()" class="basicform">
+  <ul class="selection-list">
+    <li *ngFor="let alt of answer.Alternatives" [class.selected]="isSelected(alt.Id)" (click)="onSelect(alt.Id)">{{alt.Name}}</li>
+  </ul>
   <div class="formactions">
-    <button type="button" [disabled]="!form.valid" (click)="onVote()" i18n>Vote</button>
+    <button type="button" [disabled]="!isValid()" (click)="onVote()" i18n>Vote</button>
     <button type="button" (click)="onAbstain()" i18n>Abstain</button>
   </div>
 </form>

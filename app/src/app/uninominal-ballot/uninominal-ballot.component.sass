@@ -1,3 +1,4 @@
+@import '../../colors'
 @import '../../typo'
 @import '../../mixins'
 
@@ -8,3 +9,22 @@
     @include userinput
     padding-top: 1px
     padding-bottom: 1px
+
+// temporary fix
+ul.selection-list
+  grid-area: span 1/span 2
+
+// move elsewhere (or not)
+ul.selection-list
+  padding: 0
+  margin: 0
+  li
+    list-style-type: none
+    text-align: center
+    padding: 1ex 4px
+    margin: 4px 0
+    border-radius: 3px
+    &:hover
+      background-color: $softbgcolor
+    &.selected
+      background-color: $userbuttonbgcolor
