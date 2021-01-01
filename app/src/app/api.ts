@@ -50,7 +50,12 @@ export class ListAnswerEntry {
 }
 
 export enum BallotType {
-  Closed,
+  // Front end types.
+  None = -255,
+  Blank,
+
+  // API types.
+  Closed = 0,
   Uninomial,
 }
 
@@ -81,6 +86,11 @@ export interface UninomialBallotAnswer {
   Alternatives: Array<PollAlternative>;
 }
 
+export class UninomialVoteQuery {
+  Blank?: boolean;
+  Alternative?: number;
+}
+
 export class CountInfoEntry {
   Alternative: PollAlternative;
   Count: number;
@@ -88,9 +98,4 @@ export class CountInfoEntry {
 
 export class CountInfoAnswer {
   Result: Array<CountInfoEntry>;
-}
-
-export class UninomialVoteQuery {
-  Blank?: boolean;
-  Alternative?: number;
 }

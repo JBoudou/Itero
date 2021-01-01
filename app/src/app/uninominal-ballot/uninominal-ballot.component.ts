@@ -17,18 +17,28 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
 
-import { PollSubComponent, ServerError } from '../poll/common';
-import { PollAlternative, UninomialBallotAnswer, UninomialVoteQuery } from '../api';
+import { PollBallotComponent, ServerError, PollBallot, NONE_BALLOT } from '../poll/common';
+import { PollAlternative, UninomialBallotAnswer, UninomialVoteQuery, BallotType } from '../api';
+
+export class UninomialBallot implements PollBallot {
+  constructor(readonly id: number, readonly name: string) { }
+
+  get type(): BallotType { return BallotType.Uninomial; }
+  get asString(): string { return this.name; }
+}
 
 @Component({
   selector: 'app-uninominal-ballot',
   templateUrl: './uninominal-ballot.component.html',
   styleUrls: ['./uninominal-ballot.component.sass']
 })
-export class UninominalBallotComponent implements OnInit, PollSubComponent {
+export class UninominalBallotComponent implements OnInit, PollBallotComponent {
 
   @Input() pollSegment: string;
+
   @Output() errors = new EventEmitter<ServerError>();
+  @Output() previousRoundBallot = new EventEmitter<PollBallot>();
+  @Output() currentRoundBallot  = new EventEmitter<PollBallot>();
 
   answer: UninomialBallotAnswer;
 
@@ -44,6 +54,8 @@ export class UninominalBallotComponent implements OnInit, PollSubComponent {
     this.http.get<UninomialBallotAnswer>('/a/ballot/uninominal/' + this.pollSegment).subscribe({
       next: (answer: UninomialBallotAnswer) => {
         this.answer = answer;
+        this.previousRoundBallot.emit(this.makeBallot(answer.Previous));
+        this.currentRoundBallot .emit(this.makeBallot(answer.Current ));
       },
       error: (err: HttpErrorResponse) => {
         this.errors.emit({status: err.status, message: err.error.trim()});
@@ -113,6 +125,13 @@ export class UninominalBallotComponent implements OnInit, PollSubComponent {
       }
     }
     return null;
+  }
+
+  private makeBallot(vote: number|undefined): PollBallot {
+    if (vote === undefined) {
+      return NONE_BALLOT;
+    }
+    return new UninomialBallot(vote!, this.nameOf(vote)!);
   }
 
 }

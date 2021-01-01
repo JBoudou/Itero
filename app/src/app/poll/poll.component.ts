@@ -23,7 +23,7 @@ import { Subscription } from 'rxjs';
 
 import { PollAnswer, BallotType, InformationType } from '../api';
 import { PollBallotDirective, PollInformationDirective } from './directives';
-import { PollSubComponent, ServerError } from './common';
+import { PollSubComponent, PollBallot, PollBallotComponent, ServerError } from './common';
 import { UninominalBallotComponent } from '../uninominal-ballot/uninominal-ballot.component';
 import { CountsInformationComponent } from '../counts-information/counts-information.component';
 
@@ -35,14 +35,18 @@ import { CountsInformationComponent } from '../counts-information/counts-informa
 })
 export class PollComponent implements OnInit {
 
+  @ViewChild(PollBallotDirective, { static: true }) ballot: PollBallotDirective;
+  @ViewChild(PollInformationDirective, { static: true }) information: PollInformationDirective;
+
   segment: string;
   answer: PollAnswer;
 
   error: ServerError;
-  errorSubscription: Subscription[] = [undefined, undefined];
 
-  @ViewChild(PollBallotDirective, { static: true }) ballot: PollBallotDirective;
-  @ViewChild(PollInformationDirective, { static: true }) information: PollInformationDirective;
+  previousRoundBallot: PollBallot;
+  currentRoundBallot: PollBallot;
+
+  private subscriptions: Subscription[][] = [];
 
   constructor(
     private route: ActivatedRoute,
@@ -68,11 +72,11 @@ export class PollComponent implements OnInit {
       !PollComponent.informationMap.has(this.answer.Information);
   }
 
-  private static ballotMap = new Map<BallotType, Type<any>>([
+  private static ballotMap = new Map<BallotType, Type<PollBallotComponent>>([
     [BallotType.Uninomial, UninominalBallotComponent]
   ]);
 
-  private static informationMap = new Map<InformationType, Type<any>>([
+  private static informationMap = new Map<InformationType, Type<PollSubComponent>>([
     [InformationType.Counts, CountsInformationComponent]
   ]);
 
@@ -81,8 +85,17 @@ export class PollComponent implements OnInit {
       next: (answer: PollAnswer) => {
         this.answer = answer;
         if (PollComponent.ballotMap.has(this.answer.Ballot)) {
-          this.loadSubComponent(0, this.ballot.viewContainerRef,
-                                PollComponent.ballotMap.get(this.answer.Ballot));
+          let comp =
+            this.loadSubComponent(0, this.ballot.viewContainerRef,
+                                  PollComponent.ballotMap.get(this.answer.Ballot)) as PollBallotComponent;
+          this.subscriptions[0].push(
+            comp.previousRoundBallot.subscribe({
+              next: (ballot: PollBallot) => this.previousRoundBallot = ballot,
+            }),
+            comp.currentRoundBallot.subscribe({
+              next: (ballot: PollBallot) => this.currentRoundBallot = ballot,
+            })
+          )
         }
         if (PollComponent.informationMap.has(this.answer.Information)) {
           this.loadSubComponent(1, this.information.viewContainerRef,
@@ -95,28 +108,35 @@ export class PollComponent implements OnInit {
     });
   }
 
+
   private loadSubComponent(subcriptionIndex: number,
                            viewContainerRef: ViewContainerRef,
-                           type: Type<any>): void {
-    if (!!this.errorSubscription[subcriptionIndex]) {
-      this.errorSubscription[subcriptionIndex].unsubscribe();
+                           type: Type<PollSubComponent>): PollSubComponent {
+
+    if (!!this.subscriptions[subcriptionIndex]) {
+      for (let subscription of this.subscriptions[subcriptionIndex]) {
+        subscription.unsubscribe();
+      }
     }
+
     const componentFactory = this.componentFactoryResolver.resolveComponentFactory(type);
     viewContainerRef.clear();
     const componentRef = viewContainerRef.createComponent<PollSubComponent>(componentFactory);
     componentRef.instance.pollSegment = this.segment;
-    this.errorSubscription[subcriptionIndex] = componentRef.instance.errors.subscribe({
+
+    this.subscriptions[subcriptionIndex] = [componentRef.instance.errors.subscribe({
       next: (err: ServerError) => {
         this.registerError(err);
       }
-    });
+    })];
+
+    return componentRef.instance;
   }
+
 
   private registerError(err: ServerError) {
     this.error = err;
-    for (let i = 0; i < 2; i++) {
-      this.errorSubscription[i] = undefined;
-    }
+    this.subscriptions = [];
     this.ballot.viewContainerRef.clear();
     this.information.viewContainerRef.clear();
   }
