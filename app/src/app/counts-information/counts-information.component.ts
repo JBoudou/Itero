@@ -113,8 +113,13 @@ export class CountsInformationComponent implements OnInit, PollSubComponent {
         this.data = [];
         for (let entry of answer.Result) {
           var shortName = entry.Alternative.Name;
-          if (shortName.length > 21) {
-            shortName = shortName.slice(0, 20) + '...';
+          if (shortName.length > 10) {
+            this.options.chartArea.left = '35%';
+            if (shortName.length > 21) {
+              shortName = shortName.slice(0, 20) + '...';
+            }
+          } else {
+            this.options.chartArea.left = '20%';
           }
           var tooltip = entry.Alternative.Name;
           var annotation = String(Math.round(entry.Count * 1000 / sum) / 10) + '%';
