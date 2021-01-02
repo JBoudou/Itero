@@ -23,7 +23,7 @@ import { Subscription } from 'rxjs';
 
 import { PollAnswer, BallotType, InformationType } from '../api';
 import { PollBallotDirective, PollInformationDirective } from './directives';
-import { PollSubComponent, PollBallot, PollBallotComponent, ServerError } from './common';
+import { PollSubComponent, PollBallot, NONE_BALLOT, PollBallotComponent, ServerError } from './common';
 import { UninominalBallotComponent } from '../uninominal-ballot/uninominal-ballot.component';
 import { CountsInformationComponent } from '../counts-information/counts-information.component';
 
@@ -43,8 +43,11 @@ export class PollComponent implements OnInit {
 
   error: ServerError;
 
-  previousRoundBallot: PollBallot;
-  currentRoundBallot: PollBallot;
+  previousRoundBallot: PollBallot = NONE_BALLOT;
+  currentRoundBallot : PollBallot = NONE_BALLOT;
+
+  // Make it visible from template
+  BallotType = BallotType;
 
   private subscriptions: Subscription[][] = [];
 

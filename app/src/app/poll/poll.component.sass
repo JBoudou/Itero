@@ -1,5 +1,7 @@
 @use 'sass:color'
 @import '../../colors'
+@import '../../typo'
+@import '../../mixins'
 
 #pollmain
   display: grid
@@ -20,3 +22,11 @@
       padding: 4px
   #pollinformation
     margin-left: 8px
+
+.previousVotes
+  font-size: $fontsize - 1
+  line-height: 1.4
+  .vote
+    @include userinput
+    padding-top: 1px
+    padding-bottom: 1px
