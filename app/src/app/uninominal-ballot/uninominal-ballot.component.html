@@ -1,11 +1,4 @@
 <div class="hasJust previousVotes" *ngIf="hasJust()">
-  <p i18n>
-    Your
-    <ng-container *ngIf="lastVote.Blank">blank</ng-container>
-    vote
-    <ng-container *ngIf="!lastVote.Blank">for <span class="vote">{{just()}}</span></ng-container>
-    has been taken into account.
-  </p>
 </div>
 <p class="ballothint" i18n>Choose one of the following alternatives:</p>
 <form *ngIf="!!answer && !hasJust()" class="basicform">

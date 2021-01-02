@@ -96,33 +96,37 @@ export class CountsInformationComponent implements OnInit, PollSubComponent {
     this.http.get<CountInfoAnswer>('/a/info/count/' + this.pollSegment).subscribe({
       next: (answer: CountInfoAnswer) => {
         // First pass
-        var max = 0;
-        var sum = 0;
+        var maxCount = 0;
+        var sumCount = 0;
+        var maxLen = 0;
         for (let entry of answer.Result) {
-          sum += entry.Count;
-          if (entry.Count > max) {
-            max = entry.Count;
+          sumCount += entry.Count;
+          if (entry.Count > maxCount) {
+            maxCount = entry.Count;
+          }
+          if (entry.Alternative.Name.length > maxLen) {
+            maxLen = entry.Alternative.Name.length;
           }
         };
 
         // Set global options
         this.options.height = 32 * (answer.Result.length + 1);
-        this.options.hAxis.maxValue = Math.min(5 * ((max / 5) + 1), sum, max * 2);
+        this.options.hAxis.maxValue = Math.min(5 * ((maxCount / 5) + 1), sumCount, maxCount * 2);
+        if (maxLen > 10) {
+          this.options.chartArea.left = '35%';
+        } else {
+          this.options.chartArea.left = '20%';
+        }
 
         // Second pass
         this.data = [];
         for (let entry of answer.Result) {
           var shortName = entry.Alternative.Name;
-          if (shortName.length > 10) {
-            this.options.chartArea.left = '35%';
-            if (shortName.length > 21) {
-              shortName = shortName.slice(0, 20) + '...';
-            }
-          } else {
-            this.options.chartArea.left = '20%';
+          if (shortName.length > 21) {
+            shortName = shortName.slice(0, 20) + '...';
           }
           var tooltip = entry.Alternative.Name;
-          var annotation = String(Math.round(entry.Count * 1000 / sum) / 10) + '%';
+          var annotation = String(Math.round(entry.Count * 1000 / sumCount) / 10) + '%';
           var style = CountsInformationComponent.palette[this.data.length % CountsInformationComponent.palette.length];
           this.data.push([shortName, entry.Count, tooltip, annotation, style]);
         }

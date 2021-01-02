@@ -10,11 +10,18 @@
   <div id="pollsecondline">
     <div id="pollstate">
       <div class="previousVotes">
-        <p *ngIf="currentRoundBallot.type != BallotType['None']" i18n>
+        <p class="justVote" *ngIf="hasJustVoteBallot()" i18n>
+          Your
+          <ng-container *ngIf="justVoteBallot.type == BallotType['Blank']">blank</ng-container>
+          vote
+          <ng-container *ngIf="justVoteBallot.type != BallotType['Blank']">for <span class="vote">{{justVoteBallot.asString}}</span></ng-container>
+          has been taken into account.
+        </p>
+        <p *ngIf="hasCurrentRoundBallot()" i18n>
           On the current round, you've already voted <span class="vote">{{currentRoundBallot.asString}}</span>.
           You may now change this vote.
         </p>
-        <p *ngIf="previousRoundBallot.type != BallotType['None']" i18n>
+        <p *ngIf="hasPreviousRoundBallot()" i18n>
           On the previous round, you voted <span class="vote">{{previousRoundBallot.asString}}</span>.
         </p>
       </div>

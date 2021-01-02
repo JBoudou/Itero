@@ -45,6 +45,7 @@ export class PollComponent implements OnInit {
 
   previousRoundBallot: PollBallot = NONE_BALLOT;
   currentRoundBallot : PollBallot = NONE_BALLOT;
+  justVoteBallot     : PollBallot = NONE_BALLOT;
 
   // Make it visible from template
   BallotType = BallotType;
@@ -75,6 +76,19 @@ export class PollComponent implements OnInit {
       !PollComponent.informationMap.has(this.answer.Information);
   }
 
+  hasCurrentRoundBallot(): boolean {
+    return this.currentRoundBallot.type != BallotType.None &&
+           this.justVoteBallot.type == BallotType.None;
+  }
+
+  hasPreviousRoundBallot(): boolean {
+    return this.currentRoundBallot.type != BallotType.None;
+  }
+
+  hasJustVoteBallot(): boolean {
+    return this.justVoteBallot.type != BallotType.None;
+  }
+
   private static ballotMap = new Map<BallotType, Type<PollBallotComponent>>([
     [BallotType.Uninomial, UninominalBallotComponent]
   ]);
@@ -97,7 +111,13 @@ export class PollComponent implements OnInit {
             }),
             comp.currentRoundBallot.subscribe({
               next: (ballot: PollBallot) => this.currentRoundBallot = ballot,
-            })
+            }),
+            comp.justVoteBallot.subscribe({
+              next: (ballot: PollBallot) => {
+                this.justVoteBallot = ballot;
+                this.clearSubComponent(0, this.ballot.viewContainerRef);
+              }
+            }),
           )
         }
         if (PollComponent.informationMap.has(this.answer.Information)) {
@@ -112,18 +132,24 @@ export class PollComponent implements OnInit {
   }
 
 
-  private loadSubComponent(subcriptionIndex: number,
-                           viewContainerRef: ViewContainerRef,
-                           type: Type<PollSubComponent>): PollSubComponent {
+  private clearSubComponent(subcriptionIndex: number,
+                           viewContainerRef: ViewContainerRef): void {
 
     if (!!this.subscriptions[subcriptionIndex]) {
       for (let subscription of this.subscriptions[subcriptionIndex]) {
         subscription.unsubscribe();
       }
     }
+    viewContainerRef.clear();
+  }
+
+  private loadSubComponent(subcriptionIndex: number,
+                           viewContainerRef: ViewContainerRef,
+                           type: Type<PollSubComponent>): PollSubComponent {
+
+    this.clearSubComponent(subcriptionIndex, viewContainerRef);
 
     const componentFactory = this.componentFactoryResolver.resolveComponentFactory(type);
-    viewContainerRef.clear();
     const componentRef = viewContainerRef.createComponent<PollSubComponent>(componentFactory);
     componentRef.instance.pollSegment = this.segment;
 

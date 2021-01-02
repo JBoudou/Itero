@@ -17,7 +17,7 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
 
-import { PollBallotComponent, ServerError, PollBallot, NONE_BALLOT } from '../poll/common';
+import { PollBallotComponent, ServerError, PollBallot, NONE_BALLOT, BLANK_BALLOT } from '../poll/common';
 import { PollAlternative, UninomialBallotAnswer, UninomialVoteQuery, BallotType } from '../api';
 
 export class UninomialBallot implements PollBallot {
@@ -39,6 +39,7 @@ export class UninominalBallotComponent implements OnInit, PollBallotComponent {
   @Output() errors = new EventEmitter<ServerError>();
   @Output() previousRoundBallot = new EventEmitter<PollBallot>();
   @Output() currentRoundBallot  = new EventEmitter<PollBallot>();
+  @Output() justVoteBallot      = new EventEmitter<PollBallot>();
 
   answer: UninomialBallotAnswer;
 
@@ -54,8 +55,8 @@ export class UninominalBallotComponent implements OnInit, PollBallotComponent {
     this.http.get<UninomialBallotAnswer>('/a/ballot/uninominal/' + this.pollSegment).subscribe({
       next: (answer: UninomialBallotAnswer) => {
         this.answer = answer;
-        this.previousRoundBallot.emit(this.makeBallot(answer.Previous));
-        this.currentRoundBallot .emit(this.makeBallot(answer.Current ));
+        this.previousRoundBallot.emit(this.ballotFromId(answer.Previous));
+        this.currentRoundBallot .emit(this.ballotFromId(answer.Current ));
       },
       error: (err: HttpErrorResponse) => {
         this.errors.emit({status: err.status, message: err.error.trim()});
@@ -86,7 +87,7 @@ export class UninominalBallotComponent implements OnInit, PollBallotComponent {
   private vote(vote: UninomialVoteQuery): void {
     this.http.post('/a/vote/uninominal/' + this.pollSegment, vote)
       .subscribe({
-        next: _ => this.lastVote = vote,
+        next: _ => this.justVoteBallot.emit(this.ballotFromQuery(vote)),
       });
   }
 
@@ -127,11 +128,18 @@ export class UninominalBallotComponent implements OnInit, PollBallotComponent {
     return null;
   }
 
-  private makeBallot(vote: number|undefined): PollBallot {
+  private ballotFromId(vote: number|undefined): PollBallot {
     if (vote === undefined) {
       return NONE_BALLOT;
     }
     return new UninomialBallot(vote!, this.nameOf(vote)!);
+  }
+
+  private ballotFromQuery(vote: UninomialVoteQuery): PollBallot {
+    if (vote.Blank) {
+      return BLANK_BALLOT;
+    }
+    return new UninomialBallot(vote.Alternative, this.nameOf(vote.Alternative));
   }
 
 }
