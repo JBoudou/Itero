@@ -70,6 +70,7 @@ export class PollAnswer {
   Admin:        string;
   CreationTime: Date;
   CurrentRound: number;
+  Active:       boolean;
   Ballot:       BallotType;
   Information:  InformationType;
 }

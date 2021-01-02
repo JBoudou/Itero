@@ -23,7 +23,7 @@ import { Subscription } from 'rxjs';
 
 import { PollAnswer, BallotType, InformationType } from '../api';
 import { PollBallotDirective, PollInformationDirective } from './directives';
-import { PollSubComponent, PollBallot, NONE_BALLOT, PollBallotComponent, ServerError } from './common';
+import { PollSubComponent, PollBallot, NONE_BALLOT, PollBallotComponent, PollInformationComponent, ServerError } from './common';
 import { UninominalBallotComponent } from '../uninominal-ballot/uninominal-ballot.component';
 import { CountsInformationComponent } from '../counts-information/counts-information.component';
 
@@ -101,7 +101,7 @@ export class PollComponent implements OnInit {
     this.http.get<PollAnswer>('/a/poll/' + this.segment).subscribe({
       next: (answer: PollAnswer) => {
         this.answer = answer;
-        if (PollComponent.ballotMap.has(this.answer.Ballot)) {
+        if (this.answer.Active && PollComponent.ballotMap.has(this.answer.Ballot)) {
           let comp =
             this.loadSubComponent(0, this.ballot.viewContainerRef,
                                   PollComponent.ballotMap.get(this.answer.Ballot)) as PollBallotComponent;
@@ -121,8 +121,10 @@ export class PollComponent implements OnInit {
           )
         }
         if (PollComponent.informationMap.has(this.answer.Information)) {
-          this.loadSubComponent(1, this.information.viewContainerRef,
-                                PollComponent.informationMap.get(this.answer.Information));
+          let comp =
+            this.loadSubComponent(1, this.information.viewContainerRef,
+                                  PollComponent.informationMap.get(this.answer.Information)) as PollInformationComponent;
+          comp.finalResult = !this.answer.Active;
         }
       },
       error: (err: HttpErrorResponse) => {

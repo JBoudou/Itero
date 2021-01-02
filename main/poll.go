@@ -164,6 +164,7 @@ type PollAnswer struct {
 	Admin        string
 	CreationTime time.Time
 	CurrentRound uint8
+	Active       bool
 	Ballot       uint8
 	Information  uint8
 }
@@ -176,6 +177,7 @@ func PollHandler(ctx context.Context, response server.Response, request *server.
 		Ballot:       pollInfo.BallotType(),
 		Information:  pollInfo.InformationType(),
 		CurrentRound: pollInfo.CurrentRound,
+		Active:       pollInfo.Active,
 	}
 
 	// Additional informations for display

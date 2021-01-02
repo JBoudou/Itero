@@ -48,3 +48,7 @@ export interface PollBallotComponent extends PollSubComponent {
   currentRoundBallot : Observable<PollBallot>;
   justVoteBallot     : Observable<PollBallot>;
 }
+
+export interface PollInformationComponent extends PollSubComponent {
+  finalResult: boolean;
+}

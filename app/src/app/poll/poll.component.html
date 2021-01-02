@@ -5,7 +5,12 @@
     <p id="pollcreation" i18n>Poll created by {{answer.Admin}} on {{answer.CreationTime | date}}.</p>
   </div>
   <h4 *ngIf="hasAnswer()" id="pollround" i18n>
-    {answer.CurrentRound, plural, =0 {First round} =1 {Second round} =2 {Third round} other {{{answer.CurrentRound + 1}}nd round}}
+    <ng-container *ngIf="answer.Active">
+      {answer.CurrentRound, plural, =0 {First round} =1 {Second round} =2 {Third round} other {{{answer.CurrentRound + 1}}nd round}}
+    </ng-container>
+    <ng-container *ngIf="!answer.Active">
+      Closed
+    </ng-container>
   </h4>
   <div id="pollsecondline">
     <div id="pollstate">
