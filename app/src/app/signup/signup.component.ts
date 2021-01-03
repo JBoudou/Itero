@@ -16,10 +16,23 @@
 
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, ValidationErrors, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 
 import { SignupQuery } from '../api';
 import { SessionService } from '../session/session.service';
+
+function notInclude(substring: string): ValidatorFn {
+  return (control: AbstractControl): ValidationErrors | null => {
+    const found = (control.value as string).includes(substring);
+    return found ? { notInclude: substring } : null;
+  }
+}
+
+function samePasswordValidator(grp: FormGroup): ValidationErrors | null {
+  const first  = grp.get('Passwd');
+  const second = grp.get('pwdconfirm');
+  return first.value != second.value ? { passwordsDiffer: true } : null;
+}
 
 @Component({
   selector: 'app-signup',
@@ -31,7 +44,8 @@ export class SignupComponent implements OnInit {
   form = this.formBuilder.group({
     Name: ['', [
       Validators.required,
-      Validators.minLength(5)
+      Validators.minLength(5),
+      notInclude('@')
     ]],
     Email: ['', [
       Validators.required,
@@ -43,7 +57,7 @@ export class SignupComponent implements OnInit {
     ]],
     pwdconfirm: [''],
   }, {
-    validators: [ this.samePasswordValidator ],
+    validators: [ samePasswordValidator ],
   });
 
   serverError = ''
@@ -74,6 +88,7 @@ export class SignupComponent implements OnInit {
           switch (this.serverError) {
             case 'Name too short':
             case 'Name has spaces':
+            case 'Name has at sign':
             case 'Already exists':
               this.form.get('Name').valueChanges.subscribe(this.resetServerError);
               break;
@@ -81,7 +96,7 @@ export class SignupComponent implements OnInit {
               this.form.get('Email').valueChanges.subscribe(this.resetServerError);
               break;
             case 'Passwd too short':
-              this.form.get('Email').valueChanges.subscribe(this.resetServerError);
+              this.form.get('Passwd').valueChanges.subscribe(this.resetServerError);
               break;
           }
         } else {
@@ -93,17 +108,19 @@ export class SignupComponent implements OnInit {
 
   private resetServerError = { next: () => { this.serverError = '' } }
 
-  samePasswordValidator(grp: FormGroup): ValidationErrors | null {
-    const first  = grp.get('Passwd');
-    const second = grp.get('pwdconfirm');
-    return first.value != second.value ? { passwordsDiffer: true } : null;
-  }
-
   nameTooShort(): boolean {
     return true &&
       this.form.controls['Name'].dirty &&
       !this.form.controls['Name'].valid &&
       !!this.form.controls['Name'].errors['minlength'];
+  }
+
+  nameContainsAt(): boolean {
+    return true &&
+      this.form.controls['Name'].dirty &&
+      !this.form.controls['Name'].valid &&
+      !!this.form.controls['Name'].errors['notInclude'] &&
+      this.form.controls['Name'].errors['notInclude'] == '@';
   }
 
   pwdTooShort(): boolean {

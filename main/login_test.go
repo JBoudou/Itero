@@ -61,10 +61,18 @@ func TestLoginHandler(t *testing.T) {
 			Checker: srvt.CheckStatus{http.StatusForbidden},
 		},
 		{
-			Name: "success",
+			Name: "success user",
 			Request: srvt.Request{
 				Method: "POST",
 				Body:   `{"User":" Test ","Passwd":"XYZ"}`,
+			},
+			Checker: srvt.CheckStatus{http.StatusOK},
+		},
+		{
+			Name: "success email",
+			Request: srvt.Request{
+				Method: "POST",
+				Body:   `{"User":"test@example.test","Passwd":"XYZ"}`,
 			},
 			Checker: srvt.CheckStatus{http.StatusOK},
 		},

@@ -20,6 +20,7 @@ import (
 	"context"
 	"net/http"
 	"regexp"
+	"strings"
 	"unicode"
 	"unicode/utf8"
 
@@ -60,6 +61,12 @@ func SignupHandler(ctx context.Context, response server.Response, request *serve
 	if unicode.IsSpace(firstRune) || unicode.IsSpace(lastRune) {
 		err := server.NewHttpError(http.StatusBadRequest, "Name has spaces",
 			"User starts or ends with space")
+		response.SendError(ctx, err)
+		return
+	}
+	if strings.ContainsRune(signupQuery.Name, '@') {
+		err := server.NewHttpError(http.StatusBadRequest, "Name has at sign",
+			"User contains the at sign rune")
 		response.SendError(ctx, err)
 		return
 	}

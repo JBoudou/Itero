@@ -5,6 +5,7 @@
   <label i18n>Password again:</label><input type="password" formControlName="pwdconfirm">
   <div class="formerrors" *ngIf="!form.valid">
     <p *ngIf="nameTooShort()" i18n>The login name must be at least 5 characters long.</p>
+    <p *ngIf="nameContainsAt()" i18n>The login name must not contain symbol '@'.</p>
     <p *ngIf="emailWrong()" i18n>Please provide a valid email address.</p>
     <p *ngIf="pwdTooShort()" i18n>The login password must be at least 5 characters long.</p>
     <p *ngIf="passwordsDiffer()" i18n>The passwords do not match.</p>
@@ -12,6 +13,7 @@
   <div class="formerrors" *ngIf="!!serverError" [ngSwitch]="serverError">
     <p *ngSwitchCase="'Name too short'" i18n>The login name is too short.</p>
     <p *ngSwitchCase="'Name has spaces'" i18n>The login name must not start or end with spaces.</p>
+    <p *ngSwitchCase="'Name has at sign'" i18n>The login name must not contain symbol '@'.</p>
     <p *ngSwitchCase="'Passwd too short'" i18n>Your password is too short.</p>
     <p *ngSwitchCase="'Email invalid'" i18n>
       The provided email address looks invalid. Please check it carefully or give another one.

@@ -23,6 +23,7 @@ import (
 	"errors"
 	"hash"
 	"net/http"
+	"strings"
 
 	"golang.org/x/crypto/blake2b"
 
@@ -52,9 +53,18 @@ func LoginHandler(ctx context.Context, response server.Response, request *server
 		return
 	}
 
+	const (
+		qName  = `SELECT Id, Passwd FROM Users WHERE Name = ?`
+		qEmail = `SELECT Id, Passwd FROM Users WHERE Email = ?`
+	)
+	query := qName
+	if strings.ContainsRune(loginQuery.User, '@') {
+		query = qEmail
+	}
+
 	var id uint32
 	var passwd []byte
-	row := db.DB.QueryRowContext(ctx, "SELECT Id, Passwd FROM Users WHERE Name = ?", loginQuery.User)
+	row := db.DB.QueryRowContext(ctx, query, loginQuery.User)
 	if err := row.Scan(&id, &passwd); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			err = server.NewHttpError(http.StatusForbidden, "Unauthorized", "User not found")

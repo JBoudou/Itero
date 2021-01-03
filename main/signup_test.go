@@ -61,6 +61,14 @@ func TestSignupHandler_Error(t *testing.T) {
 			Checker: srvt.CheckError{http.StatusBadRequest, "Name has spaces"},
 		},
 		{
+			Name: "Name containing @",
+			Request: srvt.Request{
+				Method: "POST",
+				Body:   `{"Name":"toto@to","Email":"toto@example.com","Passwd":"tititi"}`,
+			},
+			Checker: srvt.CheckError{http.StatusBadRequest, "Name has at sign"},
+		},
+		{
 			Name: "Password too short",
 			Request: srvt.Request{
 				Method: "POST",
