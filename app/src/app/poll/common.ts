@@ -18,16 +18,23 @@ import { Observable } from 'rxjs';
 
 import { BallotType } from '../api';
 
+/** Error transfered to the parent component. */
 export class ServerError {
   status: number;
   message: string;
 }
 
+/** 
+ * Base interface for all ballots.
+ * The methods are usualy implemented as getters.
+ * TODO: Implement a decorator.
+ */
 export interface PollBallot {
   readonly type: BallotType;
   readonly asString: string;
 }
 
+/** Ballot to use when there is no ballot, for instance when a component is initialized. */
 export const NONE_BALLOT: PollBallot  = {
   get type(): BallotType { return BallotType.None; },
   get asString(): string { return ''; }
@@ -38,17 +45,33 @@ export const BLANK_BALLOT: PollBallot = {
   get asString(): string { return ''; }
 }
 
+/**
+ * Child component of the poll, namely either the ballot component and the information component.
+ * Use dedicated interface PollBallotComponent and PollInformationComponent whenever possible.
+ */
 export interface PollSubComponent {
   pollSegment: string;
   errors: Observable<ServerError>;
 }
 
+/**
+ * Child componenent of the poll that displays the ballot.
+ * This component makes a request to the middleware to obtain the previous votes of the user (for the previous
+ * and current round) as well as the list of alternatives. The previous votes are transfered (for instance to
+ * the poll component) by means of Observables. This component is also responsible to send the vote to the
+ * middleware. When that's done, the vote is transfered too.
+ */
 export interface PollBallotComponent extends PollSubComponent {
   previousRoundBallot: Observable<PollBallot>;
   currentRoundBallot : Observable<PollBallot>;
   justVoteBallot     : Observable<PollBallot>;
 }
 
+/**
+ * Child component of the poll that displays information about the current state of the poll.
+ * This component makes the request to the middleware itself. When the poll is closed,
+ * the information are usualy displayed differently. Most notably, the winner of the poll must be made clear.
+ */
 export interface PollInformationComponent extends PollSubComponent {
   finalResult: boolean;
 }

@@ -18,8 +18,9 @@ import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 
 import { PollSubComponent, ServerError } from '../poll/common';
-import { CountInfoEntry, CountInfoAnswer } from '../api';
+import { CountInfoAnswer } from '../api';
 
+/** Extract the first element of a comma separated list, removing one level of enclosing " or '. */
 function extractFontFamily(css: string): string {
   var first = css.split(",", 1)[0].trim();
   if (first[0] == '"' || first[0] == "'") {
@@ -28,6 +29,11 @@ function extractFontFamily(css: string): string {
   return first;
 }
 
+/**
+ * Extract a font size in px.
+ * An approximation is done if the size is in pt.
+ * A default value of 12 is returned is the size cannot be extracted.
+ */
 function extractFontSize(css: string): number {
   if (css.endsWith("px")) {
     return Number(css.slice(0, -2));
@@ -37,6 +43,7 @@ function extractFontSize(css: string): number {
   }
   return 12;
 }
+
 
 @Component({
   selector: 'app-counts-information',
@@ -129,9 +136,10 @@ export class CountsInformationComponent implements OnInit, PollSubComponent {
           if (shortName.length > 21) {
             shortName = shortName.slice(0, 20) + '...';
           }
-          var tooltip = entry.Alternative.Name;
-          var annotation = String(Math.round(entry.Count * 1000 / sumCount) / 10) + '%';
-          var style = CountsInformationComponent.palette[this.data.length % CountsInformationComponent.palette.length];
+          const tooltip = entry.Alternative.Name;
+          const annotation = String(Math.round(entry.Count * 1000 / sumCount) / 10) + '%';
+          const palletteId = this.data.length % CountsInformationComponent.palette.length;
+          const style = CountsInformationComponent.palette[palletteId];
           this.data.push([shortName, entry.Count, tooltip, annotation, style]);
         }
       },

@@ -1,9 +1,7 @@
-<div class="hasJust previousVotes" *ngIf="hasJust()">
-</div>
 <p class="ballothint" i18n>Choose one of the following alternatives:</p>
-<form *ngIf="!!answer && !hasJust()" class="basicform">
+<form *ngIf="!!alternatives" class="basicform">
   <ul class="selection-list">
-    <li *ngFor="let alt of answer.Alternatives" [class.selected]="isSelected(alt.Id)" (click)="onSelect(alt.Id)">{{alt.Name}}</li>
+    <li *ngFor="let alt of alternatives" [class.selected]="isSelected(alt.Id)" (click)="onSelect(alt.Id)">{{alt.Name}}</li>
   </ul>
   <div class="formactions">
     <button type="button" [disabled]="!isValid()" (click)="onVote()" i18n>Vote</button>

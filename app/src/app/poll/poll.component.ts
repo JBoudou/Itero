@@ -15,18 +15,50 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import { Component, OnInit, Type, ViewChild, ViewContainerRef, ComponentFactoryResolver, ViewEncapsulation } from '@angular/core';
+import {
+  Component,
+  ComponentFactoryResolver,
+  OnInit,
+  Type,
+  ViewChild,
+  ViewContainerRef,
+  ViewEncapsulation
+} from '@angular/core';
+
 import { ActivatedRoute, ParamMap } from '@angular/router';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 
 import { Subscription } from 'rxjs';
 
+import {
+  NONE_BALLOT,
+  PollBallot,
+  PollBallotComponent,
+  PollInformationComponent,
+  PollSubComponent,
+  ServerError
+} from './common';
+
 import { PollAnswer, BallotType, InformationType } from '../api';
 import { PollBallotDirective, PollInformationDirective } from './directives';
-import { PollSubComponent, PollBallot, NONE_BALLOT, PollBallotComponent, PollInformationComponent, ServerError } from './common';
 import { UninominalBallotComponent } from '../uninominal-ballot/uninominal-ballot.component';
 import { CountsInformationComponent } from '../counts-information/counts-information.component';
 
+// Indexes for the sub component.
+const enum SubComponentId {
+  Ballot = 0,
+  Information
+}
+
+/**
+ * This component displays the current state of the poll and allow the user to vote.
+ * 
+ * To manage the diversity of polls, this component delegates tasks to dynamic child components
+ * called sub-component. There are currently two sub-components: one to display the ballot and
+ * to vote, one to display the current informations about the poll.
+ *
+ * PollComponent ask the type of the poll to the middleware then creates the sub-components.
+ */
 @Component({
   selector: 'app-poll',
   templateUrl: './poll.component.html',
@@ -35,8 +67,12 @@ import { CountsInformationComponent } from '../counts-information/counts-informa
 })
 export class PollComponent implements OnInit {
 
+  // Anchors to insert the dynamic sub-component into.
   @ViewChild(PollBallotDirective, { static: true }) ballot: PollBallotDirective;
   @ViewChild(PollInformationDirective, { static: true }) information: PollInformationDirective;
+
+  /** Access to viewContainerRef using SubComponentId. */
+  private viewContainerRef: ViewContainerRef[];
 
   segment: string;
   answer: PollAnswer;
@@ -47,9 +83,11 @@ export class PollComponent implements OnInit {
   currentRoundBallot : PollBallot = NONE_BALLOT;
   justVoteBallot     : PollBallot = NONE_BALLOT;
 
-  // Make it visible from template
+  // Make it visible from template.
+  // TODO: Implements a decorator for PollBallot that provides methods for that.
   BallotType = BallotType;
 
+  /** Subscription for the sub component. The first index must be a SubComponentId. */
   private subscriptions: Subscription[][] = [];
 
   constructor(
@@ -59,21 +97,21 @@ export class PollComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
+    this.viewContainerRef = [
+      this.ballot.viewContainerRef,
+      this.information.viewContainerRef,
+    ];
+
     this.route.paramMap.subscribe((params: ParamMap) => {
       this.segment = params.get('pollSegment');
       this.retrieveTypes();
     });
   }
 
+  /** Whether the response from the middleware has been received. */
   hasAnswer(): boolean {
     return typeof this.error == 'undefined' &&
            typeof this.answer !== 'undefined';
-  }
-
-  noInformation(): boolean {
-    return this.hasAnswer() &&
-      this.answer.CurrentRound > 0 &&
-      !PollComponent.informationMap.has(this.answer.Information);
   }
 
   hasCurrentRoundBallot(): boolean {
@@ -97,15 +135,16 @@ export class PollComponent implements OnInit {
     [InformationType.Counts, CountsInformationComponent]
   ]);
 
+  /** Ask the type of the poll to the middleware and creates the sub-components accordingly. */
   private retrieveTypes(): void {
     this.http.get<PollAnswer>('/a/poll/' + this.segment).subscribe({
       next: (answer: PollAnswer) => {
         this.answer = answer;
         if (this.answer.Active && PollComponent.ballotMap.has(this.answer.Ballot)) {
-          let comp =
-            this.loadSubComponent(0, this.ballot.viewContainerRef,
-                                  PollComponent.ballotMap.get(this.answer.Ballot)) as PollBallotComponent;
-          this.subscriptions[0].push(
+          const type = PollComponent.ballotMap.get(this.answer.Ballot);
+          const comp = this.loadSubComponent(SubComponentId.Ballot, type) as PollBallotComponent;
+
+          this.subscriptions[SubComponentId.Ballot].push(
             comp.previousRoundBallot.subscribe({
               next: (ballot: PollBallot) => this.previousRoundBallot = ballot,
             }),
@@ -115,15 +154,15 @@ export class PollComponent implements OnInit {
             comp.justVoteBallot.subscribe({
               next: (ballot: PollBallot) => {
                 this.justVoteBallot = ballot;
-                this.clearSubComponent(0, this.ballot.viewContainerRef);
+                this.clearSubComponent(SubComponentId.Ballot);
               }
             }),
           )
         }
         if (PollComponent.informationMap.has(this.answer.Information)) {
-          let comp =
-            this.loadSubComponent(1, this.information.viewContainerRef,
-                                  PollComponent.informationMap.get(this.answer.Information)) as PollInformationComponent;
+          const type = PollComponent.informationMap.get(this.answer.Information);
+          const comp =
+            this.loadSubComponent(SubComponentId.Information, type) as PollInformationComponent;
           comp.finalResult = !this.answer.Active;
         }
       },
@@ -133,29 +172,33 @@ export class PollComponent implements OnInit {
     });
   }
 
+  /** Disconnect then remove a sub-component. */
+  private clearSubComponent(componentIndex: number): void {
+    const viewContainerRef = this.viewContainerRef[componentIndex];
 
-  private clearSubComponent(subcriptionIndex: number,
-                           viewContainerRef: ViewContainerRef): void {
-
-    if (!!this.subscriptions[subcriptionIndex]) {
-      for (let subscription of this.subscriptions[subcriptionIndex]) {
+    if (!!this.subscriptions[componentIndex]) {
+      for (let subscription of this.subscriptions[componentIndex]) {
         subscription.unsubscribe();
       }
     }
     viewContainerRef.clear();
   }
 
-  private loadSubComponent(subcriptionIndex: number,
-                           viewContainerRef: ViewContainerRef,
+  /**
+   * Create, connect and insert a sub-component.
+   * The returned value is guaranteed to be of type type.
+   */
+  private loadSubComponent(componentIndex: number,
                            type: Type<PollSubComponent>): PollSubComponent {
 
-    this.clearSubComponent(subcriptionIndex, viewContainerRef);
+    this.clearSubComponent(componentIndex);
 
     const componentFactory = this.componentFactoryResolver.resolveComponentFactory(type);
+    const viewContainerRef = this.viewContainerRef[componentIndex];
     const componentRef = viewContainerRef.createComponent<PollSubComponent>(componentFactory);
     componentRef.instance.pollSegment = this.segment;
 
-    this.subscriptions[subcriptionIndex] = [componentRef.instance.errors.subscribe({
+    this.subscriptions[componentIndex] = [componentRef.instance.errors.subscribe({
       next: (err: ServerError) => {
         this.registerError(err);
       }
@@ -164,12 +207,16 @@ export class PollComponent implements OnInit {
     return componentRef.instance;
   }
 
-
+  /**
+   * Receive an error from a sub-component.
+   * This results in all sub-components being cleared.
+   */
   private registerError(err: ServerError) {
     this.error = err;
+    for (let i = 0, end = this.subscriptions.length; i < end; i++) {
+      this.clearSubComponent(i);
+    }
     this.subscriptions = [];
-    this.ballot.viewContainerRef.clear();
-    this.information.viewContainerRef.clear();
   }
 
 }

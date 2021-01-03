@@ -17,8 +17,16 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
 
-import { PollBallotComponent, ServerError, PollBallot, NONE_BALLOT, BLANK_BALLOT } from '../poll/common';
+import { 
+  BLANK_BALLOT,
+  NONE_BALLOT,
+  PollBallot,
+  PollBallotComponent,
+  ServerError,
+} from '../poll/common';
+
 import { PollAlternative, UninomialBallotAnswer, UninomialVoteQuery, BallotType } from '../api';
+
 
 export class UninomialBallot implements PollBallot {
   constructor(readonly id: number, readonly name: string) { }
@@ -26,6 +34,7 @@ export class UninomialBallot implements PollBallot {
   get type(): BallotType { return BallotType.Uninomial; }
   get asString(): string { return this.name; }
 }
+
 
 @Component({
   selector: 'app-uninominal-ballot',
@@ -41,11 +50,9 @@ export class UninominalBallotComponent implements OnInit, PollBallotComponent {
   @Output() currentRoundBallot  = new EventEmitter<PollBallot>();
   @Output() justVoteBallot      = new EventEmitter<PollBallot>();
 
-  answer: UninomialBallotAnswer;
+  alternatives: PollAlternative[];
 
-  selected: number;
-
-  lastVote: UninomialVoteQuery;
+  private selected: number;
 
   constructor(
     private http: HttpClient,
@@ -54,7 +61,7 @@ export class UninominalBallotComponent implements OnInit, PollBallotComponent {
   ngOnInit(): void {
     this.http.get<UninomialBallotAnswer>('/a/ballot/uninominal/' + this.pollSegment).subscribe({
       next: (answer: UninomialBallotAnswer) => {
-        this.answer = answer;
+        this.alternatives = answer.Alternatives;
         this.previousRoundBallot.emit(this.ballotFromId(answer.Previous));
         this.currentRoundBallot .emit(this.ballotFromId(answer.Current ));
       },
@@ -91,36 +98,13 @@ export class UninominalBallotComponent implements OnInit, PollBallotComponent {
       });
   }
 
-  hasPrevious(): boolean {
-    return this.answer !== undefined && this.answer.Previous !== undefined;
-  }
-
-  previous(): string|null {
-    return this.nameOf(this.answer.Previous);
-  }
-
-  hasCurrent(): boolean {
-    return !this.hasJust() && this.answer != undefined && this.answer.Current !== undefined;
-  }
-
-  current(): string|null {
-    return this.nameOf(this.answer.Current);
-  }
-
-  hasJust(): boolean {
-    return !!this.lastVote;
-  }
-
-  just(): string|null {
-    return this.nameOf(this.lastVote.Alternative);
-  }
-
+  /** The name of an alternative. */
   private nameOf(id: number|undefined): string|null {
     if (id === undefined) {
       return null;
     }
     var alternative: PollAlternative;
-    for (alternative of this.answer.Alternatives) {
+    for (alternative of this.alternatives) {
       if (alternative.Id == id!) {
         return alternative.Name;
       }
