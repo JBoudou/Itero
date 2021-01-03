@@ -20,7 +20,7 @@ Details on the partition can be read in the function `server.Start` in file
 
 To identify individual poll in URL, a dedicated poll segment is added to the URL. This segment is
 always the last one. It consists of 9 alphanumeric characters. Poll segments are used both for
-public API URLS and for virtual URLS. Examples: `/r/poll/iREs000cF` and `/a/info/count/iREs00cF`.
+public API URLs and for virtual URLs. Examples: `/r/poll/iREs000cF` and `/a/info/count/iREs00cF`.
 
 
 Method and query
@@ -28,11 +28,12 @@ Method and query
 
 The only accepted HTTP methods are GET and POST. GET must be used for all queries that do not need
 any parameter (except for the poll identity which is encoded in the URL, see above). POST must be
-used for all queries with parameters. In that case, the parameters are transmitted in a unique JSON
-structure. The JSON structure is described similarly in Go and TypeScript, by an interface with a
-name ending with `Query`. Exactly one such interface is associated with each URL. The file
-[app/src/app/api.ts](../app/src/app/api.ts) contains all those interfaces for TypeScript. In the
-future, the TypeScript interfaces could be generated from the Go ones.
+used for all queries with parameters. In that case, the parameters are transmitted in the body of
+the request, as a unique JSON structure. The JSON structure is described similarly in Go and
+TypeScript, by an interface with a name ending with `Query`. Exactly one such interface is
+associated with each URL. The file [app/src/app/api.ts](../app/src/app/api.ts) contains all those
+interfaces for TypeScript. In the future, the TypeScript interfaces could be generated from the Go
+ones.
 
 Queries' parameters must never be transmitted in the query part of the URL.
 
@@ -54,9 +55,9 @@ describing the reason of the failure. Those strings are part of the API.
 
 ## Compression
 
-When the user agent supports it, some responses may be compressed. To mitigate the BREACh exploit,
+When the user agent supports it, some responses may be compressed. To mitigate the BREACH exploit,
 the middleware adds a random header of variable size. Nevertheless compression must be avoided for
-responses containing arbitrary data from the query. As a rule of thumb, compression should be
+responses containing arbitrary data from the request. As a rule of thumb, compression should be
 allowed only for GET queries.
 
 
@@ -64,7 +65,7 @@ Session
 =======
 
 A session identifies a user across public API requests. Since the middleware is stateless (from the
-point of view of the front end), sessions are stored only on the front end side.
+point of view of the front end), sessions are stored only on the front end.
 
 When a session starts (typically when the user successfully logged in), the middleware sends both a
 session cookie and a session identifier. The session cookie is named `s` and is encrypted by a
