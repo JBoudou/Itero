@@ -23,16 +23,12 @@ import (
 	"errors"
 	"hash"
 	"net/http"
-	"regexp"
-	"unicode"
-	"unicode/utf8"
+
+	"golang.org/x/crypto/blake2b"
 
 	"github.com/JBoudou/Itero/db"
 	"github.com/JBoudou/Itero/server"
 	"github.com/JBoudou/Itero/server/logger"
-	"github.com/go-sql-driver/mysql"
-
-	"golang.org/x/crypto/blake2b"
 )
 
 func passwdHash() (hash.Hash, error) {
@@ -80,89 +76,5 @@ func LoginHandler(ctx context.Context, response server.Response, request *server
 	}
 
 	response.SendLoginAccepted(ctx, server.User{Name: loginQuery.User, Id: id}, request)
-	return
-}
-
-func SignupHandler(ctx context.Context, response server.Response, request *server.Request) {
-	if err := request.CheckPOST(ctx); err != nil {
-		response.SendError(ctx, err)
-		return
-	}
-
-	var signupQuery struct {
-		Name   string
-		Email  string
-		Passwd string
-	}
-	if err := request.UnmarshalJSONBody(&signupQuery); err != nil {
-		logger.Print(ctx, err)
-		err = server.NewHttpError(http.StatusBadRequest, "Wrong request", "Unable to read SignupQuery")
-		response.SendError(ctx, err)
-		return
-	}
-
-	// Check query //
-
-	if len(signupQuery.Name) < 5 {
-		err := server.NewHttpError(http.StatusBadRequest, "Name too short", "User name too short")
-		response.SendError(ctx, err)
-		return
-	}
-	firstRune, _ := utf8.DecodeRuneInString(signupQuery.Name)
-	lastRune, _ := utf8.DecodeLastRuneInString(signupQuery.Name)
-	if unicode.IsSpace(firstRune) || unicode.IsSpace(lastRune) {
-		err := server.NewHttpError(http.StatusBadRequest, "Name has spaces",
-			"User starts or ends with space")
-		response.SendError(ctx, err)
-		return
-	}
-
-	if len(signupQuery.Passwd) < 5 {
-		err := server.NewHttpError(http.StatusBadRequest, "Passwd too short", "Password too short")
-		response.SendError(ctx, err)
-		return
-	}
-	hashFct, err := passwdHash()
-	if err != nil {
-		response.SendError(ctx, err)
-		return
-	}
-	hashFct.Write([]byte(signupQuery.Passwd))
-	hashPwd := hashFct.Sum(nil)
-
-	ok, err := regexp.MatchString("^[^\\s@]+@[^\\s.]+\\.\\S\\S+$", signupQuery.Email)
-	if err != nil {
-		response.SendError(ctx, err)
-		return
-	}
-	if !ok {
-		err := server.NewHttpError(http.StatusBadRequest, "Email invalid", "Wrong email format")
-		response.SendError(ctx, err)
-		return
-	}
-
-	// Perform request //
-
-	const qInsert = `INSERT INTO Users (Name, Email, Passwd) VALUE (?, ?, ?)`
-
-	result, err := db.DB.ExecContext(ctx, qInsert, signupQuery.Name, signupQuery.Email, hashPwd)
-	if err != nil {
-		sqlError, ok := err.(*mysql.MySQLError)
-		if ok && sqlError.Number == 1062 {
-			err = server.NewHttpError(http.StatusBadRequest, "Already exists",
-				"The Name or Password already exists")
-		}
-		response.SendError(ctx, err)
-		return
-	}
-	rawId, err := result.LastInsertId()
-	if err != nil {
-		response.SendError(ctx, err)
-		return
-	}
-
-	// Start session //
-
-	response.SendLoginAccepted(ctx, server.User{Name: signupQuery.Name, Id: uint32(rawId)}, request)
 	return
 }
