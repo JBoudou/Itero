@@ -25,13 +25,13 @@ import {
   ServerError,
 } from '../poll/common';
 
-import { PollAlternative, UninomialBallotAnswer, UninomialVoteQuery, BallotType } from '../api';
+import { PollAlternative, UninominalBallotAnswer, UninominalVoteQuery, BallotType } from '../api';
 
 
-export class UninomialBallot implements PollBallot {
+export class UninominalBallot implements PollBallot {
   constructor(readonly id: number, readonly name: string) { }
 
-  get type(): BallotType { return BallotType.Uninomial; }
+  get type(): BallotType { return BallotType.Uninominal; }
   get asString(): string { return this.name; }
 }
 
@@ -59,8 +59,8 @@ export class UninominalBallotComponent implements OnInit, PollBallotComponent {
   ) { }
 
   ngOnInit(): void {
-    this.http.get<UninomialBallotAnswer>('/a/ballot/uninominal/' + this.pollSegment).subscribe({
-      next: (answer: UninomialBallotAnswer) => {
+    this.http.get<UninominalBallotAnswer>('/a/ballot/uninominal/' + this.pollSegment).subscribe({
+      next: (answer: UninominalBallotAnswer) => {
         this.alternatives = answer.Alternatives;
         this.previousRoundBallot.emit(this.ballotFromId(answer.Previous));
         this.currentRoundBallot .emit(this.ballotFromId(answer.Current ));
@@ -91,7 +91,7 @@ export class UninominalBallotComponent implements OnInit, PollBallotComponent {
     this.vote({Blank: true})
   }
 
-  private vote(vote: UninomialVoteQuery): void {
+  private vote(vote: UninominalVoteQuery): void {
     this.http.post('/a/vote/uninominal/' + this.pollSegment, vote)
       .subscribe({
         next: _ => this.justVoteBallot.emit(this.ballotFromQuery(vote)),
@@ -116,14 +116,14 @@ export class UninominalBallotComponent implements OnInit, PollBallotComponent {
     if (vote === undefined) {
       return NONE_BALLOT;
     }
-    return new UninomialBallot(vote!, this.nameOf(vote)!);
+    return new UninominalBallot(vote!, this.nameOf(vote)!);
   }
 
-  private ballotFromQuery(vote: UninomialVoteQuery): PollBallot {
+  private ballotFromQuery(vote: UninominalVoteQuery): PollBallot {
     if (vote.Blank) {
       return BLANK_BALLOT;
     }
-    return new UninomialBallot(vote.Alternative, this.nameOf(vote.Alternative));
+    return new UninominalBallot(vote.Alternative, this.nameOf(vote.Alternative));
   }
 
 }

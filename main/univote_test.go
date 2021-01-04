@@ -62,7 +62,7 @@ func (self *voteChecker) Check(t *testing.T, response *http.Response, request *s
 
 	srvt.CheckStatus{http.StatusOK}.Check(t, response, request)
 
-	var query UninomialVoteQuery
+	var query UninominalVoteQuery
 	mustt(t, request.UnmarshalJSONBody(&query))
 
 	const qCheck = `
@@ -102,7 +102,7 @@ func (self *voteChecker) Check(t *testing.T, response *http.Response, request *s
 	}
 }
 
-func TestUninomialVoteHandler(t *testing.T) {
+func TestUninominalVoteHandler(t *testing.T) {
 	precheck(t)
 
 	var env dbt.Env
@@ -115,7 +115,7 @@ func TestUninomialVoteHandler(t *testing.T) {
 	env.Must(t)
 
 	makeRequest := func(userId *uint32, pollSegment PollSegment,
-		vote UninomialVoteQuery) (req srvt.Request) {
+		vote UninominalVoteQuery) (req srvt.Request) {
 
 		req = makePollRequest(t, pollSegment, userId)
 		b, err := json.Marshal(vote)
@@ -128,27 +128,27 @@ func TestUninomialVoteHandler(t *testing.T) {
 	tests := []srvt.Test{
 		{
 			Name:    "No user",
-			Request: makeRequest(nil, pollSegment, UninomialVoteQuery{}),
+			Request: makeRequest(nil, pollSegment, UninominalVoteQuery{}),
 			Checker: srvt.CheckStatus{http.StatusForbidden},
 		},
 		{
 			Name:    "Forbidden",
-			Request: makeRequest(&userId, forbiddenSegment, UninomialVoteQuery{}),
+			Request: makeRequest(&userId, forbiddenSegment, UninominalVoteQuery{}),
 			Checker: srvt.CheckStatus{http.StatusForbidden},
 		},
 		{
 			Name:    "First vote",
-			Request: makeRequest(&userId, pollSegment, UninomialVoteQuery{Alternative: 1}),
+			Request: makeRequest(&userId, pollSegment, UninominalVoteQuery{Alternative: 1}),
 			Checker: &voteChecker{poll: pollSegment.Id, user: userId, round: 0},
 		},
 		{
 			Name:    "Change vote",
-			Request: makeRequest(&userId, pollSegment, UninomialVoteQuery{Alternative: 0}),
+			Request: makeRequest(&userId, pollSegment, UninominalVoteQuery{Alternative: 0}),
 			Checker: &voteChecker{poll: pollSegment.Id, user: userId, round: 0},
 		},
 		{
 			Name:    "Change vote again",
-			Request: makeRequest(&userId, pollSegment, UninomialVoteQuery{Alternative: 1}),
+			Request: makeRequest(&userId, pollSegment, UninominalVoteQuery{Alternative: 1}),
 			Checker: &voteChecker{poll: pollSegment.Id, user: userId, round: 0},
 		},
 		{
@@ -157,17 +157,17 @@ func TestUninomialVoteHandler(t *testing.T) {
 				env.NextRound(pollSegment.Id)
 				env.Must(t)
 			},
-			Request: makeRequest(&userId, pollSegment, UninomialVoteQuery{Blank: true}),
+			Request: makeRequest(&userId, pollSegment, UninominalVoteQuery{Blank: true}),
 			Checker: &voteChecker{poll: pollSegment.Id, user: userId, round: 1},
 		},
 		{
 			Name:    "Change to non-blank",
-			Request: makeRequest(&userId, pollSegment, UninomialVoteQuery{Alternative: 1}),
+			Request: makeRequest(&userId, pollSegment, UninominalVoteQuery{Alternative: 1}),
 			Checker: &voteChecker{poll: pollSegment.Id, user: userId, round: 1},
 		},
 		{
 			Name:    "Change to blank",
-			Request: makeRequest(&userId, pollSegment, UninomialVoteQuery{Blank: true}),
+			Request: makeRequest(&userId, pollSegment, UninominalVoteQuery{Blank: true}),
 			Checker: &voteChecker{poll: pollSegment.Id, user: userId, round: 1},
 		},
 		{
@@ -177,10 +177,10 @@ func TestUninomialVoteHandler(t *testing.T) {
 				_, err := db.DB.Exec(qInactivate, pollSegment.Id)
 				mustt(t, err)
 			},
-			Request: makeRequest(&userId, pollSegment, UninomialVoteQuery{}),
+			Request: makeRequest(&userId, pollSegment, UninominalVoteQuery{}),
 			Checker: srvt.CheckStatus{http.StatusBadRequest},
 		},
 	}
 
-	srvt.RunFunc(t, tests, UninomialVoteHandler)
+	srvt.RunFunc(t, tests, UninominalVoteHandler)
 }

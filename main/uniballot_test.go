@@ -55,18 +55,18 @@ var (
 	yesVote = NullUInt8{Value: 1, Valid: true}
 )
 
-func TestUninomialBallotAnswer_MarshalJSON(t *testing.T) {
+func TestUninominalBallotAnswer_MarshalJSON(t *testing.T) {
 	precheck(t)
 
 	tests := []struct {
 		name        string
-		answer      UninomialBallotAnswer
+		answer      UninominalBallotAnswer
 		expectValue string
 		expectError error
 	}{
 		{
 			name: "Full",
-			answer: UninomialBallotAnswer{
+			answer: UninominalBallotAnswer{
 				Previous: noVote,
 				Current:  noVote,
 				Alternatives: []PollAlternative{
@@ -79,7 +79,7 @@ func TestUninomialBallotAnswer_MarshalJSON(t *testing.T) {
 		},
 		{
 			name: "No Previous",
-			answer: UninomialBallotAnswer{
+			answer: UninominalBallotAnswer{
 				Current: noVote,
 				Alternatives: []PollAlternative{
 					{Id: 0, Name: "No", Cost: 1.},
@@ -91,7 +91,7 @@ func TestUninomialBallotAnswer_MarshalJSON(t *testing.T) {
 		},
 		{
 			name: "No Current",
-			answer: UninomialBallotAnswer{
+			answer: UninominalBallotAnswer{
 				Previous: noVote,
 				Alternatives: []PollAlternative{
 					{Id: 0, Name: "No", Cost: 1.},
@@ -103,7 +103,7 @@ func TestUninomialBallotAnswer_MarshalJSON(t *testing.T) {
 		},
 		{
 			name: "No Ballot",
-			answer: UninomialBallotAnswer{
+			answer: UninominalBallotAnswer{
 				Alternatives: []PollAlternative{
 					{Id: 0, Name: "No", Cost: 1.},
 					{Id: 1, Name: "Yes", Cost: 1.},
@@ -143,7 +143,7 @@ func TestUninomialBallotAnswer_MarshalJSON(t *testing.T) {
 	}
 }
 
-func TestUninomialBallotHandler(t *testing.T) {
+func TestUninominalBallotHandler(t *testing.T) {
 	precheck(t)
 
 	env := new(dbt.Env)
@@ -151,7 +151,7 @@ func TestUninomialBallotHandler(t *testing.T) {
 
 	pollSegment := PollSegment{Salt: 42}
 	userId := env.CreateUser()
-	pollSegment.Id = env.CreatePoll("UninomialBallotHandler", userId, db.PollPublicityPublic)
+	pollSegment.Id = env.CreatePoll("UninominalBallotHandler", userId, db.PollPublicityPublic)
 	mustt(t, env.Error)
 
 	request := makePollRequest(t, pollSegment, &userId)
@@ -172,13 +172,13 @@ func TestUninomialBallotHandler(t *testing.T) {
 		{
 			Name:    "No Ballot",
 			Request: request,
-			Checker: srvt.CheckJSON{Body: &UninomialBallotAnswer{Alternatives: alternatives}},
+			Checker: srvt.CheckJSON{Body: &UninominalBallotAnswer{Alternatives: alternatives}},
 		},
 		{
 			Name:    "Current ballot",
 			Update:  vote(0, 0),
 			Request: request,
-			Checker: srvt.CheckJSON{Body: &UninomialBallotAnswer{
+			Checker: srvt.CheckJSON{Body: &UninominalBallotAnswer{
 				Current:      noVote,
 				Alternatives: alternatives,
 			}},
@@ -190,7 +190,7 @@ func TestUninomialBallotHandler(t *testing.T) {
 				env.Must(t)
 			},
 			Request: request,
-			Checker: srvt.CheckJSON{Body: &UninomialBallotAnswer{
+			Checker: srvt.CheckJSON{Body: &UninominalBallotAnswer{
 				Previous:     noVote,
 				Alternatives: alternatives,
 			}},
@@ -199,12 +199,12 @@ func TestUninomialBallotHandler(t *testing.T) {
 			Name:    "Both ballots",
 			Update:  vote(1, 1),
 			Request: request,
-			Checker: srvt.CheckJSON{Body: &UninomialBallotAnswer{
+			Checker: srvt.CheckJSON{Body: &UninominalBallotAnswer{
 				Previous:     noVote,
 				Current:      yesVote,
 				Alternatives: alternatives,
 			}},
 		},
 	}
-	srvt.RunFunc(t, tests, UninomialBallotHandler)
+	srvt.RunFunc(t, tests, UninominalBallotHandler)
 }

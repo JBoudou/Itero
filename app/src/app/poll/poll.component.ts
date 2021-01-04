@@ -128,7 +128,7 @@ export class PollComponent implements OnInit {
   }
 
   private static ballotMap = new Map<BallotType, Type<PollBallotComponent>>([
-    [BallotType.Uninomial, UninominalBallotComponent]
+    [BallotType.Uninominal, UninominalBallotComponent]
   ]);
 
   private static informationMap = new Map<InformationType, Type<PollSubComponent>>([

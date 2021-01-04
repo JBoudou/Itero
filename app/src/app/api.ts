@@ -56,7 +56,7 @@ export enum BallotType {
 
   // API types.
   Closed = 0,
-  Uninomial,
+  Uninominal,
 }
 
 export enum InformationType {
@@ -81,13 +81,13 @@ export class PollAlternative {
   Cost: number;
 }
 
-export interface UninomialBallotAnswer {
+export interface UninominalBallotAnswer {
   Previous?: number;
   Current?: number;
   Alternatives: Array<PollAlternative>;
 }
 
-export class UninomialVoteQuery {
+export class UninominalVoteQuery {
   Blank?: boolean;
   Alternative?: number;
 }

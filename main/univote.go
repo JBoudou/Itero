@@ -30,12 +30,12 @@ type VoteEvent struct {
 	Poll uint32
 }
 
-type UninomialVoteQuery struct {
+type UninominalVoteQuery struct {
 	Blank       bool `json:",omitempty"`
 	Alternative uint8
 }
 
-func UninomialVoteHandler(ctx context.Context, response server.Response, request *server.Request) {
+func UninominalVoteHandler(ctx context.Context, response server.Response, request *server.Request) {
 	// Verifications
 	if err := request.CheckPOST(ctx); err != nil {
 		response.SendError(ctx, err)
@@ -43,18 +43,18 @@ func UninomialVoteHandler(ctx context.Context, response server.Response, request
 	}
 	pollInfo, err := checkPollAccess(ctx, request)
 	must(err)
-	if pollInfo.BallotType() != BallotTypeUninomial {
-		err = server.NewHttpError(http.StatusBadRequest, "Wrong poll", "Poll is not uninomial")
+	if pollInfo.BallotType() != BallotTypeUninominal {
+		err = server.NewHttpError(http.StatusBadRequest, "Wrong poll", "Poll is not uninominal")
 		response.SendError(ctx, err)
 		return
 	}
 
 	// Get query
-	var voteQuery UninomialVoteQuery
+	var voteQuery UninominalVoteQuery
 	if err := request.UnmarshalJSONBody(&voteQuery); err != nil {
 		logger.Print(ctx, err)
 		err = server.NewHttpError(http.StatusBadRequest, "Wrong request",
-			"Unable to read UninomialVoteQuery")
+			"Unable to read UninominalVoteQuery")
 		response.SendError(ctx, err)
 		return
 	}

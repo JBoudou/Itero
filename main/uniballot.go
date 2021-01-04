@@ -53,16 +53,16 @@ func (self *NullUInt8) Set(value uint8) {
 	self.Value, self.Valid = value, true
 }
 
-// UninomialBallotAnswer represents the response sent by UninomialBallotHandler.
+// UninominalBallotAnswer represents the response sent by UninominalBallotHandler.
 // The fields Previous and Current are not sent in the JSON representation if they're not valid.
-type UninomialBallotAnswer struct {
+type UninominalBallotAnswer struct {
 	Previous     NullUInt8
 	Current      NullUInt8
 	Alternatives []PollAlternative
 }
 
 // MarshalJSON implements json.Marshaler.
-func (self *UninomialBallotAnswer) MarshalJSON() (ret []byte, err error) {
+func (self *UninominalBallotAnswer) MarshalJSON() (ret []byte, err error) {
 	var buffer bytes.Buffer
 	encoder := json.NewEncoder(&buffer)
 
@@ -106,9 +106,9 @@ func (self *UninomialBallotAnswer) MarshalJSON() (ret []byte, err error) {
 	return buffer.Bytes(), err
 }
 
-// UninomialBallotAnswer sends the previous ballot (if any), the current one (if any) and all
+// UninominalBallotAnswer sends the previous ballot (if any), the current one (if any) and all
 // the alternatives.
-func UninomialBallotHandler(ctx context.Context, response server.Response, request *server.Request) {
+func UninominalBallotHandler(ctx context.Context, response server.Response, request *server.Request) {
 	pollInfo, err := checkPollAccess(ctx, request)
 	must(err)
 
@@ -116,7 +116,7 @@ func UninomialBallotHandler(ctx context.Context, response server.Response, reque
 		SELECT Round, Alternative FROM Ballots
 		 WHERE User = ? AND Poll = ? AND Round IN (?, ?)
 		 ORDER BY Round`
-	var answer UninomialBallotAnswer
+	var answer UninominalBallotAnswer
 
 	var previousRound uint8
 	if pollInfo.CurrentRound > 0 {

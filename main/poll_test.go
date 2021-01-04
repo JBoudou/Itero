@@ -148,7 +148,7 @@ func TestPollHandler(t *testing.T) {
 				Body: &partialPollAnswer{
 					Title: "Test",
 					Admin: " Test ",
-					Ballot: BallotTypeUninomial,
+					Ballot: BallotTypeUninominal,
 					Information: InformationTypeNoneYet,
 				},
 				Partial: true,
@@ -167,7 +167,7 @@ func TestPollHandler(t *testing.T) {
 				Body: &partialPollAnswer{
 					Title: "Test",
 					Admin: " Test ",
-					Ballot: BallotTypeUninomial,
+					Ballot: BallotTypeUninominal,
 					Information: InformationTypeNoneYet,
 				},
 				Partial: true,
@@ -189,7 +189,7 @@ func TestPollHandler(t *testing.T) {
 					Title: "Test",
 					Admin: " Test ",
 					CurrentRound: 1,
-					Ballot: BallotTypeUninomial,
+					Ballot: BallotTypeUninominal,
 					Information: InformationTypeCounts,
 				},
 				Partial: true,

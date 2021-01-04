@@ -135,7 +135,7 @@ func (pollInfo PollInfo) BallotType() uint8 {
 	if !pollInfo.Active {
 		return BallotTypeClosed
 	}
-	return BallotTypeUninomial
+	return BallotTypeUninominal
 }
 
 func (pollInfo PollInfo) InformationType() uint8 {
@@ -150,7 +150,7 @@ func (pollInfo PollInfo) InformationType() uint8 {
 
 const (
 	BallotTypeClosed = iota
-	BallotTypeUninomial
+	BallotTypeUninominal
 )
 
 const (
