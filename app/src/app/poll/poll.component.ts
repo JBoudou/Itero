@@ -135,7 +135,7 @@ export class PollComponent implements OnInit, AfterViewInit {
   }
 
   hasPreviousRoundBallot(): boolean {
-    return this.currentRoundBallot.type != BallotType.None;
+    return this.previousRoundBallot.type != BallotType.None;
   }
 
   hasJustVoteBallot(): boolean {
