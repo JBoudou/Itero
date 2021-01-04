@@ -126,7 +126,9 @@ export class PollComponent implements OnInit, AfterViewInit {
   hasState(): boolean {
     return this.hasAnswer() &&
            ( this.answer.Information != InformationType.NoneYet ||
-             this.answer.CurrentRound != 0 );
+             this.hasCurrentRoundBallot() ||
+             this.hasPreviousRoundBallot() ||
+             this.hasJustVoteBallot() );
   }
 
   hasCurrentRoundBallot(): boolean {
