@@ -17,10 +17,12 @@
 package main
 
 import (
+	"database/sql"
 	"log"
 	"time"
 
 	"github.com/JBoudou/Itero/alarm"
+	"github.com/JBoudou/Itero/db"
 	"github.com/JBoudou/Itero/events"
 )
 
@@ -44,7 +46,7 @@ type closePoll struct {
 func newClosePoll() *closePoll {
 	return &closePoll{
 		pollService: newPollService("closePoll", func(pollId uint32) events.Event {
-			return ClosePollEvent{pollId};
+			return ClosePollEvent{pollId}
 		}),
 	}
 }
@@ -69,7 +71,9 @@ func (self *closePoll) checkOne(pollId uint32) error {
 	   WHERE Id = ? AND Active
 	     AND ( CurrentRound >= MaxNbRounds
 	           OR (CurrentRound >= MinNbRounds AND Deadline <= CURRENT_TIMESTAMP) )`
-	return self.checkOne_helper(qUpdate, pollId)
+	return self.checkOne_helper(pollId, func() (sql.Result, error) {
+		return db.DB.Exec(qUpdate, pollId)
+	})
 }
 
 func (self *closePoll) nextAlarm() alarm.Event {

@@ -19,10 +19,10 @@ package main
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"time"
-	"fmt"
 
 	"github.com/JBoudou/Itero/alarm"
 	"github.com/JBoudou/Itero/db"
@@ -36,7 +36,7 @@ type pollService struct {
 	step      uint8
 
 	// Logger to use for warning. Will be replaced by a leveled logger in near future.
-	warn        *log.Logger
+	warn *log.Logger
 
 	serviceName string
 	makeEvent   func(pollId uint32) events.Event
@@ -127,10 +127,11 @@ func (self pollService) execUpdate(set map[uint32]bool, tx *sql.Tx, query string
 
 // checkOne_helper helps to implement a checker for one identifier (usually a poll).
 //
-// The given query is executed with pollId as unique parameter. If the query affects exactly one
-// row, an event constructed by makeEvent is emitted, and step is increased.
-func (self *pollService) checkOne_helper(qUpdate string, pollId uint32) error {
-	result, err := db.DB.Exec(qUpdate, pollId)
+// The function is assumed to execute a query updating or not the poll with id pollId.
+// If the query affects exactly one row, an event constructed by makeEvent is emitted,
+// and step is increased.
+func (self *pollService) checkOne_helper(pollId uint32, fct func() (sql.Result, error)) error {
+	result, err := fct()
 	if err != nil {
 		return err
 	}
