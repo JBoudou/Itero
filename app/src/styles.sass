@@ -24,8 +24,13 @@ form.basicform
 @function tame($color)
   @return color.adjust($color, $saturation: -20%, $lightness: +10%)
 
-form .formactions
+.formactions
+  border-top: solid 1px $maincolor
+  padding: 4px 0
+  display: flex
+  flex-flow: row-reverse
   button
+    margin-left: 4px
     @include userbutton
     &:hover
       background-color: color.adjust($maincolor, $lightness: 20%)
@@ -50,12 +55,6 @@ form.basicform
       margin: 0
   .formactions
     grid-area: span 1 / span 2
-    border-top: solid 1px $maincolor
-    padding: 4px 0
-    display: flex
-    flex-flow: row-reverse
-    button
-      margin-left: 4px
 
 @include mat-core()
 $itero-mat-primary: mat-palette($itero-mat-maincolor, 900, A100, 900)

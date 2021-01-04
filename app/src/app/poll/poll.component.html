@@ -13,7 +13,7 @@
     </ng-container>
   </h4>
   <div id="pollsecondline">
-    <div id="pollstate">
+    <div id="pollstate" *ngIf="hasState() || !hasAnswer()">
       <div class="previousVotes">
         <p class="justVote" *ngIf="hasJustVoteBallot()" i18n>
           Your

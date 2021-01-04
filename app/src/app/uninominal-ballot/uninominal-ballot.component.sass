@@ -1,10 +1,6 @@
 @use 'sass:color'
 @import '../../colors'
 
-// temporary fix
-ul.selection-list
-  grid-area: span 1/span 2
-
 // move elsewhere (or not)
 ul.selection-list
   padding: 0
@@ -20,7 +16,3 @@ ul.selection-list
       background-color: $softbgcolor
     &.selected
       background-color: $userbuttonbgcolor
-
-form.basicform
-  box-shadow: 2px 6px 12px color.change(color.adjust($maincolor, $saturation: -20%), $lightness: 85%)
-  padding: 4px

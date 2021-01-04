@@ -1,5 +1,5 @@
 <p class="ballothint" i18n>Choose one of the following alternatives:</p>
-<form *ngIf="!!alternatives" class="basicform">
+<div *ngIf="!!alternatives" class="pollballot">
   <ul class="selection-list">
     <li *ngFor="let alt of alternatives" [class.selected]="isSelected(alt.Id)" (click)="onSelect(alt.Id)">{{alt.Name}}</li>
   </ul>
@@ -7,4 +7,4 @@
     <button type="button" [disabled]="!isValid()" (click)="onVote()" i18n>Vote</button>
     <button type="button" (click)="onAbstain()" i18n>Abstain</button>
   </div>
-</form>
+</div>

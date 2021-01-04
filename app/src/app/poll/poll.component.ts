@@ -16,6 +16,7 @@
 
 
 import {
+  AfterViewInit,
   Component,
   ComponentFactoryResolver,
   OnInit,
@@ -65,11 +66,11 @@ const enum SubComponentId {
   styleUrls: ['./poll.component.sass'],
   encapsulation: ViewEncapsulation.None,
 })
-export class PollComponent implements OnInit {
+export class PollComponent implements OnInit, AfterViewInit {
 
   // Anchors to insert the dynamic sub-component into.
   @ViewChild(PollBallotDirective, { static: true }) ballot: PollBallotDirective;
-  @ViewChild(PollInformationDirective, { static: true }) information: PollInformationDirective;
+  @ViewChild(PollInformationDirective, { static: false }) information: PollInformationDirective;
 
   /** Access to viewContainerRef using SubComponentId. */
   private viewContainerRef: ViewContainerRef[];
@@ -90,6 +91,9 @@ export class PollComponent implements OnInit {
   /** Subscription for the sub component. The first index must be a SubComponentId. */
   private subscriptions: Subscription[][] = [];
 
+  // Run retrieveTypes when reaching zero.
+  private triggerRetrieveTypesCount: number;
+
   constructor(
     private route: ActivatedRoute,
     private http: HttpClient,
@@ -97,21 +101,32 @@ export class PollComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
+    this.triggerRetrieveTypesCount = 2;
+
+    this.route.paramMap.subscribe((params: ParamMap) => {
+      this.segment = params.get('pollSegment');
+      this.triggerRetrieveTypes();
+    });
+  }
+
+  ngAfterViewInit(): void {
     this.viewContainerRef = [
       this.ballot.viewContainerRef,
       this.information.viewContainerRef,
     ];
-
-    this.route.paramMap.subscribe((params: ParamMap) => {
-      this.segment = params.get('pollSegment');
-      this.retrieveTypes();
-    });
+    this.triggerRetrieveTypes();
   }
 
   /** Whether the response from the middleware has been received. */
   hasAnswer(): boolean {
     return typeof this.error == 'undefined' &&
            typeof this.answer !== 'undefined';
+  }
+
+  hasState(): boolean {
+    return this.hasAnswer() &&
+           ( this.answer.Information != InformationType.NoneYet ||
+             this.answer.CurrentRound != 0 );
   }
 
   hasCurrentRoundBallot(): boolean {
@@ -134,6 +149,13 @@ export class PollComponent implements OnInit {
   private static informationMap = new Map<InformationType, Type<PollSubComponent>>([
     [InformationType.Counts, CountsInformationComponent]
   ]);
+
+  private triggerRetrieveTypes(): void {
+    this.triggerRetrieveTypesCount -= 1;
+    if (this.triggerRetrieveTypesCount <= 0) {
+      this.retrieveTypes();
+    }
+  }
 
   /** Ask the type of the poll to the middleware and creates the sub-components accordingly. */
   private retrieveTypes(): void {
