@@ -100,3 +100,19 @@ export class CountInfoEntry {
 export class CountInfoAnswer {
   Result: Array<CountInfoEntry>;
 }
+
+export enum PollUserType {
+  Simple,
+}
+
+export class CreateQuery {
+  UserType: PollUserType;
+  Title: string;
+  Description: string;
+  Alternatives: PollAlternative[];
+  MinNbRounds: number;
+  MaxNbRounds: number;
+  Deadline: Date;
+  MaxRoundDuration: number; // milliseconds
+  RoundThreshold: number;
+}
