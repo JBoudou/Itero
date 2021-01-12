@@ -338,6 +338,8 @@ export class CreateService {
   }
 
   private sendRequest(): void {
+    console.log(JSON.stringify(this.current.query));
+    this.router.navigateByUrl('/r/list');
     // TODO
   }
 }

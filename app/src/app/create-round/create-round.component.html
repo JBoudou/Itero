@@ -1,1 +1,6 @@
-<p>create-round works!</p>
+<form class="basicform" [formGroup]="form">
+  <label i18n>Deadline:</label><app-date-time-picker formControlName="Deadline"></app-date-time-picker>
+  <label i18n>Minimum number of rounds:</label><input type=number formControlName="MinNbRounds" />
+  <label i18n>Maximum number of rounds:</label><input type=number formControlName="MaxNbRounds" />
+  <label i18n>Maximum round duration:</label><input type=number formControlName="MaxRoundDuration" />
+</form>

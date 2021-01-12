@@ -26,6 +26,7 @@ import { CreateComponent } from './create/create.component';
 import { CreateGeneralComponent } from './create-general/create-general.component';
 import { CreateSimpleAlternativesComponent } from './create-simple-alternatives/create-simple-alternatives.component';
 import { CreateRoundComponent } from './create-round/create-round.component';
+import { DateTimePickerComponent } from './date-time-picker/date-time-picker.component';
 
 @NgModule({
   declarations: [
@@ -44,7 +45,8 @@ import { CreateRoundComponent } from './create-round/create-round.component';
     CreateComponent,
     CreateGeneralComponent,
     CreateSimpleAlternativesComponent,
-    CreateRoundComponent
+    CreateRoundComponent,
+    DateTimePickerComponent
   ],
   imports: [
     BrowserModule,
