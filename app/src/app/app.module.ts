@@ -27,6 +27,7 @@ import { CreateGeneralComponent } from './create-general/create-general.componen
 import { CreateSimpleAlternativesComponent } from './create-simple-alternatives/create-simple-alternatives.component';
 import { CreateRoundComponent } from './create-round/create-round.component';
 import { DateTimePickerComponent } from './date-time-picker/date-time-picker.component';
+import { DayHourMinDurationComponent } from './day-hour-min-duration/day-hour-min-duration.component';
 
 @NgModule({
   declarations: [
@@ -46,7 +47,8 @@ import { DateTimePickerComponent } from './date-time-picker/date-time-picker.com
     CreateGeneralComponent,
     CreateSimpleAlternativesComponent,
     CreateRoundComponent,
-    DateTimePickerComponent
+    DateTimePickerComponent,
+    DayHourMinDurationComponent
   ],
   imports: [
     BrowserModule,

@@ -18,19 +18,19 @@ import { Component, OnInit, Input, Self, Optional } from '@angular/core';
 import { ControlValueAccessor, NgControl, FormBuilder } from '@angular/forms';
 
 @Component({
-  selector: 'app-date-time-picker',
-  templateUrl: './date-time-picker.component.html',
-  styleUrls: ['./date-time-picker.component.sass']
+  selector: 'app-day-hour-min-duration',
+  templateUrl: './day-hour-min-duration.component.html',
+  styleUrls: ['./day-hour-min-duration.component.sass']
 })
-export class DateTimePickerComponent implements OnInit, ControlValueAccessor {
+export class DayHourMinDurationComponent implements OnInit, ControlValueAccessor {
 
   @Input() disabled: boolean;
   
   form = this.formBuilder.group({
-    date: '',
-    time: '',
+    days:  2,
+    hours: 0,
+    mins:  0,
   });
-  
 
   constructor(
     @Self() @Optional() private ngControl: NgControl,
@@ -49,27 +49,23 @@ export class DateTimePickerComponent implements OnInit, ControlValueAccessor {
   }
 
   onValueChange(): void {
-    const date = this.form.value.date.split('-').map(str => parseInt(str));
-    const time = this.form.value.time.split(':').map(str => parseInt(str));
-    // No spread syntax yet :(
-    const value = new Date(date[0], date[1] - 1, date[2], time[0], time[1]);
-    this.notifChange(value);
+    const { days, hours, mins } = this.form.value;
+    this.notifChange(((days * 24 + hours) * 60 + mins) * 60 * 1000);
   }
 
   /** Implements ControlValueAccessor */
 
   writeValue(obj: any): void {
-    if (!(obj instanceof Date)) {
+    if (!Number.isInteger(obj)) {
       console.warn("DateTimePickerComponent unknown value type " + typeof(obj));
       return;
     }
-
-    const date = obj.getFullYear() + '-' +
-                 (obj.getMonth() + 1).toString().padStart(2, '0') + '-' +
-                 obj.getDate()   .toString().padStart(2, '0');
-    const time = obj.getHours()  .toString().padStart(2, '0') + ':' +
-                 obj.getMinutes().toString().padStart(2, '0');
-    this.form.setValue({date: date, time: time});
+    
+    this.form.setValue({
+      days : Math.round(obj / (24 * 3600 * 1000)),
+      hours: Math.round(obj /      (3600 * 1000)) % 24,
+      mins : Math.round(obj /         60 * 1000 ) % 60,
+    });
   }
 
   setDisabledState(isDisabled: boolean): void {
@@ -92,4 +88,5 @@ export class DateTimePickerComponent implements OnInit, ControlValueAccessor {
   registerOnTouched(fn: any): void {
     this.notifTouch = fn;
   }
+    
 }

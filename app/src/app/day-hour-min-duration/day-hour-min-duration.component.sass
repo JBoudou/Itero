@@ -1,10 +1,14 @@
 @import '../../mixins'
 
-.date-time-picker
+.day-hour-min-duration
   display: flex
   @include userinput
   input, input:focus
     border: none
     outline: none
-    margin: 0
+    margin: 0 0.5em
     padding: 0
+    text-align: center
+    max-width: 2.5em
+    &:first-child
+      margin-left: 0
