@@ -1,11 +1,14 @@
 @import 'colors'
 @import 'sizes'
+@import 'typo'
 
 @mixin userbox
   border: solid 1px $maincolor
   border-radius: 3px
   padding: $userboxpadding
   color: $useboxfgcolor
+  font-family: $mainfont
+  font-size: $fontsize - 1
 
 @mixin userinput
   @include userbox

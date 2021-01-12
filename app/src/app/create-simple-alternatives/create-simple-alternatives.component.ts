@@ -55,6 +55,7 @@ export class CreateSimpleAlternativesComponent implements OnInit, CreateSubCompo
       query.Alternatives = [];
     }
     this.alternatives = query.Alternatives;
+    this._validable.next(this.alternatives.length >= 2);
   }
 
   onAdd(): void {

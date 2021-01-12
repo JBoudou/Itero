@@ -1,2 +1,29 @@
+@import '../../mixins'
+
 #creation
   width: max-content
+  .formactions
+    margin-top: 8px
+  .basicform
+    grid-template-columns: max-content 1fr
+
+#steps
+  display: flex
+  justify-content: center
+  font-size: smaller
+  padding-bottom: 8px
+  border-bottom: solid 1px $maincolor
+  margin-bottom: 8px
+  .step
+    @include userbox
+    transition: background-color 500ms
+    .index:after
+      content: ". "
+  .currentStep
+    background-color: $userbuttonbgcolor
+    transition: background-color 300ms
+  .placeholder
+    width: 50px
+    margin: auto 0
+    border-bottom: solid 1px $maincolor
+    
