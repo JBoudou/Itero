@@ -282,13 +282,23 @@ export class CreateService {
       return {};
     }
 
-    this._createNext.next(new CreateNextStatus(false, this.current.isFinal)),
-    this._createStep.next(this.current.makeStatus());
+    // Since the subcomponent registers in some initialisation hook,
+    // and the notification may be directed to a parent of the subcomponent,
+    // there are high risks of ExpressionChangedAfterItHasBeenCheckedError.
+    // Hence, we deliver notifications asynchronously.
+    // Use of Angular's EventEmitter(true) may be more appropriate than setTimeout() (but heavier).
+
+    setTimeout(() => {
+      this._createNext.next(new CreateNextStatus(false, this.current.isFinal)),
+      this._createStep.next(this.current.makeStatus());
+    });
 
     this.subComponent = subComp;
     this.subComponent.validable$.subscribe({
       next: (validable: boolean) => {
-        this._createNext.next(new CreateNextStatus(validable, this.current.isFinal))
+        setTimeout(() =>
+          this._createNext.next(new CreateNextStatus(validable, this.current.isFinal))
+        );
       },
     });
 
@@ -323,7 +333,7 @@ export class CreateService {
     }
     this.subComponent = undefined;
 
-    this.router.navigate(['../' + this.current.segment]);
+    this.router.navigate(['/r/create/' + this.current.segment]);
     return true;
   }
 

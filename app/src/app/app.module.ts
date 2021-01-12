@@ -4,9 +4,11 @@ import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 
 import { GoogleChartsModule } from 'angular-google-charts';
+import { DragDropModule } from '@angular/cdk/drag-drop';
 
 import { AppRoutingModule } from './app-routing.module';
 import { SessionInterceptor } from './session/session.interceptor';
+import { CREATE_TREE, APP_CREATE_TREE } from './create/create.service';
 
 import { AppComponent } from './app.component';
 import { NavtitleComponent } from './navtitle/navtitle.component';
@@ -52,9 +54,11 @@ import { CreateRoundComponent } from './create-round/create-round.component';
     FormsModule,
     BrowserAnimationsModule,
     GoogleChartsModule,
+    DragDropModule,
   ],
   providers: [
-    { provide: HTTP_INTERCEPTORS, useClass: SessionInterceptor, multi: true }
+    { provide: HTTP_INTERCEPTORS, useClass: SessionInterceptor, multi: true },
+    { provide: CREATE_TREE, useValue: APP_CREATE_TREE },
   ],
   bootstrap: [AppComponent]
 })

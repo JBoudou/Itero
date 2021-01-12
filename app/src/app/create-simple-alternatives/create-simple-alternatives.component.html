@@ -1,1 +1,9 @@
-<p>create-simple-alternatives works!</p>
+<form class="basicform" [formGroup]="form" (ngSubmit)="onAdd()">
+  <label i18n>New alternative:</label><input type="text" formControlName="New" />
+  <div class="formactions">
+    <button type="submit" [disabled]="!form.valid" i18n>Add</button>
+  </div>
+</form>
+<div cdkDropList class="dndList" (cdkDropListDropped)="onDrop($event)">
+  <div class="dndItem" *ngFor="let alt of alternatives" cdkDrag>{{ alt.Id }}. {{ alt.Name }}</div>
+</div>
