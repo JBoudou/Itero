@@ -17,11 +17,12 @@
 package alarm
 
 import (
+	"sort"
 	"testing"
 	"time"
 )
 
-const AllowedInterval = time.Millisecond
+const AllowedInterval = 2 * time.Millisecond
 
 func TestAlarm(t *testing.T) {
 	tests := []struct {
@@ -30,15 +31,15 @@ func TestAlarm(t *testing.T) {
 	}{
 		{
 			name:      "One",
-			durations: []string{ "5ms" },
+			durations: []string{ "10ms" },
 		},
 		{
 			name:      "Two",
-			durations: []string{ "5ms", "10ms" },
+			durations: []string{ "10ms", "20ms" },
 		},
 		{
 			name:      "One in the past",
-			durations: []string{ "5ms", "4ms900µs", "10ms" },
+			durations: []string{ "10ms", "5ms", "20ms" },
 		},
 	}
 	for _, tt := range tests {
@@ -52,18 +53,22 @@ func TestAlarm(t *testing.T) {
 				}
 			}
 
+			alarm := New(len(durations))
+
 			times := make([]time.Time, len(durations))
 			now := time.Now()
 			for i, dur := range durations {
 				times[i] = now.Add(dur)
 			}
 
-			alarm := New(len(durations))
 			for _, t := range times {
 				alarm.Send <- Event{ Time: t }
 			}
 			close(alarm.Send)
 
+			sort.Slice(times, func (i, j int) bool {
+				return durations[i] < durations[j];
+			})
 			cur := 0
 			for true {
 				evt, ok := <-alarm.Receive

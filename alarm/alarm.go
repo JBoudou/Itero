@@ -26,30 +26,47 @@ type Event struct {
 }
 
 // Alarm resends events at the requested time, or later.
-// Events are always received in the order they've been sent.
 // Closing the Send channel asks the alarm to terminate, which is notified by closing Receive.
 type Alarm struct {
 	Send    chan<- Event
 	Receive <-chan Event
 }
 
+func wait(send chan<- Event, evt Event) {
+	duration := time.Until(evt.Time)
+	if duration > 0 {
+		time.Sleep(duration)
+	}
+	send <- evt
+}
+
 func run(rcv <-chan Event, send chan<- Event) {
-	for true {
-		var next Event
+	waiting := make(map[Event]bool, 1)
+	tick := make(chan Event)
+	closing := false
 
-		next, ok := <-rcv
-		if !ok {
-			break
+	mainLoop: for true {
+		select {
+
+		case evt, ok := <- rcv:
+			if !ok {
+				closing = true
+			} else {
+				waiting[evt] = true
+				go wait(tick, evt)
+			}
+
+		case evt := <- tick:
+			delete(waiting, evt)
+			send <- evt
+			if closing && len(waiting) == 0 {
+				break mainLoop
+			}
 		}
 
-		duration := time.Until(next.Time)
-		if duration > 0 {
-			time.Sleep(duration)
-		}
-
-		send <- next
 	}
 
+	close(tick)
 	close(send)
 }
 
