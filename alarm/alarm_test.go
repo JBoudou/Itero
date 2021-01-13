@@ -97,6 +97,88 @@ func TestAlarm(t *testing.T) {
 	}
 }
 
+func TestAlarm_DiscardLaterEvent(t *testing.T) {
+	tests := []struct {
+		name      string
+		durations []string
+	}{
+		{
+			name:      "One",
+			durations: []string{ "10ms" },
+		},
+		{
+			name:      "Two",
+			durations: []string{ "10ms", "20ms" },
+		},
+		{
+			name:      "One in the past",
+			durations: []string{ "10ms", "5ms", "20ms" },
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			durations := make([]time.Duration, len(tt.durations))
+			for i, str := range tt.durations {
+				var err error
+				durations[i], err = time.ParseDuration(str)
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			alarm := New(0, DiscardLaterEvent)
+
+			times := make([]time.Time, len(durations))
+			now := time.Now().Add(100 * time.Millisecond)
+			for i, dur := range durations {
+				times[i] = now.Add(dur)
+			}
+
+			for _, t := range times {
+				alarm.Send <- Event{ Time: t }
+			}
+			close(alarm.Send)
+
+			filtered := make([]time.Time, 0, len(times))
+			first := now.Add(time.Hour)
+			for _, t := range times {
+				if t.Before(first) {
+					filtered = append(filtered, t)
+					first = t
+				}
+			}
+
+			sort.Slice(filtered, func (i, j int) bool {
+				return durations[i] < durations[j];
+			})
+			cur := 0
+			for true {
+				evt, ok := <-alarm.Receive
+				if !ok {
+					break
+				}
+				diff := time.Since(evt.Time)
+
+				if !evt.Time.Equal(filtered[cur]) {
+					t.Errorf("Wrong time. Got %v. Expect %v.", evt.Time, filtered[cur])
+					continue
+				}
+				cur++
+				if diff < 0 {
+					t.Errorf("Received in the past (%v).", diff)
+				}
+				if diff > AllowedInterval {
+					t.Errorf("Received too late (%d).", diff)
+				}
+			}
+
+			if cur < len(filtered) {
+				t.Errorf("Missing %d events.", len(filtered) - cur)
+			}
+		})
+	}
+}
+
 func TestAlarm_Remaining(t *testing.T) {
 	alarm := New(0)
 

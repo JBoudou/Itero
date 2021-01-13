@@ -32,6 +32,17 @@ type Event struct {
 type Alarm struct {
 	Send    chan<- Event
 	Receive <-chan Event
+
+	discardLaterEvent bool
+}
+
+func allAfter(waiting map[Event]bool, evt Event) bool {
+	for w := range waiting {
+		if w.Time.Before(evt.Time) {
+			return false
+		}
+	}
+	return true
 }
 
 func wait(send chan<- Event, evt Event) {
@@ -42,42 +53,56 @@ func wait(send chan<- Event, evt Event) {
 	send <- evt
 }
 
-func run(rcv <-chan Event, send chan<- Event) {
+func (self Alarm) run(rcv <-chan Event, send chan<- Event) {
 	waiting := make(map[Event]bool, 1)
 	tick := make(chan Event)
 	closing := false
 
-	mainLoop: for true {
+mainLoop:
+	for true {
 		select {
 
-		case evt, ok := <- rcv:
+		case evt, ok := <-rcv:
 			if !ok {
 				closing = true
-			} else {
+			} else if !self.discardLaterEvent || allAfter(waiting, evt) {
 				waiting[evt] = true
 				go wait(tick, evt)
 			}
 
-		case evt := <- tick:
+		case evt := <-tick:
 			delete(waiting, evt)
 			evt.Remaining = len(waiting)
 			send <- evt
 			if closing && len(waiting) == 0 {
 				break mainLoop
 			}
-		}
 
+		}
 	}
 
 	close(tick)
 	close(send)
 }
 
+type Option func(evt *Alarm)
+
+var (
+	// Events received by Alarm with Time greater than any waiting event are ignored.
+	DiscardLaterEvent Option = func(evt *Alarm) {
+		evt.discardLaterEvent = true
+	}
+)
+
 // New creates a new Alarm with the given size for Send.
-// Receive is always unbuffered.
-func New(chanSize int) Alarm {
+// Receive is always unbuffered. Thus, settings chanSize to zero may result in deadlocks.
+func New(chanSize int, opts ...Option) Alarm {
 	in := make(chan Event, chanSize)
 	out := make(chan Event)
-	go run(in, out)
-	return Alarm{Send: in, Receive: out}
+	alarm := Alarm{Send: in, Receive: out}
+	for _, opt := range opts {
+		opt(&alarm)
+	}
+	go alarm.run(in, out)
+	return alarm
 }
