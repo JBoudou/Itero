@@ -96,3 +96,27 @@ func TestAlarm(t *testing.T) {
 		})
 	}
 }
+
+func TestAlarm_Remaining(t *testing.T) {
+	alarm := New(0)
+
+	const (
+		durationStep = 2 * time.Millisecond
+		nbEvents = 10
+	)
+
+	for i, wait := 0, 100 * time.Millisecond; i < nbEvents; i, wait = i + 1, wait + durationStep {
+		alarm.Send <- Event{ Time: time.Now().Add(wait) }
+	}
+
+	for i := nbEvents; i > 0; i -= 1 {
+		evt, ok := <-alarm.Receive
+		if !ok {
+			t.Errorf("Missing %d events", i)
+			break
+		}
+		if (evt.Remaining != i - 1) {
+			t.Errorf("Wrong Remaining. Got %d. Expect %d.", evt.Remaining, i - 1)
+		}
+	}
+}

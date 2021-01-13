@@ -23,6 +23,8 @@ import (
 type Event struct {
 	Time time.Time
 	Data interface{}
+	// Before resending the event, Remaining is set by Alarm to the number of remaining waiting events.
+	Remaining int
 }
 
 // Alarm resends events at the requested time, or later.
@@ -58,6 +60,7 @@ func run(rcv <-chan Event, send chan<- Event) {
 
 		case evt := <- tick:
 			delete(waiting, evt)
+			evt.Remaining = len(waiting)
 			send <- evt
 			if closing && len(waiting) == 0 {
 				break mainLoop
