@@ -39,6 +39,36 @@ form.basicform
       border-color: tame($maincolor)
       background-color: tame($userbuttonbgcolor)
       color: tame($useboxfgcolor)
+
+.merged-input
+  @include userbox
+  display: flex
+  padding: 0
+  & > *
+    border: none
+  & > input
+    margin: 4px 0
+    background-color: transparent
+    flex-grow: 1
+  & > input:first-child
+    margin-left: 4px
+  & > input:last-child
+    margin-right: 4px
+  & > button:last-child
+    border-left: solid 1px $maincolor
+    background-color: $userbuttonbgcolor
+  & > button:last-child:hover
+    background-color: color.adjust($maincolor, $lightness: 20%)
+    color: $fgOnMaincolor
+  & > button[disabled]:last-child, & > [disabled]:last-child:hover
+    background-color: tame($userbuttonbgcolor)
+    color: tame($useboxfgcolor)
+  
+.formerrors
+  color: $errorcolor
+  font-size: 10pt
+  p
+    margin: 0
     
 form.basicform
   display: grid
@@ -49,10 +79,6 @@ form.basicform
     grid-area: auto
   .formerrors
     grid-area: span 1 / span 2
-    color: $errorcolor
-    font-size: 10pt
-    p
-      margin: 0
   .formactions
     grid-area: span 1 / span 2
 

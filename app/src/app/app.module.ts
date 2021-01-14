@@ -5,6 +5,7 @@ import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 
 import { GoogleChartsModule } from 'angular-google-charts';
 import { DragDropModule } from '@angular/cdk/drag-drop';
+import { MatIconModule } from '@angular/material/icon'; 
 
 import { AppRoutingModule } from './app-routing.module';
 import { SessionInterceptor } from './session/session.interceptor';
@@ -59,6 +60,7 @@ import { DayHourMinDurationComponent } from './day-hour-min-duration/day-hour-mi
     BrowserAnimationsModule,
     GoogleChartsModule,
     DragDropModule,
+    MatIconModule,
   ],
   providers: [
     { provide: HTTP_INTERCEPTORS, useClass: SessionInterceptor, multi: true },

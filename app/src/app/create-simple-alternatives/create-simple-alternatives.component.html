@@ -1,9 +1,21 @@
-<form class="basicform" [formGroup]="form" (ngSubmit)="onAdd()">
-  <label i18n>New alternative:</label><input type="text" formControlName="New" />
-  <div class="formactions">
-    <button type="submit" [disabled]="!form.valid" i18n>Add</button>
+<div cdkDropList class="dndList" (cdkDropListDropped)="onDrop($event)">
+  <div class="dndItem" *ngFor="let alt of alternatives" cdkDrag>
+    {{ alt.Id + 1 }}. {{ alt.Name }}<mat-icon (click)="onDelete(alt.Id)">delete</mat-icon>
+  </div>
+</div>
+<form [formGroup]="form" (ngSubmit)="onAdd()">
+  <div class="merged-input">
+    <input type="text" formControlName="New" />
+    <button type="submit" [disabled]="!form.valid" i18n><mat-icon>add</mat-icon></button>
   </div>
 </form>
-<div cdkDropList class="dndList" (cdkDropListDropped)="onDrop($event)">
-  <div class="dndItem" *ngFor="let alt of alternatives" cdkDrag>{{ alt.Id }}. {{ alt.Name }}</div>
+<div class="formerrors" *ngIf="hasDuplicate() || alternatives.length < 2">
+  <p *ngIf="hasDuplicate()" i18n>
+    There already is an alternative with the same name.
+  </p>
+  <p *ngIf="alternatives.length < 2" i18n>
+    You must add at least
+    { alternatives.length, plural, =0 {two alternatives} =1 { one more alternative} }
+    to this poll.
+  </p>
 </div>
