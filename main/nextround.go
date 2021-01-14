@@ -130,7 +130,7 @@ func (self *nextRound) nextAlarm() alarm.Event {
 }
 
 func (self *nextRound) run(evtChan <-chan events.Event) {
-	at := alarm.New(1)
+	at := alarm.New(1, alarm.DiscardLaterEvent)
 
 	self.updateLastCheck()
 	self.fullCheck()
@@ -158,7 +158,9 @@ func (self *nextRound) run(evtChan <-chan events.Event) {
 				continue
 			}
 
-			at.Send <- self.nextAlarm()
+			if evt.Remaining == 0 && evtChan != nil {
+				at.Send <- self.nextAlarm()
+			}
 
 		case evt, ok := <-evtChan:
 			if !ok {
@@ -168,10 +170,13 @@ func (self *nextRound) run(evtChan <-chan events.Event) {
 				continue
 			}
 
-			voteEvt := evt.(VoteEvent)
-			if err := self.checkOne(voteEvt.Poll); err != nil {
-				self.warn.Print(err)
-				continue
+			switch typed := evt.(type) {
+			case VoteEvent:
+				if err := self.checkOne(typed.Poll); err != nil {
+					self.warn.Print(err)
+				}
+			case CreatePollEvent:
+				at.Send <- self.nextAlarm()
 			}
 		}
 	}
@@ -182,8 +187,11 @@ func StartNextRound() {
 	ch := make(chan events.Event, 64)
 	events.AddReceiver(events.AsyncForwarder{
 		Filter: func(evt events.Event) bool {
-			_, ok := evt.(VoteEvent)
-			return ok
+			switch evt.(type) {
+			case VoteEvent, CreatePollEvent:
+				return true;
+			}
+			return false
 		},
 		Chan: ch,
 	})
