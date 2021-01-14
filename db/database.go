@@ -18,6 +18,7 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -139,6 +140,16 @@ func fillVars(table string, assoc map[string]*uint8) {
 		}
 		log.Fatalf("Labels not found in %s:%s", table, joined)
 	}
+}
+
+// MillisecondsToTime convert a time in millisecond into a time understandable by the database.
+func MillisecondsToTime(milli uint64) string {
+	return fmt.Sprintf("%d:%02d:%02d.%03d000",
+		milli/(60*60*1000),
+		(milli/(60*1000))%60,
+		(milli/1000)%60,
+		milli%1000,
+	)
 }
 
 func must(err error, msg string) {

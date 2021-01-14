@@ -29,6 +29,8 @@ import (
 
 /** PollSegment **/
 
+const saltNbBits = 22
+
 type PollSegment struct {
 	Id   uint32
 	Salt uint32
@@ -38,7 +40,7 @@ func PollSegmentDecode(str string) (ret PollSegment, err error) {
 	buff := b64buff.Buffer{}
 	err = buff.WriteB64(str)
 	if err == nil {
-		ret.Salt, err = buff.ReadUInt32(22)
+		ret.Salt, err = buff.ReadUInt32(saltNbBits)
 	}
 	if err == nil {
 		ret.Id, err = buff.ReadUInt32(32)
@@ -48,7 +50,7 @@ func PollSegmentDecode(str string) (ret PollSegment, err error) {
 
 func (self PollSegment) Encode() (str string, err error) {
 	buff := b64buff.Buffer{}
-	err = buff.WriteUInt32(self.Salt, 22)
+	err = buff.WriteUInt32(self.Salt, saltNbBits)
 	if err == nil {
 		err = buff.WriteUInt32(self.Id, 32)
 	}
@@ -71,8 +73,7 @@ type PollInfo struct {
 // checkPollAccess ensure that the user can access the poll.
 //
 // It checks that the request has a session and a valid poll segment. It also check that the user
-// participates in the poll. If she doesn't, checkPollAccess makes the user participate in the poll,
-// if possible.
+// participates in the poll. If she doesn't, poll.Participate is set to false.
 func checkPollAccess(ctx context.Context, request *server.Request) (poll PollInfo, err error) {
 	// Check user
 	// TODO allow unregistered poll

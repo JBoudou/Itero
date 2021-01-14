@@ -46,7 +46,6 @@ func (self *voteChecker) Before(t *testing.T) {
 	events.DefaultManager = &eventstest.ManagerMock{
 		T: t,
 		Send_: func(evt events.Event) error {
-			t.Logf("Event received: %v.", evt)
 			if vEvt, ok := evt.(VoteEvent); ok && vEvt.Poll == self.poll {
 				self.eventSent = true
 			}
