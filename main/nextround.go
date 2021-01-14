@@ -60,11 +60,12 @@ func (self *nextRound) fullCheck() error {
 		  WHERE p.Active AND p.CurrentRound < p.MaxNbRounds
 		  GROUP BY p.Id,
 		        p.CurrentRoundStart, p.MaxRoundDuration, p.CurrentRound, p.Publicity, p.RoundThreshold
-		 HAVING ADDTIME(p.CurrentRoundStart, p.MaxRoundDuration) <= CURRENT_TIMESTAMP()
-		        OR ( (p.CurrentRound > 0 OR p.Publicity = %d)
-		              AND ( (p.RoundThreshold = 0 AND SUM(a.LastRound = p.CurrentRound) > 0)
-		                   OR ( p.RoundThreshold > 0
-		                        AND SUM(a.LastRound = p.CurrentRound) / COUNT(a.LastRound) >= p.RoundThreshold )))
+		 HAVING ( ADDTIME(p.CurrentRoundStart, p.MaxRoundDuration) <= CURRENT_TIMESTAMP()
+		          AND ( p.CurrentRound > 0 OR COUNT(a.LastRound) > 2 ))
+		     OR ( (p.CurrentRound > 0 OR p.Publicity = %d)
+		           AND ( (p.RoundThreshold = 0 AND SUM(a.LastRound = p.CurrentRound) > 0)
+		                OR ( p.RoundThreshold > 0
+		                     AND SUM(a.LastRound = p.CurrentRound) / COUNT(a.LastRound) >= p.RoundThreshold )))
 		    FOR UPDATE`
 		qNextRound = `UPDATE Polls SET CurrentRound = CurrentRound + 1 WHERE Id = ?`
 	)
@@ -83,11 +84,12 @@ func (self *nextRound) checkOne(pollId uint32) error {
 	      WHERE p.Id = ? AND p.Active AND p.CurrentRound < p.MaxNbRounds
 	      GROUP BY p.Id,
 	            p.CurrentRoundStart, p.MaxRoundDuration, p.CurrentRound, p.Publicity, p.RoundThreshold
-	     HAVING ADDTIME(p.CurrentRoundStart, p.MaxRoundDuration) <= CURRENT_TIMESTAMP()
-	                 OR ( (p.CurrentRound > 0 OR p.Publicity = ?)
-	                       AND ( (p.RoundThreshold = 0 AND SUM(a.LastRound = p.CurrentRound) > 0)
-	                            OR ( p.RoundThreshold > 0
-	                                 AND SUM(a.LastRound = p.CurrentRound) / COUNT(a.LastRound) >= p.RoundThreshold )))`
+	     HAVING ( ADDTIME(p.CurrentRoundStart, p.MaxRoundDuration) <= CURRENT_TIMESTAMP()
+		            AND ( p.CurrentRound > 0 OR COUNT(a.LastRound) > 2 ))
+	         OR ( (p.CurrentRound > 0 OR p.Publicity = ?)
+	               AND ( (p.RoundThreshold = 0 AND SUM(a.LastRound = p.CurrentRound) > 0)
+	                    OR ( p.RoundThreshold > 0
+	                         AND SUM(a.LastRound = p.CurrentRound) / COUNT(a.LastRound) >= p.RoundThreshold )))`
 		qUpdate = `
 	  	UPDATE Polls SET CurrentRound = CurrentRound + 1
 	  	 WHERE Id IN ( SELECT Id FROM Tmp_NextRound )`
