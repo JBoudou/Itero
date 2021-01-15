@@ -2,7 +2,8 @@
 <div id="creation">
   <div id="steps">
     <ng-container *ngFor="let step of createStepStatus.steps; last as last; index as index">
-      <div class="step" [class.currentStep]="index == createStepStatus.current">
+      <div class="step" [class.current-step]="index == createStepStatus.current"
+           [class.jumpable-step]="isJumpable(index)" (click)="onJump(index)">
         <span class="index">{{ index + 1 }}</span> 
         <span class="stepName" i18n>{{ step }}</span>
       </div>

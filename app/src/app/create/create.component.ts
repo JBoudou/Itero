@@ -16,7 +16,7 @@
 
 import { Component, OnInit, ViewEncapsulation } from '@angular/core';
 
-import { CreateService, CREATE_TREE, APP_CREATE_TREE, CreateStepStatus, CreateNextStatus } from './create.service';
+import { CreateService, CreateStepStatus, CreateNextStatus } from './create.service';
 
 @Component({
   selector: 'app-create',
@@ -43,7 +43,23 @@ export class CreateComponent implements OnInit {
     });
   }
 
+  isJumpable(pos: number): boolean {
+    return pos >= 0 && ( (pos < this.createStepStatus.current) ||
+                         (this.canNext && pos == this.createStepStatus.current + 1) );
+  }
+
   ngOnInit(): void {
+  }
+
+  onJump(pos: number): void {
+    if (!this.isJumpable(pos)) {
+      return;
+    }
+    if (pos < this.createStepStatus.current) {
+      this.service.back(this.createStepStatus.current - pos);
+    } else {
+      this.service.next();
+    }
   }
 
   onBack(): void {
