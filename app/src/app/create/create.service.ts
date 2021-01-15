@@ -226,19 +226,23 @@ export class CreateService {
    * Must not be called when the current node is the root node, which is notified by a
    * CreateStepStatus with current at zero.
    */
-  back(): void {
-    const parent = this.current.parent;
-    if (parent === undefined) {
-      console.warn('CreateService back on the root node !')
-      return;
+  back(steps?: number): void {
+    if (steps === undefined) {
+      steps = 1;
     }
 
-    if (this.subComponent === undefined) {
-      console.warn('CreateService back without component !')
+    let current = this.current;
+    for (let i = 0; i < steps; i++) {
+      const parent = current.parent;
+      if (parent === undefined) {
+        console.warn('CreateService back on the root node !')
+        break;
+      }
+      parent.handledFields = new Set<string>();
+      current = parent
     }
 
-    parent.handledFields = new Set<string>();
-    this.makeCurrent(parent);
+    this.makeCurrent(current);
   }
 
   /**

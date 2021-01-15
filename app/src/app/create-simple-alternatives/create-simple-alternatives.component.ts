@@ -16,6 +16,7 @@
 
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, Validators, AbstractControl, ValidatorFn, ValidationErrors  } from '@angular/forms';
+import { trigger, transition, style, animate } from '@angular/animations';
 
 import { Subject, Observable } from 'rxjs';
 
@@ -42,7 +43,20 @@ function duplicateValidator(component: CreateSimpleAlternativesComponent): Valid
 @Component({
   selector: 'app-create-simple-alternatives',
   templateUrl: './create-simple-alternatives.component.html',
-  styleUrls: ['./create-simple-alternatives.component.sass']
+  styleUrls: ['./create-simple-alternatives.component.sass'],
+  animations: [
+    trigger('deleteTrigger', [
+      transition('* => justDeleted', [
+        style({
+          opacity: 0,
+          padding: 0,
+          border: 'none',
+          margin: 0,
+        }),
+        animate("250ms cubic-bezier(0, 0, 0.2, 1)", style({ height: '0px' }))
+      ])
+    ])
+  ]
 })
 export class CreateSimpleAlternativesComponent implements OnInit, CreateSubComponent {
 
@@ -54,6 +68,7 @@ export class CreateSimpleAlternativesComponent implements OnInit, CreateSubCompo
   });
 
   alternatives: PollAlternative[];
+  justDeleted: number|undefined;
 
   readonly handledFields = new Set<string>(['Alternatives']);
 
@@ -101,10 +116,19 @@ export class CreateSimpleAlternativesComponent implements OnInit, CreateSubCompo
   }
 
   onDelete(pos: number): void {
+    this.justDeleted = pos;
+  }
+
+  onDeleteDone(): void {
+    const pos = this.justDeleted;
+    if (pos === undefined) {
+      return
+    }
     this.alternatives.splice(pos, 1);
     for (let i = pos, end = this.alternatives.length; i < end; i++) {
       this.alternatives[i].Id -= 1;
     }
+    this.justDeleted = undefined;
   }
 
 }

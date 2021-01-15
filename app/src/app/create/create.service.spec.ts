@@ -65,6 +65,7 @@ describe('CreateTree', () => {
 class RouterStub {
   private url = '/root';
   navigate = jasmine.createSpy('navigate');
+  navigateByUrl = jasmine.createSpy('navigateByUrl');
 
   get routerState() {
     return { snapshot: { url: this.url } };
@@ -82,7 +83,9 @@ class RouterStub {
 describe('CreateService', () => {
   const TEST_TREE =
     new LinearCreateTreeNode('root', 'Root',
-      new FinalCreateTreeNode('leaf', 'Leaf')
+      new LinearCreateTreeNode('middle', 'Middle',
+        new FinalCreateTreeNode('leaf', 'Leaf')
+      )
     );
 
   const dummyComponent = jasmine.createSpyObj('CreateSubComponent', [], {
@@ -110,6 +113,12 @@ describe('CreateService', () => {
       ],
     });
     service = TestBed.inject(CreateService);
+
+    jasmine.clock().install();
+  });
+
+  afterEach(function() {
+    jasmine.clock().uninstall();
   });
 
   it('should be created', () => {
@@ -121,46 +130,77 @@ describe('CreateService', () => {
     service.createNextStatus$.subscribe(recorder);
 
     service.register(dummyComponent);
+    jasmine.clock().tick(1);
 
     expect(recorder.record).toEqual([
         new CreateNextStatus(false, false),
         new CreateNextStatus(true, false),
     ]);
-    expect(justRecordedFrom(service.createStepStatus$)).toEqual([ new CreateStepStatus(0, ['Root', 'Leaf']) ]);
+    expect(justRecordedFrom(service.createStepStatus$)).toEqual([ new CreateStepStatus(0, ['Root', 'Middle', 'Leaf']) ]);
   });
 
   it('goes next', () => {
     service.register(dummyComponent);
+    jasmine.clock().tick(1);
 
     const recorder = new Recorder<CreateStepStatus>();
     service.createStepStatus$.subscribe(recorder);
     service.next();
     service.register(dummyComponent);
+    jasmine.clock().tick(1);
+
     expect(recorder.record).toEqual([
-        new CreateStepStatus(0, ['Root', 'Leaf']),
-        new CreateStepStatus(1, ['Root', 'Leaf']),
+        new CreateStepStatus(0, ['Root', 'Middle', 'Leaf']),
+        new CreateStepStatus(1, ['Root', 'Middle', 'Leaf']),
     ]);
 
     expect(routerSpy.navigate.calls.count()).toBe(1);
     const segments = routerSpy.routerState.snapshot.url.split('/');
-    expect(segments[segments.length - 1]).toBe('leaf');
+    expect(segments[segments.length - 1]).toBe('middle');
   });
 
   it('goes back', () => {
     service.register(dummyComponent);
     service.next();
     service.register(dummyComponent);
+    jasmine.clock().tick(1);
 
     const recorder = new Recorder<CreateStepStatus>();
     service.createStepStatus$.subscribe(recorder);
     service.back();
     service.register(dummyComponent);
+    jasmine.clock().tick(1);
+
     expect(recorder.record).toEqual([
-        new CreateStepStatus(1, ['Root', 'Leaf']),
-        new CreateStepStatus(0, ['Root', 'Leaf']),
+        new CreateStepStatus(1, ['Root', 'Middle', 'Leaf']),
+        new CreateStepStatus(0, ['Root', 'Middle', 'Leaf']),
     ]);
 
     expect(routerSpy.navigate.calls.count()).toBe(2);
+    const segments = routerSpy.routerState.snapshot.url.split('/');
+    expect(segments[segments.length - 1]).toBe('root');
+  });
+
+  it('goes back twice', () => {
+    service.register(dummyComponent);
+    service.next();
+    service.register(dummyComponent);
+    service.next();
+    service.register(dummyComponent);
+    jasmine.clock().tick(1);
+
+    const recorder = new Recorder<CreateStepStatus>();
+    service.createStepStatus$.subscribe(recorder);
+    service.back(2);
+    service.register(dummyComponent);
+    jasmine.clock().tick(1);
+
+    expect(recorder.record).toEqual([
+        new CreateStepStatus(2, ['Root', 'Middle', 'Leaf']),
+        new CreateStepStatus(0, ['Root', 'Middle', 'Leaf']),
+    ]);
+
+    expect(routerSpy.navigate.calls.count()).toBe(3);
     const segments = routerSpy.routerState.snapshot.url.split('/');
     expect(segments[segments.length - 1]).toBe('root');
   });
@@ -171,7 +211,7 @@ describe('CreateService', () => {
     query.MaxNbRounds = 2;
     query.Alternatives = [];
 
-    // leaf
+    // middle
     service.next();
     query = service.register(simpleComponent);
     expect(query.MaxNbRounds).toBe(2);
@@ -184,7 +224,7 @@ describe('CreateService', () => {
     query.MaxNbRounds = 2;
     query.Alternatives = [];
 
-    // leaf
+    // middle
     service.next();
     query = service.register(simpleComponent);
     query.MaxNbRounds = 3;
@@ -197,13 +237,13 @@ describe('CreateService', () => {
     expect(query.Alternatives).toEqual([]);
   });
 
-  it('recalls fields when goinf next again', () => {
+  it('recalls fields when going next again', () => {
     // root
     let query = service.register(simpleComponent);
     query.MaxNbRounds = 2;
     query.Alternatives = [];
 
-    // leaf
+    // middle
     service.next();
     query = service.register(simpleComponent);
     query.MaxNbRounds = 3;
@@ -220,6 +260,10 @@ describe('CreateService', () => {
 
   it('resets fields after a successfull validation', () => {
     // root
+    service.register(dummyComponent);
+    service.next();
+
+    // middle
     let query = service.register(simpleComponent);
     query.MaxNbRounds = 2;
     query.Alternatives = [];

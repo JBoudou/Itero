@@ -1,5 +1,7 @@
 <div cdkDropList class="dndList" (cdkDropListDropped)="onDrop($event)">
-  <div class="dndItem" *ngFor="let alt of alternatives" cdkDrag>
+  <div class="dndItem" *ngFor="let alt of alternatives"
+    [@deleteTrigger]="justDeleted == alt.Id ? 'justDeleted' : 'Ok'" (@deleteTrigger.done)="onDeleteDone()"
+    cdkDrag>
     {{ alt.Id + 1 }}. {{ alt.Name }}<mat-icon (click)="onDelete(alt.Id)">delete</mat-icon>
   </div>
 </div>
