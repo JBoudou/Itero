@@ -15,6 +15,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { TestBed } from '@angular/core/testing';
+import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { Router } from '@angular/router';
 
 import { of } from 'rxjs';
@@ -101,18 +102,21 @@ describe('CreateService', () => {
   const simpleAlternative: PollAlternative = { Id: 0, Name: 'test', Cost: 1 };
 
   let service: CreateService;
+  let httpControler: HttpTestingController;
   let routerSpy: RouterStub;
 
   beforeEach(() => {
     routerSpy = new RouterStub();
 
     TestBed.configureTestingModule({
+      imports: [ HttpClientTestingModule ],
       providers: [
         { provide: CREATE_TREE, useValue: TEST_TREE },
         { provide: Router, useValue: routerSpy },
       ],
     });
     service = TestBed.inject(CreateService);
+    httpControler = TestBed.inject(HttpTestingController);
 
     jasmine.clock().install();
   });

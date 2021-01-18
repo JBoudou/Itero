@@ -15,6 +15,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { Inject, Injectable, InjectionToken } from '@angular/core';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 
 import { Observable, ReplaySubject, Subscription } from 'rxjs';
@@ -216,6 +217,7 @@ export class CreateService {
   constructor(
     @Inject(CREATE_TREE) private root: CreateTreeNode,
     private router: Router,
+    private http: HttpClient,
   ) {
     this.current = this.root;
   }
@@ -343,7 +345,12 @@ export class CreateService {
 
   private sendRequest(): void {
     console.log(JSON.stringify(this.current.query));
-    this.router.navigateByUrl('/r/list');
-    // TODO
+    this.http.post<string>('/a/create', this.current.query, { observe: 'body', responseType: 'json' })
+      .subscribe({
+      next: (segment: string) => {
+        console.log(segment);
+        this.router.navigateByUrl('/r/list');
+      },
+    });
   }
 }
