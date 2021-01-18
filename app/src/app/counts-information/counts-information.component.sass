@@ -1,6 +1,4 @@
-@use 'sass:color'
-@import '../../colors'
+@import '../../mixins'
 
 .finalResult
-  box-shadow: 2px 6px 12px color.change(color.adjust($maincolor, $saturation: -20%), $lightness: 85%)
-  padding: 4px
+  @include overhilight

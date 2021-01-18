@@ -1,0 +1,18 @@
+<div class="create-result" *ngIf="isSuccess(); else errorBlock">
+  <h3>The poll has been sucessfully created!</h3><p>You can invite people to participe in the poll by sharing the link
+  <span class="share-link">
+    <a [href]="link()">{{ link() }}</a>
+    <button mat-icon-button [cdkCopyToClipboard]="link()" i18n-matTooltip matTooltip="Copy to clipboard">
+      <mat-icon>content_paste</mat-icon>
+    </button>
+  </span></p>
+</div>
+<ng-template #errorBlock>
+  <h3>Unexpected error</h3>
+  <p>
+    The error <span class="http-error">{{ error().status }} {{ error().message }}</span> occured while creating the poll.
+    Such an error should never happen.
+    Please fill a <a href="https://github.com/JBoudou/Itero/issues/new">bug report</a>.
+  </p>
+</ng-template>
+<app-poll *ngIf="isSuccess()"></app-poll>

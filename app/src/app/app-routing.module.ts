@@ -21,6 +21,7 @@ import { CreateComponent }                  from './create/create.component';
 import { CreateGeneralComponent }           from './create-general/create-general.component';
 import { CreateSimpleAlternativesComponent }from './create-simple-alternatives/create-simple-alternatives.component';
 import { CreateRoundComponent }             from './create-round/create-round.component';
+import { CreateResultComponent }            from './create-result/create-result.component';
 import { DeadRouteComponent }               from './dead-route/dead-route.component';
 import { HomeComponent }                    from './home/home.component';
 import { ListComponent }                    from './list/list.component';
@@ -36,6 +37,7 @@ const routes: Routes = [
     { path: 'round', component: CreateRoundComponent },
     { path: '', redirectTo: 'general', pathMatch: 'full' },
   ] },
+  { path: 'r/create-result/:pollSegment', component: CreateResultComponent },
   { path: 'r/list', component: ListComponent },
   { path: 'r/login', component: LoginComponent },
   { path: 'r/signup', component: SignupComponent },

@@ -6,6 +6,9 @@ import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { GoogleChartsModule } from 'angular-google-charts';
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import { MatIconModule } from '@angular/material/icon'; 
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatButtonModule } from '@angular/material/button';
+import { ClipboardModule } from '@angular/cdk/clipboard';
 
 import { AppRoutingModule } from './app-routing.module';
 import { SessionInterceptor } from './session/session.interceptor';
@@ -29,38 +32,43 @@ import { CreateSimpleAlternativesComponent } from './create-simple-alternatives/
 import { CreateRoundComponent } from './create-round/create-round.component';
 import { DateTimePickerComponent } from './date-time-picker/date-time-picker.component';
 import { DayHourMinDurationComponent } from './day-hour-min-duration/day-hour-min-duration.component';
+import { CreateResultComponent } from './create-result/create-result.component';
 
 @NgModule({
   declarations: [
     AppComponent,
-    NavtitleComponent,
-    ListComponent,
-    LoginComponent,
-    HomeComponent,
-    DeadRouteComponent,
-    SignupComponent,
-    PollComponent,
-    PollBallotDirective,
-    PollInformationDirective,
-    UninominalBallotComponent,
     CountsInformationComponent,
     CreateComponent,
     CreateGeneralComponent,
-    CreateSimpleAlternativesComponent,
+    CreateResultComponent,
     CreateRoundComponent,
+    CreateSimpleAlternativesComponent,
     DateTimePickerComponent,
-    DayHourMinDurationComponent
+    DayHourMinDurationComponent,
+    DeadRouteComponent,
+    HomeComponent,
+    ListComponent,
+    LoginComponent,
+    NavtitleComponent,
+    PollBallotDirective,
+    PollComponent,
+    PollInformationDirective,
+    SignupComponent,
+    UninominalBallotComponent,
   ],
   imports: [
-    BrowserModule,
     AppRoutingModule,
-    HttpClientModule,
-    ReactiveFormsModule,
-    FormsModule,
     BrowserAnimationsModule,
-    GoogleChartsModule,
+    BrowserModule,
+    ClipboardModule,
     DragDropModule,
+    FormsModule,
+    GoogleChartsModule,
+    HttpClientModule,
+    MatButtonModule,
     MatIconModule,
+    MatTooltipModule,
+    ReactiveFormsModule,
   ],
   providers: [
     { provide: HTTP_INTERCEPTORS, useClass: SessionInterceptor, multi: true },

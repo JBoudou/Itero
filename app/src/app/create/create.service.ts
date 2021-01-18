@@ -210,6 +210,12 @@ export class CreateService {
     return this._createStep;
   }
 
+  private _httpError: HttpErrorResponse;
+
+  get httpError(): HttpErrorResponse {
+    return this._httpError;
+  }
+
   private current: CreateTreeNode;
   private subComponent: CreateSubComponent|undefined;
   private subComponentSubscription: Subscription|undefined;
@@ -344,12 +350,15 @@ export class CreateService {
   }
 
   private sendRequest(): void {
-    console.log(JSON.stringify(this.current.query));
     this.http.post<string>('/a/create', this.current.query, { observe: 'body', responseType: 'json' })
       .subscribe({
       next: (segment: string) => {
-        console.log(segment);
-        this.router.navigateByUrl('/r/list');
+        this.router.navigateByUrl('/r/create-result/' + segment);
+        this._httpError = undefined;
+      },
+      error: (err: HttpErrorResponse) => {
+        this._httpError = err;
+        this.router.navigateByUrl('/r/create-result/error');
       },
     });
   }

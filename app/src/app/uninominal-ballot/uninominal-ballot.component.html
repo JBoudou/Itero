@@ -4,7 +4,7 @@
     <li *ngFor="let alt of alternatives" [class.selected]="isSelected(alt.Id)" (click)="onSelect(alt.Id)">{{alt.Name}}</li>
   </ul>
   <div class="formactions">
-    <button type="button" [disabled]="!isValid()" (click)="onVote()" i18n>Vote</button>
     <button type="button" (click)="onAbstain()" i18n>Abstain</button>
+    <button type="button" [disabled]="!isValid()" (click)="onVote()" i18n>Vote</button>
   </div>
 </div>
