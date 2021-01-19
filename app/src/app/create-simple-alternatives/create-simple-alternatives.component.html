@@ -6,7 +6,7 @@
   </div>
 </div>
 <form [formGroup]="form" (ngSubmit)="onAdd()">
-  <div class="merged-input">
+  <div class="merged-userbox-grow">
     <input type="text" formControlName="New" />
     <button type="submit" [disabled]="!form.valid" i18n><mat-icon>add</mat-icon></button>
   </div>

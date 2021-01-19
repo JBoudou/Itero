@@ -50,7 +50,11 @@ export class DayHourMinDurationComponent implements OnInit, ControlValueAccessor
 
   onValueChange(): void {
     const { days, hours, mins } = this.form.value;
-    this.notifChange(((days * 24 + hours) * 60 + mins) * 60 * 1000);
+    if (Number.isInteger(days) && Number.isInteger(hours) && Number.isInteger(mins)) {
+      this.notifChange(((days * 24 + hours) * 60 + mins) * 60 * 1000);
+    } else {
+      this.notifChange(null);
+    }
   }
 
   /** Implements ControlValueAccessor */

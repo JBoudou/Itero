@@ -17,7 +17,7 @@
 import { FormGroup } from '@angular/forms';
 
 import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { map, startWith } from 'rxjs/operators';
 
 import { CreateService, CreateSubComponent } from '../create/create.service';
 
@@ -42,7 +42,7 @@ export abstract class CreateSubComponentBase implements CreateSubComponent {
 
   /** Notifications are send each time the status of the form changes. */
   get validable$(): Observable<boolean> {
-    return this.form.statusChanges.pipe(map(val => val == 'VALID'));
+    return this.form.statusChanges.pipe(map(val => val == 'VALID'), startWith(this.form.valid));
   }
 
   /**

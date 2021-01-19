@@ -40,7 +40,7 @@ form.basicform
       background-color: tame($userbuttonbgcolor)
       color: tame($useboxfgcolor)
 
-.merged-input
+.merged-userbox-grow
   @include userbox
   display: flex
   padding: 0
@@ -64,6 +64,18 @@ form.basicform
   & > button[disabled]:last-child, & > [disabled]:last-child:hover
     background-color: tame($userbuttonbgcolor)
     color: tame($useboxfgcolor)
+
+.merged-input-space[role="group"]
+  @include userinput
+  display: flex
+  justify-content: space-around
+  input
+    border: none
+    outline: none
+    margin: 0
+    padding: 0
+  input[type="number"]
+    text-align: center
   
 .formerrors
   color: $errorcolor

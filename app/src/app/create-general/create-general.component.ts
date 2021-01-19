@@ -30,6 +30,7 @@ export class CreateGeneralComponent extends CreateSubComponentBase implements On
   form = this.formBuilder.group({
     Title: ['', [
       Validators.required,
+      Validators.minLength(3)
     ]],
     Description: [''],
   });

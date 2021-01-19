@@ -129,6 +129,10 @@ export class CreateSimpleAlternativesComponent implements OnInit, CreateSubCompo
       this.alternatives[i].Id -= 1;
     }
     this.justDeleted = undefined;
+    
+    if (this.alternatives.length == 1) {
+      this._validable.next(false);
+    }
   }
 
 }

@@ -15,10 +15,32 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, Validators } from '@angular/forms';
+import { FormBuilder, Validators, AbstractControl, FormGroup, ValidationErrors } from '@angular/forms';
 
 import { CreateService } from '../create/create.service';
 import { CreateSubComponentBase } from '../create/create-sub-component-base';
+
+function customValidator(grp: FormGroup): ValidationErrors | null {
+  let ret: ValidationErrors | null = null;
+
+  // deadline is too early
+  const diff = grp.value.Deadline.getTime() - Date.now();
+  if (diff < 3600 * 1000) {
+    ret = { earlyDeadline: true };
+  }
+
+  // min greater than max
+  if (grp.value.MinNbRounds > grp.value.MaxNbRounds) {
+    ret = ret === null ? {} : ret;
+    ret.minMaxOrder = true;
+  }
+
+  return ret;
+}
+
+function integerValidator(control: AbstractControl): ValidationErrors | null {
+  return Number.isInteger(control.value) ? null : { notInteger: true };
+}
 
 @Component({
   selector: 'app-create-round',
@@ -28,10 +50,23 @@ import { CreateSubComponentBase } from '../create/create-sub-component-base';
 export class CreateRoundComponent extends CreateSubComponentBase implements OnInit {
 
   form = this.formBuilder.group({
-    Deadline: [new Date(Date.now())],
-    MinNbRounds: [2],
-    MaxNbRounds: [10],
-    MaxRoundDuration: [24*3600*1000],
+    Deadline: [new Date(Date.now() + (7 * 24 * 3600 * 1000))],
+    MinNbRounds: [2, [
+      integerValidator,
+      Validators.min(2),
+      Validators.max(255),
+    ]],
+    MaxNbRounds: [10, [
+      integerValidator,
+      Validators.min(2),
+      Validators.max(255),
+    ]],
+    MaxRoundDuration: [24*3600*1000, [
+      integerValidator,
+      Validators.min(60 * 1000),
+    ]],
+  }, {
+    validators: [ customValidator ],
   });
 
   constructor(
@@ -43,6 +78,45 @@ export class CreateRoundComponent extends CreateSubComponentBase implements OnIn
 
   ngOnInit(): void {
     this.initModel();
+  }
+
+  minMax(): number {
+    return this.form.value.MaxNbRounds;
+  }
+
+  maxMin(): number {
+    return this.form.value.MinNbRounds;
+  }
+
+  tooEarlyDeadline(): boolean {
+    return this.form.controls['Deadline'].dirty &&
+          !this.form.valid &&
+         !!this.form.errors['earlyDeadline'];
+  }
+
+  wrongInterval(): boolean {
+    return (this.form.controls['MinNbRounds'].dirty ||  this.form.controls['MaxNbRounds'].dirty) && !this.form.valid &&
+          (!this.form.controls['MinNbRounds'].valid || !this.form.controls['MaxNbRounds'].valid  ||
+            ( !!this.form.errors && !!this.form.errors['minMaxOrder'] )
+          );
+  }
+
+  tooFewRounds(): boolean {
+    return this.form.controls['MinNbRounds'].dirty &&
+          !this.form.controls['MinNbRounds'].valid &&
+         !!this.form.controls['MinNbRounds'].errors['min'];
+  }
+
+  wrongDuration(): boolean {
+    return this.form.controls['MaxRoundDuration'].dirty &&
+          !this.form.controls['MaxRoundDuration'].valid &&
+         !!this.form.controls['MaxRoundDuration'].errors['notInteger'];
+  }
+
+  tooShortDuration(): boolean {
+    return this.form.controls['MaxRoundDuration'].dirty &&
+          !this.form.controls['MaxRoundDuration'].valid &&
+         !!this.form.controls['MaxRoundDuration'].errors['min'];
   }
 
 }
