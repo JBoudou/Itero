@@ -15,7 +15,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { FormBuilder } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, FormsModule } from '@angular/forms';
+import { MatIconModule } from '@angular/material/icon';
 
 import { CreateSimpleAlternativesComponent } from './create-simple-alternatives.component';
 
@@ -30,6 +31,7 @@ describe('CreateSimpleAlternativesComponent', () => {
     serviceSpy = jasmine.createSpyObj('CreateService', {register: {}});
     await TestBed.configureTestingModule({
       declarations: [ CreateSimpleAlternativesComponent ],
+      imports: [ ReactiveFormsModule, FormsModule, MatIconModule ],
       providers: [
         FormBuilder,
         { provide: CreateService, useValue: serviceSpy },

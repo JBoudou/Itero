@@ -15,12 +15,16 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Component } from '@angular/core';
 
 import { EMPTY } from 'rxjs';
 
 import { CreateComponent } from './create.component';
 
 import { CreateService } from './create.service';
+
+@Component({ selector: 'router-outlet', template: '' })
+class RouterOutletStub { }
 
 describe('CreateComponent', () => {
   let component: CreateComponent;
@@ -36,7 +40,10 @@ describe('CreateComponent', () => {
       'createNextStatus$': EMPTY,
     });
     await TestBed.configureTestingModule({
-      declarations: [ CreateComponent ],
+      declarations: [
+        CreateComponent,
+        RouterOutletStub,
+      ],
       providers: [
         { provide: CreateService, useValue: serviceSpy },
       ],

@@ -15,7 +15,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { FormBuilder } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, FormsModule } from '@angular/forms';
 
 import { CreateGeneralComponent } from './create-general.component';
 
@@ -30,6 +30,7 @@ describe('CreateGeneralComponent', () => {
     serviceSpy = jasmine.createSpyObj('CreateService', {register: {}});
     await TestBed.configureTestingModule({
       declarations: [ CreateGeneralComponent ],
+      imports: [ ReactiveFormsModule, FormsModule ],
       providers: [
         FormBuilder,
         { provide: CreateService, useValue: serviceSpy },

@@ -15,13 +15,20 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Component } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+
+import { ClipboardModule } from '@angular/cdk/clipboard';
+import { MatIconModule } from '@angular/material/icon';
 
 import { ActivatedRouteStub } from '../../testing/activated-route-stub'
 
 import { CreateResultComponent } from './create-result.component';
 
 import { CreateService } from '../create/create.service';
+
+@Component({ selector: 'app-poll', template: '' })
+class PollStubComponent { }
 
 describe('CreateResultComponent', () => {
   let component: CreateResultComponent;
@@ -34,7 +41,11 @@ describe('CreateResultComponent', () => {
     serviceSpy = jasmine.createSpyObj('CreateService', [], ['httpError']);
 
     await TestBed.configureTestingModule({
-      declarations: [ CreateResultComponent ],
+      declarations: [
+        CreateResultComponent,
+        PollStubComponent,
+      ],
+      imports: [ ClipboardModule, MatIconModule ],
       providers: [
         { provide: ActivatedRoute, useValue: activatedRouteStub },
         { provide: CreateService, useValue: serviceSpy },

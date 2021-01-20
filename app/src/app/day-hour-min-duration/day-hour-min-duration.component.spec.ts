@@ -15,7 +15,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { FormBuilder } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, FormsModule } from '@angular/forms';
 
 import { DayHourMinDurationComponent } from './day-hour-min-duration.component';
 
@@ -26,6 +26,7 @@ describe('DayHourMinDurationComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [ DayHourMinDurationComponent ],
+      imports: [ ReactiveFormsModule, FormsModule ],
       providers: [
         FormBuilder,
       ],

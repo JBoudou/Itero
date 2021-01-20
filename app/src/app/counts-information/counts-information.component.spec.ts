@@ -17,6 +17,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 
+import { GoogleChartsModule } from 'angular-google-charts';
+
 import { CountsInformationComponent } from './counts-information.component';
 
 describe('CountsInformationComponent', () => {
@@ -26,7 +28,7 @@ describe('CountsInformationComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [ CountsInformationComponent ],
-      imports: [ HttpClientTestingModule ],
+      imports: [ HttpClientTestingModule, GoogleChartsModule ],
     })
     .compileComponents();
   });
