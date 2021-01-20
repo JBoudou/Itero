@@ -22,7 +22,10 @@ import (
 	"time"
 )
 
-const AllowedInterval = 2 * time.Millisecond
+// AllowedInterval is the maximal authorized delay for events.
+// Since the package intentionally does not give any guarantee of that delay,
+// it is set to a quite long duration.
+const AllowedInterval = 1 * time.Second
 
 func TestAlarm(t *testing.T) {
 	tests := []struct {
@@ -56,7 +59,7 @@ func TestAlarm(t *testing.T) {
 			alarm := New(len(durations))
 
 			times := make([]time.Time, len(durations))
-			now := time.Now()
+			now := time.Now().Add(10 * time.Millisecond)
 			for i, dur := range durations {
 				times[i] = now.Add(dur)
 			}
@@ -81,13 +84,13 @@ func TestAlarm(t *testing.T) {
 					t.Errorf("Wrong time. Got %v. Expect %v.", evt.Time, times[cur])
 					continue
 				}
-				cur++
 				if diff < 0 {
-					t.Errorf("Received in the past (%v).", diff)
+					t.Errorf("Received event %d too early (%v).", cur, diff)
 				}
 				if diff > AllowedInterval {
-					t.Errorf("Received too late (%d).", diff)
+					t.Errorf("Received event %d too late (%v).", cur, diff)
 				}
+				cur++
 			}
 
 			if cur < len(times) {
@@ -163,13 +166,13 @@ func TestAlarm_DiscardLaterEvent(t *testing.T) {
 					t.Errorf("Wrong time. Got %v. Expect %v.", evt.Time, filtered[cur])
 					continue
 				}
-				cur++
 				if diff < 0 {
-					t.Errorf("Received in the past (%v).", diff)
+					t.Errorf("Received event %d too early (%v).", cur, diff)
 				}
 				if diff > AllowedInterval {
-					t.Errorf("Received too late (%d).", diff)
+					t.Errorf("Received event %d too late (%v).", cur, diff)
 				}
+				cur++
 			}
 
 			if cur < len(filtered) {
