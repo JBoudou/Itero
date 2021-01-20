@@ -34,15 +34,15 @@ func TestAlarm(t *testing.T) {
 	}{
 		{
 			name:      "One",
-			durations: []string{ "10ms" },
+			durations: []string{ "100ms" },
 		},
 		{
 			name:      "Two",
-			durations: []string{ "10ms", "20ms" },
+			durations: []string{ "100ms", "200ms" },
 		},
 		{
 			name:      "One in the past",
-			durations: []string{ "10ms", "5ms", "20ms" },
+			durations: []string{ "200ms", "100ms", "300ms" },
 		},
 	}
 	for _, tt := range tests {
@@ -59,7 +59,7 @@ func TestAlarm(t *testing.T) {
 			alarm := New(len(durations))
 
 			times := make([]time.Time, len(durations))
-			now := time.Now().Add(10 * time.Millisecond)
+			now := time.Now()
 			for i, dur := range durations {
 				times[i] = now.Add(dur)
 			}
@@ -107,15 +107,15 @@ func TestAlarm_DiscardLaterEvent(t *testing.T) {
 	}{
 		{
 			name:      "One",
-			durations: []string{ "10ms" },
+			durations: []string{ "100ms" },
 		},
 		{
 			name:      "Two",
-			durations: []string{ "10ms", "20ms" },
+			durations: []string{ "100ms", "200ms" },
 		},
 		{
 			name:      "One in the past",
-			durations: []string{ "10ms", "5ms", "20ms" },
+			durations: []string{ "200ms", "100ms", "300ms" },
 		},
 	}
 	for _, tt := range tests {
@@ -132,7 +132,7 @@ func TestAlarm_DiscardLaterEvent(t *testing.T) {
 			alarm := New(0, DiscardLaterEvent)
 
 			times := make([]time.Time, len(durations))
-			now := time.Now().Add(100 * time.Millisecond)
+			now := time.Now()
 			for i, dur := range durations {
 				times[i] = now.Add(dur)
 			}
