@@ -1,14 +1,44 @@
+// Itero - Online iterative vote application
+// Copyright (C) 2021 Joseph Boudou
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as
+// published by the Free Software Foundation, either version 3 of the
+// License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ActivatedRoute } from '@angular/router';
+
+import { ActivatedRouteStub } from '../../testing/activated-route-stub'
 
 import { CreateResultComponent } from './create-result.component';
+
+import { CreateService } from '../create/create.service';
 
 describe('CreateResultComponent', () => {
   let component: CreateResultComponent;
   let fixture: ComponentFixture<CreateResultComponent>;
+  let activatedRouteStub: ActivatedRouteStub;
+  let serviceSpy: jasmine.SpyObj<CreateService>;
 
   beforeEach(async () => {
+    activatedRouteStub = new ActivatedRouteStub();
+    serviceSpy = jasmine.createSpyObj('CreateService', [], ['httpError']);
+
     await TestBed.configureTestingModule({
-      declarations: [ CreateResultComponent ]
+      declarations: [ CreateResultComponent ],
+      providers: [
+        { provide: ActivatedRoute, useValue: activatedRouteStub },
+        { provide: CreateService, useValue: serviceSpy },
+      ],
     })
     .compileComponents();
   });
