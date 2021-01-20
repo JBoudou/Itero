@@ -17,6 +17,8 @@
 import { NgModule } from '@angular/core';
 import { Routes, RouterModule } from '@angular/router';
 
+import { LoggedGuard } from './logged.guard';
+
 import { CreateComponent }                  from './create/create.component';
 import { CreateGeneralComponent }           from './create-general/create-general.component';
 import { CreateSimpleAlternativesComponent }from './create-simple-alternatives/create-simple-alternatives.component';
@@ -31,7 +33,7 @@ import { SignupComponent }                  from './signup/signup.component';
 
 const routes: Routes = [
   { path: '', component: HomeComponent },
-  { path: 'r/create', component: CreateComponent, children: [
+  { path: 'r/create', component: CreateComponent, canActivate: [LoggedGuard], children: [
     { path: 'general', component: CreateGeneralComponent },
     { path: 'simpleAlternatives', component: CreateSimpleAlternativesComponent },
     { path: 'round', component: CreateRoundComponent },
