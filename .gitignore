@@ -6,3 +6,4 @@ srvtool
 srv
 ssl.crt
 ssl.key
+/app/karma.conf.js

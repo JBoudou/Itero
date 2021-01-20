@@ -16,9 +16,7 @@
 
 
 import {
-  AfterViewInit,
   Component,
-  ComponentFactoryResolver,
   OnInit,
   Type,
   ViewChild,
@@ -42,6 +40,8 @@ import {
 
 import { PollAnswer, BallotType, InformationType } from '../api';
 import { PollBallotDirective, PollInformationDirective } from './directives';
+import { DynamicComponentFactoryService } from '../dynamic-component-factory.service';
+
 import { UninominalBallotComponent } from '../uninominal-ballot/uninominal-ballot.component';
 import { CountsInformationComponent } from '../counts-information/counts-information.component';
 
@@ -66,14 +66,11 @@ const enum SubComponentId {
   styleUrls: ['./poll.component.sass'],
   encapsulation: ViewEncapsulation.None,
 })
-export class PollComponent implements OnInit, AfterViewInit {
+export class PollComponent implements OnInit {
 
   // Anchors to insert the dynamic sub-component into.
-  @ViewChild(PollBallotDirective, { static: true }) ballot: PollBallotDirective;
+  @ViewChild(PollBallotDirective, { static: false }) ballot: PollBallotDirective;
   @ViewChild(PollInformationDirective, { static: false }) information: PollInformationDirective;
-
-  /** Access to viewContainerRef using SubComponentId. */
-  private viewContainerRef: ViewContainerRef[];
 
   segment: string;
   answer: PollAnswer;
@@ -91,30 +88,17 @@ export class PollComponent implements OnInit, AfterViewInit {
   /** Subscription for the sub component. The first index must be a SubComponentId. */
   private subscriptions: Subscription[][] = [];
 
-  // Run retrieveTypes when reaching zero.
-  private triggerRetrieveTypesCount: number;
-
   constructor(
     private route: ActivatedRoute,
     private http: HttpClient,
-    private componentFactoryResolver: ComponentFactoryResolver,
+    private dynamicComponentFactory: DynamicComponentFactoryService,
   ) { }
 
   ngOnInit(): void {
-    this.triggerRetrieveTypesCount = 2;
-
     this.route.paramMap.subscribe((params: ParamMap) => {
       this.segment = params.get('pollSegment');
-      this.triggerRetrieveTypes();
+      this.retrieveTypes();
     });
-  }
-
-  ngAfterViewInit(): void {
-    this.viewContainerRef = [
-      this.ballot.viewContainerRef,
-      this.information.viewContainerRef,
-    ];
-    this.triggerRetrieveTypes();
   }
 
   /** Whether the response from the middleware has been received. */
@@ -151,13 +135,6 @@ export class PollComponent implements OnInit, AfterViewInit {
   private static informationMap = new Map<InformationType, Type<PollSubComponent>>([
     [InformationType.Counts, CountsInformationComponent]
   ]);
-
-  private triggerRetrieveTypes(): void {
-    this.triggerRetrieveTypesCount -= 1;
-    if (this.triggerRetrieveTypesCount <= 0) {
-      this.retrieveTypes();
-    }
-  }
 
   /** Ask the type of the poll to the middleware and creates the sub-components accordingly. */
   private retrieveTypes(): void {
@@ -198,14 +175,12 @@ export class PollComponent implements OnInit, AfterViewInit {
 
   /** Disconnect then remove a sub-component. */
   private clearSubComponent(componentIndex: number): void {
-    const viewContainerRef = this.viewContainerRef[componentIndex];
-
     if (!!this.subscriptions[componentIndex]) {
       for (let subscription of this.subscriptions[componentIndex]) {
         subscription.unsubscribe();
       }
     }
-    viewContainerRef.clear();
+    this.viewContainerRef(componentIndex).clear();
   }
 
   /**
@@ -217,18 +192,34 @@ export class PollComponent implements OnInit, AfterViewInit {
 
     this.clearSubComponent(componentIndex);
 
-    const componentFactory = this.componentFactoryResolver.resolveComponentFactory(type);
-    const viewContainerRef = this.viewContainerRef[componentIndex];
-    const componentRef = viewContainerRef.createComponent<PollSubComponent>(componentFactory);
-    componentRef.instance.pollSegment = this.segment;
+    const viewContainerRef = this.viewContainerRef(componentIndex);
+    const instance =
+      this.dynamicComponentFactory.createComponent<PollSubComponent>(viewContainerRef, type);
+    instance.pollSegment = this.segment;
 
-    this.subscriptions[componentIndex] = [componentRef.instance.errors.subscribe({
+    this.subscriptions[componentIndex] = [instance.errors.subscribe({
       next: (err: ServerError) => {
         this.registerError(err);
       }
     })];
 
-    return componentRef.instance;
+    return instance;
+  }
+
+  private viewContainerRef(componentIndex: number): ViewContainerRef {
+    switch (componentIndex) {
+      case SubComponentId.Ballot:
+        if (this.ballot === undefined) {
+          return undefined;
+        }
+        return this.ballot.viewContainerRef;
+      case SubComponentId.Information:
+        if (this.information === undefined) {
+          return undefined;
+        }
+        return this.information.viewContainerRef;
+    }
+    return undefined;
   }
 
   /**

@@ -1,11 +1,15 @@
+@use 'sass:color'
 @import 'colors'
 @import 'sizes'
+@import 'typo'
 
 @mixin userbox
   border: solid 1px $maincolor
   border-radius: 3px
   padding: $userboxpadding
   color: $useboxfgcolor
+  font-family: $mainfont
+  font-size: $fontsize - 1
 
 @mixin userinput
   @include userbox
@@ -16,3 +20,7 @@
   background-color: $userbuttonbgcolor
   padding: $userboxpadding #{$userboxpadding * 2}
   font-size: $fontsize
+
+@mixin overhilight
+  box-shadow: 2px 6px 12px color.change(color.adjust($maincolor, $saturation: -20%), $lightness: 85%)
+  padding: 4px

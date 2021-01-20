@@ -280,3 +280,12 @@ func RandomString(length uint32) (ret string, err error) {
 	}
 	return string(buff), nil
 }
+
+// RandomUInt32 returns a uniform randow value between 0 and 2^nbBits - 1.
+func RandomUInt32(nbBits uint8) (uint32, error) {
+	rnd, err := NewRandom(uint32(nbBits))
+	if err != nil {
+		return 0, err
+	}
+	return rnd.ReadUInt32(nbBits)
+}

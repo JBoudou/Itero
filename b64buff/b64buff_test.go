@@ -267,19 +267,6 @@ func TestNewRandom(t *testing.T) {
 	}
 }
 
-func TestRandomString(t *testing.T) {
-	for _, size := range []uint32{0, 1, 2, 10, 50, 64} {
-		str, err := RandomString(size)
-		if err != nil {
-			t.Fatal(err)
-		}
-		got := uint32(len(str))
-		if got < size {
-			t.Errorf("Got %d. Expect %d.", got, size)
-		}
-	}
-}
-
 func TestBuffer_AlignRead(t *testing.T) {
 	tests := []struct{
 		name string
@@ -324,5 +311,33 @@ func TestBuffer_AlignRead(t *testing.T) {
 				t.Errorf("Got %d. Expect %d.", got, tt.expect)
 			}
 		})
+	}
+}
+
+func TestRandomString(t *testing.T) {
+	for _, size := range []uint32{0, 1, 2, 10, 50, 64} {
+		str, err := RandomString(size)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := uint32(len(str))
+		if got < size {
+			t.Errorf("Got %d. Expect %d.", got, size)
+		}
+	}
+}
+
+func TestRandomUInt32(t *testing.T) {
+	for _, size := range []uint8{0, 1, 2, 10, 20, 30} {
+		max := uint32(0xFFFFFFFF) >> (32 - size)
+		for i := 0; i < 1000; i++ {
+			got, err := RandomUInt32(size)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got > max {
+				t.Errorf("Got %d. Expect less than %d.", got, max)
+			}
+		}
 	}
 }

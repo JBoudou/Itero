@@ -23,41 +23,86 @@ import (
 type Event struct {
 	Time time.Time
 	Data interface{}
+	// Before resending the event, Remaining is set by Alarm to the number of remaining waiting events.
+	Remaining int
 }
 
 // Alarm resends events at the requested time, or later.
-// Events are always received in the order they've been sent.
 // Closing the Send channel asks the alarm to terminate, which is notified by closing Receive.
 type Alarm struct {
 	Send    chan<- Event
 	Receive <-chan Event
+
+	discardLaterEvent bool
 }
 
-func run(rcv <-chan Event, send chan<- Event) {
+func allAfter(waiting map[Event]bool, evt Event) bool {
+	for w := range waiting {
+		if w.Time.Before(evt.Time) {
+			return false
+		}
+	}
+	return true
+}
+
+func wait(send chan<- Event, evt Event) {
+	duration := time.Until(evt.Time)
+	if duration > 0 {
+		time.Sleep(duration)
+	}
+	send <- evt
+}
+
+func (self Alarm) run(rcv <-chan Event, send chan<- Event) {
+	waiting := make(map[Event]bool, 1)
+	tick := make(chan Event)
+	closing := false
+
+mainLoop:
 	for true {
-		var next Event
+		select {
 
-		next, ok := <-rcv
-		if !ok {
-			break
+		case evt, ok := <-rcv:
+			if !ok {
+				closing = true
+			} else if !self.discardLaterEvent || allAfter(waiting, evt) {
+				waiting[evt] = true
+				go wait(tick, evt)
+			}
+
+		case evt := <-tick:
+			delete(waiting, evt)
+			evt.Remaining = len(waiting)
+			send <- evt
+			if closing && len(waiting) == 0 {
+				break mainLoop
+			}
+
 		}
-
-		duration := time.Until(next.Time)
-		if duration > 0 {
-			time.Sleep(duration)
-		}
-
-		send <- next
 	}
 
+	close(tick)
 	close(send)
 }
 
+type Option func(evt *Alarm)
+
+var (
+	// Events received by Alarm with Time greater than any waiting event are ignored.
+	DiscardLaterEvent Option = func(evt *Alarm) {
+		evt.discardLaterEvent = true
+	}
+)
+
 // New creates a new Alarm with the given size for Send.
-// Receive is always unbuffered.
-func New(chanSize int) Alarm {
+// Receive is always unbuffered. Thus, settings chanSize to zero may result in deadlocks.
+func New(chanSize int, opts ...Option) Alarm {
 	in := make(chan Event, chanSize)
 	out := make(chan Event)
-	go run(in, out)
-	return Alarm{Send: in, Receive: out}
+	alarm := Alarm{Send: in, Receive: out}
+	for _, opt := range opts {
+		opt(&alarm)
+	}
+	go alarm.run(in, out)
+	return alarm
 }

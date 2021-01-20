@@ -1,0 +1,19 @@
+<h3 i18n>Create a new poll</h3>
+<div id="creation">
+  <div id="steps">
+    <ng-container *ngFor="let step of createStepStatus.steps; last as last; index as index">
+      <div class="step" [class.current-step]="index == createStepStatus.current"
+           [class.jumpable-step]="isJumpable(index)" (click)="onJump(index)">
+        <span class="index">{{ index + 1 }}</span> 
+        <span class="stepName" i18n>{{ step }}</span>
+      </div>
+      <div *ngIf="!last" class="placeholder"></div>
+    </ng-container>
+    <div *ngIf="createStepStatus.mayHaveMore" class="placeholder mayHaveMore">&nbsp;</div>
+  </div>
+  <router-outlet></router-outlet>
+  <div class="formactions">
+    <button [disabled]="!canBack" (click)="onBack()" i18n>Back</button>
+    <button [disabled]="!canNext" (click)="onNext()" i18n>{{ isValidate ? "Validate" : "Next" }}</button>
+  </div>
+</div>

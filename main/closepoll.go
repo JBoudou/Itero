@@ -87,7 +87,7 @@ func (self *closePoll) nextAlarm() alarm.Event {
 }
 
 func (self *closePoll) run(evtChan <-chan events.Event) {
-	at := alarm.New(1)
+	at := alarm.New(1, alarm.DiscardLaterEvent)
 
 	self.updateLastCheck()
 	self.fullCheck()
@@ -116,7 +116,7 @@ func (self *closePoll) run(evtChan <-chan events.Event) {
 			}
 
 			// Do not send if the channel has been closed.
-			if evtChan != nil {
+			if evt.Remaining == 0 && evtChan != nil {
 				at.Send <- self.nextAlarm()
 			}
 
@@ -128,10 +128,14 @@ func (self *closePoll) run(evtChan <-chan events.Event) {
 				continue
 			}
 
-			nextEvt := evt.(NextRoundEvent)
-			if err := self.checkOne(nextEvt.Poll); err != nil {
-				self.warn.Print(err)
-				continue
+			switch typed := evt.(type) {
+			case NextRoundEvent:
+				if err := self.checkOne(typed.Poll); err != nil {
+					self.warn.Print(err)
+					continue
+				}
+			case CreatePollEvent:
+				at.Send <- self.nextAlarm()
 			}
 		}
 	}
@@ -145,8 +149,11 @@ func StartClosePoll() {
 	ch := make(chan events.Event, 16)
 	events.AddReceiver(events.AsyncForwarder{
 		Filter: func(evt events.Event) bool {
-			_, ok := evt.(NextRoundEvent)
-			return ok
+			switch evt.(type) {
+			case NextRoundEvent, CreatePollEvent:
+				return true
+			}
+			return false
 		},
 		Chan: ch,
 	})

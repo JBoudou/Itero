@@ -15,11 +15,13 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { FormBuilder } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, FormsModule } from '@angular/forms';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+
 import { map } from 'rxjs/operators';
 
 import { SignupComponent } from './signup.component';
+
 import { SessionService } from '../session/session.service';
 
 describe('SignupComponent', () => {
@@ -33,7 +35,11 @@ describe('SignupComponent', () => {
 
     await TestBed.configureTestingModule({
       declarations: [ SignupComponent ],
-      imports: [ HttpClientTestingModule ],
+      imports: [
+        HttpClientTestingModule,
+        FormsModule,
+        ReactiveFormsModule,
+      ],
       providers: [
         FormBuilder,
         {provide: SessionService, useValue: sessionSpy},

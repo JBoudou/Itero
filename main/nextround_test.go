@@ -29,7 +29,7 @@ import (
 
 func TestNextRound_fullCheck(t *testing.T) {
 	const (
-		nbParticipants = 2
+		nbParticipants = 3
 
 		qAddParticipants = `INSERT INTO Participants(Poll, User) VALUE (?,?)`
 		qUpdatePoll      = `UPDATE Polls SET CurrentRound = ?, RoundThreshold = ? WHERE Id = ?`
@@ -57,7 +57,20 @@ func TestNextRound_fullCheck(t *testing.T) {
 		},
 		{
 			name:       "Expired",
+			round:      1,
 			expired:    true,
+			expectNext: true,
+		},
+		{
+			name:       "Round zero - 2 participants",
+			expired:    true,
+			nbVoter:    2,
+			expectNext: false,
+		},
+		{
+			name:       "Round zero - 3 participants",
+			expired:    true,
+			nbVoter:    3,
 			expectNext: true,
 		},
 		{
@@ -114,8 +127,8 @@ func TestNextRound_fullCheck(t *testing.T) {
 			if err == nil && tt.nbVoter > 0 {
 				stmt, err = db.DB.Prepare(qAddVoters)
 				mustt(t, err)
-				for _, id := range user {
-					_, err = stmt.Exec(tt.round, id, pollId)
+				for i := 0; i < tt.nbVoter; i++ {
+					_, err = stmt.Exec(tt.round, user[i], pollId)
 					mustt(t, err)
 				}
 				err = stmt.Close()
@@ -162,7 +175,7 @@ func TestNextRound_fullCheck(t *testing.T) {
 
 func TestNextRound_checkOne(t *testing.T) {
 	const (
-		nbParticipants = 2
+		nbParticipants = 3
 
 		qAddParticipants = `INSERT INTO Participants(Poll, User) VALUE (?,?)`
 		qUpdatePoll      = `UPDATE Polls SET CurrentRound = ?, RoundThreshold = ? WHERE Id = ?`
@@ -190,7 +203,20 @@ func TestNextRound_checkOne(t *testing.T) {
 		},
 		{
 			name:       "Expired",
+			round:      1,
 			expired:    true,
+			expectNext: true,
+		},
+		{
+			name:       "Round zero - 2 participants",
+			expired:    true,
+			nbVoter:    2,
+			expectNext: false,
+		},
+		{
+			name:       "Round zero - 3 participants",
+			expired:    true,
+			nbVoter:    3,
 			expectNext: true,
 		},
 		{
@@ -247,8 +273,8 @@ func TestNextRound_checkOne(t *testing.T) {
 			if err == nil && tt.nbVoter > 0 {
 				stmt, err = db.DB.Prepare(qAddVoters)
 				mustt(t, err)
-				for _, id := range user {
-					_, err = stmt.Exec(tt.round, id, pollId)
+				for i := 0; i < tt.nbVoter; i++ {
+					_, err = stmt.Exec(tt.round, user[i], pollId)
 					mustt(t, err)
 				}
 				err = stmt.Close()
@@ -292,5 +318,3 @@ func TestNextRound_checkOne(t *testing.T) {
 		})
 	}
 }
-
-

@@ -179,3 +179,13 @@ func (self CheckStatus) Check(t *testing.T, response *http.Response, request *se
 		t.Errorf("Wrong status code. Got %d. Expect %d", response.StatusCode, self.Code)
 	}
 }
+
+/* CheckAnyErrorStatus */
+
+var CheckAnyErrorStatus =
+	CheckerFun(func(t *testing.T, response *http.Response, request *server.Request) {
+		t.Helper()
+		if response.StatusCode < 400 {
+			t.Errorf("Wrong status code. Got %d. Expect at least 400.", response.StatusCode)
+		}
+	})

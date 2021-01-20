@@ -8,6 +8,7 @@
       <a routerLink="/r/list" routerLinkActive="active"><span class="navitem" i18n>Polls</span></a>
       <a *ngIf="!logged" routerLink="/r/signup" routerLinkActive="active"><span class="navitem" i18n>Sign up</span></a>
       <a *ngIf="!logged" routerLink="/r/login" routerLinkActive="active"><span class="navitem" i18n>Log in</span></a>
+      <a *ngIf="logged"  routerLink="/r/create/general" routerLinkActive="active"><span class="navitem">Create</span></a>
       <a *ngIf="logged" (click)="logoff()"><span class="navitem">Log off</span></a>
     </nav>
   </div>

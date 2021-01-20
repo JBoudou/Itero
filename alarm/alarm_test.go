@@ -17,11 +17,12 @@
 package alarm
 
 import (
+	"sort"
 	"testing"
 	"time"
 )
 
-const AllowedInterval = time.Millisecond
+const AllowedInterval = 2 * time.Millisecond
 
 func TestAlarm(t *testing.T) {
 	tests := []struct {
@@ -30,15 +31,15 @@ func TestAlarm(t *testing.T) {
 	}{
 		{
 			name:      "One",
-			durations: []string{ "5ms" },
+			durations: []string{ "10ms" },
 		},
 		{
 			name:      "Two",
-			durations: []string{ "5ms", "10ms" },
+			durations: []string{ "10ms", "20ms" },
 		},
 		{
 			name:      "One in the past",
-			durations: []string{ "5ms", "4ms900µs", "10ms" },
+			durations: []string{ "10ms", "5ms", "20ms" },
 		},
 	}
 	for _, tt := range tests {
@@ -52,18 +53,22 @@ func TestAlarm(t *testing.T) {
 				}
 			}
 
+			alarm := New(len(durations))
+
 			times := make([]time.Time, len(durations))
 			now := time.Now()
 			for i, dur := range durations {
 				times[i] = now.Add(dur)
 			}
 
-			alarm := New(len(durations))
 			for _, t := range times {
 				alarm.Send <- Event{ Time: t }
 			}
 			close(alarm.Send)
 
+			sort.Slice(times, func (i, j int) bool {
+				return durations[i] < durations[j];
+			})
 			cur := 0
 			for true {
 				evt, ok := <-alarm.Receive
@@ -89,5 +94,111 @@ func TestAlarm(t *testing.T) {
 				t.Errorf("Missing %d events.", len(times) - cur)
 			}
 		})
+	}
+}
+
+func TestAlarm_DiscardLaterEvent(t *testing.T) {
+	tests := []struct {
+		name      string
+		durations []string
+	}{
+		{
+			name:      "One",
+			durations: []string{ "10ms" },
+		},
+		{
+			name:      "Two",
+			durations: []string{ "10ms", "20ms" },
+		},
+		{
+			name:      "One in the past",
+			durations: []string{ "10ms", "5ms", "20ms" },
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			durations := make([]time.Duration, len(tt.durations))
+			for i, str := range tt.durations {
+				var err error
+				durations[i], err = time.ParseDuration(str)
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			alarm := New(0, DiscardLaterEvent)
+
+			times := make([]time.Time, len(durations))
+			now := time.Now().Add(100 * time.Millisecond)
+			for i, dur := range durations {
+				times[i] = now.Add(dur)
+			}
+
+			for _, t := range times {
+				alarm.Send <- Event{ Time: t }
+			}
+			close(alarm.Send)
+
+			filtered := make([]time.Time, 0, len(times))
+			first := now.Add(time.Hour)
+			for _, t := range times {
+				if t.Before(first) {
+					filtered = append(filtered, t)
+					first = t
+				}
+			}
+
+			sort.Slice(filtered, func (i, j int) bool {
+				return durations[i] < durations[j];
+			})
+			cur := 0
+			for true {
+				evt, ok := <-alarm.Receive
+				if !ok {
+					break
+				}
+				diff := time.Since(evt.Time)
+
+				if !evt.Time.Equal(filtered[cur]) {
+					t.Errorf("Wrong time. Got %v. Expect %v.", evt.Time, filtered[cur])
+					continue
+				}
+				cur++
+				if diff < 0 {
+					t.Errorf("Received in the past (%v).", diff)
+				}
+				if diff > AllowedInterval {
+					t.Errorf("Received too late (%d).", diff)
+				}
+			}
+
+			if cur < len(filtered) {
+				t.Errorf("Missing %d events.", len(filtered) - cur)
+			}
+		})
+	}
+}
+
+func TestAlarm_Remaining(t *testing.T) {
+	alarm := New(0)
+
+	const (
+		durationStep = 2 * time.Millisecond
+		nbEvents = 10
+	)
+
+	for i, wait := 0, 100 * time.Millisecond; i < nbEvents; i, wait = i + 1, wait + durationStep {
+		alarm.Send <- Event{ Time: time.Now().Add(wait) }
+	}
+
+	for i := nbEvents; i > 0; i -= 1 {
+		evt, ok := <-alarm.Receive
+		if !ok {
+			t.Errorf("Missing %d events", i)
+			break
+		}
+		if (evt.Remaining != i - 1) {
+			t.Errorf("Wrong Remaining. Got %d. Expect %d.", evt.Remaining, i - 1)
+		}
 	}
 }

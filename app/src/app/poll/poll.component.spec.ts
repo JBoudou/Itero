@@ -17,24 +17,35 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute } from '@angular/router';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import { EMPTY } from 'rxjs';
 
 import { ActivatedRouteStub } from '../../testing/activated-route-stub'
+import { DynamicComponentFactoryStub } from '../../testing/dynamic-component-factory-stub'
 
 import { PollComponent } from './poll.component';
+import { PollBallotDirective, PollInformationDirective } from './directives';
+import { UninominalBallotComponent } from '../uninominal-ballot/uninominal-ballot.component';
+import { CountsInformationComponent } from '../counts-information/counts-information.component';
+import { DynamicComponentFactoryService } from '../dynamic-component-factory.service';
+import { BallotType, InformationType } from '../api';
 
 describe('PollComponent', () => {
   let component: PollComponent;
   let fixture: ComponentFixture<PollComponent>;
-  let activatedRouteStub : ActivatedRouteStub;
+  let httpControler: HttpTestingController;
+  let activatedRouteStub: ActivatedRouteStub;
+  let dynamicFactoryStub: DynamicComponentFactoryStub;
 
   beforeEach(async () => {
     activatedRouteStub = new ActivatedRouteStub();
+    dynamicFactoryStub = new DynamicComponentFactoryStub();
 
     await TestBed.configureTestingModule({
-      declarations: [ PollComponent ],
+      declarations: [ PollComponent, PollBallotDirective, PollInformationDirective ],
       imports: [ HttpClientTestingModule ],
       providers: [
-        {provide: ActivatedRoute, useValue: activatedRouteStub}
+        {provide: ActivatedRoute, useValue: activatedRouteStub},
+        {provide: DynamicComponentFactoryService, useValue: dynamicFactoryStub}
       ]
     })
     .compileComponents();
@@ -42,13 +53,46 @@ describe('PollComponent', () => {
 
   beforeEach(() => {
     activatedRouteStub.setParamMap({pollSegment: '123456789'});
+    dynamicFactoryStub.reset();
 
     fixture = TestBed.createComponent(PollComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
+
+    httpControler = TestBed.inject(HttpTestingController);
   });
 
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  it('asks middleware about poll type and create sub components', () => {
+    const dummySpy = jasmine.createSpyObj('SubComponent', {
+    },{
+      pollSegment: '',
+      finalResult: false,
+      errors: EMPTY,
+      previousRoundBallot: EMPTY,
+      currentRoundBallot: EMPTY,
+      justVoteBallot: EMPTY,
+    })
+    dynamicFactoryStub.nextComponent(UninominalBallotComponent, dummySpy);
+    dynamicFactoryStub.nextComponent(CountsInformationComponent, dummySpy);
+
+    const req = httpControler.expectOne('/a/poll/123456789');
+    expect(req.request.method).toEqual('GET');
+    req.flush({
+      Title: 'Test',
+      Description: '',
+      Admin: 'author',
+      CreationTime: new Date('2021-01-01T00:00:00'),
+      CurrentRound: 1,
+      Active: true,
+      Ballot: BallotType.Uninominal,
+      Information: InformationType.Counts,
+    });
+
+    expect(dynamicFactoryStub.calls(UninominalBallotComponent)).toBe(1);
+    expect(dynamicFactoryStub.calls(CountsInformationComponent)).toBe(1);
+  })
 });

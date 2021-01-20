@@ -18,7 +18,7 @@ body
 form.basicform
   label
     white-space: nowrap
-  input
+  input, textarea
     @include userinput
 
 @function tame($color)
@@ -28,7 +28,7 @@ form.basicform
   border-top: solid 1px $maincolor
   padding: 4px 0
   display: flex
-  flex-flow: row-reverse
+  justify-content: flex-end
   button
     margin-left: 4px
     @include userbutton
@@ -39,6 +39,49 @@ form.basicform
       border-color: tame($maincolor)
       background-color: tame($userbuttonbgcolor)
       color: tame($useboxfgcolor)
+
+.merged-userbox-grow
+  @include userbox
+  display: flex
+  padding: 0
+  & > *
+    border: none
+  & > input
+    margin: 4px 0
+    background-color: transparent
+    flex-grow: 1
+    outline: none
+  & > input:first-child
+    margin-left: 4px
+  & > input:last-child
+    margin-right: 4px
+  & > button:last-child
+    border-left: solid 1px $maincolor
+    background-color: $userbuttonbgcolor
+  & > button:last-child:hover
+    background-color: color.adjust($maincolor, $lightness: 20%)
+    color: $fgOnMaincolor
+  & > button[disabled]:last-child, & > [disabled]:last-child:hover
+    background-color: tame($userbuttonbgcolor)
+    color: tame($useboxfgcolor)
+
+.merged-input-space[role="group"]
+  @include userinput
+  display: flex
+  justify-content: space-around
+  input
+    border: none
+    outline: none
+    margin: 0
+    padding: 0
+  input[type="number"]
+    text-align: center
+  
+.formerrors
+  color: $errorcolor
+  font-size: 10pt
+  p
+    margin: 0
     
 form.basicform
   display: grid
@@ -49,12 +92,11 @@ form.basicform
     grid-area: auto
   .formerrors
     grid-area: span 1 / span 2
-    color: $errorcolor
-    font-size: 10pt
-    p
-      margin: 0
   .formactions
     grid-area: span 1 / span 2
+
+.http-error
+  font-family: monospace
 
 @include mat-core()
 $itero-mat-primary: mat-palette($itero-mat-maincolor, 900, A100, 900)

@@ -1,0 +1,26 @@
+<form class="basicform" [formGroup]="form">
+  <label i18n>Poll end:</label><app-date-time-picker formControlName="Deadline"></app-date-time-picker>
+  <label i18n>Number of rounds:</label>
+    <div role="group" class="least-most merged-input-space">
+      <span i18n>at least <input type=number size="3" min="2" [max]="minMax()"   formControlName="MinNbRounds" />,</span>
+      <span i18n>at most  <input type=number size="3" [min]="maxMin()" max="255" formControlName="MaxNbRounds" /></span>
+    </div>
+  <label i18n>Max round duration:</label><app-day-hour-min-duration formControlName="MaxRoundDuration"></app-day-hour-min-duration>
+</form>
+<div class="formerrors" *ngIf="!form.valid">
+  <p *ngIf="tooEarlyDeadline()" i18n>
+    The end of the poll must be at lest one hour in the future.
+  </p>
+  <p *ngIf="wrongInterval()" i18n>
+    Wrong number of rounds interval.
+  </p>
+  <p *ngIf="tooFewRounds()">
+    The minimal number of rounds must be at least 2.
+  </p>
+  <p *ngIf="wrongDuration()">
+    Wrong maximal round duration.
+  </p>
+  <p *ngIf="tooShortDuration()">
+    Maximal round duration must be at least one minute.
+  </p>
+</div>

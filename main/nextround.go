@@ -60,11 +60,12 @@ func (self *nextRound) fullCheck() error {
 		  WHERE p.Active AND p.CurrentRound < p.MaxNbRounds
 		  GROUP BY p.Id,
 		        p.CurrentRoundStart, p.MaxRoundDuration, p.CurrentRound, p.Publicity, p.RoundThreshold
-		 HAVING ADDTIME(p.CurrentRoundStart, p.MaxRoundDuration) <= CURRENT_TIMESTAMP()
-		        OR ( (p.CurrentRound > 0 OR p.Publicity = %d)
-		              AND ( (p.RoundThreshold = 0 AND SUM(a.LastRound = p.CurrentRound) > 0)
-		                   OR ( p.RoundThreshold > 0
-		                        AND SUM(a.LastRound = p.CurrentRound) / COUNT(a.LastRound) >= p.RoundThreshold )))
+		 HAVING ( ADDTIME(p.CurrentRoundStart, p.MaxRoundDuration) <= CURRENT_TIMESTAMP()
+		          AND ( p.CurrentRound > 0 OR COUNT(a.LastRound) > 2 ))
+		     OR ( (p.CurrentRound > 0 OR p.Publicity = %d)
+		           AND ( (p.RoundThreshold = 0 AND SUM(a.LastRound = p.CurrentRound) > 0)
+		                OR ( p.RoundThreshold > 0
+		                     AND SUM(a.LastRound = p.CurrentRound) / COUNT(a.LastRound) >= p.RoundThreshold )))
 		    FOR UPDATE`
 		qNextRound = `UPDATE Polls SET CurrentRound = CurrentRound + 1 WHERE Id = ?`
 	)
@@ -83,11 +84,12 @@ func (self *nextRound) checkOne(pollId uint32) error {
 	      WHERE p.Id = ? AND p.Active AND p.CurrentRound < p.MaxNbRounds
 	      GROUP BY p.Id,
 	            p.CurrentRoundStart, p.MaxRoundDuration, p.CurrentRound, p.Publicity, p.RoundThreshold
-	     HAVING ADDTIME(p.CurrentRoundStart, p.MaxRoundDuration) <= CURRENT_TIMESTAMP()
-	                 OR ( (p.CurrentRound > 0 OR p.Publicity = ?)
-	                       AND ( (p.RoundThreshold = 0 AND SUM(a.LastRound = p.CurrentRound) > 0)
-	                            OR ( p.RoundThreshold > 0
-	                                 AND SUM(a.LastRound = p.CurrentRound) / COUNT(a.LastRound) >= p.RoundThreshold )))`
+	     HAVING ( ADDTIME(p.CurrentRoundStart, p.MaxRoundDuration) <= CURRENT_TIMESTAMP()
+		            AND ( p.CurrentRound > 0 OR COUNT(a.LastRound) > 2 ))
+	         OR ( (p.CurrentRound > 0 OR p.Publicity = ?)
+	               AND ( (p.RoundThreshold = 0 AND SUM(a.LastRound = p.CurrentRound) > 0)
+	                    OR ( p.RoundThreshold > 0
+	                         AND SUM(a.LastRound = p.CurrentRound) / COUNT(a.LastRound) >= p.RoundThreshold )))`
 		qUpdate = `
 	  	UPDATE Polls SET CurrentRound = CurrentRound + 1
 	  	 WHERE Id IN ( SELECT Id FROM Tmp_NextRound )`
@@ -128,7 +130,7 @@ func (self *nextRound) nextAlarm() alarm.Event {
 }
 
 func (self *nextRound) run(evtChan <-chan events.Event) {
-	at := alarm.New(1)
+	at := alarm.New(1, alarm.DiscardLaterEvent)
 
 	self.updateLastCheck()
 	self.fullCheck()
@@ -156,7 +158,9 @@ func (self *nextRound) run(evtChan <-chan events.Event) {
 				continue
 			}
 
-			at.Send <- self.nextAlarm()
+			if evt.Remaining == 0 && evtChan != nil {
+				at.Send <- self.nextAlarm()
+			}
 
 		case evt, ok := <-evtChan:
 			if !ok {
@@ -166,10 +170,13 @@ func (self *nextRound) run(evtChan <-chan events.Event) {
 				continue
 			}
 
-			voteEvt := evt.(VoteEvent)
-			if err := self.checkOne(voteEvt.Poll); err != nil {
-				self.warn.Print(err)
-				continue
+			switch typed := evt.(type) {
+			case VoteEvent:
+				if err := self.checkOne(typed.Poll); err != nil {
+					self.warn.Print(err)
+				}
+			case CreatePollEvent:
+				at.Send <- self.nextAlarm()
 			}
 		}
 	}
@@ -180,8 +187,11 @@ func StartNextRound() {
 	ch := make(chan events.Event, 64)
 	events.AddReceiver(events.AsyncForwarder{
 		Filter: func(evt events.Event) bool {
-			_, ok := evt.(VoteEvent)
-			return ok
+			switch evt.(type) {
+			case VoteEvent, CreatePollEvent:
+				return true;
+			}
+			return false
 		},
 		Chan: ch,
 	})
