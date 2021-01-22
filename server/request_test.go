@@ -289,8 +289,8 @@ func TestRequest_CheckPOST(t *testing.T) {
 				ok := errors.As(err, &httpError)
 				if !ok {
 					t.Errorf("Unexpected error type for %v.", err)
-				} else if httpError.msg != tt.errorMsg {
-					t.Errorf(`Wrong error message. Got "%s". Expect "%s".`, httpError.msg, tt.errorMsg)
+				} else if httpError.Msg != tt.errorMsg {
+					t.Errorf(`Wrong error message. Got "%s". Expect "%s".`, httpError.Msg, tt.errorMsg)
 				}
 			}
 		})

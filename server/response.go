@@ -29,43 +29,6 @@ import (
 	gs "github.com/gorilla/sessions"
 )
 
-// A HttpError is an error that can be send as an HTTP response.
-type HttpError struct {
-	// HTTP status code for the error.
-	Code    int
-	msg     string
-	detail  string
-	wrapped error
-}
-
-// NewHttpError constructs a new HttpError.
-//
-// The code is to be sent as the HTTP code of the response. It should be a constant from the
-// net/http package. The message (msg) is to be sent as body of the HTTP response. This is the
-// public description of the error. The detail is the private description of the error, to be
-// displayed in the logs.
-func NewHttpError(code int, msg string, detail string) HttpError {
-	return HttpError{Code: code, msg: msg, detail: detail}
-}
-
-// NewInternalHttpError wraps another error into an InternalServerError HttpError.
-// This function is particularly usefull to panic inside an Handler, see Handler.
-func NewInternalHttpError(err error) HttpError {
-	return HttpError{Code: http.StatusInternalServerError, msg: "Internal error", wrapped: err}
-}
-
-func (self HttpError) Error() string {
-	if self.wrapped == nil {
-		return self.detail
-	} else {
-		return self.wrapped.Error()
-	}
-}
-
-func (self HttpError) Unwrap() error {
-	return self.wrapped
-}
-
 type Response interface {
 	// SendJSON sends a JSON as response.
 	// On success statuc code is http.StatusOK.
@@ -108,7 +71,7 @@ func (self response) SendError(ctx context.Context, err error) {
 
 	var pError HttpError
 	if errors.As(err, &pError) {
-		send(pError.Code, pError.msg)
+		send(pError.Code, pError.Msg)
 	} else if errors.Is(err, context.Canceled) {
 		send(http.StatusInternalServerError, "Canceled")
 	} else if errors.Is(err, context.DeadlineExceeded) {

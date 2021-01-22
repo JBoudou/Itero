@@ -51,7 +51,7 @@ func must(err error) {
 	if err != nil {
 		var httpError server.HttpError
 		if !errors.As(err, &httpError) {
-			err = server.NewInternalHttpError(err)
+			err = server.InternalHttpError(err)
 		}
 		panic(err)
 	}

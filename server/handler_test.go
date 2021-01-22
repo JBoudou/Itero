@@ -14,90 +14,173 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-package server
+package server_test
 
 import (
-	"errors"
-	"reflect"
+	"bytes"
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"testing"
+
+	. "github.com/JBoudou/Itero/server"
+	srvt "github.com/JBoudou/Itero/server/servertest"
 )
 
-func TestNewHttpError(t *testing.T) {
-	type args struct {
-		code   int
-		msg    string
-		detail string
-	}
-	tests := []struct {
-		name string
-		args args
-		want HttpError
-	}{
-		{
-			name: "unique",
-			args: args{code: 404, msg: "Not found", detail: "For some reason"},
-			want: HttpError{Code: 404, msg: "Not found", detail: "For some reason"},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := NewHttpError(tt.args.code, tt.args.msg, tt.args.detail); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewHttpError() = %v, want %v", got, tt.want)
-			}
-		})
+func precheck(t *testing.T) {
+	if !Ok {
+		t.Log("Impossible to test package server_test: there is no configuration.")
+		t.Log("Add a configuration file in server/ (may be a link to the main configuration file).")
+		t.SkipNow()
 	}
 }
 
-func TestNewInternalHttpError(t *testing.T) {
-	tests := []struct {
-		name string
-		err  error
-	}{
-		{
-			name: "unique",
-			err:  errors.New("Test"),
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := NewInternalHttpError(tt.err)
-			if got.Code < 400 {
-				t.Errorf("Wrong status code %d", got.Code)
-			}
-			if got.wrapped != tt.err {
-				t.Errorf("Wrong wrapped. Got %v. Expect %v", got.wrapped, tt.err)
-			}
-		})
-	}
+// checkerJSONString returns a srvt.Checker to check responses whose body is a JSON object
+// representing a string.
+//
+// The returned function checks that the statuc code and the encoded string are as expected.
+func checkerJSONString(expectCode int, expectBody string) srvt.Checker {
+	return srvt.CheckerFun(func(t *testing.T, response *http.Response, req *Request) {
+		if response.StatusCode != expectCode {
+			t.Errorf("Wrong status code. Got %d. Expect %d", response.StatusCode, expectCode)
+		}
+
+		var body string
+		var buff bytes.Buffer
+		if _, err := buff.ReadFrom(response.Body); err != nil {
+			t.Fatalf("Error reading body: %s", err)
+		}
+		if err := json.Unmarshal(buff.Bytes(), &body); err != nil {
+			t.Fatalf("Error reading body: %s", err)
+		}
+		if body != expectBody {
+			t.Errorf("Wrong body. Got %s. Expect %s", body, expectBody)
+		}
+	})
 }
 
-func TestHttpError_Error(t *testing.T) {
-	type fields struct {
-		Code   int
-		msg    string
-		detail string
-	}
-	tests := []struct {
-		name string
-		self HttpError
-		want string
-	}{
+type handlerArgs struct {
+	pattern string
+	fct     func(ctx context.Context, resp Response, req *Request)
+}
+type handlerTestsStruct struct {
+	name    string
+	args    handlerArgs
+	req     srvt.Request
+	checker srvt.Checker
+}
+
+func TestHandleFunc(t *testing.T) {
+	precheck(t)
+
+	var (
+		tWrite  = "/t/write"
+		tEcho   = "/t/echo"
+		tError  = "/t/error"
+		tPanic  = "/t/panic"
+		tStruct = "/t/struct"
+	)
+
+	handlerTests := []handlerTestsStruct{
 		{
-			name: "unwrapped",
-			self: HttpError{msg: "Not found", detail: "For some reason"},
-			want: "For some reason",
+			name: "write",
+			args: handlerArgs{
+				pattern: tWrite,
+				fct: func(ctx context.Context, resp Response, req *Request) {
+					msg := "bar"
+					resp.SendJSON(ctx, msg)
+				},
+			},
+			req: srvt.Request{
+				Method: "GET",
+				Target: &tWrite,
+			},
+			checker: checkerJSONString(http.StatusOK, "bar"),
 		},
 		{
-			name: "wrapped",
-			self: HttpError{msg: "A", detail: "B", wrapped: errors.New("C")},
-			want: "C",
+			name: "echo",
+			args: handlerArgs{
+				pattern: tEcho,
+				fct: func(ctx context.Context, resp Response, req *Request) {
+					var msg string
+					if err := req.UnmarshalJSONBody(&msg); err != nil {
+						resp.SendError(ctx, err)
+						return
+					}
+					resp.SendJSON(ctx, msg)
+				},
+			},
+			req: srvt.Request{
+				Method: "POST",
+				Target: &tEcho,
+				Body:   `"Hello"`,
+			},
+			checker: checkerJSONString(http.StatusOK, "Hello"),
+		},
+		{
+			name: "error",
+			args: handlerArgs{
+				pattern: tError,
+				fct: func(ctx context.Context, resp Response, req *Request) {
+					resp.SendError(ctx, NewHttpError(http.StatusPaymentRequired, "Flublu", "Test"))
+				},
+			},
+			req: srvt.Request{
+				Method: "GET",
+				Target: &tError,
+			},
+			checker: srvt.CheckError{http.StatusPaymentRequired, "Flublu"},
+		},
+		{
+			name: "panic",
+			args: handlerArgs{
+				pattern: tPanic,
+				fct: func(ctx context.Context, resp Response, req *Request) {
+					panic(NewHttpError(http.StatusPaymentRequired, "Barbaz", "Test"))
+				},
+			},
+			req: srvt.Request{
+				Method: "GET",
+				Target: &tPanic,
+			},
+			checker: srvt.CheckError{http.StatusPaymentRequired, "Barbaz"},
+		},
+		{
+			name: "struct",
+			args: handlerArgs{
+				pattern: tStruct,
+				fct: func(ctx context.Context, resp Response, req *Request) {
+					resp.SendJSON(ctx, struct {
+						A int
+						B string
+					}{A: 42, B: "Foobar"})
+				},
+			},
+			req: srvt.Request{
+				Method: "GET",
+				Target: &tStruct,
+			},
+			checker: srvt.CheckJSON{Body: struct {
+				A int
+				B string
+			}{A: 42, B: "Foobar"}},
 		},
 	}
-	for _, tt := range tests {
+
+	for _, tt := range handlerTests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.self.Error(); got != tt.want {
-				t.Errorf("HttpError.Error() = %v, want %v", got, tt.want)
+			HandleFunc(tt.args.pattern, tt.args.fct)
+
+			wr := httptest.NewRecorder()
+			req, err := tt.req.Make()
+			if err != nil {
+				t.Fatal(err)
 			}
+			http.DefaultServeMux.ServeHTTP(wr, req)
+
+			// TODO: replace the dummy request with a better one.
+			tt.checker.Check(t, wr.Result(), &Request{})
 		})
 	}
 }
