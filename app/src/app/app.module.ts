@@ -28,13 +28,13 @@ import { ClipboardModule } from '@angular/cdk/clipboard';
 
 import { AppRoutingModule } from './app-routing.module';
 import { FormWidgetModule } from './form-widget/form-widget.module';
+import { ListModule } from './list/list.module';
 
 import { SessionInterceptor } from './session/session.interceptor';
 import { CREATE_TREE, APP_CREATE_TREE } from './create/create.service';
 
 import { AppComponent } from './app.component';
 import { NavtitleComponent } from './navtitle/navtitle.component';
-import { ListComponent } from './list/list.component';
 import { LoginComponent } from './login/login.component';
 import { HomeComponent } from './home/home.component';
 import { DeadRouteComponent } from './dead-route/dead-route.component';
@@ -61,7 +61,6 @@ import { CreateResultComponent } from './create-result/create-result.component';
     CreateSimpleAlternativesComponent,
     DeadRouteComponent,
     HomeComponent,
-    ListComponent,
     LoginComponent,
     NavtitleComponent,
     PollBallotDirective,
@@ -71,7 +70,6 @@ import { CreateResultComponent } from './create-result/create-result.component';
     UninominalBallotComponent,
   ],
   imports: [
-    AppRoutingModule,
     BrowserAnimationsModule,
     BrowserModule,
     ClipboardModule,
@@ -80,10 +78,12 @@ import { CreateResultComponent } from './create-result/create-result.component';
     FormWidgetModule,
     GoogleChartsModule,
     HttpClientModule,
+    ListModule,
     MatButtonModule,
     MatIconModule,
     MatTooltipModule,
     ReactiveFormsModule,
+    AppRoutingModule // Must be last
   ],
   providers: [
     { provide: HTTP_INTERCEPTORS, useClass: SessionInterceptor, multi: true },
