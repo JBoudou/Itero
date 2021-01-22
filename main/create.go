@@ -63,7 +63,7 @@ func CreateHandler(ctx context.Context, response server.Response, request *serve
 		if request.SessionError != nil {
 			must(request.SessionError)
 		} else {
-			must(server.NewHttpError(http.StatusForbidden, "Unauthorized", "Unlogged user"))
+			must(server.UnauthorizedHttpError("Unlogged user"))
 		}
 	}
 	must(request.CheckPOST(ctx))

@@ -81,7 +81,7 @@ func checkPollAccess(ctx context.Context, request *server.Request) (poll PollInf
 		if request.SessionError != nil {
 			err = request.SessionError
 		} else {
-			err = server.NewHttpError(http.StatusForbidden, "Unauthorized", "Unlogged user")
+			err = server.UnauthorizedHttpError("Unlogged user")
 		}
 		return
 	}
@@ -108,7 +108,7 @@ func checkPollAccess(ctx context.Context, request *server.Request) (poll PollInf
 		return
 	}
 	if salt != segment.Salt {
-		err = server.NewHttpError(http.StatusForbidden, "Unauthorized", "Wrong salt")
+		err = server.UnauthorizedHttpError("Wrong salt")
 		return
 	}
 
@@ -120,7 +120,7 @@ func checkPollAccess(ctx context.Context, request *server.Request) (poll PollInf
 		return
 	}
 	if publicity >= db.PollPublicityInvited {
-		err = server.NewHttpError(http.StatusForbidden, "Unauthorized", "Private poll")
+		err = server.UnauthorizedHttpError("Private poll")
 		return
 	}
 	if poll.CurrentRound > 0 {

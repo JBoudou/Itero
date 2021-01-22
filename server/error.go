@@ -73,5 +73,5 @@ func InternalHttpError(err error) HttpError {
 
 // UnauthorizedHttpError creates a preformatted HttpError notifying authorized request.
 func UnauthorizedHttpError(detail string) HttpError {
-	return NewHttpError(http.StatusUnauthorized, UnauthorizedHttpErrorMsg, detail)
+	return NewHttpError(http.StatusForbidden, UnauthorizedHttpErrorMsg, detail)
 }

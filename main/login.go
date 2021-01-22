@@ -67,7 +67,7 @@ func LoginHandler(ctx context.Context, response server.Response, request *server
 	row := db.DB.QueryRowContext(ctx, query, loginQuery.User)
 	if err := row.Scan(&id, &passwd); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			err = server.NewHttpError(http.StatusForbidden, "Unauthorized", "User not found")
+			err = server.UnauthorizedHttpError("User not found")
 		}
 		response.SendError(ctx, err)
 		return
@@ -81,7 +81,7 @@ func LoginHandler(ctx context.Context, response server.Response, request *server
 	hashFct.Write([]byte(loginQuery.Passwd))
 	hashPwd := hashFct.Sum(nil)
 	if !bytes.Equal(hashPwd, passwd) {
-		response.SendError(ctx, server.NewHttpError(http.StatusForbidden, "Unauthorized", "Wrong password"))
+		response.SendError(ctx, server.UnauthorizedHttpError("Wrong password"))
 		return
 	}
 

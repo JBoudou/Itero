@@ -137,8 +137,8 @@ func TestUnauthorizedHttpError(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := UnauthorizedHttpError(tt.detail)
-			if result.Code != http.StatusUnauthorized {
-				t.Errorf("Got Code %d. Expect %d.", result.Code, http.StatusUnauthorized)
+			if result.Code != http.StatusForbidden {
+				t.Errorf("Got Code %d. Expect %d.", result.Code, http.StatusForbidden)
 			}
 			if result.Msg != UnauthorizedHttpErrorMsg {
 				t.Errorf(`Got Msg "%s". Expect "%s".`, result.Msg, UnauthorizedHttpErrorMsg)
