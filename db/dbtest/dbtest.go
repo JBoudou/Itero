@@ -77,6 +77,7 @@ func (self *Env) CreateUserWith(salt string) (userId uint32) {
 
 	self.Defer(func() {
 		db.DB.Exec(`DELETE FROM Users WHERE Id = ?`, userId)
+		db.DB.Exec(`ALTER TABLE Users AUTO_INCREMENT = 1`)
 	})
 	return
 }
@@ -118,6 +119,7 @@ func (self *Env) CreatePollWith(title string, admin uint32, publicity uint8,
 
 	self.Defer(func() {
 		db.DB.Exec(qRemovePoll, pollId)
+		db.DB.Exec(`ALTER TABLE Polls AUTO_INCREMENT = 1`)
 	})
 	return
 }
