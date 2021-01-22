@@ -18,10 +18,9 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule, FormBuilder, FormsModule } from '@angular/forms';
 
 import { CreateRoundComponent } from './create-round.component';
+import { FormWidgetModule } from '../form-widget/form-widget.module';
 
 import { CreateService } from '../create/create.service';
-import { DateTimePickerComponent } from '../date-time-picker/date-time-picker.component';
-import { DayHourMinDurationComponent } from '../day-hour-min-duration/day-hour-min-duration.component';
 
 describe('CreateRoundComponent', () => {
   let component: CreateRoundComponent;
@@ -33,10 +32,12 @@ describe('CreateRoundComponent', () => {
     await TestBed.configureTestingModule({
       declarations: [
         CreateRoundComponent,
-        DateTimePickerComponent,
-        DayHourMinDurationComponent,
       ],
-      imports: [ ReactiveFormsModule, FormsModule ],
+      imports: [
+        ReactiveFormsModule,
+        FormsModule,
+        FormWidgetModule,
+      ],
       providers: [
         FormBuilder,
         { provide: CreateService, useValue: serviceSpy },

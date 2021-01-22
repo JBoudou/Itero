@@ -1,3 +1,19 @@
+// Itero - Online iterative vote application
+// Copyright (C) 2021 Joseph Boudou
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as
+// published by the Free Software Foundation, either version 3 of the
+// License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import { BrowserModule } from '@angular/platform-browser';
 import { NgModule } from '@angular/core';
 import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
@@ -11,6 +27,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { ClipboardModule } from '@angular/cdk/clipboard';
 
 import { AppRoutingModule } from './app-routing.module';
+import { FormWidgetModule } from './form-widget/form-widget.module';
+
 import { SessionInterceptor } from './session/session.interceptor';
 import { CREATE_TREE, APP_CREATE_TREE } from './create/create.service';
 
@@ -30,8 +48,6 @@ import { CreateComponent } from './create/create.component';
 import { CreateGeneralComponent } from './create-general/create-general.component';
 import { CreateSimpleAlternativesComponent } from './create-simple-alternatives/create-simple-alternatives.component';
 import { CreateRoundComponent } from './create-round/create-round.component';
-import { DateTimePickerComponent } from './date-time-picker/date-time-picker.component';
-import { DayHourMinDurationComponent } from './day-hour-min-duration/day-hour-min-duration.component';
 import { CreateResultComponent } from './create-result/create-result.component';
 
 @NgModule({
@@ -43,8 +59,6 @@ import { CreateResultComponent } from './create-result/create-result.component';
     CreateResultComponent,
     CreateRoundComponent,
     CreateSimpleAlternativesComponent,
-    DateTimePickerComponent,
-    DayHourMinDurationComponent,
     DeadRouteComponent,
     HomeComponent,
     ListComponent,
@@ -63,6 +77,7 @@ import { CreateResultComponent } from './create-result/create-result.component';
     ClipboardModule,
     DragDropModule,
     FormsModule,
+    FormWidgetModule,
     GoogleChartsModule,
     HttpClientModule,
     MatButtonModule,
