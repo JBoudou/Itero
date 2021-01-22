@@ -97,7 +97,7 @@ export class SessionService {
   logoff() {
     localStorage.removeItem("SessionId");
     localStorage.removeItem("User");
-    document.cookie = "s=; Path=/; Max-Age=-1";
+    document.cookie = "s=; Path=/; Max-Age=0; Secure";
     this.currentState = {registered: false};
     this.observable.next(this.currentState);
   }
