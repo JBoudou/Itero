@@ -14,12 +14,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { BrowserModule } from '@angular/platform-browser';
 import { NgModule } from '@angular/core';
+import { BrowserModule } from '@angular/platform-browser';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 
-import { GoogleChartsModule } from 'angular-google-charts';
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import { MatIconModule } from '@angular/material/icon'; 
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -29,6 +29,7 @@ import { ClipboardModule } from '@angular/cdk/clipboard';
 import { AppRoutingModule } from './app-routing.module';
 import { FormWidgetModule } from './form-widget/form-widget.module';
 import { ListModule } from './list/list.module';
+import { PollModule } from './poll/poll.module';
 
 import { SessionInterceptor } from './session/session.interceptor';
 import { CREATE_TREE, APP_CREATE_TREE } from './create/create.service';
@@ -39,11 +40,6 @@ import { LoginComponent } from './login/login.component';
 import { HomeComponent } from './home/home.component';
 import { DeadRouteComponent } from './dead-route/dead-route.component';
 import { SignupComponent } from './signup/signup.component';
-import { PollComponent } from './poll/poll.component';
-import { PollBallotDirective, PollInformationDirective } from './poll/directives';
-import { UninominalBallotComponent } from './uninominal-ballot/uninominal-ballot.component';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { CountsInformationComponent } from './counts-information/counts-information.component';
 import { CreateComponent } from './create/create.component';
 import { CreateGeneralComponent } from './create-general/create-general.component';
 import { CreateSimpleAlternativesComponent } from './create-simple-alternatives/create-simple-alternatives.component';
@@ -53,7 +49,6 @@ import { CreateResultComponent } from './create-result/create-result.component';
 @NgModule({
   declarations: [
     AppComponent,
-    CountsInformationComponent,
     CreateComponent,
     CreateGeneralComponent,
     CreateResultComponent,
@@ -63,11 +58,7 @@ import { CreateResultComponent } from './create-result/create-result.component';
     HomeComponent,
     LoginComponent,
     NavtitleComponent,
-    PollBallotDirective,
-    PollComponent,
-    PollInformationDirective,
     SignupComponent,
-    UninominalBallotComponent,
   ],
   imports: [
     BrowserAnimationsModule,
@@ -76,12 +67,12 @@ import { CreateResultComponent } from './create-result/create-result.component';
     DragDropModule,
     FormsModule,
     FormWidgetModule,
-    GoogleChartsModule,
     HttpClientModule,
     ListModule,
     MatButtonModule,
     MatIconModule,
     MatTooltipModule,
+    PollModule,
     ReactiveFormsModule,
     AppRoutingModule // Must be last
   ],

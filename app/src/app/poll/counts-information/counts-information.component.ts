@@ -17,8 +17,8 @@
 import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 
-import { PollSubComponent, ServerError } from '../poll/common';
-import { CountInfoAnswer } from '../api';
+import { PollSubComponent, ServerError } from '../common';
+import { CountInfoAnswer } from '../../api';
 
 /** Extract the first element of a comma separated list, removing one level of enclosing " or '. */
 function extractFontFamily(css: string): string {

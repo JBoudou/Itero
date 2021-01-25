@@ -23,9 +23,9 @@ import {
   PollBallot,
   PollBallotComponent,
   ServerError,
-} from '../poll/common';
+} from '../common';
 
-import { PollAlternative, UninominalBallotAnswer, UninominalVoteQuery, BallotType } from '../api';
+import { PollAlternative, UninominalBallotAnswer, UninominalVoteQuery, BallotType } from '../../api';
 
 
 export class UninominalBallot implements PollBallot {

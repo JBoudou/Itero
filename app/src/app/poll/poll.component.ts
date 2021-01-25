@@ -42,8 +42,8 @@ import { PollAnswer, BallotType, InformationType } from '../api';
 import { PollBallotDirective, PollInformationDirective } from './directives';
 import { DynamicComponentFactoryService } from '../dynamic-component-factory.service';
 
-import { UninominalBallotComponent } from '../uninominal-ballot/uninominal-ballot.component';
-import { CountsInformationComponent } from '../counts-information/counts-information.component';
+import { UninominalBallotComponent } from './uninominal-ballot/uninominal-ballot.component';
+import { CountsInformationComponent } from './counts-information/counts-information.component';
 
 // Indexes for the sub component.
 const enum SubComponentId {

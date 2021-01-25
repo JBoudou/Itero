@@ -27,7 +27,6 @@ import { CreateResultComponent }            from './create-result/create-result.
 import { DeadRouteComponent }               from './dead-route/dead-route.component';
 import { HomeComponent }                    from './home/home.component';
 import { LoginComponent }                   from './login/login.component';
-import { PollComponent }                    from './poll/poll.component';
 import { SignupComponent }                  from './signup/signup.component';
 
 const routes: Routes = [
@@ -41,7 +40,6 @@ const routes: Routes = [
   { path: 'r/create-result/:pollSegment', component: CreateResultComponent },
   { path: 'r/login', component: LoginComponent },
   { path: 'r/signup', component: SignupComponent },
-  { path: 'r/poll/:pollSegment', component: PollComponent },
   { path: '**', component: DeadRouteComponent },
 ];
 

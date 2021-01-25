@@ -24,8 +24,8 @@ import { DynamicComponentFactoryStub } from '../../testing/dynamic-component-fac
 
 import { PollComponent } from './poll.component';
 import { PollBallotDirective, PollInformationDirective } from './directives';
-import { UninominalBallotComponent } from '../uninominal-ballot/uninominal-ballot.component';
-import { CountsInformationComponent } from '../counts-information/counts-information.component';
+import { UninominalBallotComponent } from './uninominal-ballot/uninominal-ballot.component';
+import { CountsInformationComponent } from './counts-information/counts-information.component';
 import { DynamicComponentFactoryService } from '../dynamic-component-factory.service';
 import { BallotType, InformationType } from '../api';
 
