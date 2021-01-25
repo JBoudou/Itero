@@ -23,12 +23,14 @@ import { MatIconModule }    from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatButtonModule }  from '@angular/material/button';
 import { ClipboardModule }  from '@angular/cdk/clipboard';
+import { MatDialogModule }  from '@angular/material/dialog';
 
 import { FormWidgetModule } from '../form-widget/form-widget.module';
 import { PollModule }       from '../poll/poll.module';
 
 import { CreateRoutingModule } from './create-routing.module';
 import { CreateService, CREATE_TREE, APP_CREATE_TREE } from './create.service';
+import { LeaveCreateGuard, LeaveCreateDialog } from './leave-create.guard';
 
 import { CreateComponent }              from './create.component';
 import { GeneralComponent }             from './general/general.component';
@@ -40,6 +42,7 @@ import { SimpleAlternativesComponent }  from './simple-alternatives/simple-alter
   declarations: [
     CreateComponent,
     GeneralComponent,
+    LeaveCreateDialog,
     ResultComponent,
     RoundComponent,
     SimpleAlternativesComponent,
@@ -52,6 +55,7 @@ import { SimpleAlternativesComponent }  from './simple-alternatives/simple-alter
     FormsModule,
     FormWidgetModule,
     MatButtonModule,
+    MatDialogModule,
     MatIconModule,
     MatTooltipModule,
     PollModule,
@@ -59,6 +63,7 @@ import { SimpleAlternativesComponent }  from './simple-alternatives/simple-alter
   ],
   providers: [
     CreateService,
+    LeaveCreateGuard,
     { provide: CREATE_TREE, useValue: APP_CREATE_TREE },
   ],
 })

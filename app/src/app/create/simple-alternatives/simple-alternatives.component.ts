@@ -75,6 +75,10 @@ export class SimpleAlternativesComponent implements OnInit, CreateSubComponent {
   private _validable = new Subject<boolean>();
   get validable$(): Observable<boolean> { return this._validable; }
 
+  isStarted(): boolean {
+    return this.alternatives.length > 0;
+  }
+
   constructor(
     private service: CreateService,
     private formBuilder: FormBuilder,

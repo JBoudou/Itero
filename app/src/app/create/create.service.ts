@@ -28,6 +28,7 @@ export interface CreateSubComponent {
   /** Name of query's properties that may be modified by the component. */
   readonly handledFields: Set<string>;
   readonly validable$: Observable<boolean>;
+  isStarted(): boolean;
 }
 
 /** Event about the next() action of CreateService. */
@@ -268,8 +269,7 @@ export class CreateService {
 
     if (this.current.isFinal) {
       this.sendRequest();
-      this.root.reset();
-      this.current = this.root;
+      this.reset();
       return;
     }
 
@@ -316,6 +316,16 @@ export class CreateService {
       this.current.handledFields.add(prop);
     }
     return this.current.query;
+  }
+
+  /** Whether the user already set some values. */
+  isStarted(): boolean {
+    return this.current !== this.root || (!!this.subComponent && this.subComponent.isStarted());
+  }
+
+  reset() {
+    this.root.reset();
+    this.current = this.root;
   }
 
   private makeCurrent(node: CreateTreeNode|undefined): void {

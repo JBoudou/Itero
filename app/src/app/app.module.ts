@@ -29,6 +29,10 @@ import { NavtitleComponent } from './navtitle/navtitle.component';
 import { HomeComponent } from './home/home.component';
 import { DeadRouteComponent } from './dead-route/dead-route.component';
 
+/**
+ * Root module.
+ * Must be kept as small as possible.
+ */
 @NgModule({
   declarations: [
     AppComponent,

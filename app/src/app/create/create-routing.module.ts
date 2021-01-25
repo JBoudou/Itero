@@ -18,6 +18,7 @@ import { NgModule } from '@angular/core';
 import { Routes, RouterModule } from '@angular/router';
 
 import { LoggedGuard } from '../session/logged.guard';
+import { LeaveCreateGuard } from './leave-create.guard';
 
 import { CreateComponent }              from './create.component';
 import { GeneralComponent }             from './general/general.component';
@@ -29,7 +30,8 @@ const routes: Routes = [
   {
     path: '',
     component: CreateComponent,
-    canActivate: [LoggedGuard],
+    canActivate: [ LoggedGuard ],
+    canDeactivate: [ LeaveCreateGuard ],
     children: [
     { path: 'general', component: GeneralComponent },
     { path: 'simpleAlternatives', component: SimpleAlternativesComponent },

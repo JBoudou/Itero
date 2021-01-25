@@ -45,14 +45,22 @@ export abstract class CreateSubComponentBase implements CreateSubComponent {
     return this.form.statusChanges.pipe(map(val => val == 'VALID'), startWith(this.form.valid));
   }
 
+  private _started: boolean;
+
+  isStarted(): boolean {
+    return this._started || this.form.dirty;
+  }
+
   /**
    * Connects the service with the form.
    * Must be called in some initializing method of the subclass, usually ngOnInit.
    */
   protected initModel(): void {
+    this._started = false;
     const query = this.service.register(this);
     for (const prop in this.form.controls) {
       if (query[prop] !== undefined) {
+        this._started = query[prop] != this.form.controls[prop].value;
         this.form.controls[prop].setValue(query[prop]);
       } else {
         query[prop] = this.form.controls[prop].value;
