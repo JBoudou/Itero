@@ -17,19 +17,19 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule, FormBuilder, FormsModule } from '@angular/forms';
 
-import { CreateGeneralComponent } from './create-general.component';
+import { GeneralComponent } from './general.component';
 
-import { CreateService } from '../create/create.service';
+import { CreateService } from '../create.service';
 
 describe('CreateGeneralComponent', () => {
-  let component: CreateGeneralComponent;
-  let fixture: ComponentFixture<CreateGeneralComponent>;
+  let component: GeneralComponent;
+  let fixture: ComponentFixture<GeneralComponent>;
   let serviceSpy: jasmine.SpyObj<CreateService>;
 
   beforeEach(async () => {
     serviceSpy = jasmine.createSpyObj('CreateService', {register: {}});
     await TestBed.configureTestingModule({
-      declarations: [ CreateGeneralComponent ],
+      declarations: [ GeneralComponent ],
       imports: [ ReactiveFormsModule, FormsModule ],
       providers: [
         FormBuilder,
@@ -40,7 +40,7 @@ describe('CreateGeneralComponent', () => {
   });
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(CreateGeneralComponent);
+    fixture = TestBed.createComponent(GeneralComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

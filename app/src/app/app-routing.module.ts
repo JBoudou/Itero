@@ -17,13 +17,6 @@
 import { NgModule } from '@angular/core';
 import { Routes, RouterModule } from '@angular/router';
 
-import { LoggedGuard } from './logged.guard';
-
-import { CreateComponent }                  from './create/create.component';
-import { CreateGeneralComponent }           from './create-general/create-general.component';
-import { CreateSimpleAlternativesComponent }from './create-simple-alternatives/create-simple-alternatives.component';
-import { CreateRoundComponent }             from './create-round/create-round.component';
-import { CreateResultComponent }            from './create-result/create-result.component';
 import { DeadRouteComponent }               from './dead-route/dead-route.component';
 import { HomeComponent }                    from './home/home.component';
 import { LoginComponent }                   from './login/login.component';
@@ -31,13 +24,7 @@ import { SignupComponent }                  from './signup/signup.component';
 
 const routes: Routes = [
   { path: '', component: HomeComponent },
-  { path: 'r/create', component: CreateComponent, canActivate: [LoggedGuard], children: [
-    { path: 'general', component: CreateGeneralComponent },
-    { path: 'simpleAlternatives', component: CreateSimpleAlternativesComponent },
-    { path: 'round', component: CreateRoundComponent },
-    { path: '', redirectTo: 'general', pathMatch: 'full' },
-  ] },
-  { path: 'r/create-result/:pollSegment', component: CreateResultComponent },
+  { path: 'r/create', loadChildren: () => import('./create/create.module').then(m => m.CreateModule) },
   { path: 'r/login', component: LoginComponent },
   { path: 'r/signup', component: SignupComponent },
   { path: '**', component: DeadRouteComponent },

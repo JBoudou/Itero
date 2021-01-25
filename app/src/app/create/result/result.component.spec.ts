@@ -15,25 +15,39 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ReactiveFormsModule, FormBuilder, FormsModule } from '@angular/forms';
+import { Component } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
+
+import { ClipboardModule } from '@angular/cdk/clipboard';
 import { MatIconModule } from '@angular/material/icon';
 
-import { CreateSimpleAlternativesComponent } from './create-simple-alternatives.component';
+import { ActivatedRouteStub } from '../../../testing/activated-route-stub'
 
-import { CreateService } from '../create/create.service';
+import { ResultComponent } from './result.component';
 
-describe('CreateSimpleAlternativesComponent', () => {
-  let component: CreateSimpleAlternativesComponent;
-  let fixture: ComponentFixture<CreateSimpleAlternativesComponent>;
+import { CreateService } from '../create.service';
+
+@Component({ selector: 'app-poll', template: '' })
+class PollStubComponent { }
+
+describe('ResultComponent', () => {
+  let component: ResultComponent;
+  let fixture: ComponentFixture<ResultComponent>;
+  let activatedRouteStub: ActivatedRouteStub;
   let serviceSpy: jasmine.SpyObj<CreateService>;
 
   beforeEach(async () => {
-    serviceSpy = jasmine.createSpyObj('CreateService', {register: {}});
+    activatedRouteStub = new ActivatedRouteStub();
+    serviceSpy = jasmine.createSpyObj('CreateService', [], ['httpError']);
+
     await TestBed.configureTestingModule({
-      declarations: [ CreateSimpleAlternativesComponent ],
-      imports: [ ReactiveFormsModule, FormsModule, MatIconModule ],
+      declarations: [
+        ResultComponent,
+        PollStubComponent,
+      ],
+      imports: [ ClipboardModule, MatIconModule ],
       providers: [
-        FormBuilder,
+        { provide: ActivatedRoute, useValue: activatedRouteStub },
         { provide: CreateService, useValue: serviceSpy },
       ],
     })
@@ -41,7 +55,7 @@ describe('CreateSimpleAlternativesComponent', () => {
   });
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(CreateSimpleAlternativesComponent);
+    fixture = TestBed.createComponent(ResultComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

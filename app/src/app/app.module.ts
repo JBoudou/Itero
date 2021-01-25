@@ -20,19 +20,11 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 
-import { DragDropModule } from '@angular/cdk/drag-drop';
-import { MatIconModule } from '@angular/material/icon'; 
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatButtonModule } from '@angular/material/button';
-import { ClipboardModule } from '@angular/cdk/clipboard';
-
 import { AppRoutingModule } from './app-routing.module';
-import { FormWidgetModule } from './form-widget/form-widget.module';
-import { ListModule } from './list/list.module';
-import { PollModule } from './poll/poll.module';
+import { ListModule }       from './list/list.module';
+import { PollModule }       from './poll/poll.module';
 
 import { SessionInterceptor } from './session/session.interceptor';
-import { CREATE_TREE, APP_CREATE_TREE } from './create/create.service';
 
 import { AppComponent } from './app.component';
 import { NavtitleComponent } from './navtitle/navtitle.component';
@@ -40,20 +32,10 @@ import { LoginComponent } from './login/login.component';
 import { HomeComponent } from './home/home.component';
 import { DeadRouteComponent } from './dead-route/dead-route.component';
 import { SignupComponent } from './signup/signup.component';
-import { CreateComponent } from './create/create.component';
-import { CreateGeneralComponent } from './create-general/create-general.component';
-import { CreateSimpleAlternativesComponent } from './create-simple-alternatives/create-simple-alternatives.component';
-import { CreateRoundComponent } from './create-round/create-round.component';
-import { CreateResultComponent } from './create-result/create-result.component';
 
 @NgModule({
   declarations: [
     AppComponent,
-    CreateComponent,
-    CreateGeneralComponent,
-    CreateResultComponent,
-    CreateRoundComponent,
-    CreateSimpleAlternativesComponent,
     DeadRouteComponent,
     HomeComponent,
     LoginComponent,
@@ -63,22 +45,15 @@ import { CreateResultComponent } from './create-result/create-result.component';
   imports: [
     BrowserAnimationsModule,
     BrowserModule,
-    ClipboardModule,
-    DragDropModule,
     FormsModule,
-    FormWidgetModule,
     HttpClientModule,
     ListModule,
-    MatButtonModule,
-    MatIconModule,
-    MatTooltipModule,
     PollModule,
     ReactiveFormsModule,
     AppRoutingModule // Must be last
   ],
   providers: [
     { provide: HTTP_INTERCEPTORS, useClass: SessionInterceptor, multi: true },
-    { provide: CREATE_TREE, useValue: APP_CREATE_TREE },
   ],
   bootstrap: [AppComponent]
 })

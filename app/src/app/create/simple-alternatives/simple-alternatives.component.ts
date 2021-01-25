@@ -22,11 +22,11 @@ import { Subject, Observable } from 'rxjs';
 
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 
-import { CreateService, CreateSubComponent } from '../create/create.service';
-import { PollAlternative } from '../api';
+import { CreateService, CreateSubComponent } from '../create.service';
+import { PollAlternative } from '../../api';
 
 
-function duplicateValidator(component: CreateSimpleAlternativesComponent): ValidatorFn {
+function duplicateValidator(component: SimpleAlternativesComponent): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
     if (component.alternatives === undefined) {
       return { undefined: true }
@@ -42,8 +42,8 @@ function duplicateValidator(component: CreateSimpleAlternativesComponent): Valid
 
 @Component({
   selector: 'app-create-simple-alternatives',
-  templateUrl: './create-simple-alternatives.component.html',
-  styleUrls: ['./create-simple-alternatives.component.sass'],
+  templateUrl: './simple-alternatives.component.html',
+  styleUrls: [ './simple-alternatives.component.sass'],
   animations: [
     trigger('deleteTrigger', [
       transition('* => justDeleted', [
@@ -58,7 +58,7 @@ function duplicateValidator(component: CreateSimpleAlternativesComponent): Valid
     ])
   ]
 })
-export class CreateSimpleAlternativesComponent implements OnInit, CreateSubComponent {
+export class SimpleAlternativesComponent implements OnInit, CreateSubComponent {
 
   form = this.formBuilder.group({
     New: ['', [

@@ -17,14 +17,14 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, ParamMap } from '@angular/router';
 
-import { CreateService } from '../create/create.service';
+import { CreateService } from '../create.service';
 
 @Component({
   selector: 'app-create-result',
-  templateUrl: './create-result.component.html',
-  styleUrls: ['./create-result.component.sass']
+  templateUrl: './result.component.html',
+  styleUrls: [ './result.component.sass']
 })
-export class CreateResultComponent implements OnInit {
+export class ResultComponent implements OnInit {
 
   private pollSegment: string;
 

@@ -15,39 +15,31 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Component } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ReactiveFormsModule, FormBuilder, FormsModule } from '@angular/forms';
 
-import { ClipboardModule } from '@angular/cdk/clipboard';
-import { MatIconModule } from '@angular/material/icon';
+import { RoundComponent } from './round.component';
+import { FormWidgetModule } from '../../form-widget/form-widget.module';
 
-import { ActivatedRouteStub } from '../../testing/activated-route-stub'
+import { CreateService } from '../create.service';
 
-import { CreateResultComponent } from './create-result.component';
-
-import { CreateService } from '../create/create.service';
-
-@Component({ selector: 'app-poll', template: '' })
-class PollStubComponent { }
-
-describe('CreateResultComponent', () => {
-  let component: CreateResultComponent;
-  let fixture: ComponentFixture<CreateResultComponent>;
-  let activatedRouteStub: ActivatedRouteStub;
+describe('RoundComponent', () => {
+  let component: RoundComponent;
+  let fixture: ComponentFixture<RoundComponent>;
   let serviceSpy: jasmine.SpyObj<CreateService>;
 
   beforeEach(async () => {
-    activatedRouteStub = new ActivatedRouteStub();
-    serviceSpy = jasmine.createSpyObj('CreateService', [], ['httpError']);
-
+    serviceSpy = jasmine.createSpyObj('CreateService', {register: {}});
     await TestBed.configureTestingModule({
       declarations: [
-        CreateResultComponent,
-        PollStubComponent,
+        RoundComponent,
       ],
-      imports: [ ClipboardModule, MatIconModule ],
+      imports: [
+        ReactiveFormsModule,
+        FormsModule,
+        FormWidgetModule,
+      ],
       providers: [
-        { provide: ActivatedRoute, useValue: activatedRouteStub },
+        FormBuilder,
         { provide: CreateService, useValue: serviceSpy },
       ],
     })
@@ -55,7 +47,7 @@ describe('CreateResultComponent', () => {
   });
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(CreateResultComponent);
+    fixture = TestBed.createComponent(RoundComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

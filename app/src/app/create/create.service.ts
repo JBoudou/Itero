@@ -194,9 +194,7 @@ export const APP_CREATE_TREE: CreateTreeNode =
  *
  * Subcomponents must call register() when they're displayed.
  */
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable()
 export class CreateService {
 
   private _createNext = new ReplaySubject<CreateNextStatus>(1);
@@ -353,12 +351,12 @@ export class CreateService {
     this.http.post<string>('/a/create', this.current.query, { observe: 'body', responseType: 'json' })
       .subscribe({
       next: (segment: string) => {
-        this.router.navigateByUrl('/r/create-result/' + segment);
+        this.router.navigateByUrl('/r/create/result/' + segment);
         this._httpError = undefined;
       },
       error: (err: HttpErrorResponse) => {
         this._httpError = err;
-        this.router.navigateByUrl('/r/create-result/error');
+        this.router.navigateByUrl('/r/create/result/error');
       },
     });
   }

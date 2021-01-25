@@ -17,15 +17,15 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 
-import { CreateService } from '../create/create.service';
-import { CreateSubComponentBase } from '../create/create-sub-component-base';
+import { CreateService } from '../create.service';
+import { CreateSubComponentBase } from '../create-sub-component-base';
 
 @Component({
   selector: 'app-create-general',
-  templateUrl: './create-general.component.html',
-  styleUrls: ['./create-general.component.sass']
+  templateUrl: './general.component.html',
+  styleUrls: ['./general.component.sass']
 })
-export class CreateGeneralComponent extends CreateSubComponentBase implements OnInit {
+export class GeneralComponent extends CreateSubComponentBase implements OnInit {
 
   form = this.formBuilder.group({
     Title: ['', [

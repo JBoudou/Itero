@@ -17,8 +17,8 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, Validators, AbstractControl, FormGroup, ValidationErrors } from '@angular/forms';
 
-import { CreateService } from '../create/create.service';
-import { CreateSubComponentBase } from '../create/create-sub-component-base';
+import { CreateService } from '../create.service';
+import { CreateSubComponentBase } from '../create-sub-component-base';
 
 function customValidator(grp: FormGroup): ValidationErrors | null {
   let ret: ValidationErrors | null = null;
@@ -44,10 +44,10 @@ function integerValidator(control: AbstractControl): ValidationErrors | null {
 
 @Component({
   selector: 'app-create-round',
-  templateUrl: './create-round.component.html',
-  styleUrls: ['./create-round.component.sass']
+  templateUrl: './round.component.html',
+  styleUrls: [ './round.component.sass']
 })
-export class CreateRoundComponent extends CreateSubComponentBase implements OnInit {
+export class RoundComponent extends CreateSubComponentBase implements OnInit {
 
   form = this.formBuilder.group({
     Deadline: [new Date(Date.now() + (7 * 24 * 3600 * 1000))],

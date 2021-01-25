@@ -16,28 +16,22 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule, FormBuilder, FormsModule } from '@angular/forms';
+import { MatIconModule } from '@angular/material/icon';
 
-import { CreateRoundComponent } from './create-round.component';
-import { FormWidgetModule } from '../form-widget/form-widget.module';
+import { SimpleAlternativesComponent } from './simple-alternatives.component';
 
-import { CreateService } from '../create/create.service';
+import { CreateService } from '../create.service';
 
-describe('CreateRoundComponent', () => {
-  let component: CreateRoundComponent;
-  let fixture: ComponentFixture<CreateRoundComponent>;
+describe('SimpleAlternativesComponent', () => {
+  let component: SimpleAlternativesComponent;
+  let fixture: ComponentFixture<SimpleAlternativesComponent>;
   let serviceSpy: jasmine.SpyObj<CreateService>;
 
   beforeEach(async () => {
     serviceSpy = jasmine.createSpyObj('CreateService', {register: {}});
     await TestBed.configureTestingModule({
-      declarations: [
-        CreateRoundComponent,
-      ],
-      imports: [
-        ReactiveFormsModule,
-        FormsModule,
-        FormWidgetModule,
-      ],
+      declarations: [ SimpleAlternativesComponent ],
+      imports: [ ReactiveFormsModule, FormsModule, MatIconModule ],
       providers: [
         FormBuilder,
         { provide: CreateService, useValue: serviceSpy },
@@ -47,7 +41,7 @@ describe('CreateRoundComponent', () => {
   });
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(CreateRoundComponent);
+    fixture = TestBed.createComponent(SimpleAlternativesComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
