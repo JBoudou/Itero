@@ -111,6 +111,7 @@ describe('CreateService', () => {
     TestBed.configureTestingModule({
       imports: [ HttpClientTestingModule ],
       providers: [
+        CreateService,
         { provide: CREATE_TREE, useValue: TEST_TREE },
         { provide: Router, useValue: routerSpy },
       ],

@@ -17,43 +17,33 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
-import { ReactiveFormsModule, FormsModule } from '@angular/forms';
+import { HttpClientModule } from '@angular/common/http';
 
 import { AppRoutingModule } from './app-routing.module';
 import { ListModule }       from './list/list.module';
 import { PollModule }       from './poll/poll.module';
-
-import { SessionInterceptor } from './session/session.interceptor';
+import { SessionModule }    from './session/session.module';
 
 import { AppComponent } from './app.component';
 import { NavtitleComponent } from './navtitle/navtitle.component';
-import { LoginComponent } from './login/login.component';
 import { HomeComponent } from './home/home.component';
 import { DeadRouteComponent } from './dead-route/dead-route.component';
-import { SignupComponent } from './signup/signup.component';
 
 @NgModule({
   declarations: [
     AppComponent,
     DeadRouteComponent,
     HomeComponent,
-    LoginComponent,
     NavtitleComponent,
-    SignupComponent,
   ],
   imports: [
     BrowserAnimationsModule,
     BrowserModule,
-    FormsModule,
     HttpClientModule,
     ListModule,
     PollModule,
-    ReactiveFormsModule,
+    SessionModule,
     AppRoutingModule // Must be last
-  ],
-  providers: [
-    { provide: HTTP_INTERCEPTORS, useClass: SessionInterceptor, multi: true },
   ],
   bootstrap: [AppComponent]
 })

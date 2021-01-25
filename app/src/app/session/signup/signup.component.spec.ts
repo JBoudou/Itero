@@ -16,26 +16,26 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule, FormBuilder, FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+
 import { map } from 'rxjs/operators';
 
-import { LoginComponent } from './login.component';
-import { SessionService } from '../session/session.service';
+import { SignupComponent } from './signup.component';
 
-describe('LoginComponent', () => {
-  let component: LoginComponent;
-  let fixture: ComponentFixture<LoginComponent>;
+import { SessionService } from '../session.service';
+
+describe('SignupComponent', () => {
+  let component: SignupComponent;
+  let fixture: ComponentFixture<SignupComponent>;
   let httpControler: HttpTestingController;
   let sessionSpy: jasmine.SpyObj<SessionService>;
 
   beforeEach(async () => {
     const sessionSpy = jasmine.createSpyObj('SessionService', ['httpOperator']);
-    const routerSpy  = jasmine.createSpyObj('Router', ['navigateByUrl']);
 
     await TestBed.configureTestingModule({
-      declarations: [ LoginComponent ],
-      imports: [ 
+      declarations: [ SignupComponent ],
+      imports: [
         HttpClientTestingModule,
         FormsModule,
         ReactiveFormsModule,
@@ -43,14 +43,13 @@ describe('LoginComponent', () => {
       providers: [
         FormBuilder,
         {provide: SessionService, useValue: sessionSpy},
-        {provide: Router, useValue: routerSpy}
       ]
     })
     .compileComponents();
   });
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(LoginComponent);
+    fixture = TestBed.createComponent(SignupComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
     httpControler = TestBed.inject(HttpTestingController);
@@ -65,20 +64,19 @@ describe('LoginComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('pipes login to SessionService.httpOperator', () => {
+  it('pipes signup to SessionService.httpOperator', () => {
     const sessionId = 'ABCD';
 
     const spyFct = jasmine.createSpy('filter');
     spyFct.withArgs(sessionId).and.returnValue(true);
     sessionSpy.httpOperator.and.returnValue(map(spyFct));
 
-    component.onLogin();
+    component.onSignup();
 
-    const req = httpControler.expectOne('/a/login');
+    const req = httpControler.expectOne('/a/signup');
     req.flush(sessionId);
     httpControler.verify();
 
     expect(spyFct.calls.count()).toBe(1);
   });
-  
 });

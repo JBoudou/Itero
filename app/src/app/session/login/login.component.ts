@@ -19,7 +19,7 @@ import { Component, OnInit } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 
-import { SessionService } from '../session/session.service';
+import { SessionService } from '../session.service';
 
 @Component({
   selector: 'app-login',

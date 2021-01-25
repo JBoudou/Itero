@@ -15,25 +15,29 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { NgModule } from '@angular/core';
-import { Routes, RouterModule } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { HTTP_INTERCEPTORS } from '@angular/common/http';
+import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 
-import { LoggedGuard } from './session/logged.guard';
+import { SessionRoutingModule } from './session-routing.module';
+import { SessionInterceptor } from './session.interceptor';
 
-import { DeadRouteComponent }               from './dead-route/dead-route.component';
-import { HomeComponent }                    from './home/home.component';
-
-const routes: Routes = [
-  { path: '', component: HomeComponent },
-  {
-    path: 'r/create',
-    canLoad: [ LoggedGuard ],
-    loadChildren: () => import('./create/create.module').then(m => m.CreateModule),
-  },
-  { path: '**', component: DeadRouteComponent },
-];
+import { LoginComponent } from './login/login.component';
+import { SignupComponent } from './signup/signup.component';
 
 @NgModule({
-  imports: [RouterModule.forRoot(routes)],
-  exports: [RouterModule]
+  declarations: [
+    LoginComponent,
+    SignupComponent,
+  ],
+  imports: [
+    CommonModule,
+    SessionRoutingModule,
+    ReactiveFormsModule,
+    FormsModule,
+  ],
+  providers: [
+    { provide: HTTP_INTERCEPTORS, useClass: SessionInterceptor, multi: true },
+  ],
 })
-export class AppRoutingModule { }
+export class SessionModule { }

@@ -17,30 +17,16 @@
 import { NgModule } from '@angular/core';
 import { Routes, RouterModule } from '@angular/router';
 
-import { LoggedGuard } from '../session/logged.guard';
-
-import { CreateComponent }              from './create.component';
-import { GeneralComponent }             from './general/general.component';
-import { SimpleAlternativesComponent }  from './simple-alternatives/simple-alternatives.component';
-import { RoundComponent }               from './round/round.component';
-import { ResultComponent }              from './result/result.component';
+import { LoginComponent }   from './login/login.component';
+import { SignupComponent }  from './signup/signup.component';
 
 const routes: Routes = [
-  {
-    path: '',
-    component: CreateComponent,
-    canActivate: [LoggedGuard],
-    children: [
-    { path: 'general', component: GeneralComponent },
-    { path: 'simpleAlternatives', component: SimpleAlternativesComponent },
-    { path: 'round', component: RoundComponent },
-    { path: '', redirectTo: 'general', pathMatch: 'full' },
-  ] },
-  { path: 'result/:pollSegment', component: ResultComponent },
+  { path: 'r/login', component: LoginComponent },
+  { path: 'r/signup', component: SignupComponent },
 ];
 
 @NgModule({
   imports: [RouterModule.forChild(routes)],
   exports: [RouterModule]
 })
-export class CreateRoutingModule { }
+export class SessionRoutingModule { }

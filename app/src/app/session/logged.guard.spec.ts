@@ -19,7 +19,7 @@ import { ActivatedRouteSnapshot, RouterStateSnapshot, Router } from '@angular/ro
 
 import { LoggedGuard } from './logged.guard';
 
-import { SessionService } from './session/session.service';
+import { SessionService } from './session.service';
 
 describe('LoggedGuard', () => {
   let guard: LoggedGuard;

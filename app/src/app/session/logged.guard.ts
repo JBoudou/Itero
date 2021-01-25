@@ -13,7 +13,7 @@ import {
 
 import { Observable } from 'rxjs';
 
-import { SessionService } from './session/session.service';
+import { SessionService } from './session.service';
 
 @Injectable({
   providedIn: 'root'

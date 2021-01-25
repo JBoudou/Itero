@@ -18,8 +18,8 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
 import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 
-import { SignupQuery } from '../api';
-import { SessionService } from '../session/session.service';
+import { SignupQuery } from '../../api';
+import { SessionService } from '../session.service';
 
 function notInclude(substring: string): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
