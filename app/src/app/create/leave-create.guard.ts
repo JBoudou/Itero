@@ -24,6 +24,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { CreateComponent } from './create.component';
 import { CreateService } from './create.service';
 
+/** Ask the user what to do when leaving create routes. */
 @Injectable()
 export class LeaveCreateGuard implements CanDeactivate<CreateComponent> {
 
