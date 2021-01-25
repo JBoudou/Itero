@@ -31,6 +31,7 @@ func main() {
 	// Handlers
 	server.HandleFunc("/a/login", LoginHandler)
 	server.HandleFunc("/a/signup", SignupHandler)
+	server.HandleFunc("/a/refresh", RefreshHandler)
 	server.HandleFunc("/a/list", ListHandler, server.Compress)
 	server.HandleFunc("/a/poll/", PollHandler)
 	server.HandleFunc("/a/ballot/uninominal/", UninominalBallotHandler, server.Compress)

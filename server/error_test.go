@@ -153,6 +153,39 @@ func TestUnauthorizedHttpError(t *testing.T) {
 	}
 }
 
+func TestWrapUnauthorizedError(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+	}{
+		{
+			name: "Simple",
+			err:  errors.New("wrapped"),
+		},
+		{
+			name: "Recursive",
+			err:  WrapError(401, "inner", errors.New("wrapped")),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := WrapUnauthorizedError(tt.err)
+			if result.Code != http.StatusForbidden {
+				t.Errorf("Got Code %d. Expect %d.", result.Code, http.StatusForbidden)
+			}
+			if result.Msg != UnauthorizedHttpErrorMsg {
+				t.Errorf(`Got Msg "%s". Expect "%s".`, result.Msg, UnauthorizedHttpErrorMsg)
+			}
+			if !strings.Contains(result.Error(), tt.err.Error()) {
+				t.Errorf(`Error() gives "%s". Expect to contain "%s".`, result.Error(), tt.err.Error())
+			}
+			if !errors.Is(result, tt.err) {
+				t.Errorf("Unwrap() gives %v. Expect %v.", result.Unwrap(), tt.err)
+			}
+		})
+	}
+}
+
 func TestHttpError_Error(t *testing.T) {
 	type fields struct {
 		Code   int
