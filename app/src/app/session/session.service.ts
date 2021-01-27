@@ -52,6 +52,36 @@ export class SessionService {
     return this.currentState.registered;
   }
 
+  get loginUrl(): string {
+    return '/r/login';
+  }
+
+  private _loginRedirectionUrl : string | undefined;
+
+  /**
+   * Get the URL to go after a successful login.
+   *
+   * The call to getLoginRedirectionUrl() consumes the URL set by setLoginRedirectionUrl().
+   * If no URL has previously been set, or the URL that have been set has already been consumed,
+   * a default URL is returned.
+   */
+  getLoginRedirectionUrl(): string {
+    if (this._loginRedirectionUrl === undefined) {
+      return '/r/list';
+    }
+    const ret = this._loginRedirectionUrl;
+    this._loginRedirectionUrl = undefined;
+    return ret;
+  }
+
+  /** Set the URL to be returned by the next call to getLoginRedirectionUrl(). */
+  setLoginRedirectionUrl(url: string): void {
+    if (this._loginRedirectionUrl !== undefined) {
+      console.error('setLoginRedirectionUrl while there already is a redirection URL');
+    }
+    this._loginRedirectionUrl = url;
+  }
+
   /**
    * Check if a session is available in the browser.
    *

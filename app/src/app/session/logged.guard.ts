@@ -28,22 +28,22 @@ export class LoggedGuard implements CanActivate, CanLoad {
   canActivate(
     route: ActivatedRouteSnapshot,
     state: RouterStateSnapshot): Observable<boolean | UrlTree> | Promise<boolean | UrlTree> | boolean | UrlTree {
-    return this.checkLogged();
+    return this.checkLogged(state.url);
   }
 
   canLoad(
     route: Route,
     segments: UrlSegment[]): Observable<boolean | UrlTree> | Promise<boolean | UrlTree> | boolean | UrlTree {
-    return this.checkLogged();
+    return this.checkLogged(`/${route.path}`);
   }
 
-  private checkLogged(): boolean | UrlTree {
+  private checkLogged(url: string): boolean | UrlTree {
     if (this.session.registered()) {
       return true;
     }
 
-    this.router.navigateByUrl('r/login');
-    return false;
+    this.session.setLoginRedirectionUrl(url);
+    return this.router.parseUrl(this.session.loginUrl);
   }
   
 }

@@ -43,6 +43,8 @@ export class LoginComponent implements OnInit {
   errorType = 'None'
   errorMsg = ''
 
+  private _redirectionUrl: string;
+
   constructor(
     private session: SessionService,
     private http: HttpClient,
@@ -51,6 +53,7 @@ export class LoginComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this._redirectionUrl = this.session.getLoginRedirectionUrl();
   }
 
   onLogin(): void {
@@ -59,7 +62,7 @@ export class LoginComponent implements OnInit {
       .subscribe({
       next: _ => {
         this.errorType = 'None';
-        this.router.navigateByUrl('/r/list');
+        this.router.navigateByUrl(this._redirectionUrl);
       },
       error: (err: HttpErrorResponse) => {
         if (err.error instanceof ErrorEvent) {
