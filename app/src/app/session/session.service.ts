@@ -15,6 +15,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { Injectable } from '@angular/core';
+import { Router } from '@angular/router';
+
 import { Subject } from 'rxjs';
 import { map } from 'rxjs/operators';
 
@@ -44,8 +46,9 @@ export class SessionService {
 
   currentState: SessionInfo = {registered: false};
 
-  constructor() {
-  }
+  constructor(
+    private router: Router,
+  ) { }
 
   /** Whether a session is currently registered. */
   registered(): boolean {
@@ -80,6 +83,12 @@ export class SessionService {
       console.error('setLoginRedirectionUrl while there already is a redirection URL');
     }
     this._loginRedirectionUrl = url;
+  }
+
+  /** Ask the user to log before returning to the current page. */
+  logNow(): void {
+    this.setLoginRedirectionUrl(this.router.url);
+    this.router.navigateByUrl(this.loginUrl);
   }
 
   /**

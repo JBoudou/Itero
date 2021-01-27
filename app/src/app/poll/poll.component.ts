@@ -41,6 +41,7 @@ import {
 import { PollAnswer, BallotType, InformationType } from '../api';
 import { PollBallotDirective, PollInformationDirective } from './directives';
 import { DynamicComponentFactoryService } from '../dynamic-component-factory.service';
+import { SessionService } from '../session/session.service';
 
 import { UninominalBallotComponent } from './uninominal-ballot/uninominal-ballot.component';
 import { CountsInformationComponent } from './counts-information/counts-information.component';
@@ -92,6 +93,7 @@ export class PollComponent implements OnInit {
     private route: ActivatedRoute,
     private http: HttpClient,
     private dynamicComponentFactory: DynamicComponentFactoryService,
+    private session: SessionService,
   ) { }
 
   ngOnInit(): void {
@@ -168,7 +170,11 @@ export class PollComponent implements OnInit {
         }
       },
       error: (err: HttpErrorResponse) => {
-        this.registerError({status: err.status, message: err.error.trim()});
+        if (err.status == 403 && !this.session.registered()) {
+          this.session.logNow();
+        } else {
+          this.registerError({status: err.status, message: err.error.trim()});
+        }
       }
     });
   }
