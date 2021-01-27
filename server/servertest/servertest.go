@@ -76,7 +76,8 @@ func (self *Request) Make() (req *http.Request, err error) {
 		}
 		server.AddSessionIdToRequest(req, sessionId)
 		user := server.User{Name: " Test ", Id: *self.UserId}
-		session := server.NewSession(clientStore, &server.SessionOptions, sessionId, user)
+		sessionAnswer := server.SessionAnswer{ SessionId: sessionId }
+		session := server.NewSession(clientStore, &server.SessionOptions, &sessionAnswer, user)
 		clientStore.Save(req, nil, session)
 	}
 

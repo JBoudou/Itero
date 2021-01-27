@@ -74,16 +74,12 @@ func TestLoginThenNewRequest(t *testing.T) {
 	user := User{Name: "John", Id: 42}
 
 	addCorrectSession := func(t *testing.T, result *http.Response, request *http.Request) {
-		var sessionID string
-		var buff bytes.Buffer
-		if _, err := buff.ReadFrom(result.Body); err != nil {
+		var body SessionAnswer
+		if err := json.NewDecoder(result.Body).Decode(&body); err != nil {
 			t.Fatalf("Unable to read response body: %s", err)
 		}
-		if err := json.Unmarshal(buff.Bytes(), &sessionID); err != nil {
-			t.Fatalf("Unable to convert response body: %s", err)
-		}
 
-		AddSessionIdToRequest(request, sessionID)
+		AddSessionIdToRequest(request, body.SessionId)
 	}
 
 	addForgedSession := func(value string) func(t *testing.T, result *http.Response,

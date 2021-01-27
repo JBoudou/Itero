@@ -38,7 +38,7 @@ type Response interface {
 	// If the error is an HttpError, its code and msg are used in the HTPP response.
 	// Also log the error.
 	SendError(context.Context, error)
-	
+
 	// SendLoginAccepted create new credential for the user and send it as response.
 	SendLoginAccepted(context.Context, User, *Request)
 }
@@ -81,6 +81,11 @@ func (self response) SendError(ctx context.Context, err error) {
 	}
 }
 
+type SessionAnswer struct {
+	SessionId string
+	Expires   time.Time
+}
+
 func (self response) SendLoginAccepted(ctx context.Context, user User, req *Request) {
 	if err := ctx.Err(); err != nil {
 		self.SendError(ctx, err)
@@ -91,12 +96,13 @@ func (self response) SendLoginAccepted(ctx context.Context, user User, req *Requ
 	if err != nil {
 		self.SendError(ctx, err)
 	}
-	session := NewSession(sessionStore, sessionStore.Options, sessionId, user)
+	answer := SessionAnswer{SessionId: sessionId}
+	session := NewSession(sessionStore, sessionStore.Options, &answer, user)
 	if err = session.Save(req.original, self.writer); err != nil {
 		logger.Printf(ctx, "Error saving session: %v", err)
 	}
 
-	self.SendJSON(ctx, sessionId)
+	self.SendJSON(ctx, answer)
 }
 
 // MakeSessionId create a new session id.
@@ -109,16 +115,18 @@ func MakeSessionId() (string, error) {
 // NewSession creates a new session for the given user.
 //
 // This is a low level function, made available for tests. Use SendLoginAccepted instead.
-func NewSession(st gs.Store, opts *gs.Options, sessionId string, user User) (session *gs.Session) {
+func NewSession(st gs.Store, opts *gs.Options, answer *SessionAnswer, user User) (session *gs.Session) {
 	session = gs.NewSession(st, sessionName)
 	sessionOptions := *opts
 	session.Options = &sessionOptions
 	session.IsNew = true
 
-	session.Values[sessionKeySessionId] = sessionId
+	answer.Expires = time.Now().Add(sessionMaxAge * time.Second)
+
+	session.Values[sessionKeySessionId] = answer.SessionId
 	session.Values[sessionKeyUserName] = user.Name
 	session.Values[sessionKeyUserId] = user.Id
-	session.Values[sessionKeyDeadline] = time.Now().Unix() + sessionMaxAge + sessionGraceTime
+	session.Values[sessionKeyDeadline] = answer.Expires.Unix() + sessionGraceTime
 
 	return
 }

@@ -212,12 +212,8 @@ func TestResponse_SendLoginAccepted(t *testing.T) {
 		}
 
 		// Read the body
-		var buff bytes.Buffer
-		if _, err := buff.ReadFrom(result.Body); err != nil {
-			t.Fatalf("Error reading body: %s", err)
-		}
-		var bodySessionId string
-		if err := json.Unmarshal(buff.Bytes(), &bodySessionId); err != nil {
+		var body SessionAnswer
+		if err := json.NewDecoder(result.Body).Decode(&body); err != nil {
 			t.Fatalf("Error reading body: %s", err)
 		}
 
@@ -254,6 +250,9 @@ func TestResponse_SendLoginAccepted(t *testing.T) {
 		if limit := now.Unix() + sessionMaxAge + (2 * sessionGraceTime); deadline > limit {
 			t.Errorf("Expire too late. Got %d. Expect %d", deadline, limit)
 		}
+		if body.Expires.Sub(cookie.Expires) > sessionGraceTime*time.Second {
+			t.Errorf("Body Expires too late. Got %v. Expect %v.", body.Expires, cookie.Expires)
+		}
 
 		// Check the other session values
 		getString := func(key string) (value string) {
@@ -267,8 +266,8 @@ func TestResponse_SendLoginAccepted(t *testing.T) {
 			}
 			return
 		}
-		if cookieSessionId := getString(sessionKeySessionId); cookieSessionId != bodySessionId {
-			t.Errorf("Wrong session ID. Body %s. Cookie %s.", bodySessionId, cookieSessionId)
+		if cookieSessionId := getString(sessionKeySessionId); cookieSessionId != body.SessionId {
+			t.Errorf("Wrong session ID. Body %s. Cookie %s.", body.SessionId, cookieSessionId)
 		}
 		if userName := getString(sessionKeyUserName); userName != args.user.Name {
 			t.Errorf("Wrong user name. Got %s. Expect %s.", userName, args.user.Name)

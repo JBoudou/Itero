@@ -37,7 +37,7 @@ import (
 
 const (
 	// Max age of the cookies in seconds, and to compute the deadline.
-	sessionMaxAge = 7200
+	sessionMaxAge = 30 * 60
 
 	// Additional delay accorded after deadline is reached.
 	sessionGraceTime = 20

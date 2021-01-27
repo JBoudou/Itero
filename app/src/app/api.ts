@@ -28,6 +28,11 @@ export class SignupQuery {
   Passwd: string;
 }
 
+export class SessionAnswer {
+  SessionId: string;
+  Expires: Date;
+}
+
 // Null-able Date
 export type NuDate = Date | '.'
 

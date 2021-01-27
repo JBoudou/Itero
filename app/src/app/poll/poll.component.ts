@@ -142,7 +142,10 @@ export class PollComponent implements OnInit {
   private retrieveTypes(): void {
     this.http.get<PollAnswer>('/a/poll/' + this.segment).subscribe({
       next: (answer: PollAnswer) => {
+
         this.answer = answer;
+
+        // Update Ballot component
         if (this.answer.Active && PollComponent.ballotMap.has(this.answer.Ballot)) {
           const type = PollComponent.ballotMap.get(this.answer.Ballot);
           const comp = this.loadSubComponent(SubComponentId.Ballot, type) as PollBallotComponent;
@@ -162,12 +165,15 @@ export class PollComponent implements OnInit {
             }),
           )
         }
+
+        // Update Information component
         if (PollComponent.informationMap.has(this.answer.Information)) {
           const type = PollComponent.informationMap.get(this.answer.Information);
           const comp =
             this.loadSubComponent(SubComponentId.Information, type) as PollInformationComponent;
           comp.finalResult = !this.answer.Active;
         }
+
       },
       error: (err: HttpErrorResponse) => {
         if (err.status == 403 && !this.session.logged) {

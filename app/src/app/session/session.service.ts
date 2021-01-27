@@ -16,9 +16,12 @@
 
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 
-import { Observable, BehaviorSubject } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable, BehaviorSubject, pipe } from 'rxjs';
+import { map, tap } from 'rxjs/operators';
+
+import { SessionAnswer } from '../api';
 
 export class SessionInfo {
   readonly logged: boolean;
@@ -50,6 +53,7 @@ export class SessionService {
 
   constructor(
     private router: Router,
+    private http: HttpClient,
   ) {
     this.checkSession();
   }
@@ -96,6 +100,39 @@ export class SessionService {
   }
 
   /**
+   * Intercept session information.
+   *
+   * This operator must be piped in requests like login or signup that may
+   * result in a new session.
+   */
+  httpOperator(user: string) {
+    return pipe(
+      map((data: SessionAnswer) => {
+        this.register(data.SessionId, user);
+        localStorage.setItem("SessionId", this.sessionId);
+        localStorage.setItem("User", user);
+        data.Expires = new Date(data.Expires);
+        setTimeout(() => { this.refresh(); }, (data.Expires.getTime() - Date.now()) * 0.75);
+        return true;
+      }),
+      tap({
+        error: (err: HttpErrorResponse) => {
+          console.log(`Intercepted error ${err.status}: ${err.message}`);
+          this.logoff();
+        }
+      }),
+    );
+  }
+
+  /** Close the current session (if any). */
+  logoff() {
+    localStorage.removeItem("SessionId");
+    localStorage.removeItem("User");
+    document.cookie = "s=; Path=/; Max-Age=0; Secure";
+    this._state.next({logged: false});
+  }
+
+  /**
    * Check if a session is available in the browser.
    *
    * If there is one, it is used. Otherwise, the service gets unregistered.
@@ -104,7 +141,7 @@ export class SessionService {
    *
    * This method should be called once at startup.
    */
-  checkSession() {
+  private checkSession() {
     if (this.logged) {
       if (!this.hasCookie) {
         this.logoff();
@@ -118,30 +155,8 @@ export class SessionService {
     let sessionId = localStorage.getItem("SessionId");
     if (!!sessionId) {
       this.register(sessionId, localStorage.getItem("User"));
+      setTimeout(() => { this.refresh(); }, 15 * 1000);
     }
-  }
-
-  /**
-   * Intercept session information.
-   *
-   * This operator must be piped in requests like login or signup that may
-   * result in a new session.
-   */
-  httpOperator(user: string) {
-    return map((data: string) => {
-      this.register(data, user);
-      localStorage.setItem("SessionId", this.sessionId);
-      localStorage.setItem("User", user);
-      return true;
-    })
-  }
-
-  /** Close the current session (if any). */
-  logoff() {
-    localStorage.removeItem("SessionId");
-    localStorage.removeItem("User");
-    document.cookie = "s=; Path=/; Max-Age=0; Secure";
-    this._state.next({logged: false});
   }
 
   private register(sessionId: string, user: string): void {
@@ -158,5 +173,17 @@ export class SessionService {
       }
     }
     return false;
+  }
+
+  private refresh(): void {
+    if (!this.logged) {
+      return;
+    }
+
+    const user = this._state.value.user;
+    this.http
+      .post('/a/refresh', user)
+      .pipe(this.httpOperator(user))
+      .subscribe();
   }
 }
