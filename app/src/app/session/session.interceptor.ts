@@ -32,7 +32,7 @@ export class SessionInterceptor implements HttpInterceptor {
   constructor(private session: SessionService) {}
 
   intercept(request: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {
-    if (this.session.registered()) {
+    if (this.session.logged) {
       const sessionReq = request.clone({
         headers: request.headers.set('X-CSRF', this.session.sessionId)
       });

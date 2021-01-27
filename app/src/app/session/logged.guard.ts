@@ -38,7 +38,7 @@ export class LoggedGuard implements CanActivate, CanLoad {
   }
 
   private checkLogged(url: string): boolean | UrlTree {
-    if (this.session.registered()) {
+    if (this.session.logged) {
       return true;
     }
 

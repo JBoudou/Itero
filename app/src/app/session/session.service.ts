@@ -17,12 +17,12 @@
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 
-import { Subject } from 'rxjs';
+import { Observable, BehaviorSubject } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 export class SessionInfo {
-  registered: boolean;
-  user?: string;
+  readonly logged: boolean;
+  readonly user?: string;
 }
 
 /**
@@ -42,17 +42,21 @@ export class SessionService {
   sessionId: string = '';
 
   /** Observable to subscribe to to be notified about session change. */
-  observable: Subject<SessionInfo> = new Subject<SessionInfo>()
+  _state = new BehaviorSubject<SessionInfo>({logged: false})
 
-  currentState: SessionInfo = {registered: false};
+  get state$(): Observable<SessionInfo> {
+    return this._state;
+  }
 
   constructor(
     private router: Router,
-  ) { }
+  ) {
+    this.checkSession();
+  }
 
   /** Whether a session is currently registered. */
-  registered(): boolean {
-    return this.currentState.registered;
+  get logged(): boolean {
+    return this._state.value.logged;
   }
 
   get loginUrl(): string {
@@ -101,7 +105,7 @@ export class SessionService {
    * This method should be called once at startup.
    */
   checkSession() {
-    if (this.registered()) {
+    if (this.logged) {
       if (!this.hasCookie) {
         this.logoff();
       }
@@ -137,14 +141,12 @@ export class SessionService {
     localStorage.removeItem("SessionId");
     localStorage.removeItem("User");
     document.cookie = "s=; Path=/; Max-Age=0; Secure";
-    this.currentState = {registered: false};
-    this.observable.next(this.currentState);
+    this._state.next({logged: false});
   }
 
   private register(sessionId: string, user: string): void {
     this.sessionId = sessionId;
-    this.currentState = {registered: true, user: user};
-    this.observable.next(this.currentState);
+    this._state.next({logged: true, user: user});
   }
 
   private hasCookie(): boolean {

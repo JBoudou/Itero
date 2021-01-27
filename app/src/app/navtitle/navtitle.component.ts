@@ -17,7 +17,7 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 
-import { SessionService, SessionInfo } from '../session/session.service';
+import { SessionService } from '../session/session.service';
 
 /**
  * The navigation bar.
@@ -29,26 +29,16 @@ import { SessionService, SessionInfo } from '../session/session.service';
 })
 export class NavtitleComponent implements OnInit {
 
-  logged = false
-  sessionUser = ''
-
-  logoff(): void {
-    this.session.logoff();
-    this.router.navigateByUrl('/');
-  }
-
-  constructor(private session: SessionService,
+  constructor(public session: SessionService,
               private router: Router,
              ) { }
 
   ngOnInit(): void {
-    this.session.observable.subscribe({
-      next: (info: SessionInfo) => {
-        this.logged = info.registered;
-        this.sessionUser = info.user;
-      }
-    });
-    this.session.checkSession();
+  }
+
+  logoff(): void {
+    this.session.logoff();
+    this.router.navigateByUrl('/');
   }
 
 }

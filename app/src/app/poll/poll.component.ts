@@ -170,7 +170,7 @@ export class PollComponent implements OnInit {
         }
       },
       error: (err: HttpErrorResponse) => {
-        if (err.status == 403 && !this.session.registered()) {
+        if (err.status == 403 && !this.session.logged) {
           this.session.logNow();
         } else {
           this.registerError({status: err.status, message: err.error.trim()});
