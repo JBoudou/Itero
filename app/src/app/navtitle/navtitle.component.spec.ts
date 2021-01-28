@@ -17,17 +17,21 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 
-import { Subject } from 'rxjs';
+import { of } from 'rxjs';
 
-import { SessionService, SessionInfo } from '../session/session.service';
 import { NavtitleComponent } from './navtitle.component';
+
+import { SessionService } from '../session/session.service';
 
 describe('NavtitleComponent', () => {
   let component: NavtitleComponent;
   let fixture: ComponentFixture<NavtitleComponent>;
+  let sessionSpy : jasmine.SpyObj<SessionService>;
 
   beforeEach(async () => {
-    const sessionSpy = jasmine.createSpyObj('SessionService', ['checkSession', 'login']);
+    sessionSpy = jasmine.createSpyObj('SessionService', ['checkSession', 'login'], {
+      state$: of({logged: false}),
+    });
     const routerSpy  = jasmine.createSpyObj('Router', ['navigateByUrl']);
 
     await TestBed.configureTestingModule({
@@ -43,10 +47,6 @@ describe('NavtitleComponent', () => {
   beforeEach(() => {
     fixture = TestBed.createComponent(NavtitleComponent);
     component = fixture.componentInstance;
-
-    // Very harsh way of doing it...
-    let router = fixture.debugElement.injector.get(SessionService);
-    router.observable = new Subject<SessionInfo>();
 
     fixture.detectChanges();
   });

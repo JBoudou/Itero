@@ -20,15 +20,17 @@ import { ActivatedRouteSnapshot, RouterStateSnapshot, Router } from '@angular/ro
 import { LoggedGuard } from './logged.guard';
 
 import { SessionService } from './session.service';
+import { setSpyProperty } from '../../testing/misc';
+import { RouterStub }     from '../../testing/router.stub';
 
 describe('LoggedGuard', () => {
   let guard: LoggedGuard;
   let sessionSpy: jasmine.SpyObj<SessionService>;
-  let routerSpy : jasmine.SpyObj<Router>;
+  let routerSpy : RouterStub;
 
   beforeEach(() => {
-    sessionSpy = jasmine.createSpyObj('SessionService', ['registered']);
-    routerSpy  = jasmine.createSpyObj('Router', ['navigateByUrl']);
+    sessionSpy = jasmine.createSpyObj('SessionService', ['setLoginRedirectionUrl'], ['logged', 'loginUrl'])
+    routerSpy  = new RouterStub();
 
     TestBed.configureTestingModule({
       providers: [
@@ -44,14 +46,22 @@ describe('LoggedGuard', () => {
   });
 
   it('accepts when logged', () => {
-    sessionSpy.registered.and.returnValue(true);
+    setSpyProperty(sessionSpy, 'logged', true);
     expect(guard.canActivate({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot)).toBe(true);
   });
 
   it('redirect to r/login when not logged', () => {
-    sessionSpy.registered.and.returnValue(false);
-    expect(guard.canActivate({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot)).toBe(false);
-    expect(routerSpy.navigateByUrl).toHaveBeenCalledWith('r/login');
+    const loginUrl = 'r/login';
+    setSpyProperty(sessionSpy, 'logged', false);
+    setSpyProperty(sessionSpy, 'loginUrl', loginUrl);
+
+    const response = guard.canActivate({} as ActivatedRouteSnapshot, {url: 'foo/bar'} as RouterStateSnapshot);
+
+    if (response === false) {
+      expect(routerSpy.navigateByUrl).toHaveBeenCalledWith(loginUrl);
+    } else {
+      expect(response.toString()).toBe(loginUrl);
+    }
   });
 
 });

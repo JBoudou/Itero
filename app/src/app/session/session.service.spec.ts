@@ -17,19 +17,29 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpErrorResponse } from '@angular/common/http';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import { Router } from '@angular/router';
 
 import { throwError, of } from 'rxjs';
 
 import { SessionInfo, SessionService } from './session.service';
 
+import { Recorder } from '../../testing/recorder';
+import { RouterStub } from '../../testing/router.stub';
+
 describe('SessionService', () => {
   let service: SessionService;
   let httpTestingController: HttpTestingController;
+  let routerSpy: RouterStub;
 
   beforeEach(() => {
+    routerSpy = new RouterStub();
+
     TestBed.configureTestingModule({
       imports: [ HttpClientTestingModule ],
-      providers: [SessionService]
+      providers: [
+        SessionService,
+        { provide: Router, useValue: routerSpy },
+      ],
     });
     service = TestBed.inject(SessionService);
     httpTestingController = TestBed.inject(HttpTestingController);
@@ -45,7 +55,7 @@ describe('SessionService', () => {
   });
 
   it('does not have a session at startup', () => {
-    expect(service.registered()).toBeFalse();
+    expect(service.logged).toBeFalse();
   })
 
   it('does not create a session on failed login', done => {
@@ -53,40 +63,40 @@ describe('SessionService', () => {
       .pipe(service.httpOperator('foo'))
       .subscribe({
       error: () => {
-        expect(service.registered()).toBeFalse();
+        expect(service.logged).toBeFalse();
         done();
       }
     });
   });
 
-  it('creates a session on successful login', done => {
-    service.observable.subscribe((notif: SessionInfo) => {
-      expect(notif).toEqual({registered: true, user: 'foo'});
-      expect(service.registered()).toBeTrue();
-      expect(service.sessionId).toBe('ABCD');
-      done();
-    });
+  it('creates a session on successful login', () => {
+    const recorder = new Recorder<SessionInfo>();
+    service.state$.subscribe(recorder);
 
-    of('ABCD')
+    of({SessionId: 'ABCD', Expires: new Date(Date.now() + 600 * 1000)})
       .pipe(service.httpOperator('foo'))
       .subscribe();
+
+    const last = recorder.record.length - 1;
+    expect(last).toBeGreaterThanOrEqual(0);
+    expect(recorder.record[last]).toEqual({ logged: true, user: 'foo' });
+    expect(service.logged).toBeTrue();
+    expect(service.sessionId).toBe('ABCD');
   });
 
-  it('removes the session after logoff', done => {
-    let count = 0;
-    service.observable.subscribe((notif: SessionInfo) => {
-      if (count == 0) {
-        count = 1;
-        return;
-      }
-      expect(notif.registered).toBeFalse();
-      done();
-    });
+  it('removes the session after logoff', () => {
+    const recorder = new Recorder<SessionInfo>();
+    service.state$.subscribe(recorder);
 
-    of('ABCD')
+    of({SessionId: 'ABCD', Expires: new Date(Date.now() + 600 * 1000)})
       .pipe(service.httpOperator('foo'))
       .subscribe();
     service.logoff();
+
+    const last = recorder.record.length - 1;
+    expect(last).toBeGreaterThanOrEqual(0);
+    expect(recorder.record[last].logged).toBeFalse();
+    expect(recorder.record[last - 1]).toEqual({ logged: true, user: 'foo' });
   });
 
 });

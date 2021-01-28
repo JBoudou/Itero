@@ -71,7 +71,7 @@ When a session starts (typically when the user successfully logged in), the midd
 session cookie and a session identifier. The session cookie is named `s` and is encrypted by a
 private key (see `server.SessionKeys` configuration parameter). It contains the user identifier, the
 session identifier and an expiration date. The session identifier is a 4 alphanumeric characters
-string. It is send as the response's body (hence it is JSON encoded).
+string. It is send in the response's body.
 
 For all subsequent request, the front end includes the session cookie and the session identifier in
 each request. The session identifier is send in the HTTP header `X-CSRF`.

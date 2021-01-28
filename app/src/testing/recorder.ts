@@ -16,12 +16,14 @@
 
 import { Observable, Observer } from 'rxjs';
 
+/** Returns the events sent by the Observable on subscribe(). */
 export function justRecordedFrom<T>(obs: Observable<T>): T[] {
   const recorder = new Recorder<T>();
   obs.subscribe(recorder);
   return recorder.record;
 }
 
+/** A simple observer saving events and errors in arrays. */
 export class Recorder<T> implements Observer<T> {
   private _record: T[];
   private _errors: any[];

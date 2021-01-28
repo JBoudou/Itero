@@ -23,11 +23,13 @@ import { ActivatedRouteStub } from '../../testing/activated-route-stub'
 import { DynamicComponentFactoryStub } from '../../testing/dynamic-component-factory-stub'
 
 import { PollComponent } from './poll.component';
+
 import { PollBallotDirective, PollInformationDirective } from './directives';
 import { UninominalBallotComponent } from './uninominal-ballot/uninominal-ballot.component';
 import { CountsInformationComponent } from './counts-information/counts-information.component';
 import { DynamicComponentFactoryService } from '../dynamic-component-factory.service';
 import { BallotType, InformationType } from '../api';
+import { SessionService } from '../session/session.service';
 
 describe('PollComponent', () => {
   let component: PollComponent;
@@ -35,17 +37,20 @@ describe('PollComponent', () => {
   let httpControler: HttpTestingController;
   let activatedRouteStub: ActivatedRouteStub;
   let dynamicFactoryStub: DynamicComponentFactoryStub;
+  let sessionSpy: jasmine.SpyObj<SessionService>;
 
   beforeEach(async () => {
     activatedRouteStub = new ActivatedRouteStub();
     dynamicFactoryStub = new DynamicComponentFactoryStub();
+    sessionSpy = jasmine.createSpyObj('SessionService', ['logNow'], ['logged']);
 
     await TestBed.configureTestingModule({
       declarations: [ PollComponent, PollBallotDirective, PollInformationDirective ],
       imports: [ HttpClientTestingModule ],
       providers: [
-        {provide: ActivatedRoute, useValue: activatedRouteStub},
-        {provide: DynamicComponentFactoryService, useValue: dynamicFactoryStub}
+        { provide: ActivatedRoute, useValue: activatedRouteStub },
+        { provide: DynamicComponentFactoryService, useValue: dynamicFactoryStub },
+        { provide: SessionService, useValue: sessionSpy },
       ]
     })
     .compileComponents();

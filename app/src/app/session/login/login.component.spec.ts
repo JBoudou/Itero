@@ -30,8 +30,10 @@ describe('LoginComponent', () => {
   let sessionSpy: jasmine.SpyObj<SessionService>;
 
   beforeEach(async () => {
-    const sessionSpy = jasmine.createSpyObj('SessionService', ['httpOperator']);
+    sessionSpy = jasmine.createSpyObj('SessionService', ['httpOperator', 'getLoginRedirectionUrl']);
     const routerSpy  = jasmine.createSpyObj('Router', ['navigateByUrl']);
+
+    sessionSpy.getLoginRedirectionUrl.and.returnValue('next/url');
 
     await TestBed.configureTestingModule({
       declarations: [ LoginComponent ],
@@ -54,7 +56,6 @@ describe('LoginComponent', () => {
     component = fixture.componentInstance;
     fixture.detectChanges();
     httpControler = TestBed.inject(HttpTestingController);
-    sessionSpy = TestBed.inject(SessionService) as jasmine.SpyObj<SessionService>;
   });
 
   afterEach(() => {

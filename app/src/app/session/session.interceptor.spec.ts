@@ -24,7 +24,10 @@ import { SessionService } from './session.service';
 
 describe('SessionInterceptor', () => {
   beforeEach(() => {
-    const serviceSpy = jasmine.createSpyObj('SessionService', ['registered'], {sessionId: 'ABCD'});
+    const serviceSpy = {
+      sessionId: 'ABCD',
+      logged: false,
+    };
 
     TestBed.configureTestingModule({
     providers: [
@@ -58,8 +61,8 @@ describe('SessionInterceptor', () => {
   it('adds session when needed', () => {
     const interceptor: SessionInterceptor = TestBed.inject(SessionInterceptor);
     
-    let service = TestBed.inject(SessionService) as jasmine.SpyObj<SessionService>;
-    service.registered.and.returnValue(true);
+    let service = TestBed.inject(SessionService) as any;
+    service.logged = true;
 
     interceptor.intercept(new HttpRequest('GET', '/foo'), checkHasSession('ABCD'));
     interceptor.intercept(new HttpRequest('POST', '/foo?t=bar', {}), checkHasSession('ABCD'));
@@ -68,8 +71,8 @@ describe('SessionInterceptor', () => {
   it('does not add session when there is none', () => {
     const interceptor: SessionInterceptor = TestBed.inject(SessionInterceptor);
     
-    let service = TestBed.inject(SessionService) as jasmine.SpyObj<SessionService>;
-    service.registered.and.returnValue(false);
+    let service = TestBed.inject(SessionService) as any;
+    service.logged = false;
 
     interceptor.intercept(new HttpRequest('GET', '/foo'), checkNoSession);
     interceptor.intercept(new HttpRequest('POST', '/foo?t=bar', {}), checkNoSession);

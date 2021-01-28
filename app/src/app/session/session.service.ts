@@ -18,7 +18,7 @@ import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 
-import { Observable, BehaviorSubject, pipe } from 'rxjs';
+import { Observable, BehaviorSubject, pipe, UnaryFunction } from 'rxjs';
 import { map, tap } from 'rxjs/operators';
 
 import { SessionAnswer } from '../api';
@@ -27,6 +27,8 @@ export class SessionInfo {
   readonly logged: boolean;
   readonly user?: string;
 }
+
+const minRefreshTime = 15 * 1000;
 
 /**
  * Manage the session.
@@ -51,13 +53,6 @@ export class SessionService {
     return this._state;
   }
 
-  constructor(
-    private router: Router,
-    private http: HttpClient,
-  ) {
-    this.checkSession();
-  }
-
   /** Whether a session is currently registered. */
   get logged(): boolean {
     return this._state.value.logged;
@@ -68,6 +63,13 @@ export class SessionService {
   }
 
   private _loginRedirectionUrl : string | undefined;
+
+  constructor(
+    private router: Router,
+    private http: HttpClient,
+  ) {
+    this.checkSession();
+  }
 
   /**
    * Get the URL to go after a successful login.
@@ -105,14 +107,22 @@ export class SessionService {
    * This operator must be piped in requests like login or signup that may
    * result in a new session.
    */
-  httpOperator(user: string) {
+  httpOperator(user: string): UnaryFunction<Observable<SessionAnswer>, Observable<boolean>> {
     return pipe(
       map((data: SessionAnswer) => {
+
         this.register(data.SessionId, user);
         localStorage.setItem("SessionId", this.sessionId);
         localStorage.setItem("User", user);
+
         data.Expires = new Date(data.Expires);
+        let diff = (data.Expires.getTime() - Date.now()) * 0.75;
+        if (diff < minRefreshTime) {
+          console.warn(`Too short refresh time: ${diff} sec.`);
+          diff = minRefreshTime;
+        }
         setTimeout(() => { this.refresh(); }, (data.Expires.getTime() - Date.now()) * 0.75);
+        
         return true;
       }),
       tap({
@@ -155,7 +165,7 @@ export class SessionService {
     let sessionId = localStorage.getItem("SessionId");
     if (!!sessionId) {
       this.register(sessionId, localStorage.getItem("User"));
-      setTimeout(() => { this.refresh(); }, 15 * 1000);
+      setTimeout(() => { this.refresh(); }, minRefreshTime);
     }
   }
 

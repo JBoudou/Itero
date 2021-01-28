@@ -32,6 +32,7 @@ import {
 import { PollAlternative } from '../api';
 
 import { Recorder, justRecordedFrom } from '../../testing/recorder';
+import { RouterStub } from '../../testing/router.stub';
 
 describe('CreateTree', () => {
   it('may consist of a final node', () => {
@@ -63,24 +64,6 @@ describe('CreateTree', () => {
   });
 });
 
-class RouterStub {
-  private url = '/root';
-  navigate = jasmine.createSpy('navigate');
-  navigateByUrl = jasmine.createSpy('navigateByUrl');
-
-  get routerState() {
-    return { snapshot: { url: this.url } };
-  }
-
-  constructor() {
-    this.navigate.and.callFake((url: string[]) => {
-      this.url = url.join('/');
-      // Fast promise because we don't want to wait one cycle.
-      return { then: (resolve: (v: boolean) => void) => resolve(true) };
-    });
-  }
-}
-
 describe('CreateService', () => {
   const TEST_TREE =
     new LinearCreateTreeNode('root', 'Root',
@@ -106,7 +89,7 @@ describe('CreateService', () => {
   let routerSpy: RouterStub;
 
   beforeEach(() => {
-    routerSpy = new RouterStub();
+    routerSpy = new RouterStub('/root');
 
     TestBed.configureTestingModule({
       imports: [ HttpClientTestingModule ],
