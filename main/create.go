@@ -22,8 +22,8 @@ import (
 	"time"
 
 	"github.com/JBoudou/Itero/b64buff"
-	"github.com/JBoudou/Itero/events"
 	"github.com/JBoudou/Itero/db"
+	"github.com/JBoudou/Itero/events"
 	"github.com/JBoudou/Itero/server"
 )
 
@@ -35,6 +35,7 @@ type CreateQuery struct {
 	UserType         uint8
 	Title            string
 	Description      string
+	Hidden           bool
 	Alternatives     []PollAlternative
 	MinNbRounds      uint8
 	MaxNbRounds      uint8
@@ -45,12 +46,12 @@ type CreateQuery struct {
 
 func defaultCreateQuery() CreateQuery {
 	return CreateQuery{
-		UserType: PollUserTypeSimple,
-		MinNbRounds: 2,
-		MaxNbRounds: 10,
-		Deadline: time.Now().Add(7 * 24 * time.Hour),
+		UserType:         PollUserTypeSimple,
+		MinNbRounds:      2,
+		MaxNbRounds:      10,
+		Deadline:         time.Now().Add(7 * 24 * time.Hour),
 		MaxRoundDuration: 24 * 3600 * 1000,
-		RoundThreshold: 1.,
+		RoundThreshold:   1.,
 	}
 }
 
@@ -82,6 +83,10 @@ func CreateHandler(ctx context.Context, response server.Response, request *serve
 	pollSegment := PollSegment{}
 	pollSegment.Salt, err = b64buff.RandomUInt32(saltNbBits)
 	must(err)
+	publicity := db.PollPublicityPublicRegistered
+	if query.Hidden {
+		publicity = db.PollPublicityHiddenRegistered
+	}
 
 	tx, err := db.DB.BeginTx(ctx, nil)
 	must(err)
@@ -94,10 +99,11 @@ func CreateHandler(ctx context.Context, response server.Response, request *serve
 
 	const (
 		qPoll = `
-			INSERT INTO Polls (Title, Description, Admin, Salt, NbChoices, MinNbRounds, MaxNbRounds,
-		                     Deadline, MaxRoundDuration, RoundThreshold)
-				  	 VALUE (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+			INSERT INTO Polls (Title, Description, Admin, Salt, Publicity, NbChoices,
+			                   MinNbRounds, MaxNbRounds, Deadline, MaxRoundDuration, RoundThreshold)
+				  	 VALUE (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 		qAlternative = `INSERT INTO Alternatives (Poll, Id, Name) VALUE (?, ?, ?)`
+		qParticipant = `INSERT INTO Participants (Poll, User) VALUE (?, ?)`
 	)
 
 	result, err := tx.ExecContext(ctx, qPoll,
@@ -105,6 +111,7 @@ func CreateHandler(ctx context.Context, response server.Response, request *serve
 		query.Description,
 		request.User.Id,
 		pollSegment.Salt,
+		publicity,
 		len(query.Alternatives),
 		query.MinNbRounds,
 		query.MaxNbRounds,
@@ -117,9 +124,11 @@ func CreateHandler(ctx context.Context, response server.Response, request *serve
 	must(err)
 	pollSegment.Id = uint32(tmp)
 	for _, alt := range query.Alternatives {
-		_, err := tx.ExecContext(ctx, qAlternative, pollSegment.Id, alt.Id, alt.Name)
+		_, err = tx.ExecContext(ctx, qAlternative, pollSegment.Id, alt.Id, alt.Name)
 		must(err)
 	}
+	_, err = tx.ExecContext(ctx, qParticipant, pollSegment.Id, request.User.Id)
+	must(err)
 
 	err = tx.Commit()
 	commited = true

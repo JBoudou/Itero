@@ -35,7 +35,7 @@ type createPollChecker struct {
 	user uint32
 
 	originalEventManager events.Manager
-	pollsCreated map[uint32]bool
+	pollsCreated         map[uint32]bool
 }
 
 func (self *createPollChecker) Before(t *testing.T) {
@@ -61,7 +61,7 @@ func (self *createPollChecker) Check(t *testing.T, response *http.Response, requ
 
 	const (
 		qCheckPoll = `
-			SELECT Title, Description, Admin, Salt, MinNbRounds, MaxNbRounds, Deadline,
+			SELECT Title, Description, Admin, Salt, Publicity, MinNbRounds, MaxNbRounds, Deadline,
 			       CurrentRoundStart, ADDTIME(CurrentRoundStart, MaxRoundDuration), RoundThreshold
 			  FROM Polls
 			 WHERE Id = ?`
@@ -86,12 +86,14 @@ func (self *createPollChecker) Check(t *testing.T, response *http.Response, requ
 	got := query
 	var admin uint32
 	var salt uint32
+	var publicity uint8
 	var roundStart, roundEnd time.Time
 	mustt(t, row.Scan(
 		&got.Title,
 		&got.Description,
 		&admin,
 		&salt,
+		&publicity,
 		&got.MinNbRounds,
 		&got.MaxNbRounds,
 		&got.Deadline,
@@ -101,6 +103,8 @@ func (self *createPollChecker) Check(t *testing.T, response *http.Response, requ
 	))
 	got.MaxRoundDuration = uint64(roundEnd.Sub(roundStart).Milliseconds())
 	got.Deadline = got.Deadline.Truncate(time.Second)
+	got.Hidden = (publicity == db.PollPublicityHidden) ||
+		(publicity == db.PollPublicityHiddenRegistered)
 	if salt != pollSegment.Salt {
 		t.Errorf("Wrong salt. Got %d. Expect %d.", salt, pollSegment.Salt)
 	}
@@ -139,14 +143,13 @@ func (self *createPollChecker) Check(t *testing.T, response *http.Response, requ
 	// Check events
 	_, ok := self.pollsCreated[pollSegment.Id]
 	if !ok {
-		t.Errorf("CreatePollEvent not sent");
+		t.Errorf("CreatePollEvent not sent")
 	}
 }
 
-
 func TestCreateHandler(t *testing.T) {
 	precheck(t)
-	
+
 	var env dbt.Env
 	defer env.Close()
 	userId := env.CreateUser()
@@ -155,26 +158,26 @@ func TestCreateHandler(t *testing.T) {
 	makeRequest := func(user *uint32, innerBody string, alternatives []string) srvt.Request {
 		pollAlternatives := make([]PollAlternative, len(alternatives))
 		for id, name := range alternatives {
-			pollAlternatives[id] = PollAlternative{ Id: uint8(id), Name: name, Cost: 1. }
+			pollAlternatives[id] = PollAlternative{Id: uint8(id), Name: name, Cost: 1.}
 		}
 		encoded, err := json.Marshal(pollAlternatives)
 		mustt(t, err)
 		return srvt.Request{
 			UserId: user,
 			Method: "POST",
-			Body: `{"Title":"Test",` + innerBody + `"Alternatives": ` + string(encoded) + "}",
+			Body:   `{"Title":"Test",` + innerBody + `"Alternatives": ` + string(encoded) + "}",
 		}
 	}
 
 	tests := []srvt.Test{
 		{
-			Name: "No user",
+			Name:    "No user",
 			Request: makeRequest(nil, "", []string{"No", "Yes"}),
 			Checker: srvt.CheckStatus{http.StatusForbidden},
 		},
 		{
 			Name: "GET",
-			Request: srvt.Request {
+			Request: srvt.Request{
 				UserId: &userId,
 				Method: "GET",
 				Body: `{
@@ -186,7 +189,7 @@ func TestCreateHandler(t *testing.T) {
 		},
 		{
 			Name: "Duplicate",
-			Request: srvt.Request {
+			Request: srvt.Request{
 				UserId: &userId,
 				Method: "POST",
 				Body: `{
@@ -197,13 +200,13 @@ func TestCreateHandler(t *testing.T) {
 			Checker: srvt.CheckAnyErrorStatus,
 		},
 		{
-			Name: "Success",
+			Name:    "Success",
 			Request: makeRequest(&userId, "", []string{"No", "Yes"}),
 			Checker: &createPollChecker{user: userId},
 		},
 		{
 			Name: "Unordered",
-			Request: srvt.Request {
+			Request: srvt.Request{
 				UserId: &userId,
 				Method: "POST",
 				Body: `{
@@ -213,7 +216,20 @@ func TestCreateHandler(t *testing.T) {
 			},
 			Checker: &createPollChecker{user: userId},
 		},
+		{
+			Name: "Hidden",
+			Request: srvt.Request{
+				UserId: &userId,
+				Method: "POST",
+				Body: `{
+					"Title": "Test",
+					"Alternatives": [{"Id":0, "Name":"First", "Cost":1}, {"Id":1, "Name":"Second", "Cost":1}],
+					"Hidden": true
+				}`,
+			},
+			Checker: &createPollChecker{user: userId},
+		},
 	}
-			
+
 	srvt.RunFunc(t, tests, CreateHandler)
 }
