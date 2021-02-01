@@ -18,11 +18,12 @@ import { Component, Injectable } from '@angular/core';
 import { ActivatedRouteSnapshot, RouterStateSnapshot, UrlTree, CanDeactivate } from '@angular/router';
 
 import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
-import { MatDialog } from '@angular/material/dialog';
+import { map }        from 'rxjs/operators';
+import { MatDialog }  from '@angular/material/dialog';
 
-import { CreateComponent } from './create.component';
-import { CreateService } from './create.service';
+import { CreateComponent }  from './create.component';
+import { CreateService }    from './create.service';
+import { ResultComponent }  from './result/result.component';
 
 /** Ask the user what to do when leaving create routes. */
 @Injectable()
@@ -40,12 +41,11 @@ export class LeaveCreateGuard implements CanDeactivate<CreateComponent> {
     nextState?: RouterStateSnapshot
   ): Observable<boolean|UrlTree>|Promise<boolean|UrlTree>|boolean|UrlTree {
 
-    if (!this.service.isStarted()) {
+    if (this.service.canLeave()) {
       return true;
     }
 
     const ref = this.dialog.open(LeaveCreateDialog, {
-//      width: '300px',
       disableClose: true,
     });
     return ref.afterClosed().pipe(map((result: string) => {

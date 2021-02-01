@@ -16,7 +16,8 @@
 
 import { Component, OnInit, ViewEncapsulation } from '@angular/core';
 
-import { CreateService, CreateStepStatus, CreateNextStatus } from './create.service';
+import { CreateService, CreateNextStatus } from './create.service';
+import { NavStepStatus } from './navtree';
 
 @Component({
   selector: 'app-create',
@@ -30,13 +31,13 @@ export class CreateComponent implements OnInit {
   canBack: boolean = false;
   canNext: boolean = false;
   isValidate: boolean = false;
-  createStepStatus: CreateStepStatus = new CreateStepStatus(0, []);
+  createStepStatus: NavStepStatus = new NavStepStatus(0, []);
 
   constructor(
     private service: CreateService,
   ) {
     this.service.createStepStatus$.subscribe({
-      next: (status: CreateStepStatus) => this.onCreateStepStatus(status),
+      next: (status: NavStepStatus) => this.onCreateStepStatus(status),
     });
     this.service.createNextStatus$.subscribe({
       next: (status: CreateNextStatus) => this.onCreateNextStatus(status),
@@ -70,7 +71,7 @@ export class CreateComponent implements OnInit {
     this.service.next();
   }
 
-  private onCreateStepStatus(status: CreateStepStatus): void {
+  private onCreateStepStatus(status: NavStepStatus): void {
     this.createStepStatus = status;
     this.canBack = status.current > 0;
   }

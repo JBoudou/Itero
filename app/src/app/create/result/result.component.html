@@ -9,19 +9,17 @@
       </button>
     </span>
   </p>
+  <p *ngIf="query()?.Hidden">
+    Beware that sharing this link is the only way for other users to join the poll.
+    The poll will not appear in the list of polls for users not participating yet.
+  </p>
 </div>
 <app-poll *ngIf="isSuccess()"></app-poll>
-<ng-template #otherError><ng-container *ngIf="error().status != 403; else notAuthorized"> 
+<ng-template #otherError>
   <h3 i18n>Unexpected error</h3>
   <p i18n>
     The error <span class="http-error">{{ error().status }} {{ error().message }}</span> occured while creating the poll.
     Such an error should never happen.
     Please fill a <a href="https://github.com/JBoudou/Itero/issues/new">bug report</a>.
-  </p>
-</ng-container></ng-template>
-<ng-template #notAuthorized>
-  <h3 i18n>Not authorized</h3>
-  <p i18n>
-    You're not authorized to create a poll. Your session may have expired. Please log in and try again.
   </p>
 </ng-template>

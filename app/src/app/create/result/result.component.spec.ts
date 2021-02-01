@@ -38,7 +38,7 @@ describe('ResultComponent', () => {
 
   beforeEach(async () => {
     activatedRouteStub = new ActivatedRouteStub();
-    serviceSpy = jasmine.createSpyObj('CreateService', [], ['httpError']);
+    serviceSpy = jasmine.createSpyObj('CreateService', ['getResult']);
 
     await TestBed.configureTestingModule({
       declarations: [

@@ -22,6 +22,7 @@ import { Observable, ReplaySubject, Subscription } from 'rxjs';
 import { cloneDeep } from 'lodash';
 
 import { CreateQuery } from '../api';
+import { NavTreeNode, LinearNavTreeNode, FinalNavTreeNode, NavStepStatus } from './navtree';
 
 
 export interface CreateSubComponent {
@@ -41,146 +42,12 @@ export class CreateNextStatus {
   ) {};
 }
 
-/** Event about the current step in the creation tree. */
-export class CreateStepStatus {
-  constructor(
-    /** Depth of the current node in the tree (root has depth zero). This is also the index in steps. */
-    public current: number,
-    /** Branch of the the tree containing the current node. */
-    public steps: string[],
-    /** Whether steps is a partial branch, up to the last undecided conditional node. */
-    public mayHaveMore = false
-  ) {};
-}
+export const CREATE_TREE = new InjectionToken<NavTreeNode>('create.tree');
 
-/**
- * Base class for nodes of the creation tree.
- *
- * The creation tree describes the steps of the creation procedure. Each step corresponds to a route
- * wich is obviously associated to a component. Each node contains the current state of the query,
- * allowing fine grain undo/redo behaviour. Each node decides wich node is its current successor,
- * depending on the current parameters of the query.
- */
-export abstract class CreateTreeNode {
-  public query: Partial<CreateQuery> = {};
-  public handledFields: Set<string> = new Set<string>();
-
-  constructor(
-    /** Last segment of the route corresponding to the step. */
-    public readonly segment: string,
-    /** Description of the step, for display to the user. */
-    public readonly asString: string,
-  ) {}
-  
-  /** Whether the node is a leaf. */
-  get isFinal(): boolean {
-    return false;
-  }
-
-  private _parent: CreateTreeNode|undefined;
-
-  get parent(): CreateTreeNode|undefined {
-    return this._parent;
-  }
-
-  /** Utility function for subclasses. */
-  protected setAsChild(child: CreateTreeNode): void {
-    child._parent = this;
-  }
-
-  /** All the possible successors of the node. */
-  abstract readonly children: CreateTreeNode[];
-
-  /**
-   * Determine the successor of the node depending on the current state of the query.
-   * Should always be called without parameters.
-   */
-  abstract next(query?: Partial<CreateQuery>): CreateTreeNode|undefined;
-
-  /** Construct the CreateStepStatus event to sent when the node is the current one. */
-  makeStatus(): CreateStepStatus {
-    const steps = [this.asString]
-    
-    let pos = 0;
-    let parent = this._parent;
-    while (parent !== undefined) {
-      steps.unshift(parent.asString);
-      pos += 1;
-      parent = parent._parent;
-    }
-    
-    let child = this as CreateTreeNode;
-    while (true) {
-      let next = child.next(this.query);
-      if (next === undefined) {
-        break;
-      }
-      child = next;
-      steps.push(child.asString);
-    }
-
-    return new CreateStepStatus(pos, steps, !child.isFinal);
-  }
-
-  /** 
-   * Reset the state of the query for this node and transitively all its descendants.
-   * Should be called only on the root of the tree.
-   */
-  reset(): void {
-    this.query = {};
-    this.handledFields = new Set<string>();
-    for (let child of this.children) {
-      child.reset();
-    }
-  }
-}
-
-/** A node with always exactely one child. */
-export class LinearCreateTreeNode extends CreateTreeNode {
-  constructor(
-    segment: string, asString: string,
-    private _next: CreateTreeNode
-  ) {
-    super(segment, asString);
-    this.setAsChild(this._next);
-  }
-
-  get children(): CreateTreeNode[] {
-    return [this._next];
-  }
-
-  next(_?: Partial<CreateQuery>): CreateTreeNode|undefined {
-    return this._next;
-  }
-}
-
-/** A leaf node. */
-export class FinalCreateTreeNode extends CreateTreeNode {
-  constructor(
-    segment: string, asString: string,
-  ) {
-    super(segment, asString);
-  }
-
-  get isFinal(): boolean {
-    return true;
-  }
-
-  get children(): CreateTreeNode[] {
-    return [];
-  }
-
-  next(_?: Partial<CreateQuery>): CreateTreeNode|undefined {
-    return undefined;
-  }
-}
-
-export const CREATE_TREE = new InjectionToken<CreateTreeNode>('create.tree');
-
-export const APP_CREATE_TREE: CreateTreeNode =
-  new LinearCreateTreeNode('general', 'Generalities',
-    new LinearCreateTreeNode('simpleAlternatives', 'Alternatives',
-      new FinalCreateTreeNode('round', 'Rounds')
+export const APP_CREATE_TREE: NavTreeNode =
+  new LinearNavTreeNode('general', 'Generalities',
+    new LinearNavTreeNode('simpleAlternatives', 'Alternatives',
+      new FinalNavTreeNode('round', 'Rounds')
     )
   );
 
@@ -199,28 +66,31 @@ export const APP_CREATE_TREE: CreateTreeNode =
 export class CreateService {
 
   private _createNext = new ReplaySubject<CreateNextStatus>(1);
-  private _createStep = new ReplaySubject<CreateStepStatus>(1);
+  private _createStep = new ReplaySubject<NavStepStatus>(1);
 
   get createNextStatus$(): Observable<CreateNextStatus> {
     return this._createNext;
   }
 
-  get createStepStatus$(): Observable<CreateStepStatus> {
+  get createStepStatus$(): Observable<NavStepStatus> {
     return this._createStep;
   }
 
   private _httpError: HttpErrorResponse;
 
-  get httpError(): HttpErrorResponse {
-    return this._httpError;
-  }
-
-  private current: CreateTreeNode;
+  private current: NavTreeNode;
   private subComponent: CreateSubComponent|undefined;
   private subComponentSubscription: Subscription|undefined;
 
+  /**
+   * Whether the service is in "sending state".
+   * The service is in "sending state" in the meantime between the validation of the creation by the
+   * user and the moment the result is displayed to the user.
+   */
+  private _sending: boolean = false;
+
   constructor(
-    @Inject(CREATE_TREE) private root: CreateTreeNode,
+    @Inject(CREATE_TREE) private root: NavTreeNode,
     private router: Router,
     private http: HttpClient,
   ) {
@@ -231,7 +101,7 @@ export class CreateService {
    * Asks the router to go back in the creation tree.
    *
    * Must not be called when the current node is the root node, which is notified by a
-   * CreateStepStatus with current at zero.
+   * NavStepStatus with current at zero.
    */
   back(steps?: number): void {
     if (steps === undefined) {
@@ -269,7 +139,6 @@ export class CreateService {
 
     if (this.current.isFinal) {
       this.sendRequest();
-      this.reset();
       return;
     }
 
@@ -288,6 +157,10 @@ export class CreateService {
    * The returned object can (and should) be modified by the subcomponent.
    */
   register(subComp: CreateSubComponent): Partial<CreateQuery> {
+    if (this._sending) {
+      console.warn("Registering while sending!");
+      this.reset();
+    }
     if (this.navigateToCurrent()) {
       return {};
     }
@@ -319,16 +192,32 @@ export class CreateService {
   }
 
   /** Whether the user already set some values. */
-  isStarted(): boolean {
-    return this.current !== this.root || (!!this.subComponent && this.subComponent.isStarted());
+  canLeave(): boolean {
+    return this._sending ||
+      (this.current === this.root && (!this.subComponent || !this.subComponent.isStarted()));
+  }
+
+  /**
+   * Get the result of sending the create request.
+   * Call to this method reinitialise the service.
+   */
+  getResult(): HttpErrorResponse | Partial<CreateQuery> | undefined {
+    if (!this._sending) {
+      return undefined;
+    }
+    const ret = !!this ._httpError ? this._httpError : this.current.query;
+    this.reset();
+    return ret;
   }
 
   reset() {
     this.root.reset();
+    this._sending = false;
+    this._httpError = undefined;
     this.current = this.root;
   }
 
-  private makeCurrent(node: CreateTreeNode|undefined): void {
+  private makeCurrent(node: NavTreeNode|undefined): void {
     if (node === undefined) {
       console.warn('CreateService undefined current');
       return;
@@ -358,11 +247,12 @@ export class CreateService {
   }
 
   private sendRequest(): void {
+    this._sending = true;
     this.http.post<string>('/a/create', this.current.query, { observe: 'body', responseType: 'json' })
       .subscribe({
       next: (segment: string) => {
-        this.router.navigateByUrl('/r/create/result/' + segment);
         this._httpError = undefined;
+        this.router.navigateByUrl('/r/create/result/' + segment);
       },
       error: (err: HttpErrorResponse) => {
         this._httpError = err;

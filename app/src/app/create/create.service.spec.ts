@@ -20,55 +20,19 @@ import { Router } from '@angular/router';
 
 import { of } from 'rxjs';
 
-import {
-  CREATE_TREE,
-  CreateNextStatus,
-  CreateService,
-  CreateStepStatus,
-  FinalCreateTreeNode,
-  LinearCreateTreeNode,
-} from './create.service';
+import { CREATE_TREE, CreateNextStatus, CreateService, } from './create.service';
 
 import { PollAlternative } from '../api';
+import { NavStepStatus, FinalNavTreeNode, LinearNavTreeNode, } from './navtree';
 
 import { Recorder, justRecordedFrom } from '../../testing/recorder';
 import { RouterStub } from '../../testing/router.stub';
 
-describe('CreateTree', () => {
-  it('may consist of a final node', () => {
-    const final = new FinalCreateTreeNode('segment', 'title');
-    
-    expect(final.parent).toBeUndefined();
-    expect(final.next()).toBeUndefined();
-    expect(final.isFinal).toBeTrue();
-
-    const status = final.makeStatus();
-    expect(status.current).toBe(0);
-    expect(status.steps).toEqual(['title']);
-    expect(status.mayHaveMore).toBeFalse();
-  });
-
-  it('may contain a linear node', () => {
-    const leaf = new FinalCreateTreeNode('final', 'Leaf');
-    const root = new LinearCreateTreeNode('base', 'Root', leaf);
-
-    expect(leaf.parent).toBe(root);
-    expect(leaf.next()).toBeUndefined();
-    expect(leaf.isFinal).toBeTrue();
-    expect(leaf.makeStatus()).toEqual(new CreateStepStatus(1, ['Root', 'Leaf'], false));
-
-    expect(root.parent).toBeUndefined();
-    expect(root.next()).toBe(leaf);
-    expect(root.isFinal).toBeFalse();
-    expect(root.makeStatus()).toEqual(new CreateStepStatus(0, ['Root', 'Leaf'], false));
-  });
-});
-
 describe('CreateService', () => {
   const TEST_TREE =
-    new LinearCreateTreeNode('root', 'Root',
-      new LinearCreateTreeNode('middle', 'Middle',
-        new FinalCreateTreeNode('leaf', 'Leaf')
+    new LinearNavTreeNode('root', 'Root',
+      new LinearNavTreeNode('middle', 'Middle',
+        new FinalNavTreeNode('leaf', 'Leaf')
       )
     );
 
@@ -124,22 +88,22 @@ describe('CreateService', () => {
         new CreateNextStatus(false, false),
         new CreateNextStatus(true, false),
     ]);
-    expect(justRecordedFrom(service.createStepStatus$)).toEqual([ new CreateStepStatus(0, ['Root', 'Middle', 'Leaf']) ]);
+    expect(justRecordedFrom(service.createStepStatus$)).toEqual([ new NavStepStatus(0, ['Root', 'Middle', 'Leaf']) ]);
   });
 
   it('goes next', () => {
     service.register(dummyComponent);
     jasmine.clock().tick(1);
 
-    const recorder = new Recorder<CreateStepStatus>();
+    const recorder = new Recorder<NavStepStatus>();
     service.createStepStatus$.subscribe(recorder);
     service.next();
     service.register(dummyComponent);
     jasmine.clock().tick(1);
 
     expect(recorder.record).toEqual([
-        new CreateStepStatus(0, ['Root', 'Middle', 'Leaf']),
-        new CreateStepStatus(1, ['Root', 'Middle', 'Leaf']),
+        new NavStepStatus(0, ['Root', 'Middle', 'Leaf']),
+        new NavStepStatus(1, ['Root', 'Middle', 'Leaf']),
     ]);
 
     expect(routerSpy.navigate.calls.count()).toBe(1);
@@ -153,15 +117,15 @@ describe('CreateService', () => {
     service.register(dummyComponent);
     jasmine.clock().tick(1);
 
-    const recorder = new Recorder<CreateStepStatus>();
+    const recorder = new Recorder<NavStepStatus>();
     service.createStepStatus$.subscribe(recorder);
     service.back();
     service.register(dummyComponent);
     jasmine.clock().tick(1);
 
     expect(recorder.record).toEqual([
-        new CreateStepStatus(1, ['Root', 'Middle', 'Leaf']),
-        new CreateStepStatus(0, ['Root', 'Middle', 'Leaf']),
+        new NavStepStatus(1, ['Root', 'Middle', 'Leaf']),
+        new NavStepStatus(0, ['Root', 'Middle', 'Leaf']),
     ]);
 
     expect(routerSpy.navigate.calls.count()).toBe(2);
@@ -177,15 +141,15 @@ describe('CreateService', () => {
     service.register(dummyComponent);
     jasmine.clock().tick(1);
 
-    const recorder = new Recorder<CreateStepStatus>();
+    const recorder = new Recorder<NavStepStatus>();
     service.createStepStatus$.subscribe(recorder);
     service.back(2);
     service.register(dummyComponent);
     jasmine.clock().tick(1);
 
     expect(recorder.record).toEqual([
-        new CreateStepStatus(2, ['Root', 'Middle', 'Leaf']),
-        new CreateStepStatus(0, ['Root', 'Middle', 'Leaf']),
+        new NavStepStatus(2, ['Root', 'Middle', 'Leaf']),
+        new NavStepStatus(0, ['Root', 'Middle', 'Leaf']),
     ]);
 
     expect(routerSpy.navigate.calls.count()).toBe(3);

@@ -16,8 +16,19 @@
 
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, ParamMap } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
 
 import { CreateService } from '../create.service';
+import { CreateQuery } from 'src/app/api';
+
+type Result = {status: number, message: string} | Partial<CreateQuery>;
+
+function isCreateQuery(result: Result): result is Partial<CreateQuery> {
+  const asError = result as any;
+  return asError.status === undefined && asError.message === undefined;
+}
+
+
 
 @Component({
   selector: 'app-create-result',
@@ -27,6 +38,7 @@ import { CreateService } from '../create.service';
 export class ResultComponent implements OnInit {
 
   private pollSegment: string;
+  private result: Result = { status: 999, message: 'undefined' };
 
   constructor(
     private route: ActivatedRoute,
@@ -37,21 +49,37 @@ export class ResultComponent implements OnInit {
     this.route.paramMap.subscribe((params: ParamMap) => {
       this.pollSegment = params.get('pollSegment');
     });
+
+    const result = this.service.getResult();
+    if (result === undefined) {
+      this.result = {
+        status: 999,
+        message: 'Front end error',
+      };
+    } else if (result instanceof HttpErrorResponse) {
+      this.result = {
+        status: result.status,
+        message: result.error.trim(),
+      };
+    } else {
+      this.result = result;
+    }
   }
 
   isSuccess(): boolean {
-    return this.pollSegment != 'error';
+    return isCreateQuery(this.result);
   }
 
   link(): string {
     return window.location.protocol + '//' + window.location.host + '/r/poll/' + this.pollSegment;
   }
 
-  error(): {status: number, message: string}|undefined {
-    return this.service.httpError === undefined ? undefined : {
-      status: this.service.httpError.status,
-      message: this.service.httpError.error.trim(),
-    };
+  error(): {status: number, message: string} | undefined {
+    return isCreateQuery(this.result) ? undefined : this.result;
+  }
+
+  query(): Partial<CreateQuery> | undefined {
+    return isCreateQuery(this.result) ? this.result : undefined;
   }
 
 }
