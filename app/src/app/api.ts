@@ -111,13 +111,14 @@ export enum PollUserType {
 }
 
 export class CreateQuery {
-  UserType: PollUserType;
-  Title: string;
-  Description: string;
-  Alternatives: PollAlternative[];
-  MinNbRounds: number;
-  MaxNbRounds: number;
-  Deadline: Date;
+  UserType:         PollUserType;
+  Title:            string;
+  Description:      string;
+  Hidden:           boolean;
+  Alternatives:     PollAlternative[];
+  MinNbRounds:      number;
+  MaxNbRounds:      number;
+  Deadline:         Date;
   MaxRoundDuration: number; // milliseconds
-  RoundThreshold: number;
+  RoundThreshold:   number;
 }

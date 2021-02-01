@@ -1,4 +1,8 @@
 <form class="basicform" [formGroup]="form">
   <label i18n>Title:</label><input type="text" formControlName="Title" />
   <label i18n>Description:</label><textarea rows="3" formControlName="Description"></textarea>
+  <label i18n>Publicizing:</label><mat-select panelClass="base-colors" formControlName="Hidden">
+    <mat-option [value]="false" i18n>Display the poll in the list</mat-option>
+    <mat-option [value]="true" i18n>Spread the link</mat-option>
+  </mat-select>
 </form>

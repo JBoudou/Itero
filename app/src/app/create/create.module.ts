@@ -18,12 +18,13 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 
-import { DragDropModule }   from '@angular/cdk/drag-drop';
-import { MatIconModule }    from '@angular/material/icon'; 
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatButtonModule }  from '@angular/material/button';
 import { ClipboardModule }  from '@angular/cdk/clipboard';
+import { DragDropModule }   from '@angular/cdk/drag-drop';
+import { MatButtonModule }  from '@angular/material/button';
 import { MatDialogModule }  from '@angular/material/dialog';
+import { MatIconModule }    from '@angular/material/icon'; 
+import { MatSelectModule }  from '@angular/material/select'; 
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { FormWidgetModule } from '../form-widget/form-widget.module';
 import { PollModule }       from '../poll/poll.module';
@@ -57,6 +58,7 @@ import { SimpleAlternativesComponent }  from './simple-alternatives/simple-alter
     MatButtonModule,
     MatDialogModule,
     MatIconModule,
+    MatSelectModule,
     MatTooltipModule,
     PollModule,
     ReactiveFormsModule,
