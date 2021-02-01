@@ -17,11 +17,13 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule, FormBuilder, FormsModule } from '@angular/forms';
 
+import { MatSelectModule }  from '@angular/material/select'; 
+
 import { GeneralComponent } from './general.component';
 
 import { CreateService } from '../create.service';
 
-describe('CreateGeneralComponent', () => {
+describe('GeneralComponent', () => {
   let component: GeneralComponent;
   let fixture: ComponentFixture<GeneralComponent>;
   let serviceSpy: jasmine.SpyObj<CreateService>;
@@ -30,7 +32,7 @@ describe('CreateGeneralComponent', () => {
     serviceSpy = jasmine.createSpyObj('CreateService', {register: {}});
     await TestBed.configureTestingModule({
       declarations: [ GeneralComponent ],
-      imports: [ ReactiveFormsModule, FormsModule ],
+      imports: [ ReactiveFormsModule, FormsModule, MatSelectModule ],
       providers: [
         FormBuilder,
         { provide: CreateService, useValue: serviceSpy },
