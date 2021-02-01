@@ -123,13 +123,13 @@ func TestPollHandler(t *testing.T) {
 				target1wrong = "/a/test/" + encoded
 			},
 			Request: srvt.Request{ Target: &target1wrong, UserId: &userId },
-			Checker: srvt.CheckStatus{http.StatusForbidden},
+			Checker: srvt.CheckStatus{http.StatusNotFound},
 		},
 		{
 			Name: "Private poll",
 			Update:  createPoll(&segment2, &target2, db.PollPublicityInvited),
 			Request: srvt.Request{ Target: &target2, UserId: &userId },
-			Checker: srvt.CheckStatus{http.StatusForbidden},
+			Checker: srvt.CheckStatus{http.StatusNotFound},
 		},
 		{
 			Name: "Late public poll",
@@ -139,7 +139,7 @@ func TestPollHandler(t *testing.T) {
 				env.Must(t)
 			},
 			Request: srvt.Request{ Target: &target3, UserId: &userId },
-			Checker: srvt.CheckError{http.StatusForbidden, "Too late"},
+			Checker: srvt.CheckStatus{http.StatusNotFound},
 		},
 		{
 			Name: "Ok Hidden Registered",

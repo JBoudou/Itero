@@ -70,6 +70,10 @@ type PollInfo struct {
 	Participate  bool
 }
 
+func noPollError(reason string) server.HttpError {
+	return server.NewHttpError(http.StatusNotFound, "No poll", reason)
+}
+
 // checkPollAccess ensure that the user can access the poll.
 //
 // It checks that the request has a session and a valid poll segment. It also check that the user
@@ -108,7 +112,7 @@ func checkPollAccess(ctx context.Context, request *server.Request) (poll PollInf
 		return
 	}
 	if salt != segment.Salt {
-		err = server.UnauthorizedHttpError("Wrong salt")
+		err = noPollError("Wrong salt")
 		return
 	}
 
@@ -120,11 +124,11 @@ func checkPollAccess(ctx context.Context, request *server.Request) (poll PollInf
 		return
 	}
 	if publicity >= db.PollPublicityInvited {
-		err = server.UnauthorizedHttpError("Private poll")
+		err = noPollError("Private poll")
 		return
 	}
 	if poll.CurrentRound > 0 {
-		err = server.NewHttpError(http.StatusForbidden, "Too late", "Unable to participate now")
+		err = noPollError("Cannot join a poll after the first round");
 		return
 	}
 

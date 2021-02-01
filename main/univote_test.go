@@ -131,9 +131,9 @@ func TestUninominalVoteHandler(t *testing.T) {
 			Checker: srvt.CheckStatus{http.StatusForbidden},
 		},
 		{
-			Name:    "Forbidden",
+			Name:    "Wrong segment",
 			Request: makeRequest(&userId, forbiddenSegment, UninominalVoteQuery{}),
-			Checker: srvt.CheckStatus{http.StatusForbidden},
+			Checker: srvt.CheckStatus{http.StatusNotFound},
 		},
 		{
 			Name:    "First vote",
