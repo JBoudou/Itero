@@ -45,7 +45,7 @@ type pollService struct {
 // newPollService creates a new pollService.
 func newPollService(serviceName string, makeEvent func(pollId uint32) events.Event) pollService {
 	return pollService{
-		adjust:      10 * time.Minute,
+		adjust:      -1 * time.Minute,
 		serviceName: serviceName,
 		warn:        log.New(os.Stderr, serviceName, log.LstdFlags|log.Lshortfile|log.Lmsgprefix),
 		makeEvent:   makeEvent,
@@ -158,7 +158,7 @@ func (self *pollService) updateLastCheck() {
 	if err := row.Scan(&self.lastCheck); err != nil {
 		self.warn.Print(err)
 	}
-	self.adjust = (self.adjust + time.Since(self.lastCheck)) / 2
+	self.adjust = (self.adjust - time.Since(self.lastCheck)) / 2
 }
 
 // nextAlarm_helper helps to implement a method providing events for an alarm.
@@ -171,12 +171,11 @@ func (self *pollService) nextAlarm_helper(qNext string, defaultWait time.Duratio
 	var pollId uint32
 	var timestamp time.Time
 	row := db.DB.QueryRow(qNext, self.lastCheck)
-	switch err := row.Scan(&pollId, &ret.Time, &timestamp); {
-	case err == nil:
-		self.adjust = (self.adjust + time.Since(timestamp)) / 2
+	if err := row.Scan(&pollId, &ret.Time, &timestamp); err == nil {
+		self.adjust = (self.adjust - time.Since(timestamp)) / 2
 		ret.Time = ret.Time.Add(self.adjust)
 		ret.Data = pollId
-	default:
+	} else {
 		if !errors.Is(err, sql.ErrNoRows) {
 			self.warn.Print(err)
 		}
