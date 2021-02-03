@@ -38,6 +38,7 @@ import { GeneralComponent }             from './general/general.component';
 import { ResultComponent }              from './result/result.component';
 import { RoundComponent }               from './round/round.component';
 import { SimpleAlternativesComponent }  from './simple-alternatives/simple-alternatives.component';
+import { NavtreeComponent } from './navtree/navtree.component';
 
 @NgModule({
   declarations: [
@@ -47,6 +48,7 @@ import { SimpleAlternativesComponent }  from './simple-alternatives/simple-alter
     ResultComponent,
     RoundComponent,
     SimpleAlternativesComponent,
+    NavtreeComponent,
   ],
   imports: [
     ClipboardModule,
