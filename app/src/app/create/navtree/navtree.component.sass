@@ -8,8 +8,9 @@
   border-bottom: solid 1px $maincolor
   margin-bottom: 8px
   .step
-    @include userbox
-    transition: background-color 500ms
+    @include userinput
+    transition-property: background-color, color, border-color
+    transition-duration: 500ms
     .index:after
       content: ". "
   .current-step
@@ -17,7 +18,14 @@
     transition: background-color 300ms
   .jumpable-step
     cursor: pointer
+  .disabled-step
+    border-color: $disabled-frame-color
+    color: $disabled-fg-color
+    background-color: $disabled-bg-color
   .placeholder
     width: 50px
     margin: auto 0
     border-bottom: solid 1px $maincolor
+  .placeholder.disabled-step
+    border-bottom-style: dotted
+    border-bottom-color: $disabled-frame-color

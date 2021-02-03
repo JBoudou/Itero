@@ -10,6 +10,10 @@ $maincolor: #602c57;
 $userbuttonbgcolor: color.adjust($maincolor, $saturation: -10%, $lightness: 50%);
 $softbgcolor: color.adjust($userbuttonbgcolor, $lightness: 20%);
 
+$disabled-frame-color: color.scale($maincolor, $saturation: -70%, $lightness: 50%);
+$disabled-bg-color: #fff;
+$disabled-fg-color: #666;
+
 $fgOnMaincolor: white;
 $useboxfgcolor: color.change($maincolor, $lightness: 16%);
 $errorcolor: red;
