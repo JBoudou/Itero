@@ -32,4 +32,9 @@ export class NavStepStatus {
   isFinal(): boolean {
     return !this.mayHaveMore && this.current === this.steps.length - 1;
   }
+
+  isNavigable(index: number, currentIsValid: boolean): boolean {
+    return index < this.current || (currentIsValid && index === this.current + 1);
+  }
+  
 }

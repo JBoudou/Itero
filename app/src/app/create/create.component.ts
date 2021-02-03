@@ -16,6 +16,8 @@
 
 import { Component, OnInit, ViewEncapsulation } from '@angular/core';
 
+import { BehaviorSubject, Observable } from 'rxjs';
+
 import { CreateService, CreateNextStatus } from './create.service';
 import { NavStepStatus } from './navtree/navstep.status';
 
@@ -27,58 +29,37 @@ import { NavStepStatus } from './navtree/navstep.status';
 })
 export class CreateComponent implements OnInit {
 
-  // TODO: Use await.
-  canBack: boolean = false;
-  canNext: boolean = false;
-  isValidate: boolean = false;
-  createStepStatus: NavStepStatus = new NavStepStatus(0, []);
+  private _stepStatus$ = new BehaviorSubject<NavStepStatus>(undefined);
+  private _nextStatus$ = new BehaviorSubject<CreateNextStatus>(undefined);
+
+  get stepStatus$(): Observable<NavStepStatus> {
+    return this._stepStatus$;
+  }
+
+  get nextStatus$(): Observable<CreateNextStatus> {
+    return this._nextStatus$;
+  }
 
   constructor(
     private service: CreateService,
   ) {
-    this.service.createStepStatus$.subscribe({
-      next: (status: NavStepStatus) => this.onCreateStepStatus(status),
-    });
-    this.service.createNextStatus$.subscribe({
-      next: (status: CreateNextStatus) => this.onCreateNextStatus(status),
-    });
-  }
-
-  isJumpable(pos: number): boolean {
-    return pos >= 0 && ( (pos < this.createStepStatus.current) ||
-                         (this.canNext && pos == this.createStepStatus.current + 1) );
   }
 
   ngOnInit(): void {
+    this.service.createStepStatus$.subscribe(this._stepStatus$);
+    this.service.createNextStatus$.subscribe(this._nextStatus$);
   }
 
   onJump(pos: number): void {
-    if (!this.isJumpable(pos)) {
+    if (!this._stepStatus$.value.isNavigable(pos, this._nextStatus$.value.validable)) {
       return;
     }
-    if (pos < this.createStepStatus.current) {
-      this.service.back(this.createStepStatus.current - pos);
+    const current = this._stepStatus$.value.current;
+    if (pos < current) {
+      this.service.back(current - pos);
     } else {
       this.service.next();
     }
-  }
-
-  onBack(): void {
-    this.service.back();
-  }
-
-  onNext(): void {
-    this.service.next();
-  }
-
-  private onCreateStepStatus(status: NavStepStatus): void {
-    this.createStepStatus = status;
-    this.canBack = status.current > 0;
-  }
-
-  private onCreateNextStatus(status: CreateNextStatus): void {
-    this.canNext = status.validable;
-    this.isValidate = status.final;
   }
 
 }

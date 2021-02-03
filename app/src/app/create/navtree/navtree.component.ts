@@ -39,8 +39,7 @@ export class NavtreeComponent implements OnInit {
   }
 
   isNavigable(index: number): boolean {
-    return index < this.stepStatus.current ||
-           (this.validable && index === this.stepStatus.current + 1);
+    return this.stepStatus.isNavigable(index, this.validable);
   }
 
   isEnabled(index: number): boolean {

@@ -18,7 +18,7 @@ import { Inject, Injectable, InjectionToken } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 
-import { Observable, ReplaySubject, Subscription } from 'rxjs';
+import { Observable, BehaviorSubject, Subscription } from 'rxjs';
 import { cloneDeep } from 'lodash';
 
 import { CreateQuery } from '../api';
@@ -66,8 +66,8 @@ export const APP_CREATE_TREE: NavTreeNode =
 @Injectable()
 export class CreateService {
 
-  private _createNext = new ReplaySubject<CreateNextStatus>(1);
-  private _createStep = new ReplaySubject<NavStepStatus>(1);
+  private _createNext = new BehaviorSubject<CreateNextStatus>({validable: false, final: false});
+  private _createStep = new BehaviorSubject<NavStepStatus>(undefined);
 
   get createNextStatus$(): Observable<CreateNextStatus> {
     return this._createNext;

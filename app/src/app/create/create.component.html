@@ -1,6 +1,9 @@
 <h3 i18n>Create a new poll</h3>
-<div id="creation">
-  <app-navtree    [stepStatus]="createStepStatus" [validable]="isValidate" (navigateTo)="onJump($event)"></app-navtree>
+<div id="creation" *ngIf="nextStatus$ | async as nextStatus else loading">
+  <app-navtree    [stepStatus]="stepStatus$ | async" [validable]="nextStatus.validable" (navigateTo)="onJump($event)"></app-navtree>
   <router-outlet></router-outlet>
-  <app-navbuttons [stepStatus]="createStepStatus" [validable]="isValidate" (navigateTo)="onJump($event)"></app-navbuttons>
+  <app-navbuttons [stepStatus]="stepStatus$ | async" [validable]="nextStatus.validable" (navigateTo)="onJump($event)"></app-navbuttons>
 </div>
+<ng-template #loading>
+  <div class="loading" i18n>... Loading ...</div>
+</ng-template>

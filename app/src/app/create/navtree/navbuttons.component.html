@@ -1,4 +1,9 @@
-<div class="formactions">
-  <button [disabled]="stepStatus.isFirst()" (click)="onBack()" i18n>Back</button>
-  <button [disabled]="!validable" (click)="onNext()" i18n>{{ stepStatus.isFinal() ? "Validate" : "Next" }}</button>
-</div>
+<ng-container *ngIf="stepStatus else loading">
+  <div class="formactions">
+    <button [disabled]="stepStatus.isFirst()" (click)="onBack()" i18n>Back</button>
+    <button [disabled]="!validable" (click)="onNext()" i18n>{{ stepStatus.isFinal() ? "Validate" : "Next" }}</button>
+  </div>
+</ng-container>
+<ng-template #loading>
+  <div class="loading" i18n>... Loading ...</div>
+</ng-template>
