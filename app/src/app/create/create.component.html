@@ -1,9 +1,6 @@
 <h3 i18n>Create a new poll</h3>
 <div id="creation">
-  <app-navtree [stepStatus]="createStepStatus" [validable]="isValidate" (navigateTo)="onJump($event)"></app-navtree>
+  <app-navtree    [stepStatus]="createStepStatus" [validable]="isValidate" (navigateTo)="onJump($event)"></app-navtree>
   <router-outlet></router-outlet>
-  <div class="formactions">
-    <button [disabled]="!canBack" (click)="onBack()" i18n>Back</button>
-    <button [disabled]="!canNext" (click)="onNext()" i18n>{{ isValidate ? "Validate" : "Next" }}</button>
-  </div>
+  <app-navbuttons [stepStatus]="createStepStatus" [validable]="isValidate" (navigateTo)="onJump($event)"></app-navbuttons>
 </div>

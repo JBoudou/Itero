@@ -39,6 +39,7 @@ import { ResultComponent }              from './result/result.component';
 import { RoundComponent }               from './round/round.component';
 import { SimpleAlternativesComponent }  from './simple-alternatives/simple-alternatives.component';
 import { NavtreeComponent } from './navtree/navtree.component';
+import { NavbuttonsComponent } from './navtree/navbuttons.component';
 
 @NgModule({
   declarations: [
@@ -49,6 +50,7 @@ import { NavtreeComponent } from './navtree/navtree.component';
     RoundComponent,
     SimpleAlternativesComponent,
     NavtreeComponent,
+    NavbuttonsComponent,
   ],
   imports: [
     ClipboardModule,

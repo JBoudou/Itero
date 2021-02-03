@@ -1,0 +1,4 @@
+<div class="formactions">
+  <button [disabled]="stepStatus.isFirst()" (click)="onBack()" i18n>Back</button>
+  <button [disabled]="!validable" (click)="onNext()" i18n>{{ stepStatus.isFinal() ? "Validate" : "Next" }}</button>
+</div>
