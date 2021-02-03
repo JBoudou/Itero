@@ -17,7 +17,7 @@
 import { Component, OnInit, ViewEncapsulation } from '@angular/core';
 
 import { CreateService, CreateNextStatus } from './create.service';
-import { NavStepStatus } from './navtree';
+import { NavStepStatus } from './navtree/navstep.status';
 
 @Component({
   selector: 'app-create',

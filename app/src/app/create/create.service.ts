@@ -22,7 +22,8 @@ import { Observable, ReplaySubject, Subscription } from 'rxjs';
 import { cloneDeep } from 'lodash';
 
 import { CreateQuery } from '../api';
-import { NavTreeNode, LinearNavTreeNode, FinalNavTreeNode, NavStepStatus } from './navtree';
+import { NavTreeNode, LinearNavTreeNode, FinalNavTreeNode } from './navtree/navtree.node';
+import { NavStepStatus } from './navtree/navstep.status';
 
 
 export interface CreateSubComponent {

@@ -14,19 +14,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { CreateQuery } from '../api';
+import { CreateQuery } from '../../api';
 
-/** Event about the current step in the creation tree. */
-export class NavStepStatus {
-  constructor(
-    /** Depth of the current node in the tree (root has depth zero). This is also the index in steps. */
-    public current: number,
-    /** Branch of the the tree containing the current node. */
-    public steps: string[],
-    /** Whether steps is a partial branch, up to the last undecided conditional node. */
-    public mayHaveMore = false
-  ) {};
-}
+import { NavStepStatus } from './navstep.status';
 
 /**
  * Base class for nodes of the creation tree.

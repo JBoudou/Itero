@@ -23,7 +23,8 @@ import { of } from 'rxjs';
 import { CREATE_TREE, CreateNextStatus, CreateService, } from './create.service';
 
 import { PollAlternative } from '../api';
-import { NavStepStatus, FinalNavTreeNode, LinearNavTreeNode, } from './navtree';
+import { FinalNavTreeNode, LinearNavTreeNode, } from './navtree/navtree.node';
+import { NavStepStatus } from './navtree/navstep.status';
 
 import { Recorder, justRecordedFrom } from '../../testing/recorder';
 import { RouterStub } from '../../testing/router.stub';
