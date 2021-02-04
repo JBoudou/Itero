@@ -18,30 +18,13 @@ import { Inject, Injectable, InjectionToken } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 
-import { Observable, BehaviorSubject, Subscription } from 'rxjs';
-import { cloneDeep } from 'lodash';
+import { Observable, BehaviorSubject } from 'rxjs';
+import { cloneDeep, isEqual } from 'lodash';
 
 import { CreateQuery } from '../api';
 import { NavTreeNode, LinearNavTreeNode, FinalNavTreeNode } from './navtree/navtree.node';
 import { NavStepStatus } from './navtree/navstep.status';
 
-
-export interface CreateSubComponent {
-  /** Name of query's properties that may be modified by the component. */
-  readonly handledFields: Set<string>;
-  readonly validable$: Observable<boolean>;
-  isStarted(): boolean;
-}
-
-/** Event about the next() action of CreateService. */
-export class CreateNextStatus {
-  constructor(
-    /** Whether calling next() is possible. */
-    public validable: boolean,
-    /** Whether calling next() will sends the request to the middleware. */
-    public final: boolean
-  ) {};
-}
 
 export const CREATE_TREE = new InjectionToken<NavTreeNode>('create.tree');
 
@@ -54,34 +37,34 @@ export const APP_CREATE_TREE: NavTreeNode =
 
 
 /**
- * CreateService is the central service for the main creation component and all its subcomponents.
+ * CreateService is the central service for the creation of polls.
  * It handles the navigation across the subcomponents, the models for them and sends the final
  * request to the middleware.
  *
- * It informs the main component about the current state of the creation (see createStepStatus$ and
- * createNextStatus$) and provides the back() and next() action for it.
- *
- * Subcomponents must call register() when they're displayed.
+ * It informs the main component about the current state of the creation (see stepStatus$) and
+ * provides the back() and next() action for it.
  */
 @Injectable()
 export class CreateService {
 
-  private _createNext = new BehaviorSubject<CreateNextStatus>({validable: false, final: false});
-  private _createStep = new BehaviorSubject<NavStepStatus>(undefined);
+  private _current: NavTreeNode;
 
-  get createNextStatus$(): Observable<CreateNextStatus> {
-    return this._createNext;
+  private _stepStatus$ = new BehaviorSubject<NavStepStatus>(undefined);
+
+  get stepStatus$(): Observable<NavStepStatus> {
+    return this._stepStatus$;
   }
 
-  get createStepStatus$(): Observable<NavStepStatus> {
-    return this._createStep;
+  private _query$ = new BehaviorSubject<Partial<CreateQuery>>({});
+  private _queryModified: boolean;
+
+  /**
+   * The current partial query.
+   * The sent objects must never be modified directly. Use patchQuery() instead.
+   */
+  get query$(): Observable<Partial<CreateQuery>> {
+    return this._query$;
   }
-
-  private _httpError: HttpErrorResponse;
-
-  private current: NavTreeNode;
-  private subComponent: CreateSubComponent|undefined;
-  private subComponentSubscription: Subscription|undefined;
 
   /**
    * Whether the service is in "sending state".
@@ -90,12 +73,14 @@ export class CreateService {
    */
   private _sending: boolean = false;
 
+  private _httpError: HttpErrorResponse;
+
   constructor(
     @Inject(CREATE_TREE) private root: NavTreeNode,
     private router: Router,
     private http: HttpClient,
   ) {
-    this.current = this.root;
+    this.makeCurrent(this.root, { navigate: false });
   }
 
   /**
@@ -104,12 +89,8 @@ export class CreateService {
    * Must not be called when the current node is the root node, which is notified by a
    * NavStepStatus with current at zero.
    */
-  back(steps?: number): void {
-    if (steps === undefined) {
-      steps = 1;
-    }
-
-    let current = this.current;
+  back(steps: number = 1): void {
+    let current = this._current;
     for (let i = 0; i < steps; i++) {
       const parent = current.parent;
       if (parent === undefined) {
@@ -134,68 +115,49 @@ export class CreateService {
    * Otherwise the router is asked to display the next step.
    */
   next(): void {
-    if (this.subComponent === undefined) {
-      console.warn('CreateService next without component !')
-    }
-
-    if (this.current.isFinal) {
+    if (this._current.isFinal) {
       this.sendRequest();
       return;
     }
 
-    const next = this.current.next();
+    const next = this._current.next();
     next.handledFields = new Set<string>();
-    for (const prop of this.current.handledFields) {
+    for (const prop of this._current.handledFields) {
       next.handledFields.add(prop);
-      next.query[prop] = cloneDeep(this.current.query[prop]);
+      next.query[prop] = cloneDeep(this._current.query[prop]);
     }
     this.makeCurrent(next);
   }
 
   /**
-   * Notify the CreateService that a subcomponent is now displayed.
-   * This method must be called by subcomponent each time they're displayed.
-   * The returned object can (and should) be modified by the subcomponent.
+   * Modifies some fields of the current query.
+   * This method is to be called by components editing the parameters of the poll to be created.
+   * Beware that, since this method modifies the query, it usually sends an event on query$.
    */
-  register(subComp: CreateSubComponent): Partial<CreateQuery> {
-    if (this._sending) {
-      console.warn("Registering while sending!");
-      this.reset();
-    }
-    if (this.navigateToCurrent()) {
-      return {};
+  patchQuery(stepSegment: string, patch: Partial<CreateQuery>): boolean {
+    if (stepSegment != this._current.segment) {
+      console.warn('CreateService patch from wrong step');
+      return false;
     }
 
-    // Since the subcomponent registers in some initialisation hook,
-    // and the notification may be directed to a parent of the subcomponent,
-    // there are high risks of ExpressionChangedAfterItHasBeenCheckedError.
-    // Hence, we deliver notifications asynchronously.
-    // Use of Angular's EventEmitter(true) may be more appropriate than setTimeout() (but heavier).
-
-    setTimeout(() => {
-      this._createNext.next(new CreateNextStatus(false, this.current.isFinal)),
-      this._createStep.next(this.current.makeStatus());
-    });
-
-    this.subComponent = subComp;
-    this.subComponent.validable$.subscribe({
-      next: (validable: boolean) => {
-        setTimeout(() =>
-          this._createNext.next(new CreateNextStatus(validable, this.current.isFinal))
-        );
-      },
-    });
-
-    for (const prop of this.subComponent.handledFields) {
-      this.current.handledFields.add(prop);
+    let modified = false;
+    for (const prop in patch) {
+      if (!isEqual(patch[prop], this._current.query[prop])) {
+        this._current.query[prop] = cloneDeep(patch[prop]);
+        this._current.handledFields.add(prop);
+        modified = true;
+      }
     }
-    return this.current.query;
+    if (modified) {
+      this._queryModified = true;
+      this._query$.next(this._current.query);
+    }
+    return true;
   }
 
-  /** Whether the user already set some values. */
+  /** Whether the user can leave the create section. */
   canLeave(): boolean {
-    return this._sending ||
-      (this.current === this.root && (!this.subComponent || !this.subComponent.isStarted()));
+    return this._sending || !this._queryModified;
   }
 
   /**
@@ -206,25 +168,42 @@ export class CreateService {
     if (!this._sending) {
       return undefined;
     }
-    const ret = !!this ._httpError ? this._httpError : this.current.query;
+    const ret = !!this ._httpError ? this._httpError : this._current.query;
     this.reset();
     return ret;
   }
 
   reset() {
-    this.root.reset();
-    this._sending = false;
-    this._httpError = undefined;
-    this.current = this.root;
+    this.makeCurrent(this.root, { reset: true, navigate: false });
   }
 
-  private makeCurrent(node: NavTreeNode|undefined): void {
+  private makeCurrent(
+    node: NavTreeNode,
+    options: { reset?: boolean, navigate?: boolean } = { navigate: true }
+  ): void {
     if (node === undefined) {
       console.warn('CreateService undefined current');
       return;
     }
-    this.current = node;
-    this.navigateToCurrent();
+    if (!options.reset && this._sending) {
+      console.warn('CreateService change root while current');
+      options.reset = true;
+    }
+
+    if (options.reset) {
+      this._sending = false;
+      this._httpError = undefined;
+      this.root.reset();
+      this._queryModified = false;
+    }
+
+    this._current = node;
+    this._stepStatus$.next(this._current.makeStatus());
+    this._query$.next(this._current.query);
+    
+    if (options.navigate) {
+      this.navigateToCurrent();
+    }
   }
   
   /**
@@ -233,23 +212,17 @@ export class CreateService {
    */
   private navigateToCurrent(): boolean {
     const url = this.router.routerState.snapshot.url;
-    if (url.endsWith('/' + this.current.segment)) {
+    if (url.endsWith('/' + this._current.segment)) {
       return false;
     }
 
-    if (this.subComponentSubscription !== undefined) {
-      this.subComponentSubscription.unsubscribe();
-      this.subComponentSubscription = undefined;
-    }
-    this.subComponent = undefined;
-
-    this.router.navigate(['/r/create/' + this.current.segment]);
+    this.router.navigate(['/r/create/' + this._current.segment]);
     return true;
   }
 
   private sendRequest(): void {
     this._sending = true;
-    this.http.post<string>('/a/create', this.current.query, { observe: 'body', responseType: 'json' })
+    this.http.post<string>('/a/create', this._current.query, { observe: 'body', responseType: 'json' })
       .subscribe({
       next: (segment: string) => {
         this._httpError = undefined;

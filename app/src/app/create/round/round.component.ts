@@ -14,8 +14,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Component, OnInit } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, Validators, AbstractControl, FormGroup, ValidationErrors } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 
 import { CreateService } from '../create.service';
 import { CreateSubComponentBase } from '../create-sub-component-base';
@@ -45,9 +46,10 @@ function integerValidator(control: AbstractControl): ValidationErrors | null {
 @Component({
   selector: 'app-create-round',
   templateUrl: './round.component.html',
-  styleUrls: [ './round.component.sass']
+  styleUrls: [ './round.component.sass'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class RoundComponent extends CreateSubComponentBase implements OnInit {
+export class RoundComponent extends CreateSubComponentBase implements OnInit, OnDestroy {
 
   form = this.formBuilder.group({
     Deadline: [new Date(Date.now() + (7 * 24 * 3600 * 1000))],
@@ -71,6 +73,7 @@ export class RoundComponent extends CreateSubComponentBase implements OnInit {
 
   constructor(
     protected service: CreateService,
+    protected route: ActivatedRoute,
     private formBuilder: FormBuilder,
   ) {
     super();
@@ -78,6 +81,10 @@ export class RoundComponent extends CreateSubComponentBase implements OnInit {
 
   ngOnInit(): void {
     this.initModel();
+  }
+
+  ngOnDestroy(): void {
+    this.unsubscribeAll();
   }
 
   minMax(): number {

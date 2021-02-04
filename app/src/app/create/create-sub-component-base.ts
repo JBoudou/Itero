@@ -15,14 +15,16 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { FormGroup } from '@angular/forms';
+import { ActivatedRoute, UrlSegment } from '@angular/router';
 
-import { Observable } from 'rxjs';
-import { map, startWith } from 'rxjs/operators';
+import { Observable, Subscription } from 'rxjs';
+import { map, startWith, take } from 'rxjs/operators';
 
-import { CreateService, CreateSubComponent } from '../create/create.service';
+import { CreateService } from '../create/create.service';
+import { CreateQuery } from '../api';
 
 /** Implementation of CreateSubComponent using a FormGroup. */
-export abstract class CreateSubComponentBase implements CreateSubComponent {
+export abstract class CreateSubComponentBase {
 
   /**
    * Form to edit parts of the query.
@@ -31,24 +33,16 @@ export abstract class CreateSubComponentBase implements CreateSubComponent {
   abstract form: FormGroup;
 
   protected abstract service: CreateService;
+  protected abstract route: ActivatedRoute;
+
+  protected subscriptions: Subscription[] = [];
 
   constructor(
   ) { }
 
-  /** The handled fields are the names of the controls of this.form. */
-  get handledFields(): Set<string> {
-    return new Set<string>(Object.keys(this.form.controls));
-  }
-
   /** Notifications are send each time the status of the form changes. */
   get validable$(): Observable<boolean> {
     return this.form.statusChanges.pipe(map(val => val == 'VALID'), startWith(this.form.valid));
-  }
-
-  private _started: boolean;
-
-  isStarted(): boolean {
-    return this._started || this.form.dirty;
   }
 
   /**
@@ -56,18 +50,27 @@ export abstract class CreateSubComponentBase implements CreateSubComponent {
    * Must be called in some initializing method of the subclass, usually ngOnInit.
    */
   protected initModel(): void {
-    this._started = false;
-    const query = this.service.register(this);
-    for (const prop in this.form.controls) {
-      if (query[prop] !== undefined) {
-        this._started = query[prop] != this.form.controls[prop].value;
-        this.form.controls[prop].setValue(query[prop]);
-      } else {
-        query[prop] = this.form.controls[prop].value;
-      }
-      this.form.controls[prop].valueChanges.subscribe({
-        next: value => query[prop] = value,
-      });
+    this.subscriptions.push(
+      this.service.query$.subscribe({
+        next: (query: Partial<CreateQuery>) => this.form.patchValue(query, { emitEvent: false }),
+      })
+    );
+
+    this.route.url.pipe(take(1)).subscribe({
+      next: (segments: UrlSegment[]) => {
+        const stepSegment = segments[segments.length - 1].toString();
+        this.subscriptions.push(
+          this.form.valueChanges.subscribe({
+            next: (query: Partial<CreateQuery>) => this.service.patchQuery(stepSegment, query),
+          })
+        );
+      },
+    });
+  }
+
+  protected unsubscribeAll(): void {
+    for (const sub of this.subscriptions) {
+      sub.unsubscribe();
     }
   }
 

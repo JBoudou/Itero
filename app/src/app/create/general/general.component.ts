@@ -14,8 +14,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Component, OnInit } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 
 import { CreateService } from '../create.service';
 import { CreateSubComponentBase } from '../create-sub-component-base';
@@ -23,9 +24,10 @@ import { CreateSubComponentBase } from '../create-sub-component-base';
 @Component({
   selector: 'app-create-general',
   templateUrl: './general.component.html',
-  styleUrls: ['./general.component.sass']
+  styleUrls: ['./general.component.sass'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class GeneralComponent extends CreateSubComponentBase implements OnInit {
+export class GeneralComponent extends CreateSubComponentBase implements OnInit, OnDestroy {
 
   form = this.formBuilder.group({
     Title: ['', [
@@ -38,6 +40,7 @@ export class GeneralComponent extends CreateSubComponentBase implements OnInit {
 
   constructor(
     protected service: CreateService,
+    protected route: ActivatedRoute,
     private formBuilder: FormBuilder,
   ) {
     super();
@@ -45,6 +48,10 @@ export class GeneralComponent extends CreateSubComponentBase implements OnInit {
 
   ngOnInit(): void {
     this.initModel();
+  }
+
+  ngOnDestroy(): void {
+    this.unsubscribeAll();
   }
 
 }
