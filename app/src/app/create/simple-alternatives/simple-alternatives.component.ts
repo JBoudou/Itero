@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, Validators, AbstractControl, ValidatorFn, ValidationErrors  } from '@angular/forms';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { ActivatedRoute, UrlSegment } from '@angular/router';
@@ -59,7 +59,8 @@ function duplicateValidator(component: SimpleAlternativesComponent): ValidatorFn
         animate("250ms cubic-bezier(0, 0, 0.2, 1)", style({ height: '0px' }))
       ])
     ])
-  ]
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SimpleAlternativesComponent implements OnInit, OnDestroy {
 
@@ -89,14 +90,6 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this._subscriptions.push(
-      this.form.controls['New'].statusChanges
-        .pipe(filter((status: string) => status == 'VALID' || status == 'INVALID'))
-        .subscribe(
-      {
-        next: (status: string) =>
-          this.hasDuplicate$.next(status == 'INVALID' &&
-                                  this.form.controls['New'].errors['duplicatedAlternative'] !== undefined),
-      }),
       this.route.url.subscribe({
         next: (segments: UrlSegment[]) => this._stepSegment = segments[segments.length - 1].toString(),
       }),
