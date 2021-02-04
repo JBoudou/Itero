@@ -14,11 +14,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Component, OnInit, ViewEncapsulation } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, ViewEncapsulation } from '@angular/core';
 
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject, Observable, Subscription } from 'rxjs';
+import {delay} from 'rxjs/operators';
 
-import { CreateService, CreateNextStatus } from './create.service';
+import { CreateService } from './create.service';
 import { NavStepStatus } from './navtree/navstep.status';
 
 @Component({
@@ -26,32 +27,32 @@ import { NavStepStatus } from './navtree/navstep.status';
   templateUrl: './create.component.html',
   styleUrls: ['./create.component.sass'],
   encapsulation: ViewEncapsulation.None,
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CreateComponent implements OnInit {
 
   private _stepStatus$ = new BehaviorSubject<NavStepStatus>(undefined);
-  private _nextStatus$ = new BehaviorSubject<CreateNextStatus>(undefined);
+  private _validable$  = new BehaviorSubject<boolean>(false);
 
   get stepStatus$(): Observable<NavStepStatus> {
     return this._stepStatus$;
   }
 
-  get nextStatus$(): Observable<CreateNextStatus> {
-    return this._nextStatus$;
+  get validable$(): Observable<boolean> {
+    return this._validable$;
   }
 
   constructor(
     private service: CreateService,
   ) {
+    this.service.createStepStatus$.subscribe(this._stepStatus$);
   }
 
   ngOnInit(): void {
-    this.service.createStepStatus$.subscribe(this._stepStatus$);
-    this.service.createNextStatus$.subscribe(this._nextStatus$);
   }
 
   onJump(pos: number): void {
-    if (!this._stepStatus$.value.isNavigable(pos, this._nextStatus$.value.validable)) {
+    if (!this._stepStatus$.value.isNavigable(pos, this._validable$.value)) {
       return;
     }
     const current = this._stepStatus$.value.current;
@@ -59,6 +60,27 @@ export class CreateComponent implements OnInit {
       this.service.back(current - pos);
     } else {
       this.service.next();
+    }
+  }
+
+  private _validableSubscription: Subscription | undefined;
+
+  onActivate(component: any): void {
+    if ('validable$' in component) {
+      if (this._validableSubscription !== undefined) {
+        this._validableSubscription.unsubscribe();
+      }
+      // The first event needs to be delayed because otherwise it will happen during the same
+      // rendering cycle but after its parent (the current CreateComponent), resulting in an error.
+      this._validableSubscription = component.validable$.pipe(delay(0)).subscribe(this._validable$);
+    }
+  }
+
+  onDesactivate(component: Object): void {
+    if ("validable$" in component && this._validableSubscription !== undefined) {
+      this._validableSubscription.unsubscribe();
+      this._validableSubscription = undefined;
+      this._validable$.next(false);
     }
   }
 
