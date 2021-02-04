@@ -15,7 +15,15 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { Component, Injectable } from '@angular/core';
-import { ActivatedRouteSnapshot, RouterStateSnapshot, UrlTree, CanDeactivate } from '@angular/router';
+
+import {
+  ActivatedRouteSnapshot,
+  CanActivate,
+  CanDeactivate,
+  Router,
+  RouterStateSnapshot,
+  UrlTree,
+} from '@angular/router';
 
 import { Observable } from 'rxjs';
 import { map }        from 'rxjs/operators';
@@ -23,16 +31,27 @@ import { MatDialog }  from '@angular/material/dialog';
 
 import { CreateComponent }  from './create.component';
 import { CreateService }    from './create.service';
-import { ResultComponent }  from './result/result.component';
 
 /** Ask the user what to do when leaving create routes. */
 @Injectable()
-export class LeaveCreateGuard implements CanDeactivate<CreateComponent> {
+export class CreateGuard implements CanActivate, CanDeactivate<CreateComponent> {
 
   constructor(
     private dialog: MatDialog,
     private service: CreateService,
+    private router: Router,
   ) { }
+
+  canActivate(
+    route: ActivatedRouteSnapshot,
+    state: RouterStateSnapshot,
+  ): Observable<boolean | UrlTree> | Promise<boolean | UrlTree> | boolean | UrlTree {
+    const serviceUrl = this.service.currentUrl();
+    if (state.url === serviceUrl) {
+      return true;
+    }
+    return this.router.parseUrl(serviceUrl);
+  }
 
   canDeactivate(
     component: CreateComponent,

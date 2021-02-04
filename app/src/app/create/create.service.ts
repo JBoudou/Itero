@@ -83,6 +83,9 @@ export class CreateService {
     this.makeCurrent(this.root, { navigate: false });
   }
 
+
+  // Interface for the layout component //
+
   /**
    * Asks the router to go back in the creation tree.
    *
@@ -129,6 +132,9 @@ export class CreateService {
     this.makeCurrent(next);
   }
 
+
+  // Interface for editing components //
+
   /**
    * Modifies some fields of the current query.
    * This method is to be called by components editing the parameters of the poll to be created.
@@ -155,10 +161,24 @@ export class CreateService {
     return true;
   }
 
+
+  // Interface for guards //
+
+  currentUrl(): string {
+    return '/r/create/' + this._current.segment;
+  }
+
   /** Whether the user can leave the create section. */
   canLeave(): boolean {
     return this._sending || !this._queryModified;
   }
+
+  reset() {
+    this.makeCurrent(this.root, { reset: true, navigate: false });
+  }
+
+
+  // Interface for result page //
 
   /**
    * Get the result of sending the create request.
@@ -173,9 +193,8 @@ export class CreateService {
     return ret;
   }
 
-  reset() {
-    this.makeCurrent(this.root, { reset: true, navigate: false });
-  }
+
+  // Private methods //
 
   private makeCurrent(
     node: NavTreeNode,
@@ -217,7 +236,7 @@ export class CreateService {
       return false;
     }
 
-    this.router.navigate(['/r/create/' + this._current.segment]);
+    this.router.navigate([this.currentUrl()]);
     return true;
   }
 

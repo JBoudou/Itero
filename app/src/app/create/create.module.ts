@@ -31,7 +31,7 @@ import { PollModule }       from '../poll/poll.module';
 
 import { CreateRoutingModule } from './create-routing.module';
 import { CreateService, CREATE_TREE, APP_CREATE_TREE } from './create.service';
-import { LeaveCreateGuard, LeaveCreateDialog } from './leave-create.guard';
+import { CreateGuard, LeaveCreateDialog } from './create.guard';
 
 import { CreateComponent }              from './create.component';
 import { GeneralComponent }             from './general/general.component';
@@ -69,7 +69,7 @@ import { NavbuttonsComponent } from './navtree/navbuttons.component';
   ],
   providers: [
     CreateService,
-    LeaveCreateGuard,
+    CreateGuard,
     { provide: CREATE_TREE, useValue: APP_CREATE_TREE },
   ],
 })

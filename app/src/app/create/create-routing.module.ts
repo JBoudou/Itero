@@ -18,7 +18,7 @@ import { NgModule } from '@angular/core';
 import { Routes, RouterModule } from '@angular/router';
 
 import { LoggedGuard } from '../session/logged.guard';
-import { LeaveCreateGuard } from './leave-create.guard';
+import { CreateGuard } from './create.guard';
 
 import { CreateComponent }              from './create.component';
 import { GeneralComponent }             from './general/general.component';
@@ -27,18 +27,18 @@ import { RoundComponent }               from './round/round.component';
 import { ResultComponent }              from './result/result.component';
 
 const routes: Routes = [
+  { path: 'result/:pollSegment', component: ResultComponent },
   {
     path: '',
     component: CreateComponent,
-    canActivate: [ LoggedGuard ],
-    canDeactivate: [ LeaveCreateGuard ],
+    canActivate: [ LoggedGuard, CreateGuard ],
+    canDeactivate: [ CreateGuard ],
     children: [
     { path: 'general', component: GeneralComponent },
     { path: 'simpleAlternatives', component: SimpleAlternativesComponent },
     { path: 'round', component: RoundComponent },
     { path: '', redirectTo: 'general', pathMatch: 'full' },
   ] },
-  { path: 'result/:pollSegment', component: ResultComponent },
 ];
 
 @NgModule({
