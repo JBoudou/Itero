@@ -45,7 +45,7 @@ export class CreateComponent implements OnInit {
   constructor(
     private service: CreateService,
   ) {
-    this.service.createStepStatus$.subscribe(this._stepStatus$);
+    this.service.stepStatus$.subscribe(this._stepStatus$);
   }
 
   ngOnInit(): void {

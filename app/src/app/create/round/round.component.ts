@@ -98,7 +98,7 @@ export class RoundComponent extends CreateSubComponentBase implements OnInit, On
   tooEarlyDeadline(): boolean {
     return this.form.controls['Deadline'].dirty &&
           !this.form.valid &&
-         !!this.form.errors['earlyDeadline'];
+         !!this.form.errors?.['earlyDeadline'];
   }
 
   wrongInterval(): boolean {

@@ -52,18 +52,22 @@ export abstract class CreateSubComponentBase {
   protected initModel(): void {
     this.subscriptions.push(
       this.service.query$.subscribe({
-        next: (query: Partial<CreateQuery>) => this.form.patchValue(query, { emitEvent: false }),
+        next: (query: Partial<CreateQuery>) => this.form.patchValue(query),
       })
     );
 
+    // Once stepSegment is known, subscribe to valueChanges for each control in this.form.
     this.route.url.pipe(take(1)).subscribe({
       next: (segments: UrlSegment[]) => {
         const stepSegment = segments[segments.length - 1].toString();
-        this.subscriptions.push(
-          this.form.valueChanges.subscribe({
-            next: (query: Partial<CreateQuery>) => this.service.patchQuery(stepSegment, query),
-          })
-        );
+        for (const prop in this.form.controls) {
+          const control = this.form.controls[prop];
+          this.subscriptions.push(
+            control.valueChanges.subscribe({
+              next: value => this.service.patchQuery(stepSegment, { [prop]: value }),
+            })
+          );
+        };
       },
     });
   }

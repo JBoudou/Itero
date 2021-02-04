@@ -198,12 +198,13 @@ export class CreateService {
     }
 
     this._current = node;
-    this._stepStatus$.next(this._current.makeStatus());
-    this._query$.next(this._current.query);
-    
     if (options.navigate) {
       this.navigateToCurrent();
     }
+
+    this._stepStatus$.next(this._current.makeStatus());
+    // The query must be sent later, such that the correct component receives it.
+    setTimeout(() => this._query$.next(this._current.query), 0);
   }
   
   /**

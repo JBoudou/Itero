@@ -14,16 +14,19 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, Validators, AbstractControl, ValidatorFn, ValidationErrors  } from '@angular/forms';
 import { trigger, transition, style, animate } from '@angular/animations';
+import { ActivatedRoute, UrlSegment } from '@angular/router';
 
-import { Subject, Observable } from 'rxjs';
+import { BehaviorSubject, Observable, Subscription } from 'rxjs';
+import { filter } from 'rxjs/operators';
 
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 
-import { CreateService, CreateSubComponent } from '../create.service';
-import { PollAlternative } from '../../api';
+import { CreateService } from '../create.service';
+import { PollAlternative, CreateQuery } from '../../api';
+import {cloneDeep, isEqual} from 'lodash';
 
 
 function duplicateValidator(component: SimpleAlternativesComponent): ValidatorFn {
@@ -58,7 +61,7 @@ function duplicateValidator(component: SimpleAlternativesComponent): ValidatorFn
     ])
   ]
 })
-export class SimpleAlternativesComponent implements OnInit, CreateSubComponent {
+export class SimpleAlternativesComponent implements OnInit, OnDestroy {
 
   form = this.formBuilder.group({
     New: ['', [
@@ -67,30 +70,53 @@ export class SimpleAlternativesComponent implements OnInit, CreateSubComponent {
     ]],
   });
 
-  alternatives: PollAlternative[];
+  alternatives: PollAlternative[] = [];
+  hasDuplicate$ = new BehaviorSubject<boolean>(false);
+
+  private _stepSegment: string;
+  private _subscriptions: Subscription[] = [];
+  
   justDeleted: number|undefined;
 
-  readonly handledFields = new Set<string>(['Alternatives']);
-
-  private _validable = new Subject<boolean>();
-  get validable$(): Observable<boolean> { return this._validable; }
-
-  isStarted(): boolean {
-    return this.alternatives.length > 0;
-  }
+  private _validable$ = new BehaviorSubject<boolean>(false);
+  get validable$(): Observable<boolean> { return this._validable$; }
 
   constructor(
     private service: CreateService,
+    private route: ActivatedRoute,
     private formBuilder: FormBuilder,
   ){ }
 
   ngOnInit(): void {
-    const query = this.service.register(this);
-    if (query.Alternatives === undefined) {
-      query.Alternatives = [];
+    this._subscriptions.push(
+      this.form.controls['New'].statusChanges
+        .pipe(filter((status: string) => status == 'VALID' || status == 'INVALID'))
+        .subscribe(
+      {
+        next: (status: string) =>
+          this.hasDuplicate$.next(status == 'INVALID' &&
+                                  this.form.controls['New'].errors['duplicatedAlternative'] !== undefined),
+      }),
+      this.route.url.subscribe({
+        next: (segments: UrlSegment[]) => this._stepSegment = segments[segments.length - 1].toString(),
+      }),
+      this.service.query$.subscribe({
+        next: (query: Partial<CreateQuery>) => this.synchronizeFromService(query),
+      }),
+    );
+  }
+
+  ngOnDestroy(): void {
+    this._subscriptions.forEach(sub => sub.unsubscribe());
+  }
+
+  private synchronizeFromService(query: Partial<CreateQuery>): void {
+    if (query.Alternatives === undefined || isEqual(query.Alternatives, this.alternatives)) {
+      return;
     }
-    this.alternatives = query.Alternatives;
-    this._validable.next(this.alternatives.length >= 2);
+    this.alternatives = cloneDeep(query.Alternatives);
+    this.form.updateValueAndValidity();
+    this._validable$.next(this.alternatives.length >= 2);
   }
 
   hasDuplicate(): boolean {
@@ -107,8 +133,10 @@ export class SimpleAlternativesComponent implements OnInit, CreateSubComponent {
     this.form.patchValue({New: ''});
     
     if (this.alternatives.length == 2) {
-      this._validable.next(true);
+      this._validable$.next(true);
     }
+
+    this.service.patchQuery(this._stepSegment, { Alternatives: this.alternatives });
   }
 
   onDrop(event: CdkDragDrop<string[]>): void {
@@ -117,6 +145,8 @@ export class SimpleAlternativesComponent implements OnInit, CreateSubComponent {
           last = Math.max(event.previousIndex, event.currentIndex); i <= last; i++) {
       this.alternatives[i].Id = i;
     }
+
+    this.service.patchQuery(this._stepSegment, { Alternatives: this.alternatives });
   }
 
   onDelete(pos: number): void {
@@ -135,8 +165,10 @@ export class SimpleAlternativesComponent implements OnInit, CreateSubComponent {
     this.justDeleted = undefined;
     
     if (this.alternatives.length == 1) {
-      this._validable.next(false);
+      this._validable$.next(false);
     }
+
+    this.service.patchQuery(this._stepSegment, { Alternatives: this.alternatives });
   }
 
 }
