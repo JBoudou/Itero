@@ -14,10 +14,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Component, ChangeDetectionStrategy, OnInit, ViewEncapsulation } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, ViewEncapsulation, TemplateRef } from '@angular/core';
 
-import { BehaviorSubject, Observable, Subscription } from 'rxjs';
-import {delay} from 'rxjs/operators';
+import { BehaviorSubject, Observable, Subscription, Subject } from 'rxjs';
+import { delay } from 'rxjs/operators';
 
 import { CreateService } from './create.service';
 import { NavStepStatus } from './navtree/navstep.status';
@@ -42,10 +42,15 @@ export class CreateComponent implements OnInit {
     return this._validable$;
   }
 
+  infoContext: any;
+
+  infoTemplate$ = new Subject<TemplateRef<any>>();
+
   constructor(
     private service: CreateService,
   ) {
     this.service.stepStatus$.subscribe(this._stepStatus$);
+    this.infoContext = { $implicit: true, query$: this.service.query$ };
   }
 
   ngOnInit(): void {
@@ -74,6 +79,7 @@ export class CreateComponent implements OnInit {
       // rendering cycle but after its parent (the current CreateComponent), resulting in an error.
       this._validableSubscription = component.validable$.pipe(delay(0)).subscribe(this._validable$);
     }
+    setTimeout(() => this.infoTemplate$.next(component.infoTemplate), 0);
   }
 
   onDesactivate(component: Object): void {

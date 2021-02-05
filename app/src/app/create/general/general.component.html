@@ -6,3 +6,28 @@
     <mat-option [value]="true" i18n>Spread the link</mat-option>
   </mat-select>
 </form>
+
+<ng-template #stepInfo let-query="query$">
+  <ng-container *ngIf="query | async as q; else argh">
+    <p i18n>
+      The title of the poll should be the question the poll will answer to.
+    </p>
+    <p i18n>
+      The optional description may give some additional information,
+      for instance about the different alternatives.
+    </p>
+    <p *ngIf="!q.Hidden; else Hidden" i18n>
+      The title will be displayed in the list of polls,
+      allowing any user to participate in.
+      If you don't want the poll to be public, select "Spread the link" as Publicity.
+    </p>
+    <ng-template #Hidden>
+      <p>
+        The title will be displayed in the list of poll only for the participants in the poll.
+        You will have to send the link of the to all the participants.
+        If you prefer your poll to be public, select "Display the poll in the list" as Publicity.
+      </p>
+    </ng-template>
+  </ng-container>
+  <ng-template #argh>Argh!</ng-template>
+</ng-template>

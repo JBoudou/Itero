@@ -1,6 +1,13 @@
 <h3 i18n>Create a new poll</h3>
-<div id="creation">
-  <app-navtree    [stepStatus]="stepStatus$ | async" [validable]="validable$ | async" (navigateTo)="onJump($event)"></app-navtree>
-  <router-outlet (activate)="onActivate($event)" (desactivate)="onDesactivate($event)"></router-outlet>
-  <app-navbuttons [stepStatus]="stepStatus$ | async" [validable]="validable$ | async" (navigateTo)="onJump($event)"></app-navbuttons>
+<div class="create-container">
+  <div id="creation">
+    <app-navtree    [stepStatus]="stepStatus$ | async" [validable]="validable$ | async" (navigateTo)="onJump($event)"></app-navtree>
+    <router-outlet (activate)="onActivate($event)" (desactivate)="onDesactivate($event)"></router-outlet>
+    <app-navbuttons [stepStatus]="stepStatus$ | async" [validable]="validable$ | async" (navigateTo)="onJump($event)"></app-navbuttons>
+  </div>
+  <ng-container *ngIf="(infoTemplate$ | async) as tmpl">
+    <div class="information">
+      <ng-container *ngTemplateOutlet="tmpl; context: infoContext"></ng-container>
+    </div>
+  </ng-container>
 </div>

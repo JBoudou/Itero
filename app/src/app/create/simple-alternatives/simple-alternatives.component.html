@@ -21,3 +21,11 @@
     to this poll.
   </p>
 </div>
+
+<ng-template #stepInfo let-query="query$">
+  <ng-container *ngIf="query | async as q; else argh">
+    <p>The title was "{{ q.Title }}"</p>
+    <p>There are {{ q.Alternatives?.length }} alternatives.</p>
+  </ng-container>
+  <ng-template #argh>Argh!</ng-template>
+</ng-template>

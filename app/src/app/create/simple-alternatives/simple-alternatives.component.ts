@@ -14,13 +14,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Component, ChangeDetectionStrategy, OnDestroy, OnInit } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnDestroy, OnInit, ViewChild, TemplateRef } from '@angular/core';
 import { FormBuilder, Validators, AbstractControl, ValidatorFn, ValidationErrors  } from '@angular/forms';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { ActivatedRoute, UrlSegment } from '@angular/router';
 
 import { BehaviorSubject, Observable, Subscription } from 'rxjs';
-import { filter } from 'rxjs/operators';
 
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 
@@ -63,6 +62,8 @@ function duplicateValidator(component: SimpleAlternativesComponent): ValidatorFn
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SimpleAlternativesComponent implements OnInit, OnDestroy {
+
+  @ViewChild('stepInfo') infoTemplate: TemplateRef<any>;
 
   form = this.formBuilder.group({
     New: ['', [

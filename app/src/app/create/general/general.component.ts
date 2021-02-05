@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Component, ChangeDetectionStrategy, OnInit, OnDestroy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, OnDestroy, ViewChild, TemplateRef } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 
@@ -28,6 +28,8 @@ import { CreateSubComponentBase } from '../create-sub-component-base';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class GeneralComponent extends CreateSubComponentBase implements OnInit, OnDestroy {
+
+  @ViewChild('stepInfo') infoTemplate: TemplateRef<any>;
 
   form = this.formBuilder.group({
     Title: ['', [
