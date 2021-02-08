@@ -23,6 +23,12 @@ import { CreateComponent } from './create.component';
 
 import { CreateService } from './create.service';
 
+@Component({ selector: 'app-navtree', template: '' })
+class NavtreeComponentStub { }
+
+@Component({ selector: 'app-navbuttons', template: '' })
+class NavbuttonsComponentStub { }
+
 @Component({ selector: 'router-outlet', template: '' })
 class RouterOutletStub { }
 
@@ -41,6 +47,8 @@ describe('CreateComponent', () => {
     await TestBed.configureTestingModule({
       declarations: [
         CreateComponent,
+        NavtreeComponentStub,
+        NavbuttonsComponentStub,
         RouterOutletStub,
       ],
       providers: [

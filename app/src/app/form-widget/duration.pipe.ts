@@ -42,7 +42,13 @@ export class DetailedDuration {
   }
 }
 
-const durationOrder = [ 'day', 'hour', 'min' ]
+const durationOrder = [ 'days', 'hours', 'mins' ]
+
+const durationName = {
+  days : 'day',
+  hours: 'hour',
+  mins : 'minute',
+};
 
 @Pipe({
   name: 'duration'
@@ -57,10 +63,10 @@ export class DurationPipe implements PipeTransform {
     let list: string[] = [];
     const end = durationOrder.length;
     for (let pos = 0; list.length < nbTerms && pos < end; pos++) {
-      const prop = durationOrder[pos] + 's';
+      const prop = durationOrder[pos];
       const qtt = detailed[prop];
       if (qtt !== 0) {
-        list.push(qtt.toString() + ' ' + durationOrder[pos] + (qtt > 1 ? 's' : ''));
+        list.push(qtt.toString() + ' ' + durationName[prop] + (qtt > 1 ? 's' : ''));
       }
     }
 
