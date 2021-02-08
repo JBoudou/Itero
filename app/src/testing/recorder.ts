@@ -14,12 +14,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Observable, Observer } from 'rxjs';
+import { Observable, Observer, Subscription } from 'rxjs';
 
 /** Returns the events sent by the Observable on subscribe(). */
 export function justRecordedFrom<T>(obs: Observable<T>): T[] {
   const recorder = new Recorder<T>();
-  obs.subscribe(recorder);
+  obs.subscribe(recorder).unsubscribe();
   return recorder.record;
 }
 
@@ -27,6 +27,7 @@ export function justRecordedFrom<T>(obs: Observable<T>): T[] {
 export class Recorder<T> implements Observer<T> {
   private _record: T[];
   private _errors: any[];
+  private _subscription: Subscription;
 
   constructor() {
     this._record = [];
@@ -40,6 +41,22 @@ export class Recorder<T> implements Observer<T> {
 
   get errors(): any[] {
     return this._errors;
+  }
+
+  listen(obs: Observable<T>): Recorder<T> {
+    this.closed = false;
+    this._subscription = obs.subscribe(this);
+    return this;
+  }
+
+  unsubscribe(): boolean {
+    if (this._subscription !== undefined && !this.closed) {
+      this._subscription.unsubscribe();
+      this._subscription = undefined;
+      this.closed = true;
+      return true;
+    }
+    return false;
   }
 
   /* Implements Observer */

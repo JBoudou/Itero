@@ -16,25 +16,35 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule, FormBuilder, FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
+
+import { EMPTY } from 'rxjs';
+
 import { MatIconModule } from '@angular/material/icon';
 
 import { SimpleAlternativesComponent } from './simple-alternatives.component';
 
 import { CreateService } from '../create.service';
 
+import { ActivatedRouteStub } from '../../../testing/activated-route-stub'
+
 describe('SimpleAlternativesComponent', () => {
   let component: SimpleAlternativesComponent;
   let fixture: ComponentFixture<SimpleAlternativesComponent>;
   let serviceSpy: jasmine.SpyObj<CreateService>;
+  let activatedRouteStub: ActivatedRouteStub;
 
   beforeEach(async () => {
-    serviceSpy = jasmine.createSpyObj('CreateService', {register: {}});
+    serviceSpy = jasmine.createSpyObj('CreateService', {register: {}}, { query$: EMPTY });
+    activatedRouteStub = new ActivatedRouteStub();
+    
     await TestBed.configureTestingModule({
       declarations: [ SimpleAlternativesComponent ],
       imports: [ ReactiveFormsModule, FormsModule, MatIconModule ],
       providers: [
         FormBuilder,
         { provide: CreateService, useValue: serviceSpy },
+        { provide: ActivatedRoute, useValue: activatedRouteStub },
       ],
     })
     .compileComponents();

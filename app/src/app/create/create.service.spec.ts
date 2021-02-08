@@ -18,8 +18,6 @@ import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { Router } from '@angular/router';
 
-import { of } from 'rxjs';
-
 import { CREATE_TREE, CreateService } from './create.service';
 
 import { PollAlternative } from '../api';
@@ -30,37 +28,28 @@ import { Recorder, justRecordedFrom } from '../../testing/recorder';
 import { RouterStub } from '../../testing/router.stub';
 
 describe('CreateService', () => {
-  const TEST_TREE =
-    new LinearNavTreeNode('root', 'Root',
-      new LinearNavTreeNode('middle', 'Middle',
-        new FinalNavTreeNode('leaf', 'Leaf')
-      )
-    );
-
-  const dummyComponent = jasmine.createSpyObj('CreateSubComponent', [], {
-    handledFields: new Set<string>([]),
-    validable$: of(true),
-  });
-
-  const simpleComponent = jasmine.createSpyObj('CreateSubComponent', [], {
-    handledFields: new Set<string>(['MaxNbRounds', 'Alternatives']),
-    validable$: of(true),
-  });
 
   const simpleAlternative: PollAlternative = { Id: 0, Name: 'test', Cost: 1 };
 
   let service: CreateService;
   let httpControler: HttpTestingController;
   let routerSpy: RouterStub;
+  let recorder: Recorder<NavStepStatus>;
 
   beforeEach(() => {
+    const test_tree =
+      new LinearNavTreeNode('root', 'Root',
+        new LinearNavTreeNode('middle', 'Middle',
+          new FinalNavTreeNode('leaf', 'Leaf')
+        )
+      );
     routerSpy = new RouterStub('/root');
 
     TestBed.configureTestingModule({
       imports: [ HttpClientTestingModule ],
       providers: [
         CreateService,
-        { provide: CREATE_TREE, useValue: TEST_TREE },
+        { provide: CREATE_TREE, useValue: test_tree },
         { provide: Router, useValue: routerSpy },
       ],
     });
@@ -68,9 +57,11 @@ describe('CreateService', () => {
     httpControler = TestBed.inject(HttpTestingController);
 
     jasmine.clock().install();
+    recorder = new Recorder<NavStepStatus>();
   });
 
   afterEach(function() {
+    recorder.unsubscribe();
     jasmine.clock().uninstall();
   });
 
@@ -78,30 +69,9 @@ describe('CreateService', () => {
     expect(service).toBeTruthy();
   });
 
-  /*
-
-  it('registers subComponent', () => {
-    const recorder = new Recorder<CreateNextStatus>();
-    service.createNextStatus$.subscribe(recorder);
-
-    service.register(dummyComponent);
-    jasmine.clock().tick(1);
-
-    expect(recorder.record).toEqual([
-        new CreateNextStatus(false, false),
-        new CreateNextStatus(true, false),
-    ]);
-    expect(justRecordedFrom(service.createStepStatus$)).toEqual([ new NavStepStatus(0, ['Root', 'Middle', 'Leaf']) ]);
-  });
-
   it('goes next', () => {
-    service.register(dummyComponent);
-    jasmine.clock().tick(1);
-
-    const recorder = new Recorder<NavStepStatus>();
-    service.createStepStatus$.subscribe(recorder);
+    recorder.listen(service.stepStatus$);
     service.next();
-    service.register(dummyComponent);
     jasmine.clock().tick(1);
 
     expect(recorder.record).toEqual([
@@ -115,15 +85,11 @@ describe('CreateService', () => {
   });
 
   it('goes back', () => {
-    service.register(dummyComponent);
     service.next();
-    service.register(dummyComponent);
     jasmine.clock().tick(1);
 
-    const recorder = new Recorder<NavStepStatus>();
-    service.createStepStatus$.subscribe(recorder);
+    recorder.listen(service.stepStatus$);
     service.back();
-    service.register(dummyComponent);
     jasmine.clock().tick(1);
 
     expect(recorder.record).toEqual([
@@ -137,17 +103,12 @@ describe('CreateService', () => {
   });
 
   it('goes back twice', () => {
-    service.register(dummyComponent);
     service.next();
-    service.register(dummyComponent);
     service.next();
-    service.register(dummyComponent);
     jasmine.clock().tick(1);
 
-    const recorder = new Recorder<NavStepStatus>();
-    service.createStepStatus$.subscribe(recorder);
+    recorder.listen(service.stepStatus$);
     service.back(2);
-    service.register(dummyComponent);
     jasmine.clock().tick(1);
 
     expect(recorder.record).toEqual([
@@ -162,56 +123,53 @@ describe('CreateService', () => {
 
   it('copies fields when going next', () => {
     // root
-    let query = service.register(simpleComponent);
-    query.MaxNbRounds = 2;
-    query.Alternatives = [];
+    service.patchQuery('root', { MaxNbRounds: 2, Alternatives: [] });
 
     // middle
     service.next();
-    query = service.register(simpleComponent);
+
+    jasmine.clock().tick(1);
+    const query = justRecordedFrom(service.query$)[0];
     expect(query.MaxNbRounds).toBe(2);
     expect(query.Alternatives).toEqual([]);
   });
 
   it('reset fields when going back', () => {
     // root
-    let query = service.register(simpleComponent);
-    query.MaxNbRounds = 2;
-    query.Alternatives = [];
+    service.patchQuery('root', { MaxNbRounds: 2, Alternatives: [] });
 
     // middle
     service.next();
-    query = service.register(simpleComponent);
-    query.MaxNbRounds = 3;
-    query.Alternatives.push(simpleAlternative);
+    service.patchQuery('middle', { MaxNbRounds: 3, Alternatives: [simpleAlternative] });
 
     // back
     service.back();
-    query = service.register(simpleComponent);
+
+    jasmine.clock().tick(1);
+    const query = justRecordedFrom(service.query$)[0];
     expect(query.MaxNbRounds).toBe(2);
     expect(query.Alternatives).toEqual([]);
   });
 
   it('recalls fields when going next again', () => {
     // root
-    let query = service.register(simpleComponent);
-    query.MaxNbRounds = 2;
-    query.Alternatives = [];
+    service.patchQuery('root', { MaxNbRounds: 2, Alternatives: [] });
 
     // middle
     service.next();
-    query = service.register(simpleComponent);
-    query.MaxNbRounds = 3;
-    query.Alternatives.push(simpleAlternative);
+    service.patchQuery('middle', { MaxNbRounds: 3, Alternatives: [simpleAlternative] });
 
     // next again
     service.back();
-    // We do NOT register a component here. Therefore there must be NO handledFields for root now.
     service.next();
-    query = service.register(simpleComponent);
+
+    jasmine.clock().tick(1);
+    const query = justRecordedFrom(service.query$)[0];
     expect(query.MaxNbRounds).toBe(3);
     expect(query.Alternatives).toEqual([simpleAlternative]);
   });
+
+  /*
 
   it('resets fields after a successfull validation', () => {
     // root

@@ -15,6 +15,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { TestBed } from '@angular/core/testing';
+import { Router } from '@angular/router';
 
 import { MatDialogModule }  from '@angular/material/dialog';
 
@@ -22,9 +23,12 @@ import { CreateGuard } from './create.guard';
 
 import { CreateService } from './create.service';
 
+import { RouterStub } from '../../testing/router.stub';
+
 describe('CreateGuard', () => {
   let guard: CreateGuard;
   let createSpy: jasmine.SpyObj<CreateService>;
+  let routerSpy: RouterStub;
 
   beforeEach(() => {
     createSpy = jasmine.createSpyObj('CreateService', ['isStarted', 'reset']);
@@ -34,6 +38,7 @@ describe('CreateGuard', () => {
       providers: [
         CreateGuard,
         { provide: CreateService, useValue: createSpy },
+        { provide: Router, useValue: routerSpy },
       ],
     });
     guard = TestBed.inject(CreateGuard);

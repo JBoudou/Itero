@@ -16,6 +16,7 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule, FormBuilder, FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 
 import { MatSelectModule }  from '@angular/material/select'; 
 
@@ -23,19 +24,25 @@ import { GeneralComponent } from './general.component';
 
 import { CreateService } from '../create.service';
 
+import { ActivatedRouteStub } from '../../../testing/activated-route-stub'
+
 describe('GeneralComponent', () => {
   let component: GeneralComponent;
   let fixture: ComponentFixture<GeneralComponent>;
   let serviceSpy: jasmine.SpyObj<CreateService>;
+  let activatedRouteStub: ActivatedRouteStub;
 
   beforeEach(async () => {
     serviceSpy = jasmine.createSpyObj('CreateService', {register: {}});
+    activatedRouteStub = new ActivatedRouteStub();
+    
     await TestBed.configureTestingModule({
       declarations: [ GeneralComponent ],
       imports: [ ReactiveFormsModule, FormsModule, MatSelectModule ],
       providers: [
         FormBuilder,
         { provide: CreateService, useValue: serviceSpy },
+        { provide: ActivatedRoute, useValue: activatedRouteStub },
       ],
     })
     .compileComponents();

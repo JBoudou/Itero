@@ -16,19 +16,25 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule, FormBuilder, FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 
 import { RoundComponent } from './round.component';
-import { FormWidgetModule } from '../../form-widget/form-widget.module';
 
 import { CreateService } from '../create.service';
+import { FormWidgetModule } from '../../form-widget/form-widget.module';
+
+import { ActivatedRouteStub } from '../../../testing/activated-route-stub'
 
 describe('RoundComponent', () => {
   let component: RoundComponent;
   let fixture: ComponentFixture<RoundComponent>;
   let serviceSpy: jasmine.SpyObj<CreateService>;
+  let activatedRouteStub: ActivatedRouteStub;
 
   beforeEach(async () => {
     serviceSpy = jasmine.createSpyObj('CreateService', {register: {}});
+    activatedRouteStub = new ActivatedRouteStub();
+    
     await TestBed.configureTestingModule({
       declarations: [
         RoundComponent,
@@ -41,6 +47,7 @@ describe('RoundComponent', () => {
       providers: [
         FormBuilder,
         { provide: CreateService, useValue: serviceSpy },
+        { provide: ActivatedRoute, useValue: activatedRouteStub },
       ],
     })
     .compileComponents();

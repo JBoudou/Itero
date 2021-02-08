@@ -36,8 +36,7 @@ describe('CreateComponent', () => {
       'back',
       'next',
     ],{
-      'createStepStatus$': EMPTY,
-      'createNextStatus$': EMPTY,
+      'stepStatus$': EMPTY,
     });
     await TestBed.configureTestingModule({
       declarations: [
