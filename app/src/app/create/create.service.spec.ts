@@ -20,7 +20,7 @@ import { Router } from '@angular/router';
 
 import { of } from 'rxjs';
 
-import { CREATE_TREE, CreateNextStatus, CreateService, } from './create.service';
+import { CREATE_TREE, CreateService } from './create.service';
 
 import { PollAlternative } from '../api';
 import { FinalNavTreeNode, LinearNavTreeNode, } from './navtree/navtree.node';
@@ -77,6 +77,8 @@ describe('CreateService', () => {
   it('should be created', () => {
     expect(service).toBeTruthy();
   });
+
+  /*
 
   it('registers subComponent', () => {
     const recorder = new Recorder<CreateNextStatus>();
@@ -237,5 +239,7 @@ describe('CreateService', () => {
     expect(query.MaxNbRounds).toBeUndefined();
     expect(query.Alternatives).toBeUndefined();
   });
+
+  */
 
 });

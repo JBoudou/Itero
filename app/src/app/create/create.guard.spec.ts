@@ -18,12 +18,12 @@ import { TestBed } from '@angular/core/testing';
 
 import { MatDialogModule }  from '@angular/material/dialog';
 
-import { LeaveCreateGuard } from './leave-create.guard';
+import { CreateGuard } from './create.guard';
 
 import { CreateService } from './create.service';
 
-describe('LeaveCreateGuard', () => {
-  let guard: LeaveCreateGuard;
+describe('CreateGuard', () => {
+  let guard: CreateGuard;
   let createSpy: jasmine.SpyObj<CreateService>;
 
   beforeEach(() => {
@@ -32,11 +32,11 @@ describe('LeaveCreateGuard', () => {
     TestBed.configureTestingModule({
       imports: [ MatDialogModule ],
       providers: [
-        LeaveCreateGuard,
+        CreateGuard,
         { provide: CreateService, useValue: createSpy },
       ],
     });
-    guard = TestBed.inject(LeaveCreateGuard);
+    guard = TestBed.inject(CreateGuard);
   });
 
   it('should be created', () => {

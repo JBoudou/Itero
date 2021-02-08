@@ -137,10 +137,14 @@ export class CreateService {
 
   /**
    * Modifies some fields of the current query.
+   * 
    * This method is to be called by components editing the parameters of the poll to be created.
    * Beware that, since this method modifies the query, it usually sends an event on query$.
+   * The query is marked as modified, unless defaultValues option is set to true.
    */
-  patchQuery(stepSegment: string, patch: Partial<CreateQuery>): boolean {
+  patchQuery(stepSegment: string, patch: Partial<CreateQuery>,
+             options: { defaultValues: boolean } = { defaultValues: false}
+  ): boolean {
     if (stepSegment != this._current.segment) {
       console.warn('CreateService patch from wrong step');
       return false;
@@ -155,7 +159,9 @@ export class CreateService {
       }
     }
     if (modified) {
-      this._queryModified = true;
+      if (!options.defaultValues) {
+        this._queryModified = true;
+      }
       this._query$.next(this._current.query);
     }
     return true;

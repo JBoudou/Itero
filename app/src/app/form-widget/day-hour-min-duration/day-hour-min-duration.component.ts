@@ -17,6 +17,8 @@
 import { Component, OnInit, Input, Self, Optional } from '@angular/core';
 import { ControlValueAccessor, NgControl, FormBuilder } from '@angular/forms';
 
+import { DetailedDuration } from '../duration.pipe';
+
 @Component({
   selector: 'app-day-hour-min-duration',
   templateUrl: './day-hour-min-duration.component.html',
@@ -51,7 +53,7 @@ export class DayHourMinDurationComponent implements OnInit, ControlValueAccessor
   onValueChange(): void {
     const { days, hours, mins } = this.form.value;
     if (Number.isInteger(days) && Number.isInteger(hours) && Number.isInteger(mins)) {
-      this.notifChange(((days * 24 + hours) * 60 + mins) * 60 * 1000);
+      this.notifChange(new DetailedDuration(days, hours, mins).toMilliseconds());
     } else {
       this.notifChange(null);
     }
@@ -65,11 +67,7 @@ export class DayHourMinDurationComponent implements OnInit, ControlValueAccessor
       return;
     }
     
-    this.form.setValue({
-      days : Math.round(obj / (24 * 3600 * 1000)),
-      hours: Math.round(obj /      (3600 * 1000)) % 24,
-      mins : Math.round(obj /         60 * 1000 ) % 60,
-    });
+    this.form.patchValue(DetailedDuration.fromMilliseconds(obj));
   }
 
   setDisabledState(isDisabled: boolean): void {

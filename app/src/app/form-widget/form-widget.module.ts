@@ -20,12 +20,14 @@ import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 
 import { DateTimePickerComponent } from './date-time-picker/date-time-picker.component';
 import { DayHourMinDurationComponent } from './day-hour-min-duration/day-hour-min-duration.component';
+import { DurationPipe } from './duration.pipe';
 
 
 @NgModule({
   declarations: [
     DateTimePickerComponent,
     DayHourMinDurationComponent,
+    DurationPipe,
   ],
   imports: [
     CommonModule,
@@ -35,6 +37,7 @@ import { DayHourMinDurationComponent } from './day-hour-min-duration/day-hour-mi
   exports: [
     DateTimePickerComponent,
     DayHourMinDurationComponent,
+    DurationPipe,
   ],
 })
 export class FormWidgetModule { }

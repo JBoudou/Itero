@@ -50,31 +50,57 @@ export abstract class CreateSubComponentBase {
    * Must be called in some initializing method of the subclass, usually ngOnInit.
    */
   protected initModel(): void {
-    this.subscriptions.push(
-      this.service.query$.subscribe({
-        next: (query: Partial<CreateQuery>) => this.form.patchValue(query),
-      })
-    );
-
-    // Once stepSegment is known, subscribe to valueChanges for each control in this.form.
     this.route.url.pipe(take(1)).subscribe({
       next: (segments: UrlSegment[]) => {
         const stepSegment = segments[segments.length - 1].toString();
-        for (const prop in this.form.controls) {
-          const control = this.form.controls[prop];
-          this.subscriptions.push(
-            control.valueChanges.subscribe({
-              next: value => this.service.patchQuery(stepSegment, { [prop]: value }),
-            })
-          );
-        };
-      },
+        this._initModel(stepSegment);
+      }
     });
   }
 
   protected unsubscribeAll(): void {
     for (const sub of this.subscriptions) {
       sub.unsubscribe();
+    }
+  }
+  
+  private _initModel(stepSegment: string): void {
+    this.subscriptions.push(
+      this.service.query$.subscribe({
+        next: (query: Partial<CreateQuery>) => this._synchronize(stepSegment, query),
+      })
+    );
+
+    // Subscribe to valueChanges for each control in this.form.
+    for (const prop in this.form.controls) {
+      const control = this.form.controls[prop];
+      this.subscriptions.push(
+        control.valueChanges.subscribe({
+          next: value => this.service.patchQuery(stepSegment, { [prop]: value }),
+        })
+      );
+    };
+  }
+
+  private _first_synchronize_done: boolean = false;
+
+  private _synchronize(stepSegment: string, query: Partial<CreateQuery>) {
+    this.form.patchValue(query);
+
+    if (!this._first_synchronize_done) {
+      let toSend: any = {};
+      let somethingToSend: boolean = false;
+      for (const prop in this.form.controls) {
+        const val = this.form.controls[prop].value;
+        if (query[prop] === undefined && val !== undefined) {
+          toSend[prop] = val;
+          somethingToSend = true;
+        }
+      }
+      if (somethingToSend) {
+        this.service.patchQuery(stepSegment, toSend, { defaultValues: true });
+      }
+      this._first_synchronize_done = true;
     }
   }
 

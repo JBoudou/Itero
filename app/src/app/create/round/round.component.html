@@ -28,14 +28,14 @@
 <ng-template #stepInfo let-query="query$">
   <ng-container *ngIf="query | async as q">
     <p>
-      The poll will consists of {{ q.MinNbRounds }} to {{ q.MaxNbRounds }} rounds.
+      The poll is divided in {{ q.MinNbRounds }} to {{ q.MaxNbRounds }} rounds.
       At each round, the participants will have to choose one of the alternatives.
-      A round ends when all the participants have voted, or after {{ q.MaxRoundDuration }}.
+      A round ends when all the participants have voted, or after {{ q.MaxRoundDuration | duration }}.
     </p>
     <p>
       The poll ends after the 
       {q.MaxNbRounds, plural, =2 { second } =3 { third } other {{{q.MaxNbRounds}}nd }} round,
-      or on {{ q.Deadline | date }} if at least {{ q.MinNbRounds }} round have already been done,
+      or on {{ q.Deadline | date }} if at least {{ q.MinNbRounds }} rounds have already been done,
       whichever happens first.
     </p>
   </ng-container>
