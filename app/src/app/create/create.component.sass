@@ -1,10 +1,13 @@
 @import '../../colors'
 
 .create-container
-  display: flex
+  display: grid
+  grid-template-columns: max-content minmax(min-content, 25%)
 
-#creation
-  width: max-content
+app-navtree
+  grid-column: span 2
+
+app-navbuttons
   .formactions
     margin-top: 8px
   .basicform
@@ -14,7 +17,6 @@
   margin-left: 8px
   border-left: solid 1px $maincolor
   padding-left: 8px
-  max-width: 25%
   p
     font-style: italic
     margin-top: 0

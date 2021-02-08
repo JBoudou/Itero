@@ -88,7 +88,7 @@ form.basicform
     
 form.basicform
   display: grid
-  grid-template-columns: max-content min-content
+  grid-template-columns: max-content max-content
   gap: 4px
   align-items: center
   label, input
@@ -130,3 +130,9 @@ $itero-mat-theme: mat-light-theme(( color: ( primary: $itero-mat-primary, accent
       transform: none
   .mat-form-field-outline > div
     background-color: $softbgcolor
+
+
+// :host does not seems to work for lazy loaded components
+app-create
+  display: block
+  max-width: max-content
