@@ -1,6 +1,5 @@
 <ng-container *ngIf="finalResult">
-  <p class="finalResult" i18n>The winner is <span class="vote">{{winner}}</span>.</p>
-  <h4 i18n>Final results</h4>
+  <p class="final-result" i18n>The winner is <span class="vote">{{winner}}</span>.</p>
 </ng-container>
 <h4 *ngIf="!finalResult" i18n>Results of the previous round</h4>
 <google-chart style="width: 400px;"

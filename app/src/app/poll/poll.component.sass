@@ -2,41 +2,27 @@
 @import '../../typo'
 @import '../../mixins'
 
-#pollmain
-  display: grid
-  grid-template-columns: minmax(min-content, 26%) minmax(14%, min-content)
-  gap: 4px
-  #pollheader
-    grid-area: 1 / 1
-  #pollround
-    grid-area: 1 / 2
-    text-align: right
-  #pollheader, #pollround
-    margin-bottom: 4px
-  #pollinformation
-    margin-top: 4px
-    grid-area: 2 / 1 / span 1 / span 2
-    border-bottom: solid 1px $maincolor
-  #pollcreation
-    font-size: smaller
-    font-style: italic
-  #pollsecondline
-    grid-area: span 1 / span 2
-    display: flex
-    & > :nth-child(n+2)
-      margin-left: 8px
-      border-left: solid 1px $maincolor
-      padding-left: 8px
+.poll-main > div:nth-child(n+2)
+  margin-top: 8px
+  border-top: $simple-frame
+  padding-top: 16px
 
-.previousVotes, .finalResult
+.poll-creation
+  font-size: smaller
+  font-style: italic
+
+.previous-vote, .just-vote, .final-result
   line-height: 1.4
   .vote
     @include userinput
     padding-top: 1px
     padding-bottom: 1px
 
-.ballothint
-  font-size: $fontsize - 1
-
 .pollballot
   @include overhilight
+  max-width: max-content
+  margin-left: auto
+  margin-right: auto
+
+.ballothint
+  float: left

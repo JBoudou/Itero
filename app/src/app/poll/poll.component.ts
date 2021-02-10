@@ -28,6 +28,7 @@ import { ActivatedRoute, ParamMap } from '@angular/router';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 
 import { Subscription } from 'rxjs';
+import { take } from 'rxjs/operators';
 
 import {
   NONE_BALLOT,
@@ -97,7 +98,7 @@ export class PollComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    this.route.paramMap.subscribe((params: ParamMap) => {
+    this.route.paramMap.pipe(take(1)).subscribe((params: ParamMap) => {
       this.segment = params.get('pollSegment');
       this.retrieveTypes();
     });
@@ -140,40 +141,11 @@ export class PollComponent implements OnInit {
 
   /** Ask the type of the poll to the middleware and creates the sub-components accordingly. */
   private retrieveTypes(): void {
-    this.http.get<PollAnswer>('/a/poll/' + this.segment).subscribe({
+    this.http.get<PollAnswer>('/a/poll/' + this.segment).pipe(take(1)).subscribe({
       next: (answer: PollAnswer) => {
-
         this.answer = answer;
-
-        // Update Ballot component
-        if (this.answer.Active && PollComponent.ballotMap.has(this.answer.Ballot)) {
-          const type = PollComponent.ballotMap.get(this.answer.Ballot);
-          const comp = this.loadSubComponent(SubComponentId.Ballot, type) as PollBallotComponent;
-
-          this.subscriptions[SubComponentId.Ballot].push(
-            comp.previousRoundBallot.subscribe({
-              next: (ballot: PollBallot) => this.previousRoundBallot = ballot,
-            }),
-            comp.currentRoundBallot.subscribe({
-              next: (ballot: PollBallot) => this.currentRoundBallot = ballot,
-            }),
-            comp.justVoteBallot.subscribe({
-              next: (ballot: PollBallot) => {
-                this.justVoteBallot = ballot;
-                this.clearSubComponent(SubComponentId.Ballot);
-              }
-            }),
-          )
-        }
-
-        // Update Information component
-        if (PollComponent.informationMap.has(this.answer.Information)) {
-          const type = PollComponent.informationMap.get(this.answer.Information);
-          const comp =
-            this.loadSubComponent(SubComponentId.Information, type) as PollInformationComponent;
-          comp.finalResult = !this.answer.Active;
-        }
-
+        // When need the ViewChilds to appear before inserting components in them.
+        setTimeout(() => this.synchronizeSubComponents(), 0);
       },
       error: (err: HttpErrorResponse) => {
         if (err.status == 403 && !this.session.logged) {
@@ -183,6 +155,37 @@ export class PollComponent implements OnInit {
         }
       }
     });
+  }
+
+  private synchronizeSubComponents(): void {
+    // Update Ballot component
+    if (this.answer.Active && PollComponent.ballotMap.has(this.answer.Ballot)) {
+      const type = PollComponent.ballotMap.get(this.answer.Ballot);
+      const comp = this.loadSubComponent(SubComponentId.Ballot, type) as PollBallotComponent;
+
+      this.subscriptions[SubComponentId.Ballot].push(
+        comp.previousRoundBallot.subscribe({
+          next: (ballot: PollBallot) => this.previousRoundBallot = ballot,
+        }),
+        comp.currentRoundBallot.subscribe({
+          next: (ballot: PollBallot) => this.currentRoundBallot = ballot,
+        }),
+        comp.justVoteBallot.subscribe({
+          next: (ballot: PollBallot) => {
+            this.justVoteBallot = ballot;
+            this.clearSubComponent(SubComponentId.Ballot);
+          }
+        }),
+      )
+    }
+
+    // Update Information component
+    if (PollComponent.informationMap.has(this.answer.Information)) {
+      const type = PollComponent.informationMap.get(this.answer.Information);
+      const comp =
+        this.loadSubComponent(SubComponentId.Information, type) as PollInformationComponent;
+      comp.finalResult = !this.answer.Active;
+    }
   }
 
   /** Disconnect then remove a sub-component. */

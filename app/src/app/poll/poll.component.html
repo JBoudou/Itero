@@ -1,40 +1,53 @@
-<div id="pollmain">
-  <h3 *ngIf="hasAnswer()" id="pollheader">{{answer.Title}}</h3>
-  <div *ngIf="hasAnswer()" id="pollinformation">
-    <p *ngIf="!!answer.Description" id="polldescription">{{answer.Description}}</p>
-    <p id="pollcreation" i18n>Poll created by {{answer.Admin}} on {{answer.CreationTime | date}}.</p>
-  </div>
-  <h4 *ngIf="hasAnswer()" id="pollround" i18n>
-    <ng-container *ngIf="answer.Active">
-      {answer.CurrentRound, plural, =0 {First round} =1 {Second round} =2 {Third round} other {{{answer.CurrentRound + 1}}nd round}}
-    </ng-container>
-    <ng-container *ngIf="!answer.Active">
-      Closed
-    </ng-container>
-  </h4>
-  <div id="pollsecondline">
-    <div id="pollstate" *ngIf="hasState() || !hasAnswer()">
-      <div class="previousVotes">
-        <p class="justVote" *ngIf="hasJustVoteBallot()" i18n>
-          Your
-          <ng-container *ngIf="justVoteBallot.type == BallotType['Blank']">blank</ng-container>
-          vote
-          <ng-container *ngIf="justVoteBallot.type != BallotType['Blank']">for <span class="vote">{{justVoteBallot.asString}}</span></ng-container>
-          has been taken into account.
-        </p>
-        <p *ngIf="hasCurrentRoundBallot()" i18n>
-          On the current round, you've already voted <span class="vote">{{currentRoundBallot.asString}}</span>.
-          You may now change this vote.
-        </p>
-        <p *ngIf="hasPreviousRoundBallot()" i18n>
-          On the previous round, you voted <span class="vote">{{previousRoundBallot.asString}}</span>.
-        </p>
+<ng-template #loadingTmpl>
+  Loading...
+</ng-template>
+
+<ng-template #errorTmpl>
+  <p i18n>Unexpected error {{ error.status }}: {{ error.message }}.</p>
+</ng-template>
+
+<ng-container *ngIf="!error else errorTmpl">
+  <div class="poll-main" *ngIf="!!answer else loadingTmpl">
+
+    <div class="poll-information">
+      <h3 class="poll-title">{{answer.Title}}</h3>
+      <div class="poll-details">
+        <p class="poll-description">{{answer.Description}}</p>
+        <p class="poll-creation" i18n>Poll created by {{answer.Admin}} on {{answer.CreationTime | date}}.</p>
       </div>
+    </div>
+
+    <div class="poll-ballot" *ngIf="answer.Active">
+      <h3 class="poll-round" i18n>
+        {answer.CurrentRound, plural, =0 {First round} =1 {Second round} =2 {Third round} other {{{answer.CurrentRound + 1}}nd round}}
+      </h3>
+      <p class="previous-vote" *ngIf="hasCurrentRoundBallot()" i18n>
+        On the current round, you've already voted <span class="vote">{{currentRoundBallot.asString}}</span>.
+        You may now change this vote.
+      </p>
+      <p class="just-vote" *ngIf="hasJustVoteBallot()" i18n>
+        Your
+        <ng-container *ngIf="justVoteBallot.type == BallotType['Blank']">blank</ng-container>
+        vote
+        <ng-container *ngIf="justVoteBallot.type != BallotType['Blank']">
+          for <span class="vote">{{justVoteBallot.asString}}</span>
+        </ng-container>
+        has been taken into account.
+      </p>
+      <ng-template PollBallot></ng-template>
+    </div>
+      
+    <div class="poll-result" *ngIf="answer.CurrentRound > 0">
+      <ng-template #finalTmpl>
+        <h3 i18n>Final result</h3>
+      </ng-template>
+      <h3 class="poll-round" *ngIf="answer.Active else finalTmpl" i18n>
+        {answer.CurrentRound, plural, =1 {First round} =2 {Second round} =3 {Third round} other {{{answer.CurrentRound}}nd round}}
+      </h3>
+      <p class="previous-vote" *ngIf="hasPreviousRoundBallot()" i18n>
+        On the previous round, you voted <span class="vote">{{previousRoundBallot.asString}}</span>.
+      </p>
       <ng-template PollInformation></ng-template>
     </div>
-    <ng-template PollBallot></ng-template>
   </div>
-</div>
-<div *ngIf="!!error" class="error">
-  <p i18n>Unexpected error {{ error.status }}: {{ error.message }}.</p>
-</div>
+<ng-container>
