@@ -173,6 +173,11 @@ func (self *pollService) nextAlarm_helper(qNext string, defaultWait time.Duratio
 	row := db.DB.QueryRow(qNext, self.lastCheck)
 	if err := row.Scan(&pollId, &ret.Time, &timestamp); err == nil {
 		self.adjust = (self.adjust - time.Since(timestamp)) / 2
+
+		log.Printf("%s DEBUG next %v", self.serviceName, ret.Time)
+		log.Printf("%s DEBUG timestamp %v", self.serviceName, timestamp)
+		log.Printf("%s DEBUG adjust %v", self.serviceName, self.adjust)
+		
 		ret.Time = ret.Time.Add(self.adjust)
 		ret.Data = pollId
 	} else {

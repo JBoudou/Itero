@@ -104,6 +104,18 @@ form.basicform
 .dialog-message
   margin-bottom: 8px
 
+.information-container
+  display: grid
+  grid-template-columns: max-content minmax(min-content, 25%)
+
+.information
+  margin-left: 8px
+  border-left: solid 1px $maincolor
+  padding-left: 8px
+  p
+    font-family: $infofont
+    margin-top: 0
+
 @include mat-core()
 $itero-mat-primary: mat-palette($itero-mat-maincolor, 900, A100, 900)
 $itero-mat-accent: mat-palette($itero-mat-maincolor, A400, A200, A700)

@@ -1,5 +1,5 @@
 <h3 i18n>Create a new poll</h3>
-<div class="create-container">
+<div class="create-container information-container">
   <app-navtree    [stepStatus]="stepStatus$ | async" [validable]="validable$ | async" (navigateTo)="onJump($event)"></app-navtree>
   <div>
     <router-outlet (activate)="onActivate($event)" (desactivate)="onDesactivate($event)"></router-outlet>

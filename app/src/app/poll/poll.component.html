@@ -6,7 +6,7 @@
   <p i18n>Unexpected error {{ error.status }}: {{ error.message }}.</p>
 </ng-template>
 
-<ng-container *ngIf="!error else errorTmpl">
+<div class="information-container" *ngIf="!error else errorTmpl">
   <div class="poll-main" *ngIf="!!answer else loadingTmpl">
 
     <div class="poll-information">
@@ -49,5 +49,75 @@
       </p>
       <ng-template PollInformation></ng-template>
     </div>
+
   </div>
-<ng-container>
+
+  <div class="information" *ngIf="!!answer">
+    
+    <ng-template #terminatedTmpl>
+      <p>
+        Votes are now closed for this poll.
+        The displayed result is the final one.
+      </p>
+    </ng-template>
+
+    <ng-template #firstRoundTmpl>
+      <p>
+        This is the first round of the poll.
+        <ng-container *ngIf="!hasCurrentRoundBallot()">
+          You can submit a first ballot, in which case you will become a participant of the poll.
+        </ng-container>
+        In the next rounds, you will be able to change your vote, based on the results of the previous round.
+        The first round will end
+        <ng-container [ngSwitch]="roundDeadlinePassed()">
+          <ng-container *ngSwitchCase="true">
+            as soon as three participants has voted.
+          </ng-container>
+          <ng-container *ngSwitchCase="false">
+            on {{ answer.RoundDeadline | date }}.
+          </ng-container>
+        </ng-container>
+        <ng-container *ngIf="!hasCurrentRoundBallot()">
+          It will not be possible to join the poll once the first round has ended.
+        </ng-container>
+        Then, each round will last {{ answer.MaxRoundDuration | duration }}, or until all participants have voted,
+        whichever comes first.
+      </p>
+    </ng-template>
+
+    <ng-template #minRoundTmpl>
+      {answer.MinNbRounds, plural, =2 {second}, =3 {third}, other { {{answer.MinNbRounds + 1}}nd } } round.
+    </ng-template>
+
+    <ng-container *ngIf="answer.Active else terminatedTmpl">
+      <p *ngIf="answer.CurrentRound > 0 else firstRoundTmpl">
+        This is the
+        {answer.CurrentRound, plural, =0 {first} =1 {second} =2 {third} other {{{answer.CurrentRound + 1}}nd}}
+        round of the poll.
+        You can now change your vote, based on the result of the previous round.
+        If you do not vote until the end of the round, you will be considered as an abstentionist.
+        The round will end on {{ answer.RoundDeadline | date }} or when all participants have voted,
+        whichever comes first.
+      </p>
+
+      <p>
+        The poll will end after the
+        <ng-container *ngIf="!pollDeadlinePassed() else minRoundTmpl">
+          {answer.MaxNbRounds, plural, =2 {second}, =3 {third} other {{{answer.MaxNbRounds + 1}}nd}} round, or
+          <ng-container [ngSwitch]="answer.CurrentRound > answer.MinNbRounds">
+            <ng-container *ngSwitchCase="true">
+              on {{ answer.PollDeadline | date }}, wichever comes first.
+            </ng-container>
+            <ng-container *ngSwitchCase="false">
+              after the 
+              {answer.MinNbRounds, plural, =2 {second}, =3 {third} other {{{answer.MinNbRounds + 1}}nd}} round
+              if that happens after {{ answer.PollDeadline | date }}.
+            </ng-container>
+          </ng-container>
+        </ng-container>
+      </p>
+    </ng-container>
+
+  </div>
+
+</div>

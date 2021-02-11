@@ -131,6 +131,14 @@ export class PollComponent implements OnInit {
     return this.justVoteBallot.type != BallotType.None;
   }
 
+  roundDeadlinePassed(): boolean {
+    return this.answer.RoundDeadline.getTime() < Date.now();
+  }
+
+  pollDeadlinePassed(): boolean {
+    return this.answer.PollDeadline.getTime() < Date.now();
+  }
+
   private static ballotMap = new Map<BallotType, Type<PollBallotComponent>>([
     [BallotType.Uninominal, UninominalBallotComponent]
   ]);
@@ -144,6 +152,9 @@ export class PollComponent implements OnInit {
     this.http.get<PollAnswer>('/a/poll/' + this.segment).pipe(take(1)).subscribe({
       next: (answer: PollAnswer) => {
         this.answer = answer;
+        this.answer.CreationTime  = new Date(this.answer.CreationTime );
+        this.answer.RoundDeadline = new Date(this.answer.RoundDeadline);
+        this.answer.PollDeadline  = new Date(this.answer.PollDeadline );
         // When need the ViewChilds to appear before inserting components in them.
         setTimeout(() => this.synchronizeSubComponents(), 0);
       },

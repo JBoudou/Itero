@@ -128,7 +128,7 @@ func checkPollAccess(ctx context.Context, request *server.Request) (poll PollInf
 		return
 	}
 	if poll.CurrentRound > 0 {
-		err = noPollError("Cannot join a poll after the first round");
+		err = noPollError("Cannot join a poll after the first round")
 		return
 	}
 
@@ -164,14 +164,19 @@ const (
 )
 
 type PollAnswer struct {
-	Title        string
-	Description  string
-	Admin        string
-	CreationTime time.Time
-	CurrentRound uint8
-	Active       bool
-	Ballot       uint8
-	Information  uint8
+	Title            string
+	Description      string
+	Admin            string
+	CreationTime     time.Time
+	CurrentRound     uint8
+	Active           bool
+	RoundDeadline    time.Time
+	PollDeadline     time.Time
+	MaxRoundDuration uint64 // in milliseconds
+	MinNbRounds      uint8
+	MaxNbRounds      uint8
+	Ballot           uint8
+	Information      uint8
 }
 
 func PollHandler(ctx context.Context, response server.Response, request *server.Request) {
@@ -187,13 +192,17 @@ func PollHandler(ctx context.Context, response server.Response, request *server.
 
 	// Additional informations for display
 	const qSelect = `
-		SELECT p.Title, p.Description, u.Name, p.Created
+		SELECT p.Title, p.Description, u.Name, p.Created,
+	         ADDTIME(p.CurrentRoundStart, p.MaxRoundDuration), p.Deadline,
+					 TIME_TO_SEC(p.MaxRoundDuration) * 1000, p.MinNbRounds, p.MaxNbRounds
 		  FROM Polls AS p, Users AS u
 		 WHERE p.Id = ?
 		   AND p.Admin = u.Id`
 	row := db.DB.QueryRowContext(ctx, qSelect, pollInfo.Id)
 	var desc sql.NullString
-	must(row.Scan(&answer.Title, &desc, &answer.Admin, &answer.CreationTime))
+	must(row.Scan(
+		&answer.Title, &desc, &answer.Admin, &answer.CreationTime, &answer.RoundDeadline,
+		&answer.PollDeadline, &answer.MaxRoundDuration, &answer.MinNbRounds, &answer.MaxNbRounds))
 	if desc.Valid {
 		answer.Description = desc.String
 	}

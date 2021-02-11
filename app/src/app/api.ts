@@ -70,14 +70,19 @@ export enum InformationType {
 }
 
 export class PollAnswer {
-  Title:        string;
-  Description:  string;
-  Admin:        string;
-  CreationTime: Date;
-  CurrentRound: number;
-  Active:       boolean;
-  Ballot:       BallotType;
-  Information:  InformationType;
+  Title:            string;
+  Description:      string;
+  Admin:            string;
+  CreationTime:     Date;
+  CurrentRound:     number;
+  Active:           boolean;
+  RoundDeadline:    Date;
+  PollDeadline:     Date;
+  MaxRoundDuration: number; // milliseconds
+  MinNbRounds:      number;
+  MaxNbRounds:      number;
+  Ballot:           BallotType;
+  Information:      InformationType;
 }
 
 export class PollAlternative {
