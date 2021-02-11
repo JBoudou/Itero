@@ -21,8 +21,6 @@ import { ActivatedRoute, UrlSegment } from '@angular/router';
 
 import { BehaviorSubject, Observable, Subscription } from 'rxjs';
 
-import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
-
 import { CreateService } from '../create.service';
 import { PollAlternative, CreateQuery } from '../../api';
 import {cloneDeep, isEqual} from 'lodash';
@@ -128,16 +126,6 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
     
     if (this.alternatives.length == 2) {
       this._validable$.next(true);
-    }
-
-    this.service.patchQuery(this._stepSegment, { Alternatives: this.alternatives });
-  }
-
-  onDrop(event: CdkDragDrop<string[]>): void {
-    moveItemInArray(this.alternatives, event.previousIndex, event.currentIndex);
-    for (let i = Math.min(event.previousIndex, event.currentIndex),
-          last = Math.max(event.previousIndex, event.currentIndex); i <= last; i++) {
-      this.alternatives[i].Id = i;
     }
 
     this.service.patchQuery(this._stepSegment, { Alternatives: this.alternatives });

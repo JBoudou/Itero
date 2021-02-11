@@ -1,12 +1,12 @@
-<div cdkDropList class="dndList" (cdkDropListDropped)="onDrop($event)">
-  <div class="dndItem" *ngFor="let alt of alternatives"
-    [@deleteTrigger]="justDeleted == alt.Id ? 'justDeleted' : 'Ok'" (@deleteTrigger.done)="onDeleteDone()"
-    cdkDrag>
-    {{ alt.Id + 1 }}. {{ alt.Name }}<mat-icon (click)="onDelete(alt.Id)">delete</mat-icon>
+<div cdkDropList class="alternatives-list">
+  <div *ngFor="let alt of alternatives" class="merged-userbox-grow alternative"
+   [@deleteTrigger]="justDeleted == alt.Id ? 'justDeleted' : 'Ok'" (@deleteTrigger.done)="onDeleteDone()">
+    <input type="text" [value]="alt.Name" />
+    <button><mat-icon (click)="onDelete(alt.Id)">delete</mat-icon></button>
   </div>
 </div>
 <form [formGroup]="form" (ngSubmit)="onAdd()">
-  <div class="merged-userbox-grow">
+  <div class="merged-userbox-grow new-alternative">
     <input type="text" formControlName="New" />
     <button type="submit" [disabled]="!form.valid" i18n><mat-icon>add</mat-icon></button>
   </div>

@@ -19,7 +19,6 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 
 import { ClipboardModule }  from '@angular/cdk/clipboard';
-import { DragDropModule }   from '@angular/cdk/drag-drop';
 import { MatButtonModule }  from '@angular/material/button';
 import { MatDialogModule }  from '@angular/material/dialog';
 import { MatIconModule }    from '@angular/material/icon'; 
@@ -57,7 +56,6 @@ import { NavbuttonsComponent } from './navtree/navbuttons.component';
     ClipboardModule,
     CommonModule,
     CreateRoutingModule,
-    DragDropModule,
     FormsModule,
     FormWidgetModule,
     MatButtonModule,
