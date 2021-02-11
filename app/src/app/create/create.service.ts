@@ -90,7 +90,7 @@ export class CreateService {
    * Asks the router to go back in the creation tree.
    *
    * Must not be called when the current node is the root node, which is notified by a
-   * NavStepStatus with current at zero.
+   * StepStatus with current at zero.
    */
   back(steps: number = 1): void {
     let current = this._current;
@@ -114,11 +114,8 @@ export class CreateService {
   /**
    * Terminates the current step.
    *
-   * Must not be called when the current is not validable, wich is notified by a CreateNextStatus
-   * with validable at false.
-   *
-   * If the current step is a final one, which is notified by a CreateNextStatus with final at true,
-   * the request is sent to the middleware and the creation tree is reseted.
+   * If the current step is a final one, the request is sent to the middleware and the creation tree
+   * is reseted.
    * Otherwise the router is asked to display the next step.
    */
   next(): void {
@@ -132,6 +129,7 @@ export class CreateService {
       next.handledFields.delete(prop);
       next.query[prop] = cloneDeep(this._current.query[prop]);
     }
+    
     this.makeCurrent(next);
   }
 

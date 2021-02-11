@@ -16,11 +16,12 @@
 
 import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 
 import { CREATE_TREE, CreateService } from './create.service';
 
-import { PollAlternative } from '../api';
+import { CreateQuery, PollAlternative } from '../api';
 import { FinalNavTreeNode, LinearNavTreeNode, } from './navtree/navtree.node';
 import { NavStepStatus } from './navtree/navstep.status';
 
@@ -34,7 +35,8 @@ describe('CreateService', () => {
   let service: CreateService;
   let httpControler: HttpTestingController;
   let routerSpy: RouterStub;
-  let recorder: Recorder<NavStepStatus>;
+  let stepRecorder: Recorder<NavStepStatus>;
+  let queryRecorder: Recorder<Partial<CreateQuery>>;
 
   beforeEach(() => {
     const test_tree =
@@ -57,11 +59,13 @@ describe('CreateService', () => {
     httpControler = TestBed.inject(HttpTestingController);
 
     jasmine.clock().install();
-    recorder = new Recorder<NavStepStatus>();
+    stepRecorder  = new Recorder<NavStepStatus>();
+    queryRecorder = new Recorder<Partial<CreateQuery>>();
   });
 
   afterEach(function() {
-    recorder.unsubscribe();
+    stepRecorder .unsubscribe();
+    queryRecorder.unsubscribe();
     jasmine.clock().uninstall();
   });
 
@@ -70,11 +74,11 @@ describe('CreateService', () => {
   });
 
   it('goes next', () => {
-    recorder.listen(service.stepStatus$);
+    stepRecorder.listen(service.stepStatus$);
     service.next();
     jasmine.clock().tick(1);
 
-    expect(recorder.record).toEqual([
+    expect(stepRecorder.record).toEqual([
         new NavStepStatus(0, ['Root', 'Middle', 'Leaf']),
         new NavStepStatus(1, ['Root', 'Middle', 'Leaf']),
     ]);
@@ -88,11 +92,11 @@ describe('CreateService', () => {
     service.next();
     jasmine.clock().tick(1);
 
-    recorder.listen(service.stepStatus$);
+    stepRecorder.listen(service.stepStatus$);
     service.back();
     jasmine.clock().tick(1);
 
-    expect(recorder.record).toEqual([
+    expect(stepRecorder.record).toEqual([
         new NavStepStatus(1, ['Root', 'Middle', 'Leaf']),
         new NavStepStatus(0, ['Root', 'Middle', 'Leaf']),
     ]);
@@ -107,11 +111,11 @@ describe('CreateService', () => {
     service.next();
     jasmine.clock().tick(1);
 
-    recorder.listen(service.stepStatus$);
+    stepRecorder.listen(service.stepStatus$);
     service.back(2);
     jasmine.clock().tick(1);
 
-    expect(recorder.record).toEqual([
+    expect(stepRecorder.record).toEqual([
         new NavStepStatus(2, ['Root', 'Middle', 'Leaf']),
         new NavStepStatus(0, ['Root', 'Middle', 'Leaf']),
     ]);
@@ -153,11 +157,11 @@ describe('CreateService', () => {
 
   it('recalls fields when going next again', () => {
     // root
-    service.patchQuery('root', { MaxNbRounds: 2, Alternatives: [] });
+    service.patchQuery('root', { MaxNbRounds: 2 });
 
     // middle
     service.next();
-    service.patchQuery('middle', { MaxNbRounds: 3, Alternatives: [simpleAlternative] });
+    service.patchQuery('middle', { Alternatives: [simpleAlternative] });
 
     // next again
     service.back();
@@ -165,8 +169,124 @@ describe('CreateService', () => {
 
     jasmine.clock().tick(1);
     const query = justRecordedFrom(service.query$)[0];
-    expect(query.MaxNbRounds).toBe(3);
+    expect(query.MaxNbRounds).toBe(2);
     expect(query.Alternatives).toEqual([simpleAlternative]);
+  });
+
+  it('recalls fields after back-next-next', () => {
+    // root
+    service.patchQuery('root', { MaxNbRounds: 2 });
+
+    // middle
+    service.next();
+    service.patchQuery('middle', { Alternatives: [simpleAlternative] });
+
+    // next again
+    service.back();
+    service.next();
+    service.next();
+
+    jasmine.clock().tick(1);
+    const query = justRecordedFrom(service.query$)[0];
+    expect(query.MaxNbRounds).toBe(2);
+    expect(query.Alternatives).toEqual([simpleAlternative]);
+  });
+
+  it('recalls fields after two back-next iterations', () => {
+    // root
+    service.patchQuery('root', { MaxNbRounds: 2 });
+
+    // middle
+    service.next();
+    service.patchQuery('middle', { Alternatives: [simpleAlternative] });
+
+    // next again
+    service.back();
+    service.next();
+    service.back();
+    service.next();
+
+    jasmine.clock().tick(1);
+    const query = justRecordedFrom(service.query$)[0];
+    expect(query.MaxNbRounds).toBe(2);
+    expect(query.Alternatives).toEqual([simpleAlternative]);
+  });
+
+  it('updates query$ on patchQuery', () => {
+    queryRecorder.listen(service.query$);
+    service.patchQuery('root', { MaxNbRounds: 2});
+    
+    expect(queryRecorder.record[0]?.MaxNbRounds).toBeUndefined();
+    expect(queryRecorder.record[queryRecorder.record.length - 1].MaxNbRounds).toBe(2);
+  });
+
+  it('does not update when the wrong segment is given to patchQuery', () => {
+    queryRecorder.listen(service.query$);
+    service.patchQuery('middle', { MaxNbRounds: 2});
+    
+    expect(queryRecorder.record[queryRecorder.record.length - 1].MaxNbRounds).toBeUndefined();
+  });
+
+  it('reset everything on reset', () => {
+    queryRecorder.listen(service.query$);
+    service.patchQuery('root', { MinNbRounds: 2});
+    service.next();
+    service.patchQuery('middle', { MaxNbRounds: 27});
+    service.next();
+    service.reset();
+
+    jasmine.clock().tick(1);
+    const lastQuery = queryRecorder.record[queryRecorder.record.length - 1];
+    expect(lastQuery?.MinNbRounds).toBeUndefined();
+    expect(lastQuery?.MaxNbRounds).toBeUndefined();
+  });
+
+  it('sends a request on validation, then provides the query on getResult() and reset itself', () => {
+    // Send a query
+    service.patchQuery('root', { MinNbRounds: 2});
+    service.next();
+    service.patchQuery('middle', { Alternatives: [simpleAlternative] });
+    service.next();
+    service.patchQuery('leaf', { MaxNbRounds: 27});
+    service.next();
+
+    // Send a response
+    const req = httpControler.expectOne('/a/create');
+    expect(req.request.method).toBe('POST');
+    req.flush('0segment0');
+    httpControler.verify();
+
+    // call getResult()
+    const query = service.getResult() as Partial<CreateQuery>;
+    jasmine.clock().tick(1);
+    expect(query.MinNbRounds).toBe(2);
+    expect(query.MaxNbRounds).toBe(27);
+    expect(query.Alternatives).toEqual([simpleAlternative]);
+
+    // Check reset
+    const stored = justRecordedFrom(service.query$).pop();
+    expect(stored?.MinNbRounds).toBeUndefined();
+    expect(stored?.MaxNbRounds).toBeUndefined();
+    expect(stored?.Alternatives).toBeUndefined();
+    expect(service.currentUrl().split('/').pop()).toBe('root');
+  });
+
+  it('returns the HttpErrorResponse when calling getResult() after an error', () => {
+    // Send a request
+    service.next();
+    service.next();
+    service.next();
+
+    // Send response
+    const req = httpControler.expectOne('/a/create');
+    expect(req.request.method).toBe('POST');
+    req.flush('Argh', { status: 500, statusText: 'error' });
+    httpControler.verify();
+
+    // call getResult()
+    const error = service.getResult() as HttpErrorResponse;
+    expect(error.status).toBe(500);
+    expect(error.error?.trim()).toBe('Argh');
   });
 
   /*
