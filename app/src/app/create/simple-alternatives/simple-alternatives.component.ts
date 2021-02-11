@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Component, ChangeDetectionStrategy, OnDestroy, OnInit, ViewChild, TemplateRef } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnDestroy, OnInit, ViewChild, TemplateRef, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, Validators, AbstractControl, ValidatorFn, ValidationErrors  } from '@angular/forms';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { ActivatedRoute, UrlSegment } from '@angular/router';
@@ -57,7 +57,7 @@ function duplicateValidator(component: SimpleAlternativesComponent): ValidatorFn
       ])
     ])
   ],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SimpleAlternativesComponent implements OnInit, OnDestroy {
 
@@ -85,6 +85,7 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
     private service: CreateService,
     private route: ActivatedRoute,
     private formBuilder: FormBuilder,
+    private changeDetector: ChangeDetectorRef,
   ){ }
 
   ngOnInit(): void {
@@ -107,6 +108,7 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
       return;
     }
     this.alternatives = cloneDeep(query.Alternatives);
+    this.changeDetector.markForCheck();
     this.form.updateValueAndValidity();
     this._validable$.next(this.alternatives.length >= 2);
   }

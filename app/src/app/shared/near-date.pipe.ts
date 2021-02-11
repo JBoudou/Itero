@@ -35,6 +35,10 @@ export class NearDatePipe implements PipeTransform {
   constructor(@Inject(LOCALE_ID) private locale: string) {}
 
   transform(value: Date, format?: string, locale?: string): string {
+    if (value === undefined) {
+      return undefined;
+    }
+
     const today = new Date(Date.now());
     today.setHours(0, 0, 0);
 

@@ -128,7 +128,6 @@ export class CreateService {
     }
 
     const next = this._current.next();
-    next.handledFields = new Set<string>();
     for (const prop in this._current.query) {
       next.handledFields.delete(prop);
       next.query[prop] = cloneDeep(this._current.query[prop]);
@@ -234,7 +233,6 @@ export class CreateService {
     this._stepStatus$.next(this._current.makeStatus());
     // The query must be sent later, such that the correct component receives it.
     setTimeout(() => this._query$.next(this._current.query), 0);
-    console.log('query: ' + JSON.stringify(this._current.query));
   }
   
   /**

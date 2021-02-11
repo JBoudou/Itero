@@ -22,13 +22,16 @@ import { Pipe, PipeTransform } from '@angular/core';
 export class OrdinalPipe implements PipeTransform {
 
   transform(value: number): string {
-    if (value === 1) {
+    switch (value) {
+    case undefined:
+      return '';
+    case 1:
       return 'first';
-    } else if (value === 2) {
+    case 2:
       return 'second';
-    } else if (value === 3) {
+    case 3:
       return 'third';
-    } else {
+    default:
       return value.toString() + 'th';
     }
   }
