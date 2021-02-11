@@ -28,6 +28,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { FormWidgetModule } from '../form-widget/form-widget.module';
 import { PollModule }       from '../poll/poll.module';
+import { SharedModule }     from '../shared/shared.module';
 
 import { CreateRoutingModule } from './create-routing.module';
 import { CreateService, CREATE_TREE, APP_CREATE_TREE } from './create.service';
@@ -66,6 +67,7 @@ import { NavbuttonsComponent } from './navtree/navbuttons.component';
     MatTooltipModule,
     PollModule,
     ReactiveFormsModule,
+    SharedModule,
   ],
   providers: [
     CreateService,

@@ -33,9 +33,8 @@
       A round ends when all the participants have voted, or after {{ q.MaxRoundDuration | duration }}.
     </p>
     <p>
-      The poll ends after the 
-      {q.MaxNbRounds, plural, =2 { second } =3 { third } other {{{q.MaxNbRounds}}nd }} round,
-      or on {{ q.Deadline | date }} if at least {{ q.MinNbRounds }} rounds have already been done,
+      The poll ends after the {{ q.MaxNbRounds | ordinal }} round,
+      or {{ q.Deadline | nearDate:'inside' }} if at least {{ q.MinNbRounds }} rounds have already been done,
       whichever happens first.
     </p>
   </ng-container>
