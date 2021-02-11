@@ -45,7 +45,7 @@ type pollService struct {
 // newPollService creates a new pollService.
 func newPollService(serviceName string, makeEvent func(pollId uint32) events.Event) pollService {
 	return pollService{
-		adjust:      -1 * time.Minute,
+		adjust:      1 * time.Minute,
 		serviceName: serviceName,
 		warn:        log.New(os.Stderr, serviceName, log.LstdFlags|log.Lshortfile|log.Lmsgprefix),
 		makeEvent:   makeEvent,
