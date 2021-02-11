@@ -21,46 +21,7 @@ import {HttpClient} from '@angular/common/http';
 import { ListAnswerEntry, PollAction } from '../api';
 
 function mapListAnswerEntry(e: ListAnswerEntry): ListAnswerEntry {
-  const today = new Date(Date.now());
-  today.setHours(0, 0, 0);
-
-  if (e.Deadline as string == '⋅') {
-    e.Deadline = today;
-    e.deadlineCategory = 'None';
-    return e;
-  }
-
-  e.Deadline = new Date(e.Deadline);
-  if (e.Deadline < today) {
-    e.deadlineCategory = 'None';
-    return e;
-  }
-
-  const tomorrow = new Date(today.valueOf() + (24 * 3600 * 1000));
-  if (e.Deadline < tomorrow) {
-    e.deadlineCategory = 'Today';
-    return e;
-  }
-
-  const afterTomorrow = new Date(today.valueOf() + (2 * 24 * 3600 * 1000));
-  if (e.Deadline < afterTomorrow) {
-    e.deadlineCategory = 'Tomorrow';
-    return e;
-  }
-
-  const nextWeek = new Date(today.valueOf() + (8 * 24 * 3600 * 1000));
-  if (e.Deadline < nextWeek) {
-    e.deadlineCategory = 'Week';
-    return e;
-  }
-
-  const nextMonth =  new Date(today.valueOf() + (33 * 24 * 3600 * 1000));
-  if (e.Deadline < nextMonth) {
-    e.deadlineCategory = 'Month';
-    return e;
-  }
-
-  e.deadlineCategory = 'Year';
+  e.Deadline = e.Deadline as string == '⋅' ? undefined : new Date(e.Deadline);
   return e;
 }
 

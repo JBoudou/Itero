@@ -50,8 +50,6 @@ export class ListAnswerEntry {
   MaxRound:     number;
   Deadline:     NuDate;
   Action:       PollAction;
-
-  deadlineCategory?: string;
 }
 
 export enum BallotType {

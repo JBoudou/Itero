@@ -65,6 +65,11 @@ describe('PollComponent', () => {
     fixture.detectChanges();
 
     httpControler = TestBed.inject(HttpTestingController);
+    jasmine.clock().install();
+  });
+
+  afterEach(function() {
+    jasmine.clock().uninstall();
   });
 
   it('should create', () => {
@@ -96,6 +101,7 @@ describe('PollComponent', () => {
       Ballot: BallotType.Uninominal,
       Information: InformationType.Counts,
     });
+    jasmine.clock().tick(1);
 
     expect(dynamicFactoryStub.calls(UninominalBallotComponent)).toBe(1);
     expect(dynamicFactoryStub.calls(CountsInformationComponent)).toBe(1);

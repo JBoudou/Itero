@@ -21,6 +21,7 @@ import { GoogleChartsModule } from 'angular-google-charts';
 
 import { PollRoutingModule } from './poll-routing.module';
 import { FormWidgetModule } from '../form-widget/form-widget.module';
+import { SharedModule } from '../shared/shared.module';
 
 import { PollComponent } from './poll.component';
 import { PollBallotDirective, PollInformationDirective } from './directives';
@@ -38,8 +39,9 @@ import { CountsInformationComponent } from './counts-information/counts-informat
   imports: [
     CommonModule,
     FormWidgetModule,
-    PollRoutingModule,
     GoogleChartsModule,
+    PollRoutingModule,
+    SharedModule,
   ],
   exports: [
     PollComponent,

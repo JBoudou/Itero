@@ -19,7 +19,7 @@
 
     <div class="poll-ballot" *ngIf="answer.Active">
       <h3 class="poll-round" i18n>
-        {answer.CurrentRound, plural, =0 {First round} =1 {Second round} =2 {Third round} other {{{answer.CurrentRound + 1}}nd round}}
+        {{ answer.CurrentRound + 1 | ordinal | titlecase }} Round
       </h3>
       <p class="previous-vote" *ngIf="hasCurrentRoundBallot()" i18n>
         On the current round, you've already voted <span class="vote">{{currentRoundBallot.asString}}</span>.
@@ -42,7 +42,7 @@
         <h3 i18n>Final result</h3>
       </ng-template>
       <h3 class="poll-round" *ngIf="answer.Active else finalTmpl" i18n>
-        {answer.CurrentRound, plural, =1 {First round} =2 {Second round} =3 {Third round} other {{{answer.CurrentRound}}nd round}}
+        {{ answer.CurrentRound | ordinal | titlecase }} Round
       </h3>
       <p class="previous-vote" *ngIf="hasPreviousRoundBallot()" i18n>
         On the previous round, you voted <span class="vote">{{previousRoundBallot.asString}}</span>.
@@ -55,14 +55,14 @@
   <div class="information" *ngIf="!!answer">
     
     <ng-template #terminatedTmpl>
-      <p>
+      <p i18n>
         Votes are now closed for this poll.
         The displayed result is the final one.
       </p>
     </ng-template>
 
     <ng-template #firstRoundTmpl>
-      <p>
+      <p i18n>
         This is the first round of the poll.
         <ng-container *ngIf="!hasCurrentRoundBallot()">
           You can submit a first ballot, in which case you will become a participant of the poll.
@@ -74,7 +74,7 @@
             as soon as three participants has voted.
           </ng-container>
           <ng-container *ngSwitchCase="false">
-            on {{ answer.RoundDeadline | date }}.
+            {{ answer.RoundDeadline | nearDate:'inside' }}.
           </ng-container>
         </ng-container>
         <ng-container *ngIf="!hasCurrentRoundBallot()">
@@ -85,34 +85,32 @@
       </p>
     </ng-template>
 
-    <ng-template #minRoundTmpl>
-      {answer.MinNbRounds, plural, =2 {second}, =3 {third}, other { {{answer.MinNbRounds + 1}}nd } } round.
-    </ng-template>
-
     <ng-container *ngIf="answer.Active else terminatedTmpl">
-      <p *ngIf="answer.CurrentRound > 0 else firstRoundTmpl">
-        This is the
-        {answer.CurrentRound, plural, =0 {first} =1 {second} =2 {third} other {{{answer.CurrentRound + 1}}nd}}
-        round of the poll.
+      <p *ngIf="answer.CurrentRound > 0 else firstRoundTmpl" i18n>
+        This is the {{ answer.CurrentRound + 1 | ordinal }} round of the poll.
         You can now change your vote, based on the result of the previous round.
-        If you do not vote until the end of the round, you will be considered as an abstentionist.
-        The round will end on {{ answer.RoundDeadline | date }} or when all participants have voted,
+        If you do not vote before the end of the round, you will be declared abstentionist.
+        The round will end {{ answer.RoundDeadline | nearDate:'inside' }} or when all participants have voted,
         whichever comes first.
       </p>
 
-      <p>
-        The poll will end after the
-        <ng-container *ngIf="!pollDeadlinePassed() else minRoundTmpl">
-          {answer.MaxNbRounds, plural, =2 {second}, =3 {third} other {{{answer.MaxNbRounds + 1}}nd}} round, or
-          <ng-container [ngSwitch]="answer.CurrentRound > answer.MinNbRounds">
-            <ng-container *ngSwitchCase="true">
-              on {{ answer.PollDeadline | date }}, wichever comes first.
-            </ng-container>
-            <ng-container *ngSwitchCase="false">
-              after the 
-              {answer.MinNbRounds, plural, =2 {second}, =3 {third} other {{{answer.MinNbRounds + 1}}nd}} round
-              if that happens after {{ answer.PollDeadline | date }}.
-            </ng-container>
+      <p i18n>
+        The poll will end after
+        <ng-container [ngSwitch]="pollEndCase()">
+          <ng-container *ngSwitchCase="'current'">
+            the current round.
+          </ng-container>
+          <ng-container *ngSwitchCase="'deadlinePassed'">
+            the {{ answer.MinNbRounds | ordinal }} round.
+          </ng-container>
+          <ng-container *ngSwitchCase="'minExceeded'">
+            the {{ answer.MaxNbRounds | ordinal }} round, or
+            {{ answer.PollDeadline | nearDate:'inside' }}, wichever comes first.
+          </ng-container>
+          <ng-container *ngSwitchCase="'full'">
+            the {{ answer.MaxNbRounds | ordinal }} round, or
+            after the {{ answer.MinNbRounds | ordinal }} round
+            if that happens after {{ answer.PollDeadline | nearDate:'noPrep' }}.
           </ng-container>
         </ng-container>
       </p>

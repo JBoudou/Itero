@@ -139,6 +139,17 @@ export class PollComponent implements OnInit {
     return this.answer.PollDeadline.getTime() < Date.now();
   }
 
+  pollEndCase(): string {
+    if (this.pollDeadlinePassed()) {
+      return this.answer.CurrentRound + 1 === this.answer.MinNbRounds ? 'current' : 'deadlinePassed';
+    }
+    if (this.answer.CurrentRound + 1 === this.answer.MaxNbRounds &&
+        this.answer.RoundDeadline.getTime() < this.answer.PollDeadline.getTime()) {
+      return 'current';
+    }
+    return this.answer.CurrentRound >= this.answer.MinNbRounds ? 'minExceeded' : 'full';
+  }
+
   private static ballotMap = new Map<BallotType, Type<PollBallotComponent>>([
     [BallotType.Uninominal, UninominalBallotComponent]
   ]);
@@ -206,7 +217,7 @@ export class PollComponent implements OnInit {
         subscription.unsubscribe();
       }
     }
-    this.viewContainerRef(componentIndex).clear();
+    this.viewContainerRef(componentIndex)?.clear();
   }
 
   /**

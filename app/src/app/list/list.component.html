@@ -12,14 +12,7 @@
     <td *ngIf=" terminated(poll)" class="terminated" colspan=2 i18n>Terminated</td>
     <td *ngIf="!terminated(poll)" class="round">{{poll.CurrentRound + 1}}/{{poll.MaxRound}}</td>
     <td *ngIf="!terminated(poll)" class="deadline" i18n>
-      {poll.deadlineCategory, select,
-      None {None}
-      Today {Today at {{poll.Deadline | date:'h:mm aa'}}}
-      Tomorrow {Tomorrow at {{poll.Deadline | date:'h:mm aa'}}}
-      Week {Next {{poll.Deadline | date:'EEEE'}} at {{poll.Deadline | date:'h aa'}}}
-      Month {{{poll.Deadline | date:'MMMM d'}}, at {{poll.Deadline | date:'h aa'}}}
-      Year {{{poll.Deadline | date:'longDate'}}}
-      }
+      {{ poll.Deadline ? (poll.Deadline | nearDate:'alone') : 'None' }}
     </td>
     <td class="action" [ngSwitch]="pollActionString(poll)" (click)="go(poll.Segment)">
       <span class ="part" *ngSwitchCase="'Part'" i18n>Join</span>
