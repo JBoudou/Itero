@@ -14,15 +14,17 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Component, OnInit, Input, Self, Optional } from '@angular/core';
+import { Component, OnInit, OnDestroy, Input, Self, Optional } from '@angular/core';
 import { ControlValueAccessor, NgControl, FormBuilder } from '@angular/forms';
+
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-date-time-picker',
   templateUrl: './date-time-picker.component.html',
   styleUrls: ['./date-time-picker.component.sass']
 })
-export class DateTimePickerComponent implements OnInit, ControlValueAccessor {
+export class DateTimePickerComponent implements OnInit, OnDestroy, ControlValueAccessor {
 
   @Input() disabled: boolean;
   
@@ -30,7 +32,6 @@ export class DateTimePickerComponent implements OnInit, ControlValueAccessor {
     date: '',
     time: '',
   });
-  
 
   constructor(
     @Self() @Optional() private ngControl: NgControl,
@@ -41,16 +42,24 @@ export class DateTimePickerComponent implements OnInit, ControlValueAccessor {
     }
   }
 
+  private _subscriptions: Subscription[] = [];
+
   ngOnInit(): void {
-    this.form.valueChanges.subscribe({ next: _ => this.onValueChange() });
+    this._subscriptions.push(this.form.valueChanges.subscribe({ next: _ => this.onValueChange() }));
     if (this.disabled) {
       this.form.disable({onlySelf: true});
     }
   }
 
+  ngOnDestroy(): void {
+    for (const sub of this._subscriptions) {
+      sub.unsubscribe();
+    }
+  }
+
   onValueChange(): void {
-    const date = this.form.value.date.split('-').map(str => parseInt(str));
-    const time = this.form.value.time.split(':').map(str => parseInt(str));
+    const date = this.form.value.date.split('-').map((str: string) => parseInt(str));
+    const time = this.form.value.time.split(':').map((str: string) => parseInt(str));
     // No spread syntax yet :(
     const value = new Date(date[0], date[1] - 1, date[2], time[0], time[1]);
     this.notifChange(value);

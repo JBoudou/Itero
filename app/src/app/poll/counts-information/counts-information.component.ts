@@ -17,6 +17,8 @@
 import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 
+import { take } from 'rxjs/operators';
+
 import { PollSubComponent, ServerError } from '../common';
 import { CountInfoAnswer } from '../../api';
 
@@ -103,7 +105,8 @@ export class CountsInformationComponent implements OnInit, PollSubComponent {
     this.options.fontSize = fontSize * 0.9;
     this.options.annotations.textStyle.fontSize = fontSize * 0.75;
 
-    this.http.get<CountInfoAnswer>('/a/info/count/' + this.pollSegment).subscribe({
+    this.http.get<CountInfoAnswer>('/a/info/count/' + this.pollSegment)
+      .pipe(take(1)).subscribe({
       next: (answer: CountInfoAnswer) => {
         // First pass
         var maxCount = 0;

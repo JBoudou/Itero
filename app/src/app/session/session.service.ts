@@ -19,7 +19,7 @@ import { Router } from '@angular/router';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 
 import { Observable, BehaviorSubject, pipe, UnaryFunction } from 'rxjs';
-import { map, tap } from 'rxjs/operators';
+import { map, take, tap } from 'rxjs/operators';
 
 import { SessionAnswer } from '../api';
 
@@ -193,7 +193,7 @@ export class SessionService {
     const user = this._state.value.user;
     this.http
       .post('/a/refresh', user)
-      .pipe(this.httpOperator(user))
+      .pipe(this.httpOperator(user), take(1))
       .subscribe();
   }
 }

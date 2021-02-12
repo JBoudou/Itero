@@ -19,6 +19,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 
 import { Observable, BehaviorSubject } from 'rxjs';
+import { take } from 'rxjs/operators';
 import { cloneDeep, isEqual } from 'lodash';
 
 import { CreateQuery } from '../api';
@@ -250,7 +251,7 @@ export class CreateService {
   private sendRequest(): void {
     this._sending = true;
     this.http.post<string>('/a/create', this._current.query, { observe: 'body', responseType: 'json' })
-      .subscribe({
+      .pipe(take(1)).subscribe({
       next: (segment: string) => {
         this._httpError = undefined;
         this.router.navigateByUrl('/r/create/result/' + segment);

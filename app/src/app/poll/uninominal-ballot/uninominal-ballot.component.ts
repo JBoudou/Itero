@@ -17,6 +17,8 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
 
+import { take } from 'rxjs/operators';
+
 import { 
   BLANK_BALLOT,
   NONE_BALLOT,
@@ -59,7 +61,8 @@ export class UninominalBallotComponent implements OnInit, PollBallotComponent {
   ) { }
 
   ngOnInit(): void {
-    this.http.get<UninominalBallotAnswer>('/a/ballot/uninominal/' + this.pollSegment).subscribe({
+    this.http.get<UninominalBallotAnswer>('/a/ballot/uninominal/' + this.pollSegment)
+      .pipe(take(1)).subscribe({
       next: (answer: UninominalBallotAnswer) => {
         this.alternatives = answer.Alternatives;
         this.previousRoundBallot.emit(this.ballotFromId(answer.Previous));

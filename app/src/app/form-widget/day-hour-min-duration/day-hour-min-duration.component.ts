@@ -14,8 +14,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Component, OnInit, Input, Self, Optional } from '@angular/core';
+import { Component, OnInit, Input, Self, Optional, OnDestroy } from '@angular/core';
 import { ControlValueAccessor, NgControl, FormBuilder } from '@angular/forms';
+
+import { Subscription } from 'rxjs';
 
 import { DetailedDuration } from '../duration.pipe';
 
@@ -24,7 +26,7 @@ import { DetailedDuration } from '../duration.pipe';
   templateUrl: './day-hour-min-duration.component.html',
   styleUrls: ['./day-hour-min-duration.component.sass']
 })
-export class DayHourMinDurationComponent implements OnInit, ControlValueAccessor {
+export class DayHourMinDurationComponent implements OnInit, OnDestroy, ControlValueAccessor {
 
   @Input() disabled: boolean;
   
@@ -33,6 +35,8 @@ export class DayHourMinDurationComponent implements OnInit, ControlValueAccessor
     hours: 0,
     mins:  0,
   });
+
+  private _subscriptions: Subscription[] = [];
 
   constructor(
     @Self() @Optional() private ngControl: NgControl,
@@ -44,9 +48,15 @@ export class DayHourMinDurationComponent implements OnInit, ControlValueAccessor
   }
 
   ngOnInit(): void {
-    this.form.valueChanges.subscribe({ next: _ => this.onValueChange() });
+    this._subscriptions.push(this.form.valueChanges.subscribe({ next: _ => this.onValueChange() }));
     if (this.disabled) {
       this.form.disable({onlySelf: true});
+    }
+  }
+
+  ngOnDestroy(): void {
+    for (const sub of this._subscriptions) {
+      sub.unsubscribe();
     }
   }
 

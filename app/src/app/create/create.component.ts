@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Component, ChangeDetectionStrategy, OnInit, ViewEncapsulation, TemplateRef } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, ViewEncapsulation, TemplateRef, OnDestroy } from '@angular/core';
 
 import { BehaviorSubject, Observable, Subscription, Subject } from 'rxjs';
 import { delay } from 'rxjs/operators';
@@ -29,7 +29,7 @@ import { NavStepStatus } from './navtree/navstep.status';
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class CreateComponent implements OnInit {
+export class CreateComponent implements OnInit, OnDestroy {
 
   private _stepStatus$ = new BehaviorSubject<NavStepStatus>(undefined);
   private _validable$  = new BehaviorSubject<boolean>(false);
@@ -42,18 +42,28 @@ export class CreateComponent implements OnInit {
     return this._validable$;
   }
 
+  /** Context for the information template */
   infoContext: any;
 
+  /** The information template reference */
   infoTemplate$ = new Subject<TemplateRef<any>>();
+
+  private _subscriptions: Subscription[] = [];
 
   constructor(
     private service: CreateService,
   ) {
-    this.service.stepStatus$.subscribe(this._stepStatus$);
+    this._subscriptions.push(this.service.stepStatus$.subscribe(this._stepStatus$));
     this.infoContext = { $implicit: true, query$: this.service.query$ };
   }
 
   ngOnInit(): void {
+  }
+
+  ngOnDestroy(): void {
+    for (const sub of this._subscriptions) {
+      sub.unsubscribe();
+    }
   }
 
   onJump(pos: number): void {
@@ -70,6 +80,7 @@ export class CreateComponent implements OnInit {
 
   private _validableSubscription: Subscription | undefined;
 
+  /** Whent a new component is loaded in the outlet by the router. */
   onActivate(component: any): void {
     if ('validable$' in component) {
       if (this._validableSubscription !== undefined) {
@@ -82,6 +93,7 @@ export class CreateComponent implements OnInit {
     setTimeout(() => this.infoTemplate$.next(component.infoTemplate), 0);
   }
 
+  /** Whent a new component is unloaded from the outlet by the router. */
   onDesactivate(component: Object): void {
     if ("validable$" in component && this._validableSubscription !== undefined) {
       this._validableSubscription.unsubscribe();

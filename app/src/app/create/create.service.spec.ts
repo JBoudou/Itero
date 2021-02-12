@@ -289,35 +289,4 @@ describe('CreateService', () => {
     expect(error.error?.trim()).toBe('Argh');
   });
 
-  /*
-
-  it('resets fields after a successfull validation', () => {
-    // root
-    service.register(dummyComponent);
-    service.next();
-
-    // middle
-    let query = service.register(simpleComponent);
-    query.MaxNbRounds = 2;
-    query.Alternatives = [];
-
-    // leaf
-    service.next();
-    query = service.register(simpleComponent);
-    query.MaxNbRounds = 3;
-    query.Alternatives.push(simpleAlternative);
-
-    // validate
-    service.next(); // validate
-    query = service.register(dummyComponent);
-    expect(query.MaxNbRounds).toBeUndefined();
-    expect(query.Alternatives).toBeUndefined();
-    service.next();
-    query = service.register(dummyComponent);
-    expect(query.MaxNbRounds).toBeUndefined();
-    expect(query.Alternatives).toBeUndefined();
-  });
-
-  */
-
 });

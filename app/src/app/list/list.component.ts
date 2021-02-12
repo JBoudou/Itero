@@ -18,6 +18,8 @@ import { Component, OnInit } from '@angular/core';
 import {Router} from '@angular/router';
 import {HttpClient} from '@angular/common/http';
 
+import { take } from 'rxjs/operators';
+
 import { ListAnswerEntry, PollAction } from '../api';
 
 function mapListAnswerEntry(e: ListAnswerEntry): ListAnswerEntry {
@@ -63,7 +65,7 @@ export class ListComponent implements OnInit {
 
   ngOnInit(): void {
     // Retrieve the list of polls each time the component is displayed.
-    this.http.get<ListAnswerEntry[]>('/a/list').subscribe({
+    this.http.get<ListAnswerEntry[]>('/a/list').pipe(take(1)).subscribe({
       next: (values: ListAnswerEntry[]) => this.polls = values.map(mapListAnswerEntry),
       error: (_) => this.polls = []
     });

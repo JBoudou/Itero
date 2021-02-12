@@ -19,6 +19,8 @@ import { Component, OnInit } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 
+import { take } from 'rxjs/operators';
+
 import { SessionService } from '../session.service';
 
 @Component({
@@ -58,7 +60,7 @@ export class LoginComponent implements OnInit {
 
   onLogin(): void {
     this.http.post('/a/login', this.form.value)
-      .pipe(this.session.httpOperator(this.form.value.User))
+      .pipe(this.session.httpOperator(this.form.value.User), take(1))
       .subscribe({
       next: _ => {
         this.errorType = 'None';

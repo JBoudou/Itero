@@ -18,6 +18,8 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, ParamMap } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 
+import { take } from 'rxjs/operators';
+
 import { CreateService } from '../create.service';
 import { CreateQuery } from 'src/app/api';
 
@@ -27,7 +29,6 @@ function isCreateQuery(result: Result): result is Partial<CreateQuery> {
   const asError = result as any;
   return asError.status === undefined && asError.message === undefined;
 }
-
 
 
 @Component({
@@ -46,7 +47,7 @@ export class ResultComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    this.route.paramMap.subscribe((params: ParamMap) => {
+    this.route.paramMap.pipe(take(1)).subscribe((params: ParamMap) => {
       this.pollSegment = params.get('pollSegment');
     });
 

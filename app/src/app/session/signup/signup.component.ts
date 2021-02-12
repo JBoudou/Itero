@@ -18,6 +18,8 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
 import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 
+import { take } from 'rxjs/operators';
+
 import { SignupQuery } from '../../api';
 import { SessionService } from '../session.service';
 
@@ -77,7 +79,7 @@ export class SignupComponent implements OnInit {
     delete toSend.pwdconfirm;
     toSend.Name = toSend.Name.trim()
     this.http.post('/a/signup', toSend as SignupQuery)
-      .pipe(this.session.httpOperator(toSend.Name))
+      .pipe(this.session.httpOperator(toSend.Name), take(1))
       .subscribe({
       next: () => {
         this.createdUser = toSend.Name;
@@ -90,13 +92,13 @@ export class SignupComponent implements OnInit {
             case 'Name has spaces':
             case 'Name has at sign':
             case 'Already exists':
-              this.form.get('Name').valueChanges.subscribe(this.resetServerError);
+              this.form.get('Name').valueChanges.pipe(take(1)).subscribe(this.resetServerError);
               break;
             case 'Email invalid':
-              this.form.get('Email').valueChanges.subscribe(this.resetServerError);
+              this.form.get('Email').valueChanges.pipe(take(1)).subscribe(this.resetServerError);
               break;
             case 'Passwd too short':
-              this.form.get('Passwd').valueChanges.subscribe(this.resetServerError);
+              this.form.get('Passwd').valueChanges.pipe(take(1)).subscribe(this.resetServerError);
               break;
           }
         } else {
