@@ -29,6 +29,8 @@ import (
 	"github.com/JBoudou/Itero/events"
 )
 
+const minWaitDuration = time.Second
+
 // pollService is the base classes of some services like nextRound and closePoll.
 type pollService struct {
 	lastCheck time.Time
@@ -179,6 +181,9 @@ func (self *pollService) nextAlarm_helper(qNext string, defaultWait time.Duratio
 		log.Printf("%s DEBUG adjust %v", self.serviceName, self.adjust)
 		
 		ret.Time = ret.Time.Add(self.adjust)
+		if (time.Until(ret.Time) < minWaitDuration) {
+			ret.Time = time.Now().Add(minWaitDuration)
+		}
 		ret.Data = pollId
 	} else {
 		if !errors.Is(err, sql.ErrNoRows) {
