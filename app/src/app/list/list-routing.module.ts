@@ -17,10 +17,12 @@
 import { NgModule } from '@angular/core';
 import { Routes, RouterModule } from '@angular/router';
 
+import { LoggedGuard } from '../session/logged.guard';
+
 import { ListComponent } from './list.component';
 
 const routes: Routes = [
-  { path: 'r/list', component: ListComponent },
+  { path: 'r/list', component: ListComponent, canActivate: [ LoggedGuard ] },
 ];
 
 @NgModule({
