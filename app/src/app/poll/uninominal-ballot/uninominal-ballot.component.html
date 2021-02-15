@@ -1,5 +1,5 @@
-<p class="ballothint" i18n>Choose one of the following alternatives:</p>
-<div *ngIf="!!alternatives" class="pollballot">
+<p class="ballot-hint" i18n>Choose one of the following alternatives:</p>
+<div *ngIf="!!alternatives" class="poll-ballot">
   <ul class="selection-list">
     <li *ngFor="let alt of alternatives" [class.selected]="isSelected(alt.Id)" (click)="onSelect(alt.Id)">{{alt.Name}}</li>
   </ul>
