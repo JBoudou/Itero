@@ -21,9 +21,12 @@ import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { ClipboardModule }  from '@angular/cdk/clipboard';
 import { MatButtonModule }  from '@angular/material/button';
 import { MatDialogModule }  from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule }    from '@angular/material/icon'; 
+import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule }  from '@angular/material/select'; 
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatRadioModule } from '@angular/material/radio';
 
 import { FormWidgetModule } from '../form-widget/form-widget.module';
 import { PollModule }       from '../poll/poll.module';
@@ -60,7 +63,10 @@ import { NavbuttonsComponent } from './navtree/navbuttons.component';
     FormWidgetModule,
     MatButtonModule,
     MatDialogModule,
+    MatFormFieldModule,
     MatIconModule,
+    MatInputModule,
+    MatRadioModule,
     MatSelectModule,
     MatTooltipModule,
     PollModule,

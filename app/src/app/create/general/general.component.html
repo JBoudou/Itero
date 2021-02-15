@@ -1,10 +1,16 @@
-<form class="basicform" [formGroup]="form">
-  <label i18n>Title:</label><input type="text" formControlName="Title" />
-  <label i18n>Description:</label><textarea rows="3" formControlName="Description"></textarea>
-  <label i18n>Publicizing:</label><mat-select panelClass="base-colors" formControlName="Hidden">
-    <mat-option [value]="false" i18n>Display the poll in the list</mat-option>
-    <mat-option [value]="true" i18n>Spread the link</mat-option>
-  </mat-select>
+<form [formGroup]="form">
+  <mat-form-field class="lone-field" appearance="standard">
+    <mat-label i18n>Title</mat-label>
+    <input matInput type="text" formControlName="Title" />
+  </mat-form-field>
+  <mat-form-field class="lone-field" appearance="standard">
+    <mat-label i18n>Description</mat-label>
+    <textarea matInput rows="3" formControlName="Description"></textarea>
+  </mat-form-field>
+  <mat-radio-group formControlName="Hidden">
+    <mat-radio-button [value]="false" i18n>Display the poll in the list.</mat-radio-button>
+    <mat-radio-button [value]="true"  i18n>Manually spread the link.</mat-radio-button>
+  </mat-radio-group>
 </form>
 
 <ng-template #stepInfo let-query="query$">
@@ -19,13 +25,13 @@
     <p *ngIf="!q.Hidden; else Hidden" i18n>
       The title will be displayed in the list of polls,
       allowing any user to participate in.
-      If you don't want the poll to be public, select "Spread the link" as Publicity.
+      If you don't want the poll to be public, select "Manually spread the link".
     </p>
     <ng-template #Hidden>
       <p>
         The title will be displayed in the list of poll only for the participants in the poll.
         You will have to send the link of the poll to all the participants.
-        If you prefer your poll to be public, select "Display the poll in the list" as Publicity.
+        If you prefer your poll to be public, select "Display the poll in the list".
       </p>
     </ng-template>
   </ng-container>
