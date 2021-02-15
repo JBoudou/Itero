@@ -1,10 +1,10 @@
 <form class="form-alone" [formGroup]="form" (ngSubmit)="onLogin()">
   <mat-form-field class="lone-field" appearance="standard">
-    <mat-label>User</mat-label>
+    <mat-label i18n>User</mat-label>
     <input matInput type="text" formControlName="User" i18n-placeholder placeholder="Name or email" />
   </mat-form-field>
   <mat-form-field class="lone-field" appearance="standard">
-    <mat-label>Password</mat-label>
+    <mat-label i18n>Password</mat-label>
     <input matInput [type]="showPassword ? 'text' : 'password'" formControlName="Passwd" />
     <button mat-icon-button matSuffix type="button" (click)="showPassword = !showPassword">
       <mat-icon>{{ showPassword ? 'visibility' : 'visibility_off' }}</mat-icon>

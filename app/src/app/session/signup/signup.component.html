@@ -1,22 +1,40 @@
-<form *ngIf="!createdUser" class="basicform" [formGroup]="form" (ngSubmit)="onSignup()">
-  <label i18n>Login:</label><input type="text" formControlName="Name">
-  <label i18n>Email:</label><input type="text" formControlName="Email">
-  <label i18n>Password:</label><input type="password" formControlName="Passwd">
-  <label i18n>Password again:</label><input type="password" formControlName="pwdconfirm">
+<form *ngIf="!createdUser" class="form-alone" [formGroup]="form" (ngSubmit)="onSignup()">
+  <mat-form-field class="lone-field" appearance="standard">
+    <mat-label i18n>Login</mat-label>
+    <input matInput type="text" formControlName="Name">
+  </mat-form-field>
+  <mat-form-field class="lone-field" appearance="standard">
+    <mat-label i18n>Email</mat-label>
+    <input matInput type="text" formControlName="Email">
+  </mat-form-field>
+  <mat-form-field class="lone-field" appearance="standard">
+    <mat-label i18n>Password</mat-label>
+    <input matInput [type]="showPassword ? 'text' : 'password'" formControlName="Passwd">
+    <button mat-icon-button matSuffix type="button" (click)="showPassword = !showPassword">
+      <mat-icon>{{ showPassword ? 'visibility' : 'visibility_off' }}</mat-icon>
+    </button>
+  </mat-form-field>
+  <mat-form-field class="lone-field" appearance="standard">
+    <mat-label i18n>Confirm password</mat-label>
+    <input matInput [type]="showConfirm ? 'text' : 'password'" formControlName="pwdconfirm">
+    <button mat-icon-button matSuffix type="button" (click)="showConfirm = !showConfirm">
+      <mat-icon>{{ showConfirm ? 'visibility' : 'visibility_off' }}</mat-icon>
+    </button>
+  </mat-form-field>
   <div class="formerrors" *ngIf="!form.valid">
-    <p *ngIf="nameTooShort()" i18n>The login name must be at least 5 characters long.</p>
-    <p *ngIf="nameContainsAt()" i18n>The login name must not contain symbol '@'.</p>
+    <p *ngIf="nameTooShort()" i18n>Your login name must be at least 5 characters long.</p>
+    <p *ngIf="nameContainsAt()" i18n>Your login name can not contain symbol '@'.</p>
     <p *ngIf="emailWrong()" i18n>Please provide a valid email address.</p>
-    <p *ngIf="pwdTooShort()" i18n>The login password must be at least 5 characters long.</p>
+    <p *ngIf="pwdTooShort()" i18n>Your password must be at least 5 characters long.</p>
     <p *ngIf="passwordsDiffer()" i18n>The passwords do not match.</p>
   </div>
   <div class="formerrors" *ngIf="!!serverError" [ngSwitch]="serverError">
-    <p *ngSwitchCase="'Name too short'" i18n>The login name is too short.</p>
-    <p *ngSwitchCase="'Name has spaces'" i18n>The login name must not start or end with spaces.</p>
-    <p *ngSwitchCase="'Name has at sign'" i18n>The login name must not contain symbol '@'.</p>
+    <p *ngSwitchCase="'Name too short'" i18n>Your login name is too short.</p>
+    <p *ngSwitchCase="'Name has spaces'" i18n>Your login name must not start or end with spaces.</p>
+    <p *ngSwitchCase="'Name has at sign'" i18n>Your login name must not contain symbol '@'.</p>
     <p *ngSwitchCase="'Passwd too short'" i18n>Your password is too short.</p>
     <p *ngSwitchCase="'Email invalid'" i18n>
-      The provided email address looks invalid. Please check it carefully or give another one.
+      The provided email address looks invalid. Please check it carefully.
     </p>
     <p *ngSwitchCase="'Already exists'" i18n>
       There already is a user with the same name or the same email address.

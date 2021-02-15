@@ -65,6 +65,9 @@ export class SignupComponent implements OnInit {
   serverError = ''
   createdUser = ''
 
+  showPassword: boolean = false;
+  showConfirm : boolean = false;
+
   constructor(
     private session: SessionService,
     private http: HttpClient,
