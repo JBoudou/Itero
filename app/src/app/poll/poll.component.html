@@ -19,7 +19,7 @@
 
     <div class="poll-ballot" *ngIf="answer.Active">
       <h3 class="poll-round" i18n>
-        {{ answer.CurrentRound + 1 | ordinal | titlecase }} Round
+        {{ answer.CurrentRound + 1 | ordinal:true }} Round
       </h3>
       <p class="previous-vote" *ngIf="hasCurrentRoundBallot()" i18n>
         On the current round, you've already voted <span class="vote">{{currentRoundBallot.asString}}</span>.
@@ -42,7 +42,7 @@
         <h3 i18n>Final result</h3>
       </ng-template>
       <h3 class="poll-round" *ngIf="answer.Active else finalTmpl" i18n>
-        {{ answer.CurrentRound | ordinal | titlecase }} Round
+        {{ answer.CurrentRound | ordinal:true }} Round
       </h3>
       <p class="previous-vote" *ngIf="hasPreviousRoundBallot()" i18n>
         On the previous round, you voted <span class="vote">{{previousRoundBallot.asString}}</span>.

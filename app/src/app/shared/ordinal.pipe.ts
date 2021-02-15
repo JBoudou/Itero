@@ -16,21 +16,27 @@
 
 import { Pipe, PipeTransform } from '@angular/core';
 
+/**
+ * Display numbers as localized ordinal.
+ *
+ * Do NOT pipe to TitleCase because it will render 4 as 4Th;
+ * use the optional titleCase argument instead.
+ */
 @Pipe({
   name: 'ordinal'
 })
 export class OrdinalPipe implements PipeTransform {
 
-  transform(value: number): string {
+  transform(value: number, titleCase?: boolean): string {
     switch (value) {
     case undefined:
       return '';
     case 1:
-      return 'first';
+      return titleCase ? 'First' : 'first';
     case 2:
-      return 'second';
+      return titleCase ? 'Second' : 'second';
     case 3:
-      return 'third';
+      return titleCase ? 'Third' : 'third';
     default:
       return value.toString() + 'th';
     }
