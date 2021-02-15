@@ -200,11 +200,23 @@ func PollHandler(ctx context.Context, response server.Response, request *server.
 		   AND p.Admin = u.Id`
 	row := db.DB.QueryRowContext(ctx, qSelect, pollInfo.Id)
 	var desc sql.NullString
+	var roundDeadline sql.NullTime
+	var pollDeadline sql.NullTime
+	var maxRoundDuration sql.NullInt64
 	must(row.Scan(
-		&answer.Title, &desc, &answer.Admin, &answer.CreationTime, &answer.RoundDeadline,
-		&answer.PollDeadline, &answer.MaxRoundDuration, &answer.MinNbRounds, &answer.MaxNbRounds))
+		&answer.Title, &desc, &answer.Admin, &answer.CreationTime, &roundDeadline,
+		&pollDeadline, &maxRoundDuration, &answer.MinNbRounds, &answer.MaxNbRounds))
 	if desc.Valid {
 		answer.Description = desc.String
+	}
+	if roundDeadline.Valid {
+		answer.RoundDeadline = roundDeadline.Time;
+	}
+	if pollDeadline.Valid {
+		answer.PollDeadline = pollDeadline.Time;
+	}
+	if maxRoundDuration.Valid && maxRoundDuration.Int64 > 0 {
+		answer.MaxRoundDuration = uint64(maxRoundDuration.Int64)
 	}
 
 	response.SendJSON(ctx, answer)
