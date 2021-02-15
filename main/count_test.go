@@ -18,8 +18,8 @@ package main
 
 import (
 	"net/http"
-	"testing"
 	"strconv"
+	"testing"
 
 	"github.com/JBoudou/Itero/db"
 	dbt "github.com/JBoudou/Itero/db/dbtest"
@@ -28,6 +28,11 @@ import (
 
 func TestCountInfoHandler(t *testing.T) {
 	precheck(t)
+
+	const (
+		qReport = `UPDATE Polls SET ReportVote = TRUE WHERE Id = ?`
+		qSetRound = `UPDATE Participants SET LastRound = ? WHERE User = ?`
+	)
 
 	var env dbt.Env
 	defer env.Close()
@@ -46,35 +51,60 @@ func TestCountInfoHandler(t *testing.T) {
 
 	request := makePollRequest(t, pollSegment, &users[0])
 
+	alt := [3]PollAlternative{
+		{Id: 0, Name: "Ham", Cost: 1},
+		{Id: 1, Name: "Stram", Cost: 1},
+		{Id: 2, Name: "Gram", Cost: 1},
+	}
+
+	makeChecker := func(result [][2]uint32) srvt.Checker {
+		entries := make([]CountInfoEntry, len(result))
+		for i, val := range result {
+			entries[i].Alternative = alt[val[0]]
+			entries[i].Count = val[1]
+		}
+		return srvt.CheckJSON{Body: CountInfoAnswer{Result: entries}}
+	}
+
 	tests := []srvt.Test{
+		// WARNING: Tests are sequential!
 		{
 			Name:    "Round Zero",
 			Request: request,
 			Checker: srvt.CheckStatus{http.StatusInternalServerError},
 		},
 		{
-			Name: "Success",
+			Name: "All voted",
 			Update: func(t *testing.T) {
 				env.NextRound(pollSegment.Id)
 				env.Must(t)
 			},
 			Request: request,
-			Checker: srvt.CheckJSON{Body: CountInfoAnswer{
-				Result: []CountInfoEntry{
-					{
-						Alternative: PollAlternative{Id: 2, Name: "Gram", Cost: 1.},
-						Count:       2,
-					},
-					{
-						Alternative: PollAlternative{Id: 0, Name: "Ham", Cost: 1.},
-						Count:       1,
-					},
-					{
-						Alternative: PollAlternative{Id: 1, Name: "Stram", Cost: 1.},
-						Count:       0,
-					},
-				},
-			}},
+			Checker: makeChecker([][2]uint32{{2,2}, {0,1}, {1,0}}),
+		},
+		{
+			Name: "One voted",
+			Update: func(t *testing.T) {
+				env.Vote(pollSegment.Id, 1, users[0], 1)
+				env.NextRound(pollSegment.Id)
+				env.Must(t)
+			},
+			Request: request,
+			Checker: makeChecker([][2]uint32{{1,1},{0,0},{2,0}}),
+		},
+		{
+			Name: "Report vote",
+			Update: func(t *testing.T) {
+				env.Vote(pollSegment.Id, 2, users[1], 0)
+				env.NextRound(pollSegment.Id)
+				env.QuietExec(qReport, pollSegment.Id)
+				env.QuietExec(qSetRound, 1, users[0])
+				env.QuietExec(qSetRound, 2, users[1])
+				env.QuietExec(qSetRound, 0, users[2])
+				env.Must(t)
+			},
+			Request: request,
+			Checker: makeChecker([][2]uint32{{0,2},{1,1},{2,0}}),
 		},
 	}
 	srvt.RunFunc(t, tests, CountInfoHandler)

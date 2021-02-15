@@ -56,6 +56,16 @@ func (self *Env) Must(t *testing.T) {
 	}
 }
 
+// QuietExec executes the query without returning anything.
+// Like most other Env's methods, the query is not executed if an error previously occured.
+func (self *Env) QuietExec(query string, args... interface{}) {
+	if self.Error != nil {
+		return
+	}
+	_, self.Error = db.DB.Exec(query, args...)
+}
+
+
 // CreateUser adds a user to the database. The user has name ' Test ' (mind the spaces), email
 // address 'test@example.test', and password 'XYZ'. It is deleted by Close.
 func (self *Env) CreateUser() uint32 {

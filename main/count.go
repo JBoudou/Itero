@@ -47,22 +47,50 @@ func CountInfoHandler(ctx context.Context, response server.Response, request *se
 	answer.Result = make([]CountInfoEntry, pollInfo.NbChoices)
 
 	const (
-		qCount = `
+		qReport = `SELECT ReportVote FROM Polls WHERE Id = ?`
+		qCountAbstain = `
 		  SELECT a.Id, a.Name, a.Cost, IFNULL(b.Count,0)
 		    FROM (
 		          SELECT *
 		            FROM Alternatives
-		            WHERE Poll = ?
-		        ) AS a LEFT JOIN (
-		          SELECT Poll, Alternative as Id, COUNT(*) as Count
-		            FROM Ballots
+		           WHERE Poll = ?
+		         ) AS a LEFT JOIN (
+		           SELECT Poll, Alternative as Id, COUNT(*) as Count
+		             FROM Ballots
 		            WHERE Round = ?
 		            GROUP BY Poll, Alternative
-		        ) AS b ON (a.Poll, a.Id) = (b.Poll, b.Id)
-		  ORDER BY b.Count DESC`
+		         ) AS b ON (a.Poll, a.Id) = (b.Poll, b.Id)
+		   ORDER BY b.Count DESC, a.Id ASC`
+		qCountReport = `
+		  SELECT a.Id, a.Name, a.Cost, IFNULL(b.Count,0)
+		    FROM (
+		          SELECT *
+		            FROM Alternatives
+		           WHERE Poll = ?
+		         ) AS a LEFT JOIN (
+		           SELECT b.Poll, b.Alternative as Id, COUNT(*) as Count
+		             FROM Ballots AS b JOIN (
+		                    SELECT User, Poll, MAX(LastRound) as Round
+		                      FROM Participants
+		                     WHERE LastRound <= ?
+		                     GROUP BY User, Poll
+		             ) AS p ON (b.User, b.Poll) = (p.User, p.Poll) AND b.Round = p.Round
+		            GROUP BY Poll, Alternative
+		         ) AS b ON (a.Poll, a.Id) = (b.Poll, b.Id)
+		   ORDER BY b.Count DESC, a.Id ASC`
 	)
 
-	rows, err := db.DB.QueryContext(ctx, qCount, pollInfo.Id, pollInfo.CurrentRound - 1)
+	row := db.DB.QueryRowContext(ctx, qReport, pollInfo.Id)
+	var reportVote bool
+	must(row.Scan(&reportVote))
+	var query string
+	if reportVote {
+		query = qCountReport
+	} else {
+		query = qCountAbstain
+	}
+
+	rows, err := db.DB.QueryContext(ctx, query, pollInfo.Id, pollInfo.CurrentRound - 1)
 	must(err)
 	for i := 0; rows.Next(); i++ {
 		must(rows.Scan(&answer.Result[i].Alternative.Id,
