@@ -1,6 +1,15 @@
-<form class="basicform" [formGroup]="form" (ngSubmit)="onLogin()">
-  <label i18n>User:</label><input type="text" formControlName="User">
-  <label i18n>Password:</label><input type="password" formControlName="Passwd">
+<form class="form-alone" [formGroup]="form" (ngSubmit)="onLogin()">
+  <mat-form-field class="lone-field" appearance="standard">
+    <mat-label>User</mat-label>
+    <input matInput type="text" formControlName="User" i18n-placeholder placeholder="Name or email" />
+  </mat-form-field>
+  <mat-form-field class="lone-field" appearance="standard">
+    <mat-label>Password</mat-label>
+    <input matInput [type]="showPassword ? 'text' : 'password'" formControlName="Passwd" />
+    <button mat-icon-button matSuffix type="button" (click)="showPassword = !showPassword">
+      <mat-icon>{{ showPassword ? 'visibility' : 'visibility_off' }}</mat-icon>
+    </button>
+  </mat-form-field>
   <div class="formerrors" *ngIf="errorType != 'None'" [ngSwitch]="errorType">
     <p *ngSwitchCase="'Wrong'" i18n>Wrong user name or password. Please try again.</p>
     <p *ngSwitchCase="'Local'" i18n>Internal error: {{errorMsg}}</p>

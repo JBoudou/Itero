@@ -2,7 +2,7 @@
 @import '~@angular/material/theming';
 
 $mainfont: 'Asap';
-$fontsize: 12pt;
+$fontsize: 13pt;
 
 $titlefont: 'Overpass';
 $infofont: 300 100% 'Livvic';
@@ -13,5 +13,5 @@ $itero-mat-typography: mat-typography-config(
   $headline:  mat-typography-level(32px,      1.2, $font-family: $titlefont),
   $title:     mat-typography-level($fontsize, 1.2, $font-family: $titlefont),
   $button:    mat-typography-level($fontsize, 1.2),
-  $input:     mat-typography-level($fontsize, 1.2),
+  $input:     mat-typography-level($fontsize, 1.3),
 );

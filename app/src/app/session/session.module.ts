@@ -19,6 +19,11 @@ import { CommonModule } from '@angular/common';
 import { HTTP_INTERCEPTORS } from '@angular/common/http';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 
+import { MatButtonModule } from '@angular/material/button';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+
 import { SessionRoutingModule } from './session-routing.module';
 import { SessionInterceptor } from './session.interceptor';
 
@@ -32,6 +37,10 @@ import { SignupComponent } from './signup/signup.component';
   ],
   imports: [
     CommonModule,
+    MatButtonModule,
+    MatFormFieldModule,
+    MatIconModule,
+    MatInputModule,
     SessionRoutingModule,
     ReactiveFormsModule,
     FormsModule,

@@ -42,6 +42,8 @@ export class LoginComponent implements OnInit {
       ]]
   });
 
+  showPassword: boolean = false;
+
   errorType = 'None'
   errorMsg = ''
 

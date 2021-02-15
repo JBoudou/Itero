@@ -18,23 +18,20 @@ body
 h3:first-child
   margin-top: 0
 
-form.basicform
-  label
-    white-space: nowrap
-  input, textarea
-    @include userinput
 
 @function tame($color)
   @return color.adjust($color, $saturation: -20%, $lightness: +10%)
 
 .formactions
-  border-top: solid 1px $maincolor
   padding: 4px 0
   display: flex
   justify-content: flex-end
   button
+    @include userbox
+    background-color: $userbuttonbgcolor
+    font-size: $fontsize
     margin-left: 4px
-    @include userbutton
+    padding: 0.4em 1em
     &:hover
       background-color: color.adjust($maincolor, $lightness: 20%)
       color: $fgOnMaincolor
@@ -86,7 +83,7 @@ form.basicform
   p
     margin: 0
     
-form.basicform
+//form.basicform
   display: grid
   grid-template-columns: max-content max-content
   gap: 4px
@@ -97,6 +94,19 @@ form.basicform
     grid-area: span 1 / span 2
   .formactions
     grid-area: span 1 / span 2
+  label
+    white-space: nowrap
+  input, textarea
+    @include userinput
+
+.form-alone
+  max-width: max-content
+  margin: 0 auto
+  padding: 1em
+  border: solid 2px $maincolor
+  border-radius: 8px
+  .mat-form-field-appearance-standard .mat-form-field-flex
+    padding-top: 0
 
 .http-error
   font-family: monospace
@@ -130,13 +140,13 @@ $itero-mat-theme: mat-light-theme(( color: ( primary: $itero-mat-primary, accent
   @include userinput
   width: auto
 
-.mat-select-panel.base-colors mat-option.mat-selected:not(.mat-option-multiple)
+//.mat-select-panel.base-colors mat-option.mat-selected:not(.mat-option-multiple)
   background-color: $userbuttonbgcolor
 
-.mat-select-panel.base-colors mat-option:hover:not(.mat-option-disabled):not(.mat-selected)
+//.mat-select-panel.base-colors mat-option:hover:not(.mat-option-disabled):not(.mat-selected)
   background-color: $softbgcolor
 
-.mat-form-field-wrapper
+//.mat-form-field-wrapper
   padding: 0
   .mat-form-field-infix
     padding: 4px 0
@@ -146,6 +156,10 @@ $itero-mat-theme: mat-light-theme(( color: ( primary: $itero-mat-primary, accent
   .mat-form-field-outline > div
     background-color: $softbgcolor
 
+mat-form-field.lone-field
+  display: block
+  .mat-from-field-wrapper
+    padding-bottom: 0
 
 // :host does not seems to work for lazy loaded components
 app-create
