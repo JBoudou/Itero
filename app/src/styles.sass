@@ -7,13 +7,13 @@
 body
   font-family: "Asap", sans-serif
   font-size: $fontsize
-  margin: #{$navbarheight + 16} 8px 8px
+  margin: #{$navbarheight + 16} $medium-space $medium-space
   color: color.adjust($maincolor, $lightness: -25%)
 
 .main-container
   max-width: $contmaxwidth
   margin: 0 auto
-  padding: 0 $contpadding
+  padding: 0 $medium-space
 
 h3:first-child
   margin-top: 0
@@ -23,14 +23,14 @@ h3:first-child
   @return color.adjust($color, $saturation: -20%, $lightness: +10%)
 
 .formactions
-  padding: 4px 0
+  padding: $small-space 0
   display: flex
   justify-content: flex-end
   button
     @include userbox
     background-color: $userbuttonbgcolor
     font-size: $fontsize
-    margin-left: 4px
+    margin-left: $medium-space
     padding: 0.4em 1em
     &:hover
       background-color: color.adjust($maincolor, $lightness: 20%)
@@ -47,14 +47,14 @@ h3:first-child
   & > *
     border: none
   & > input
-    margin: 4px 0
+    margin: $small-space 0
     background-color: transparent
     flex-grow: 1
     outline: none
   & > input:first-child
-    margin-left: 4px
+    margin-left: $small-space
   & > input:last-child
-    margin-right: 4px
+    margin-right: $small-space
   & > button:last-child
     border-left: solid 1px $maincolor
     background-color: $userbuttonbgcolor
@@ -112,16 +112,16 @@ h3:first-child
   font-family: monospace
 
 .dialog-message
-  margin-bottom: 8px
+  margin-bottom: $medium-space
 
 .information-container
   display: grid
   grid-template-columns: 1fr minmax(min-content, 31%)
 
 .information
-  margin-left: 8px
+  margin-left: $medium-space
   border-left: solid 1px $maincolor
-  padding-left: 8px
+  padding-left: $medium-space
   p
     font: $infofont
     margin-top: 0
