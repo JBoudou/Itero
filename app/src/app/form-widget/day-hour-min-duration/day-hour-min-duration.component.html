@@ -1,8 +1,8 @@
 <div role="group" class="day-hour-min-duration merged-input" [formGroup]="form">
   <input #days type="number" size="3" min="0" max="999" formControlName="days"  />
-  &nbsp;{days.value, plural, =0 { day } =1 { day } other { days }},
+  &nbsp;{days.value, plural, =0 {day} =1 {day} other {days}},
   <input #hours type="number" size="2" min="0"  max="23" formControlName="hours" />
-  &nbsp;{hours.value, plural, =0 { hour } =1 { hour } other { hours }} and
+  &nbsp;{hours.value, plural, =0 {hour} =1 {hour} other {hours}} and
   <input #mins type="number" size="2" min="0"  max="59" formControlName="mins"  />
-  &nbsp;{mins, plural, =0 { minute } =1 { minute } other { minutes }}.
+  &nbsp;{mins.value, plural, =0 {minute} =1 {minute} other {minutes }}.
 </div>
