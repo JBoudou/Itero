@@ -15,16 +15,37 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { Component, ChangeDetectionStrategy, OnDestroy, OnInit, ViewChild, TemplateRef, ChangeDetectorRef } from '@angular/core';
-import { FormBuilder, Validators, AbstractControl, ValidatorFn, ValidationErrors  } from '@angular/forms';
+import { FormBuilder, Validators, AbstractControl, ValidatorFn, ValidationErrors, FormControl, FormGroupDirective, NgForm  } from '@angular/forms';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { ActivatedRoute, UrlSegment } from '@angular/router';
 
 import { BehaviorSubject, Observable, Subscription } from 'rxjs';
+import { map } from 'rxjs/operators';
+import { ErrorStateMatcher } from '@angular/material/core';
 
 import { CreateService } from '../create.service';
 import { PollAlternative, CreateQuery } from '../../api';
 import {cloneDeep, isEqual} from 'lodash';
 
+class ErrorStateFromObservable implements ErrorStateMatcher {
+
+  private lastState: boolean = false;
+  private subscription: Subscription;
+
+  constructor(source: Observable<boolean>) {
+    this.subscription = source.subscribe({
+      next: (state: boolean) => this.lastState = state,
+    });
+  }
+
+  destroy(): void {
+    this.subscription.unsubscribe();
+  }
+
+  isErrorState(control: FormControl|null, form: FormGroupDirective|NgForm|null): boolean {
+    return this.lastState;
+  }
+}
 
 function duplicateValidator(component: SimpleAlternativesComponent): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
@@ -71,7 +92,6 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
   });
 
   alternatives: PollAlternative[] = [];
-  hasDuplicate$ = new BehaviorSubject<boolean>(false);
 
   private _stepSegment: string;
   private _subscriptions: Subscription[] = [];
@@ -80,13 +100,17 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
 
   private _validable$ = new BehaviorSubject<boolean>(false);
   get validable$(): Observable<boolean> { return this._validable$; }
+  
+  errorStateMatcher: ErrorStateFromObservable;
 
   constructor(
     private service: CreateService,
     private route: ActivatedRoute,
     private formBuilder: FormBuilder,
     private changeDetector: ChangeDetectorRef,
-  ){ }
+  ){
+    this.errorStateMatcher = new ErrorStateFromObservable(this.validable$.pipe(map((state: boolean) => !state)));
+  }
 
   ngOnInit(): void {
     this._subscriptions.push(
@@ -101,6 +125,7 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this._subscriptions.forEach(sub => sub.unsubscribe());
+    this.errorStateMatcher.destroy();
   }
 
   private synchronizeFromService(query: Partial<CreateQuery>): void {

@@ -5,13 +5,14 @@
     <button><mat-icon (click)="onDelete(alt.Id)">delete</mat-icon></button>
   </div>
 </div>
-<form [formGroup]="form" (ngSubmit)="onAdd()">
-  <div class="merged-userbox-grow new-alternative">
-    <input type="text" formControlName="New" />
-    <button type="submit" [disabled]="!form.valid" i18n><mat-icon>add</mat-icon></button>
-  </div>
+<form class="new-alternative" [formGroup]="form" (ngSubmit)="onAdd()">
+  <mat-form-field appearance="standard">
+    <mat-label i18n>New alternative</mat-label>
+    <input matInput type="text" formControlName="New" [errorStateMatcher]="errorStateMatcher" />
+    <button mat-icon-button matSuffix type="submit" [disabled]="!form.valid" i18n><mat-icon>add</mat-icon></button>
+  </mat-form-field>
 </form>
-<div class="formerrors" *ngIf="hasDuplicate() || alternatives.length < 2">
+<div class="formerrors" *ngIf="!(validable$ | async)">
   <p *ngIf="hasDuplicate()" i18n>
     There already is an alternative with the same name.
   </p>
