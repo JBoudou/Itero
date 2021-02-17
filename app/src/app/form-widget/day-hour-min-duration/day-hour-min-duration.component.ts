@@ -14,21 +14,37 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Component, OnInit, Input, Self, Optional, OnDestroy } from '@angular/core';
+import { Component, OnInit, Input, Self, Optional, OnDestroy, HostBinding, ElementRef } from '@angular/core';
 import { ControlValueAccessor, NgControl, FormBuilder } from '@angular/forms';
 
-import { Subscription } from 'rxjs';
+import { Observable, Subject, Subscription } from 'rxjs';
+import { MatFormFieldControl } from '@angular/material/form-field';
+import { FocusMonitor, FocusOrigin } from '@angular/cdk/a11y';
 
 import { DetailedDuration } from '../duration.pipe';
 
 @Component({
   selector: 'app-day-hour-min-duration',
   templateUrl: './day-hour-min-duration.component.html',
-  styleUrls: ['./day-hour-min-duration.component.sass']
+  styleUrls: ['./day-hour-min-duration.component.sass'],
+  providers: [{provide: MatFormFieldControl, useExisting: DayHourMinDurationComponent}],
 })
-export class DayHourMinDurationComponent implements OnInit, OnDestroy, ControlValueAccessor {
+export class DayHourMinDurationComponent
+          implements OnInit, OnDestroy, ControlValueAccessor, MatFormFieldControl<number> {
 
-  @Input() disabled: boolean;
+  @Input()
+  get disabled(): boolean {
+    return !this.form.enabled;
+  }
+  set disabled(val: boolean) {
+    if (val) {
+      this.form.disable();
+    } else {
+      this.form.enable();
+    }
+    this._stateChanges.next();
+  }
+
   
   form = this.formBuilder.group({
     days:  2,
@@ -39,12 +55,21 @@ export class DayHourMinDurationComponent implements OnInit, OnDestroy, ControlVa
   private _subscriptions: Subscription[] = [];
 
   constructor(
-    @Self() @Optional() private ngControl: NgControl,
+    @Self() @Optional() public ngControl: NgControl,
     private formBuilder: FormBuilder,
+    private focusMonitor: FocusMonitor,
+    private hostElementRef: ElementRef<HTMLElement>,
   ) {
     if (this.ngControl) {
       this.ngControl.valueAccessor = this;
     }
+
+    this._subscriptions.push(focusMonitor.monitor(hostElementRef, true).subscribe({
+      next: (origin: FocusOrigin) => {
+        this.focused = !!origin;
+        this._stateChanges.next();
+      }
+    }));
   }
 
   ngOnInit(): void {
@@ -52,22 +77,85 @@ export class DayHourMinDurationComponent implements OnInit, OnDestroy, ControlVa
     if (this.disabled) {
       this.form.disable({onlySelf: true});
     }
+
+    this.focusMonitor.stopMonitoring(this.hostElementRef);
   }
 
   ngOnDestroy(): void {
     for (const sub of this._subscriptions) {
       sub.unsubscribe();
     }
+    this._stateChanges.complete();
   }
 
   onValueChange(): void {
+    this.notifChange(this.value);
+    this._stateChanges.next();
+  }
+
+
+  /** Implements MatFormFieldControl */
+
+  get value(): number {
     const { days, hours, mins } = this.form.value;
     if (Number.isInteger(days) && Number.isInteger(hours) && Number.isInteger(mins)) {
-      this.notifChange(new DetailedDuration(days, hours, mins).toMilliseconds());
+      return new DetailedDuration(days, hours, mins).toMilliseconds();
     } else {
-      this.notifChange(null);
+      return null;
     }
   }
+
+  set value(newVal: number) {
+    this.form.patchValue(DetailedDuration.fromMilliseconds(newVal));
+  }
+
+  private _stateChanges = new Subject<void>();
+  get stateChanges(): Observable<void> {
+    return this._stateChanges;
+  }
+
+  static _nextId: number = 0;
+  @HostBinding() id = `app-day-hour-min-duration-${DayHourMinDurationComponent._nextId++}`;
+
+  get placeholder(): string {
+    return '';
+  }
+
+  focused: boolean = false;
+
+  get empty(): boolean {
+    const { days, hours, mins } = this.form.value;
+    return !Number.isInteger(days) && !Number.isInteger(hours) && !Number.isInteger(mins);
+  }
+
+  @HostBinding('class.floating')
+  get shouldLabelFloat(): boolean {
+    return this.focused || !this.empty;
+  }
+
+  get required(): boolean {
+    // TODO: To have a better behavior, there must be a way to display and set the undefined value.
+    return false;
+  }
+
+  get errorState(): boolean {
+    return this.form.invalid;
+  }
+
+  get controlType(): string {
+    return 'day-hour-min-duration';
+  }
+
+  setDescribedByIds(ids: string[]): void {
+    // TODO: Implements the whole accessibility stuff.
+  }
+
+  onContainerClick(event: MouseEvent): void {
+    if ((event.target as Element).tagName.toLowerCase() != 'input') {
+      this.hostElementRef.nativeElement.querySelector('input').focus();
+    }
+  }
+
 
   /** Implements ControlValueAccessor */
 
@@ -76,8 +164,7 @@ export class DayHourMinDurationComponent implements OnInit, OnDestroy, ControlVa
       console.warn("DateTimePickerComponent unknown value type " + typeof(obj));
       return;
     }
-    
-    this.form.patchValue(DetailedDuration.fromMilliseconds(obj));
+    this.value = obj;
   }
 
   setDisabledState(isDisabled: boolean): void {
