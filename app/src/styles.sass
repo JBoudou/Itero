@@ -18,6 +18,10 @@ body
 h3:first-child
   margin-top: 0
 
+input
+  font-size: inherit
+  font-family: inherit
+
 
 @function tame($color)
   @return color.adjust($color, $saturation: -20%, $lightness: +10%)
@@ -56,11 +60,10 @@ h3:first-child
   & > input:last-child
     margin-right: 4px
   & > button:last-child
-    border-left: solid 1px $maincolor
-    background-color: $userbuttonbgcolor
+    background-color: inherit
   & > button:last-child:hover
-    background-color: color.adjust($maincolor, $lightness: 20%)
-    color: $fgOnMaincolor
+    color: $maincolor
+    background-color: $softbgcolor
   & > button[disabled]:last-child, & > [disabled]:last-child:hover
     background-color: tame($userbuttonbgcolor)
     color: tame($useboxfgcolor)
@@ -161,8 +164,6 @@ mat-form-field.lone-field
   .mat-from-field-wrapper
     padding-bottom: 0
 
-// :host does not seems to work for lazy loaded components
-app-create
-  display: block
-  max-width: max-content
-  margin: 0 auto
+/* Added for SimpleAlternativeComponent, to align the icon correctly on Firefox 83.0. */
+.mat-form-field-suffix
+  align-self: flex-end
