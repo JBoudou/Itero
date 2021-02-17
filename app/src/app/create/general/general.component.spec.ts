@@ -15,16 +15,24 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Component } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 
-import { MatSelectModule }  from '@angular/material/select'; 
+import { MatRadioModule } from '@angular/material/radio';
 
 import { GeneralComponent } from './general.component';
 
 import { CreateService } from '../create.service';
 
 import { ActivatedRouteStub } from '../../../testing/activated-route-stub'
+
+@Component({ selector: 'mat-form-field', template: '' })
+class MatFormFieldStub { }
+
+@Component({ selector: 'mat-label', template: '' })
+class MatLabelStub { }
+
 
 describe('GeneralComponent', () => {
   let component: GeneralComponent;
@@ -37,8 +45,12 @@ describe('GeneralComponent', () => {
     activatedRouteStub = new ActivatedRouteStub();
     
     await TestBed.configureTestingModule({
-      declarations: [ GeneralComponent ],
-      imports: [ ReactiveFormsModule, FormsModule, MatSelectModule ],
+      declarations: [
+        GeneralComponent,
+        MatFormFieldStub,
+        MatLabelStub,
+      ],
+      imports: [ ReactiveFormsModule, FormsModule, MatRadioModule ],
       providers: [
         FormBuilder,
         { provide: CreateService, useValue: serviceSpy },
