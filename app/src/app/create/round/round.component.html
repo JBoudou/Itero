@@ -1,9 +1,21 @@
 <form class="basicform" [formGroup]="form">
   <label i18n>Poll end:</label><app-date-time-picker formControlName="Deadline"></app-date-time-picker>
-  <label i18n>Number of rounds:</label>
-    <div role="group" class="least-most merged-input-space">
-      <span i18n>at least <input type=number size="3" min="2" [max]="minMax()"   formControlName="MinNbRounds" />,</span>
-      <span i18n>at most  <input type=number size="3" [min]="maxMin()" max="255" formControlName="MaxNbRounds" /></span>
+    <div role="group" class="least-most">
+      <mat-form-field appearance="standard" i18n>
+        <mat-label>Number of rounds</mat-label>
+        <div class="inner-field">
+          <div>
+            At least
+            <input matInput type=number size="3" min="2" [max]="minMax()" formControlName="MinNbRounds" />
+            &nbsp;rounds,&nbsp;
+          </div>
+          <div>
+            at most
+            <input matInput type=number size="3" [min]="maxMin()" max="255" formControlName="MaxNbRounds" />
+            &nbsp;rounds.
+          </div>
+        </div>
+      </mat-form-field>
     </div>
   <label i18n>Max round duration:</label><app-day-hour-min-duration formControlName="MaxRoundDuration"></app-day-hour-min-duration>
 </form>
