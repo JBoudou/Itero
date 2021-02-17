@@ -77,8 +77,6 @@ export class DayHourMinDurationComponent
     if (this.disabled) {
       this.form.disable({onlySelf: true});
     }
-
-    this.focusMonitor.stopMonitoring(this.hostElementRef);
   }
 
   ngOnDestroy(): void {
@@ -86,6 +84,7 @@ export class DayHourMinDurationComponent
       sub.unsubscribe();
     }
     this._stateChanges.complete();
+    this.focusMonitor.stopMonitoring(this.hostElementRef);
   }
 
   onValueChange(): void {

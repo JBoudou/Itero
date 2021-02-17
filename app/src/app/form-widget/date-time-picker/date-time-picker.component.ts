@@ -14,17 +14,21 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Component, OnInit, OnDestroy, Input, Self, Optional } from '@angular/core';
+import { Component, OnInit, OnDestroy, Input, Self, Optional, HostBinding, ElementRef } from '@angular/core';
 import { ControlValueAccessor, NgControl, FormBuilder } from '@angular/forms';
 
-import { Subscription } from 'rxjs';
+import { Observable, Subject, Subscription } from 'rxjs';
+import { MatFormFieldControl } from '@angular/material/form-field';
+import { FocusMonitor, FocusOrigin } from '@angular/cdk/a11y';
 
 @Component({
   selector: 'app-date-time-picker',
   templateUrl: './date-time-picker.component.html',
-  styleUrls: ['./date-time-picker.component.sass']
+  styleUrls: ['./date-time-picker.component.sass'],
+  providers: [{provide: MatFormFieldControl, useExisting: DateTimePickerComponent}],
 })
-export class DateTimePickerComponent implements OnInit, OnDestroy, ControlValueAccessor {
+export class DateTimePickerComponent
+       implements OnInit, OnDestroy, ControlValueAccessor, MatFormFieldControl<Date> {
 
   @Input() disabled: boolean;
   
@@ -34,12 +38,21 @@ export class DateTimePickerComponent implements OnInit, OnDestroy, ControlValueA
   });
 
   constructor(
-    @Self() @Optional() private ngControl: NgControl,
+    @Self() @Optional() public ngControl: NgControl,
     private formBuilder: FormBuilder,
+    private focusMonitor: FocusMonitor,
+    private hostElementRef: ElementRef<HTMLElement>,
   ) {
     if (this.ngControl) {
       this.ngControl.valueAccessor = this;
     }
+
+    this._subscriptions.push(focusMonitor.monitor(hostElementRef, true).subscribe({
+      next: (origin: FocusOrigin) => {
+        this.focused = !!origin;
+        this._stateChanges.next();
+      }
+    }));
   }
 
   private _subscriptions: Subscription[] = [];
@@ -55,15 +68,78 @@ export class DateTimePickerComponent implements OnInit, OnDestroy, ControlValueA
     for (const sub of this._subscriptions) {
       sub.unsubscribe();
     }
+    this._stateChanges.complete();
+    this.focusMonitor.stopMonitoring(this.hostElementRef);
   }
 
   onValueChange(): void {
+    this.notifChange(this.value);
+    this._stateChanges.next();
+  }
+
+
+  /** Implements MatFormFieldControl */
+
+  get value(): Date {
     const date = this.form.value.date.split('-').map((str: string) => parseInt(str));
     const time = this.form.value.time.split(':').map((str: string) => parseInt(str));
-    // No spread syntax yet :(
-    const value = new Date(date[0], date[1] - 1, date[2], time[0], time[1]);
-    this.notifChange(value);
+    return new Date(date[0], date[1] - 1, date[2], time[0], time[1]);
   }
+
+  set value(val: Date) {
+    const date = val.getFullYear() + '-' +
+                 (val.getMonth() + 1).toString().padStart(2, '0') + '-' +
+                 val.getDate()   .toString().padStart(2, '0');
+    const time = val.getHours()  .toString().padStart(2, '0') + ':' +
+                 val.getMinutes().toString().padStart(2, '0');
+    this.form.setValue({date: date, time: time});
+  }
+
+  private _stateChanges = new Subject<void>();
+  get stateChanges(): Observable<void> {
+    return this._stateChanges;
+  }
+
+  static _nextId: number = 0;
+  @HostBinding() id = `app-date-time-picker-${DateTimePickerComponent._nextId++}`;
+
+  get placeholder(): string {
+    return '';
+  }
+
+  focused: boolean = false;
+
+  get empty(): boolean {
+    return false;
+  }
+
+  get shouldLabelFloat(): boolean {
+    return true;
+  }
+
+  get required(): boolean {
+    // TODO: To have a better behavior, there must be a way to display and set the undefined value.
+    return false;
+  }
+
+  get errorState(): boolean {
+    return this.form.invalid;
+  }
+
+  get controlType(): string {
+    return 'date-time';
+  }
+
+  setDescribedByIds(ids: string[]): void {
+    // TODO: Implements the whole accessibility stuff.
+  }
+
+  onContainerClick(event: MouseEvent): void {
+    if ((event.target as Element).tagName.toLowerCase() != 'input') {
+      this.hostElementRef.nativeElement.querySelector('input').focus();
+    }
+  }
+
 
   /** Implements ControlValueAccessor */
 
@@ -72,13 +148,7 @@ export class DateTimePickerComponent implements OnInit, OnDestroy, ControlValueA
       console.warn("DateTimePickerComponent unknown value type " + typeof(obj));
       return;
     }
-
-    const date = obj.getFullYear() + '-' +
-                 (obj.getMonth() + 1).toString().padStart(2, '0') + '-' +
-                 obj.getDate()   .toString().padStart(2, '0');
-    const time = obj.getHours()  .toString().padStart(2, '0') + ':' +
-                 obj.getMinutes().toString().padStart(2, '0');
-    this.form.setValue({date: date, time: time});
+    this.value = obj;
   }
 
   setDisabledState(isDisabled: boolean): void {
