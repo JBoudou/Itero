@@ -1,4 +1,4 @@
-<form class="new-alternative" [formGroup]="form" (ngSubmit)="onAdd()">
+<form [formGroup]="form" (ngSubmit)="onAdd()">
   <div class="alternatives-list" formArrayName="Alternatives">
     <div *ngFor="let alt of Alternatives.controls; index as i" [formGroupName]="i"
     class="merged-userbox-grow alternative"
@@ -7,7 +7,7 @@
       <button (click)="onDelete(i)"><mat-icon>delete</mat-icon></button>
     </div>
   </div>
-  <mat-form-field appearance="standard">
+  <mat-form-field class="new-alternative" appearance="standard">
     <mat-label i18n>New alternative</mat-label>
     <input matInput type="text" formControlName="New" [errorStateMatcher]="errorStateMatcher" />
     <button mat-icon-button matSuffix type="submit" [disabled]="!form.valid" i18n><mat-icon>add</mat-icon></button>

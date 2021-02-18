@@ -19,9 +19,18 @@ import { ReactiveFormsModule, FormBuilder, FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
+import { MatButtonModule }  from '@angular/material/button';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+
+import { HarnessLoader } from '@angular/cdk/testing';
+import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
+import { MatButtonHarness }  from '@angular/material/button/testing';
+import { MatInputHarness } from '@angular/material/input/testing';
+
 import { Subject } from 'rxjs';
 import { filter } from 'rxjs/operators';
-import { MatIconModule } from '@angular/material/icon';
 
 import { SimpleAlternativesComponent } from './simple-alternatives.component';
 
@@ -40,6 +49,7 @@ function temporary(full: PollAlternative[]): { Name: string, Cost: number}[] {
 describe('SimpleAlternativesComponent', () => {
   let component: SimpleAlternativesComponent;
   let fixture: ComponentFixture<SimpleAlternativesComponent>;
+  let loader: HarnessLoader;
   let serviceSpy: jasmine.SpyObj<CreateService>;
   let activatedRouteStub: ActivatedRouteStub;
   let query$: Subject<Partial<CreateQuery>>;
@@ -51,7 +61,15 @@ describe('SimpleAlternativesComponent', () => {
     
     await TestBed.configureTestingModule({
       declarations: [ SimpleAlternativesComponent ],
-      imports: [ ReactiveFormsModule, FormsModule, MatIconModule, NoopAnimationsModule ],
+      imports: [
+        FormsModule,
+        MatButtonModule,
+        MatFormFieldModule,
+        MatIconModule,
+        MatInputModule,
+        NoopAnimationsModule,
+        ReactiveFormsModule,
+      ],
       providers: [
         FormBuilder,
         { provide: CreateService, useValue: serviceSpy },
@@ -63,6 +81,7 @@ describe('SimpleAlternativesComponent', () => {
 
   beforeEach(() => {
     fixture = TestBed.createComponent(SimpleAlternativesComponent);
+    loader = TestbedHarnessEnvironment.loader(fixture);
     component = fixture.componentInstance;
     fixture.detectChanges();
     jasmine.clock().install();
@@ -103,4 +122,54 @@ describe('SimpleAlternativesComponent', () => {
       expect(recorder.record[i]).toEqual(temporary(seq[i]));
     }
   });
+
+  it('add an alternative using the form', async () => {
+    // TODO Change the recording. Use serviceSpy instead.
+    const recorder = new Recorder<{ Name: string, Cost: number }[]>();
+    recorder.listen(component.Alternatives.valueChanges.pipe(filter(component.filterEvent, component)));
+
+    const newAlt = await loader.getChildLoader('.new-alternative');
+    const input  = (await newAlt.getHarness(MatInputHarness )) as MatInputHarness;
+    const button = (await newAlt.getHarness(MatButtonHarness)) as MatButtonHarness;
+    await input.setValue('Un');
+    await button.click(); 
+
+    jasmine.clock().tick(1);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    recorder.unsubscribe();
+
+    const last = recorder.record.length - 1;
+    expect(recorder.record[last]).toEqual([{Name: 'Un', Cost: 1}]);
+  });
+
+  it('add three alternatives using the form', async () => {
+    // TODO Change the recording. Use serviceSpy instead.
+    const recorder = new Recorder<{ Name: string, Cost: number }[]>();
+    recorder.listen(component.Alternatives.valueChanges.pipe(filter(component.filterEvent, component)));
+
+    const newAlt = await loader.getChildLoader('.new-alternative');
+    const input  = (await newAlt.getHarness(MatInputHarness )) as MatInputHarness;
+    const button = (await newAlt.getHarness(MatButtonHarness)) as MatButtonHarness;
+
+    const values = [
+      { Name: 'Un'   , Cost: 1 },
+      { Name: 'Deux' , Cost: 1 },
+      { Name: 'Trois', Cost: 1 },
+    ];
+    for (const alt of values) {
+      await input.setValue(alt.Name);
+      await button.click();
+    }
+
+    jasmine.clock().tick(1);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    recorder.unsubscribe();
+
+    const last = recorder.record.length - 1;
+    expect(recorder.record[last]).toEqual(values);
+  });
+
+
 });

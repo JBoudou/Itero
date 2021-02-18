@@ -105,12 +105,7 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
   @ViewChild('stepInfo') infoTemplate: TemplateRef<any>;
 
   form = this.formBuilder.group({
-    Alternatives: this.formBuilder.array([
-      this.formBuilder.group({
-        Name: 'Truc',
-        Cost: 1,
-      }),
-    ]),
+    Alternatives: this.formBuilder.array([]),
     New: ['', [
       Validators.required,
       duplicateValidator(this),
@@ -169,8 +164,6 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
       return;
     }
     // TODO remove everything.
-    this.changeDetector.markForCheck();
-    this.form.updateValueAndValidity();
     this._validable$.next(this.alternatives.length >= 2);
   }
 
@@ -236,18 +229,15 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
   }
 
   onAdd(): void {
-    this.alternatives.push({
-      Id: this.alternatives.length,
-      Name: this.form.value.New,
-      Cost: 1,
-    });
+    this.addAlternative(this.form.value.New);
     this.form.patchValue({New: ''});
     
-    if (this.alternatives.length == 2) {
+    if (this.Alternatives.length == 2) {
       this._validable$.next(true);
     }
 
-    this.service.patchQuery(this._stepSegment, { Alternatives: this.alternatives });
+    // TODO, once Id has been removed from PollAlternative.
+    //this.service.patchQuery(this._stepSegment, { Alternatives: this.alternatives });
   }
 
   onDelete(pos: number): void {
@@ -259,17 +249,15 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
     if (pos === undefined) {
       return
     }
-    this.alternatives.splice(pos, 1);
-    for (let i = pos, end = this.alternatives.length; i < end; i++) {
-      this.alternatives[i].Id -= 1;
-    }
     this.justDeleted = undefined;
-    
-    if (this.alternatives.length == 1) {
+
+    this.Alternatives.removeAt(pos);
+    if (this.Alternatives.length == 1) {
       this._validable$.next(false);
     }
 
-    this.service.patchQuery(this._stepSegment, { Alternatives: this.alternatives });
+    // TODO, once Id has been removed from PollAlternative.
+    //this.service.patchQuery(this._stepSegment, { Alternatives: this.alternatives });
   }
 
 }
