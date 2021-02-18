@@ -42,6 +42,7 @@ type CreateQuery struct {
 	Description      string
 	Hidden           bool
 	Alternatives     []SimpleAlternative
+	ReportVote       bool
 	MinNbRounds      uint8
 	MaxNbRounds      uint8
 	Deadline         time.Time
@@ -52,6 +53,7 @@ type CreateQuery struct {
 func defaultCreateQuery() CreateQuery {
 	return CreateQuery{
 		UserType:         PollUserTypeSimple,
+		ReportVote:       true,
 		MinNbRounds:      2,
 		MaxNbRounds:      10,
 		Deadline:         time.Now().Add(7 * 24 * time.Hour),
@@ -104,9 +106,9 @@ func CreateHandler(ctx context.Context, response server.Response, request *serve
 
 	const (
 		qPoll = `
-			INSERT INTO Polls (Title, Description, Admin, Salt, Publicity, NbChoices,
+			INSERT INTO Polls (Title, Description, Admin, Salt, Publicity, NbChoices, ReportVote,
 			                   MinNbRounds, MaxNbRounds, Deadline, MaxRoundDuration, RoundThreshold)
-				  	 VALUE (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+				  	 VALUE (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 		qAlternative = `INSERT INTO Alternatives (Poll, Id, Name) VALUE (?, ?, ?)`
 		qParticipant = `INSERT INTO Participants (Poll, User) VALUE (?, ?)`
 	)
@@ -118,6 +120,7 @@ func CreateHandler(ctx context.Context, response server.Response, request *serve
 		pollSegment.Salt,
 		publicity,
 		len(query.Alternatives),
+		query.ReportVote,
 		query.MinNbRounds,
 		query.MaxNbRounds,
 		query.Deadline,

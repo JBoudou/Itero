@@ -61,8 +61,9 @@ func (self *createPollChecker) Check(t *testing.T, response *http.Response, requ
 
 	const (
 		qCheckPoll = `
-			SELECT Title, Description, Admin, Salt, Publicity, MinNbRounds, MaxNbRounds, Deadline,
-			       CurrentRoundStart, ADDTIME(CurrentRoundStart, MaxRoundDuration), RoundThreshold
+			SELECT Title, Description, Admin, Salt, Publicity, ReportVote, MinNbRounds, MaxNbRounds,
+						 Deadline, CurrentRoundStart, ADDTIME(CurrentRoundStart, MaxRoundDuration),
+						 RoundThreshold
 			  FROM Polls
 			 WHERE Id = ?`
 		qCheckAlternative = `SELECT Name FROM Alternatives WHERE Poll = ? ORDER BY Id ASC`
@@ -94,6 +95,7 @@ func (self *createPollChecker) Check(t *testing.T, response *http.Response, requ
 		&admin,
 		&salt,
 		&publicity,
+		&got.ReportVote,
 		&got.MinNbRounds,
 		&got.MaxNbRounds,
 		&got.Deadline,
@@ -207,6 +209,19 @@ func TestCreateHandler(t *testing.T) {
 					"Title": "Test",
 					"Alternatives": [{"Name":"First", "Cost":1}, {"Name":"Second", "Cost":1}],
 					"Hidden": true
+				}`,
+			},
+			Checker: &createPollChecker{user: userId},
+		},
+		{
+			Name: "ReportVote",
+			Request: srvt.Request{
+				UserId: &userId,
+				Method: "POST",
+				Body: `{
+					"Title": "Test",
+					"Alternatives": [{"Name":"First", "Cost":1}, {"Name":"Second", "Cost":1}],
+					"ReportVote": false
 				}`,
 			},
 			Checker: &createPollChecker{user: userId},
