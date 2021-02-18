@@ -133,6 +133,7 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
   }
 
   onAdd(): void {
+    if (!this.newForm.valid) return;
     this.addAlternative(this.newForm.value);
     this.newForm.reset();
   }

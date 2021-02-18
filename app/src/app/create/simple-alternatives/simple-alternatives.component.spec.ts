@@ -24,7 +24,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 
-import { HarnessLoader } from '@angular/cdk/testing';
+import { HarnessLoader, TestKey } from '@angular/cdk/testing';
 import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
 import { MatButtonHarness }  from '@angular/material/button/testing';
 import { MatInputHarness } from '@angular/material/input/testing';
@@ -195,5 +195,29 @@ describe('SimpleAlternativesComponent', () => {
     expect(hasAnError()).toBeFalse();
   });
 
+  it('accept enter key to add alternatives', async () => {
+    const countAlternatives = function(name: string): number {
+      let ret = 0;
+      const alternatives = fixture.debugElement.queryAll(By.css('.alternatives-list input'));
+      for (const alt of alternatives) {
+        if (alt.properties.value === name) {
+          ret += 1;
+        }
+      }
+      return ret;
+    }
+
+    const newAlt = await loader.getChildLoader('.new-alternative');
+    const input  = (await newAlt.getHarness(MatInputHarness )) as MatInputHarness;
+    expect(countAlternatives('Un')).toBe(0);
+
+    await input.setValue('Un');
+    await (await input.host()).sendKeys(TestKey.ENTER);
+    expect(countAlternatives('Un')).toBe(1);
+    
+    await input.setValue('Un');
+    await (await input.host()).sendKeys(TestKey.ENTER);
+    expect(countAlternatives('Un')).toBe(1);
+  });
 
 });
