@@ -14,8 +14,29 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Component, ChangeDetectionStrategy, OnDestroy, OnInit, ViewChild, TemplateRef, ChangeDetectorRef } from '@angular/core';
-import { FormBuilder, Validators, AbstractControl, ValidatorFn, ValidationErrors, FormControl, FormGroupDirective, NgForm  } from '@angular/forms';
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  OnDestroy,
+  OnInit,
+  TemplateRef,
+  ViewChild,
+} from '@angular/core';
+
+import {
+  AbstractControl,
+  FormArray,
+  FormBuilder,
+  FormControl,
+  FormGroup,
+  FormGroupDirective,
+  NgForm,
+  ValidationErrors,
+  ValidatorFn,
+  Validators,
+} from '@angular/forms';
+
 import { trigger, transition, style, animate } from '@angular/animations';
 import { ActivatedRoute, UrlSegment } from '@angular/router';
 
@@ -25,7 +46,6 @@ import { ErrorStateMatcher } from '@angular/material/core';
 
 import { CreateService } from '../create.service';
 import { PollAlternative, CreateQuery } from '../../api';
-import {cloneDeep, isEqual} from 'lodash';
 
 class ErrorStateFromObservable implements ErrorStateMatcher {
 
@@ -85,13 +105,24 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
   @ViewChild('stepInfo') infoTemplate: TemplateRef<any>;
 
   form = this.formBuilder.group({
+    Alternatives: this.formBuilder.array([
+      this.formBuilder.group({
+        Name: 'Truc',
+        Cost: 1,
+      }),
+    ]),
     New: ['', [
       Validators.required,
       duplicateValidator(this),
     ]],
   });
 
+  // TODO: Remove alternatives and rename Alternatives
   alternatives: PollAlternative[] = [];
+
+  get Alternatives(): FormArray {
+    return this.form.get('Alternatives') as FormArray;
+  }
 
   private _stepSegment: string;
   private _subscriptions: Subscription[] = [];
@@ -120,6 +151,11 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
       this.service.query$.subscribe({
         next: (query: Partial<CreateQuery>) => this.synchronizeFromService(query),
       }),
+
+      // TODO: remove
+      this.form.get([ 'Alternatives']).valueChanges.subscribe({
+        next: (v: any) => console.log('update ' + JSON.stringify(v)),
+      }),
     );
   }
 
@@ -129,13 +165,69 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
   }
 
   private synchronizeFromService(query: Partial<CreateQuery>): void {
-    if (query.Alternatives === undefined || isEqual(query.Alternatives, this.alternatives)) {
+    if (query.Alternatives === undefined || !this.synchronizeAlternatives(query.Alternatives)) {
       return;
     }
-    this.alternatives = cloneDeep(query.Alternatives);
+    // TODO remove everything.
     this.changeDetector.markForCheck();
     this.form.updateValueAndValidity();
     this._validable$.next(this.alternatives.length >= 2);
+  }
+
+  private addAlternative(name: string, cost?: number): void {
+    cost = cost || 1;
+    this.Alternatives.push(this.formBuilder.group({
+      Name: name,
+      Cost: cost,
+    }));
+  }
+
+  /**
+   * Enforce the model of the alternatives to match the given list.
+   * Return whether the model has been changed.
+   */
+  private synchronizeAlternatives(fromService: PollAlternative[]): boolean {
+    let ret: boolean = false;
+    const model = this.Alternatives;
+    const serviceLen = fromService.length;
+
+    this._filteringEvents = true;
+
+    while (model.controls.length > serviceLen) {
+      model.removeAt(serviceLen);
+      ret = true;
+    }
+    const endCheck = model.controls.length;
+    while (model.controls.length < serviceLen) {
+      const alt = fromService[model.controls.length];
+      this.addAlternative(alt.Name, alt.Cost);
+      ret = true;
+    }
+
+    for (let i = 0; i < endCheck; i++) {
+      const group = model.controls[i] as FormGroup;
+      const alt = fromService[i];
+      if (group.controls['Name'].value !== alt.Name ||
+          group.controls['Cost'].value !== alt.Cost) {
+        group.patchValue(alt, { onlySelf: false, emitEvent: false });
+        ret = true;
+      }
+    }
+
+    this._filteringEvents = false;
+    if (ret) {
+      model.updateValueAndValidity();
+    }
+
+    return ret;
+  }
+
+  // What follows is needed because some FormArray methods do not have the option to disable event
+  // sending. These has just been merged into Angular https://github.com/angular/angular/pull/31031.
+  private _filteringEvents: boolean = false;
+  // filterEvent is public to be used in test.
+  filterEvent(value: any, index: number): boolean {
+    return !this._filteringEvents;
   }
 
   hasDuplicate(): boolean {
