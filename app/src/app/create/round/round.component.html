@@ -22,6 +22,11 @@
     <mat-label i18n>Maximum round duration</mat-label>
     <app-day-hour-min-duration formControlName="MaxRoundDuration"></app-day-hour-min-duration>
   </mat-form-field>
+  <mat-radio-group formControlName="ReportVote">
+    <p class="radio-hint" i18n>When a user did not vote on a round</p>
+    <mat-radio-button [value]="true"  i18n>Carry forward the previous vote.</mat-radio-button>
+    <mat-radio-button [value]="false" i18n>Count the vote as an abstention.</mat-radio-button>
+  </mat-radio-group>
 </form>
 <div class="formerrors" *ngIf="!form.valid">
   <p *ngIf="tooEarlyDeadline()" i18n>
@@ -43,12 +48,21 @@
 
 <ng-template #stepInfo let-query="query$">
   <ng-container *ngIf="query | async as q">
-    <p>
+    <p i18n>
       The poll is divided in {{ q.MinNbRounds }} to {{ q.MaxNbRounds }} rounds.
       At each round, the participants will have to choose one of the alternatives.
       A round ends when all the participants have voted, or after {{ q.MaxRoundDuration | duration }}.
+      Participants that did not vote during a round
+      <ng-container [ngSwitch]="q.ReportVote">
+        <ng-container *ngSwitchCase="true">
+          get their previous vote carried forward.
+        </ng-container>
+        <ng-container *ngSwitchCase="false">
+          are considered as abstentionists for that round.
+        </ng-container>
+      </ng-container>
     </p>
-    <p>
+    <p i18n>
       The poll ends after the {{ q.MaxNbRounds | ordinal }} round,
       or {{ q.Deadline | nearDate:'inside' }} if at least {{ q.MinNbRounds }} rounds have already been done,
       whichever happens first.

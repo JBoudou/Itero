@@ -124,6 +124,7 @@ export class CreateQuery {
   Description:      string;
   Hidden:           boolean;
   Alternatives:     SimpleAlternative[];
+  ReportVote:       boolean;
   MinNbRounds:      number;
   MaxNbRounds:      number;
   Deadline:         Date;

@@ -69,6 +69,7 @@ export class RoundComponent extends CreateSubComponentBase implements OnInit, On
       integerValidator,
       Validators.min(60 * 1000),
     ]],
+    ReportVote: [true],
   }, {
     validators: [ customValidator ],
   });

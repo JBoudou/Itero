@@ -1,3 +1,5 @@
+@import '../../sizes'
+
 app-navtree
   grid-column: span 2
 
@@ -7,3 +9,12 @@ app-navbuttons
     justify-content: space-between
   .basicform
     grid-template-columns: max-content 1fr
+
+mat-radio-group
+  display: flex
+  flex-wrap: wrap
+  justify-content: space-around
+  mat-radio-button
+    padding: $small-space .6em
+  .radio-hint
+    width: 100%
