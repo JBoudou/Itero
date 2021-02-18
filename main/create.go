@@ -31,12 +31,17 @@ const (
 	PollUserTypeSimple = iota
 )
 
+type SimpleAlternative struct {
+	Name string
+	Cost float64
+}
+
 type CreateQuery struct {
 	UserType         uint8
 	Title            string
 	Description      string
 	Hidden           bool
-	Alternatives     []PollAlternative
+	Alternatives     []SimpleAlternative
 	MinNbRounds      uint8
 	MaxNbRounds      uint8
 	Deadline         time.Time
@@ -123,8 +128,8 @@ func CreateHandler(ctx context.Context, response server.Response, request *serve
 	tmp, err := result.LastInsertId()
 	must(err)
 	pollSegment.Id = uint32(tmp)
-	for _, alt := range query.Alternatives {
-		_, err = tx.ExecContext(ctx, qAlternative, pollSegment.Id, alt.Id, alt.Name)
+	for id, alt := range query.Alternatives {
+		_, err = tx.ExecContext(ctx, qAlternative, pollSegment.Id, id, alt.Name)
 		must(err)
 	}
 	_, err = tx.ExecContext(ctx, qParticipant, pollSegment.Id, request.User.Id)

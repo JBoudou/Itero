@@ -65,7 +65,7 @@ func (self *createPollChecker) Check(t *testing.T, response *http.Response, requ
 			       CurrentRoundStart, ADDTIME(CurrentRoundStart, MaxRoundDuration), RoundThreshold
 			  FROM Polls
 			 WHERE Id = ?`
-		qCheckAlternative = `SELECT Id, Name FROM Alternatives WHERE Poll = ?`
+		qCheckAlternative = `SELECT Name FROM Alternatives WHERE Poll = ? ORDER BY Id ASC`
 		qCleanUp          = `DELETE FROM Polls WHERE Id = ?`
 	)
 
@@ -118,26 +118,20 @@ func (self *createPollChecker) Check(t *testing.T, response *http.Response, requ
 	// Check Alternatives
 	rows, err := db.DB.Query(qCheckAlternative, pollSegment.Id)
 	mustt(t, err)
-	altMap := make(map[uint8]string, len(query.Alternatives))
-	for _, alt := range query.Alternatives {
-		altMap[alt.Id] = alt.Name
-	}
-	for rows.Next() {
-		var id uint8
+	for id, alt := range query.Alternatives {
+		if (!rows.Next()) {
+			t.Errorf("Premature end of the alternatives. Got %d. Expect %d.", id, len(query.Alternatives))
+			break
+		}
 		var name string
-		mustt(t, rows.Scan(&id, &name))
-		expect, ok := altMap[id]
-		if !ok {
-			t.Errorf("Extraneous or duplicated alternative %d -> %s.", id, name)
-			continue
-		}
-		delete(altMap, id)
-		if name != expect {
-			t.Errorf("Wrong alternative %d. Got %s. Expect %s.", id, name, expect)
+		mustt(t, rows.Scan(&name))
+		if name != alt.Name {
+			t.Errorf("Wrong alternative %d. Got %s. Expect %s.", id, name, alt.Name)
 		}
 	}
-	if len(altMap) > 0 {
-		t.Errorf("Missing %d alternatives", len(altMap))
+	if (rows.Next()) {
+		t.Errorf("Unexpected alternatives.")
+		rows.Close()
 	}
 
 	// Check events
@@ -156,9 +150,9 @@ func TestCreateHandler(t *testing.T) {
 	env.Must(t)
 
 	makeRequest := func(user *uint32, innerBody string, alternatives []string) srvt.Request {
-		pollAlternatives := make([]PollAlternative, len(alternatives))
+		pollAlternatives := make([]SimpleAlternative, len(alternatives))
 		for id, name := range alternatives {
-			pollAlternatives[id] = PollAlternative{Id: uint8(id), Name: name, Cost: 1.}
+			pollAlternatives[id] = SimpleAlternative{Name: name, Cost: 1.}
 		}
 		encoded, err := json.Marshal(pollAlternatives)
 		mustt(t, err)
@@ -182,7 +176,7 @@ func TestCreateHandler(t *testing.T) {
 				Method: "GET",
 				Body: `{
 					"Title": "Test",
-					"Alternatives": [{"Id":0, "Name":"No", "Cost":1}, {"Id":1, "Name":"Yes", "Cost":1}]
+					"Alternatives": [{"Name":"No", "Cost":1}, {"Name":"Yes", "Cost":1}]
 				}`,
 			},
 			Checker: srvt.CheckStatus{http.StatusForbidden},
@@ -194,7 +188,7 @@ func TestCreateHandler(t *testing.T) {
 				Method: "POST",
 				Body: `{
 					"Title": "Test",
-					"Alternatives": [{"Id":0, "Name":"Yip", "Cost":1}, {"Id":0, "Name":"Yop", "Cost":1}]
+					"Alternatives": [{"Name":"Yip", "Cost":1}, {"Name":"Yip", "Cost":1}]
 				}`,
 			},
 			Checker: srvt.CheckAnyErrorStatus,
@@ -205,25 +199,13 @@ func TestCreateHandler(t *testing.T) {
 			Checker: &createPollChecker{user: userId},
 		},
 		{
-			Name: "Unordered",
-			Request: srvt.Request{
-				UserId: &userId,
-				Method: "POST",
-				Body: `{
-					"Title": "Test",
-					"Alternatives": [{"Id":1, "Name":"Second", "Cost":1}, {"Id":0, "Name":"First", "Cost":1}]
-				}`,
-			},
-			Checker: &createPollChecker{user: userId},
-		},
-		{
 			Name: "Hidden",
 			Request: srvt.Request{
 				UserId: &userId,
 				Method: "POST",
 				Body: `{
 					"Title": "Test",
-					"Alternatives": [{"Id":0, "Name":"First", "Cost":1}, {"Id":1, "Name":"Second", "Cost":1}],
+					"Alternatives": [{"Name":"First", "Cost":1}, {"Name":"Second", "Cost":1}],
 					"Hidden": true
 				}`,
 			},
