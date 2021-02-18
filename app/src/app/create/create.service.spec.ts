@@ -21,7 +21,7 @@ import { Router } from '@angular/router';
 
 import { CREATE_TREE, CreateService } from './create.service';
 
-import { CreateQuery, PollAlternative } from '../api';
+import { CreateQuery, SimpleAlternative } from '../api';
 import { FinalNavTreeNode, LinearNavTreeNode, } from './navtree/navtree.node';
 import { NavStepStatus } from './navtree/navstep.status';
 
@@ -30,7 +30,7 @@ import { RouterStub } from '../../testing/router.stub';
 
 describe('CreateService', () => {
 
-  const simpleAlternative: PollAlternative = { Id: 0, Name: 'test', Cost: 1 };
+  const simpleAlternative: SimpleAlternative = { Name: 'test', Cost: 1 };
 
   let service: CreateService;
   let httpControler: HttpTestingController;

@@ -41,11 +41,12 @@ import { trigger, transition, style, animate } from '@angular/animations';
 import { ActivatedRoute, UrlSegment } from '@angular/router';
 
 import { BehaviorSubject, Observable, Subscription } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { filter, map, take } from 'rxjs/operators';
+
 import { ErrorStateMatcher } from '@angular/material/core';
 
 import { CreateService } from '../create.service';
-import { PollAlternative, CreateQuery } from '../../api';
+import { PollAlternative, SimpleAlternative, CreateQuery } from '../../api';
 
 class ErrorStateFromObservable implements ErrorStateMatcher {
 
@@ -74,7 +75,7 @@ function duplicateValidator(component: SimpleAlternativesComponent): ValidatorFn
     }
     for (let alt of component.alternatives) {
       if (alt.Name == control.value) {
-        return { duplicatedAlternative: alt.Id }
+        return { duplicatedAlternative: true }
       }
     }
     return null
@@ -122,10 +123,15 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
   private _stepSegment: string;
   private _subscriptions: Subscription[] = [];
   
-  justDeleted: number|undefined;
+  justDeleted: number = -1;
 
   private _validable$ = new BehaviorSubject<boolean>(false);
   get validable$(): Observable<boolean> { return this._validable$; }
+
+  get alternativesUpdates$(): Observable<SimpleAlternative[]> {
+    return this.Alternatives.valueChanges.pipe(filter(this.filterEvent, this));
+  }
+
   
   errorStateMatcher: ErrorStateFromObservable;
 
@@ -139,17 +145,16 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.route.url.pipe(take(1)).subscribe({
+      next: (segments: UrlSegment[]) => {
+        const stepSegment = segments[segments.length - 1].toString();
+        this._initModel(stepSegment);
+      }
+    });
+
     this._subscriptions.push(
-      this.route.url.subscribe({
-        next: (segments: UrlSegment[]) => this._stepSegment = segments[segments.length - 1].toString(),
-      }),
       this.service.query$.subscribe({
         next: (query: Partial<CreateQuery>) => this.synchronizeFromService(query),
-      }),
-
-      // TODO: remove
-      this.form.get([ 'Alternatives']).valueChanges.subscribe({
-        next: (v: any) => console.log('update ' + JSON.stringify(v)),
       }),
     );
   }
@@ -159,7 +164,21 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
     this.errorStateMatcher.destroy();
   }
 
+  private _initModel(stepSegment: string): void {
+    this._subscriptions.push(
+      this.alternativesUpdates$.subscribe({
+        next: (alternatives: SimpleAlternative[]) => {
+          // TODO remove
+          console.log('Send ' + JSON.stringify(alternatives));
+          this.service.patchQuery(stepSegment, { Alternatives: alternatives });
+        }
+      }),
+    );
+  }
+
   private synchronizeFromService(query: Partial<CreateQuery>): void {
+    // TODO remove debug
+    console.log('Receive ' + JSON.stringify(query.Alternatives));
     if (query.Alternatives === undefined || !this.synchronizeAlternatives(query.Alternatives)) {
       return;
     }
@@ -179,7 +198,7 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
    * Enforce the model of the alternatives to match the given list.
    * Return whether the model has been changed.
    */
-  private synchronizeAlternatives(fromService: PollAlternative[]): boolean {
+  private synchronizeAlternatives(fromService: SimpleAlternative[]): boolean {
     let ret: boolean = false;
     const model = this.Alternatives;
     const serviceLen = fromService.length;
@@ -187,11 +206,13 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
     this._filteringEvents = true;
 
     while (model.controls.length > serviceLen) {
+      console.log('sync remove');
       model.removeAt(serviceLen);
       ret = true;
     }
     const endCheck = model.controls.length;
     while (model.controls.length < serviceLen) {
+      console.log('sync add');
       const alt = fromService[model.controls.length];
       this.addAlternative(alt.Name, alt.Cost);
       ret = true;
@@ -202,6 +223,7 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
       const alt = fromService[i];
       if (group.controls['Name'].value !== alt.Name ||
           group.controls['Cost'].value !== alt.Cost) {
+        console.log('sync patch');
         group.patchValue(alt, { onlySelf: false, emitEvent: false });
         ret = true;
       }
@@ -209,6 +231,7 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
 
     this._filteringEvents = false;
     if (ret) {
+      console.log('sync updt');
       model.updateValueAndValidity();
     }
 
@@ -218,8 +241,7 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
   // What follows is needed because some FormArray methods do not have the option to disable event
   // sending. These has just been merged into Angular https://github.com/angular/angular/pull/31031.
   private _filteringEvents: boolean = false;
-  // filterEvent is public to be used in test.
-  filterEvent(value: any, index: number): boolean {
+  private filterEvent(value: any, index: number): boolean {
     return !this._filteringEvents;
   }
 
@@ -235,29 +257,25 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
     if (this.Alternatives.length == 2) {
       this._validable$.next(true);
     }
-
-    // TODO, once Id has been removed from PollAlternative.
-    //this.service.patchQuery(this._stepSegment, { Alternatives: this.alternatives });
   }
 
   onDelete(pos: number): void {
+    console.log('on delete ' + pos);
     this.justDeleted = pos;
   }
 
   onDeleteDone(): void {
     const pos = this.justDeleted;
-    if (pos === undefined) {
+    if (pos < 0) {
       return
     }
-    this.justDeleted = undefined;
+    console.log('delete ' + pos);
+    this.justDeleted = -1;
 
     this.Alternatives.removeAt(pos);
     if (this.Alternatives.length == 1) {
       this._validable$.next(false);
     }
-
-    // TODO, once Id has been removed from PollAlternative.
-    //this.service.patchQuery(this._stepSegment, { Alternatives: this.alternatives });
   }
 
 }

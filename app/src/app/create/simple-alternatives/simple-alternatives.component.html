@@ -1,16 +1,16 @@
-<form [formGroup]="form" (ngSubmit)="onAdd()">
+<form [formGroup]="form">
   <div class="alternatives-list" formArrayName="Alternatives">
     <div *ngFor="let alt of Alternatives.controls; index as i" [formGroupName]="i"
     class="merged-userbox-grow alternative"
     [@deleteTrigger]="justDeleted == i ? 'justDeleted' : 'Ok'" (@deleteTrigger.done)="onDeleteDone()">
       <input type="text" formControlName="Name" />
-      <button (click)="onDelete(i)"><mat-icon>delete</mat-icon></button>
+      <button type="button" (click)="onDelete(i)"><mat-icon>delete</mat-icon></button>
     </div>
   </div>
   <mat-form-field class="new-alternative" appearance="standard">
     <mat-label i18n>New alternative</mat-label>
-    <input matInput type="text" formControlName="New" [errorStateMatcher]="errorStateMatcher" />
-    <button mat-icon-button matSuffix type="submit" [disabled]="!form.valid" i18n><mat-icon>add</mat-icon></button>
+    <input matInput type="text" formControlName="New" [errorStateMatcher]="errorStateMatcher" (keyup.enter)="onAdd()" />
+    <button mat-icon-button matSuffix type="button" (click)="onAdd()" [disabled]="!form.valid" i18n><mat-icon>add</mat-icon></button>
   </mat-form-field>
 </form>
 <div class="formerrors" *ngIf="!(validable$ | async)">

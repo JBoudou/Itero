@@ -113,12 +113,17 @@ export enum PollUserType {
   Simple,
 }
 
+export class SimpleAlternative {
+  Name: string;
+  Cost: number;
+}
+
 export class CreateQuery {
   UserType:         PollUserType;
   Title:            string;
   Description:      string;
   Hidden:           boolean;
-  Alternatives:     PollAlternative[];
+  Alternatives:     SimpleAlternative[];
   MinNbRounds:      number;
   MaxNbRounds:      number;
   Deadline:         Date;

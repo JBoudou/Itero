@@ -35,16 +35,11 @@ import { filter } from 'rxjs/operators';
 import { SimpleAlternativesComponent } from './simple-alternatives.component';
 
 import { CreateService } from '../create.service';
-import { CreateQuery, PollAlternative } from 'src/app/api';
+import { CreateQuery, SimpleAlternative } from 'src/app/api';
 
 import { ActivatedRouteStub } from '../../../testing/activated-route-stub'
 import { Recorder } from 'src/testing/recorder';
-
-function temporary(full: PollAlternative[]): { Name: string, Cost: number}[] {
-  return full.map((alt: PollAlternative) => {
-    return { Name: alt.Name, Cost: alt.Cost };
-  });
-}
+import {By} from '@angular/platform-browser';
 
 describe('SimpleAlternativesComponent', () => {
   let component: SimpleAlternativesComponent;
@@ -56,8 +51,9 @@ describe('SimpleAlternativesComponent', () => {
 
   beforeEach(async () => {
     query$ = new Subject<Partial<CreateQuery>>();
-    serviceSpy = jasmine.createSpyObj('CreateService', {register: {}}, { query$: query$ });
+    serviceSpy = jasmine.createSpyObj('CreateService', {patchQuery: true}, { query$: query$ });
     activatedRouteStub = new ActivatedRouteStub();
+    activatedRouteStub.nextUrlFromString('test')
     
     await TestBed.configureTestingModule({
       declarations: [ SimpleAlternativesComponent ],
@@ -97,15 +93,15 @@ describe('SimpleAlternativesComponent', () => {
 
   it('synchronize alternatives correctly', async () => {
     const recorder = new Recorder<{ Name: string, Cost: number }[]>();
-    recorder.listen(component.Alternatives.valueChanges.pipe(filter(component.filterEvent, component)));
+    recorder.listen(component.alternativesUpdates$);
 
-    const seq = [
-      [{Id: 0, Name: 'Un', Cost: 1}],
-      [{Id: 0, Name: 'Un', Cost: 1}, {Id: 1, Name: 'Deux', Cost: 2}],
-      [{Id: 0, Name: 'Un', Cost: 1}],
-      [{Id: 1, Name: 'Deux', Cost: 2}],
-      [{Id: 0, Name: 'Un', Cost: 1}, {Id: 1, Name: 'Deux', Cost: 2}, {Id: 2, Name: 'Trois', Cost: 3}],
-      [{Id: 2, Name: 'Trois', Cost: 3}],
+    const seq: SimpleAlternative[][] = [
+      [{Name: 'Un', Cost: 1}],
+      [{Name: 'Un', Cost: 1}, {Name: 'Deux', Cost: 2}],
+      [{Name: 'Un', Cost: 1}],
+      [{Name: 'Deux', Cost: 2}],
+      [{Name: 'Un', Cost: 1}, {Name: 'Deux', Cost: 2}, {Name: 'Trois', Cost: 3}],
+      [{Name: 'Trois', Cost: 3}],
       [],
     ];
     for (const alts of seq) {
@@ -119,14 +115,13 @@ describe('SimpleAlternativesComponent', () => {
     recorder.unsubscribe();
     const len = seq.length;
     for (let i = 0; i < len; i++) {
-      expect(recorder.record[i]).toEqual(temporary(seq[i]));
+      expect(recorder.record[i]).toEqual(seq[i]);
     }
   });
 
   it('add an alternative using the form', async () => {
-    // TODO Change the recording. Use serviceSpy instead.
     const recorder = new Recorder<{ Name: string, Cost: number }[]>();
-    recorder.listen(component.Alternatives.valueChanges.pipe(filter(component.filterEvent, component)));
+    recorder.listen(component.alternativesUpdates$);
 
     const newAlt = await loader.getChildLoader('.new-alternative');
     const input  = (await newAlt.getHarness(MatInputHarness )) as MatInputHarness;
@@ -141,12 +136,18 @@ describe('SimpleAlternativesComponent', () => {
 
     const last = recorder.record.length - 1;
     expect(recorder.record[last]).toEqual([{Name: 'Un', Cost: 1}]);
+    expect(serviceSpy.patchQuery).toHaveBeenCalled();
+    expect(serviceSpy.patchQuery.calls.mostRecent().args[1]).toEqual({Alternatives: [{Name: 'Un', Cost: 1}]});
   });
 
   it('add three alternatives using the form', async () => {
-    // TODO Change the recording. Use serviceSpy instead.
+    serviceSpy.patchQuery.and.callFake((segment: string, patch: Partial<CreateQuery>): boolean => {
+      query$.next(patch);
+      return true;
+    });
+
     const recorder = new Recorder<{ Name: string, Cost: number }[]>();
-    recorder.listen(component.Alternatives.valueChanges.pipe(filter(component.filterEvent, component)));
+    recorder.listen(component.alternativesUpdates$);
 
     const newAlt = await loader.getChildLoader('.new-alternative');
     const input  = (await newAlt.getHarness(MatInputHarness )) as MatInputHarness;
@@ -160,15 +161,24 @@ describe('SimpleAlternativesComponent', () => {
     for (const alt of values) {
       await input.setValue(alt.Name);
       await button.click();
+
+      fixture.detectChanges();
+      await fixture.whenStable();
     }
 
-    jasmine.clock().tick(1);
-    fixture.detectChanges();
-    await fixture.whenStable();
     recorder.unsubscribe();
-
     const last = recorder.record.length - 1;
     expect(recorder.record[last]).toEqual(values);
+
+    expect(serviceSpy.patchQuery).toHaveBeenCalled();
+    expect(serviceSpy.patchQuery.calls.mostRecent().args[1]).toEqual({Alternatives: values});
+
+    const len = values.length;
+    const altList = fixture.debugElement.query(By.css('.alternatives-list')).queryAll(By.css('input'));
+    expect(altList.length).toBe(len);
+    for (let i = 0; i < len; i++) {
+      expect(altList[i].properties.value).toBe(values[i].Name);
+    }
   });
 
 
