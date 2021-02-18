@@ -33,21 +33,21 @@ import {
   FormGroupDirective,
   NgForm,
   ValidationErrors,
-  ValidatorFn,
   Validators,
 } from '@angular/forms';
 
 import { trigger, transition, style, animate } from '@angular/animations';
 import { ActivatedRoute, UrlSegment } from '@angular/router';
 
-import { BehaviorSubject, Observable, Subscription } from 'rxjs';
-import { filter, map, take } from 'rxjs/operators';
+import { Observable, Subscription } from 'rxjs';
+import { filter, map, startWith, take } from 'rxjs/operators';
 
 import { ErrorStateMatcher } from '@angular/material/core';
 
 import { CreateService } from '../create.service';
-import { PollAlternative, SimpleAlternative, CreateQuery } from '../../api';
+import { SimpleAlternative, CreateQuery } from '../../api';
 
+// TODO delete
 class ErrorStateFromObservable implements ErrorStateMatcher {
 
   private lastState: boolean = false;
@@ -68,18 +68,15 @@ class ErrorStateFromObservable implements ErrorStateMatcher {
   }
 }
 
-function duplicateValidator(component: SimpleAlternativesComponent): ValidatorFn {
-  return (control: AbstractControl): ValidationErrors | null => {
-    if (component.alternatives === undefined) {
-      return { undefined: true }
+function noDuplicateNames(control: AbstractControl): ValidationErrors | null {
+  let set = new Set<string>();
+  for (let alt of control.value) {
+    if (set.has(alt.Name)) {
+      return { duplicateNames: alt.Name };
     }
-    for (let alt of component.alternatives) {
-      if (alt.Name == control.value) {
-        return { duplicatedAlternative: true }
-      }
-    }
-    return null
+    set.add(alt.Name);
   }
+  return null;
 }
 
 @Component({
@@ -103,37 +100,89 @@ function duplicateValidator(component: SimpleAlternativesComponent): ValidatorFn
 })
 export class SimpleAlternativesComponent implements OnInit, OnDestroy {
 
+  /* Interface for parent components */
+
   @ViewChild('stepInfo') infoTemplate: TemplateRef<any>;
 
+  get validable$(): Observable<boolean> {
+    return this.Alternatives.statusChanges.pipe(map(val => val == 'VALID'), startWith(this.Alternatives.valid));
+  }
+
+
+  /* Interface for the template */
+
   form = this.formBuilder.group({
-    Alternatives: this.formBuilder.array([]),
+    Alternatives: this.formBuilder.array([], [
+      Validators.required,
+      Validators.minLength(2),
+      noDuplicateNames,
+    ]),
     New: ['', [
       Validators.required,
-      duplicateValidator(this),
+      this.newValidator.bind(this),
     ]],
   });
 
-  // TODO: Remove alternatives and rename Alternatives
-  alternatives: PollAlternative[] = [];
-
   get Alternatives(): FormArray {
-    return this.form.get('Alternatives') as FormArray;
+    return this.form?.get('Alternatives') as FormArray;
   }
-
-  private _stepSegment: string;
-  private _subscriptions: Subscription[] = [];
+  
+  errorStateMatcher: ErrorStateFromObservable;
   
   justDeleted: number = -1;
 
-  private _validable$ = new BehaviorSubject<boolean>(false);
-  get validable$(): Observable<boolean> { return this._validable$; }
+  newIsDuplicate(): boolean {
+    return !this.form.controls['New'].valid &&
+            this.form.controls['New'].errors['existingNew'] !== undefined;
+  }
+
+  hasDuplicate(): boolean {
+    return !this.Alternatives.valid &&
+            this.Alternatives.errors['duplicateNames'] !== undefined;
+  }
+
+  tooFewAlternatives(): boolean {
+    return !this.Alternatives.valid &&
+           (this.Alternatives.errors['minlength'] !== undefined ||
+            this.Alternatives.errors['required' ] !== undefined);
+  }
+
+  onAdd(): void {
+    console.log('on add ' + this.form.value.New);
+    this.addAlternative(this.form.value.New);
+    this.form.patchValue({New: ''});
+  }
+
+  onDelete(pos: number): void {
+    console.log('on delete ' + pos);
+    this.justDeleted = pos;
+  }
+
+  onDeleteDone(): void {
+    const pos = this.justDeleted;
+    if (pos < 0) {
+      return
+    }
+    console.log('delete ' + pos);
+    this.justDeleted = -1;
+    this.Alternatives.removeAt(pos);
+  }
+
+
+  /* Initialisation / Destruction */
+
+  private _subscriptions: Subscription[] = [];
 
   get alternativesUpdates$(): Observable<SimpleAlternative[]> {
     return this.Alternatives.valueChanges.pipe(filter(this.filterEvent, this));
   }
 
-  
-  errorStateMatcher: ErrorStateFromObservable;
+  // What follows is needed because some FormArray methods do not have the option to disable event
+  // sending. These has just been merged into Angular https://github.com/angular/angular/pull/31031.
+  private _filteringEvents: boolean = false;
+  private filterEvent(value: any, index: number): boolean {
+    return !this._filteringEvents;
+  }
 
   constructor(
     private service: CreateService,
@@ -159,11 +208,6 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
     );
   }
 
-  ngOnDestroy(): void {
-    this._subscriptions.forEach(sub => sub.unsubscribe());
-    this.errorStateMatcher.destroy();
-  }
-
   private _initModel(stepSegment: string): void {
     this._subscriptions.push(
       this.alternativesUpdates$.subscribe({
@@ -182,9 +226,29 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
     if (query.Alternatives === undefined || !this.synchronizeAlternatives(query.Alternatives)) {
       return;
     }
-    // TODO remove everything.
-    this._validable$.next(this.alternatives.length >= 2);
   }
+
+  ngOnDestroy(): void {
+    this._subscriptions.forEach(sub => sub.unsubscribe());
+    this.errorStateMatcher.destroy();
+  }
+
+
+  /* Validations */
+
+  private newValidator(control: AbstractControl): ValidationErrors | null {
+    if (this.Alternatives === undefined) return null;
+    const val = control.value;
+    for (let alt of this.Alternatives.value) {
+      if (alt.Name === val) {
+        return { existingNew: true };
+      }
+    }
+    return null;
+  }
+
+
+  /* Model handling */
 
   private addAlternative(name: string, cost?: number): void {
     cost = cost || 1;
@@ -236,46 +300,6 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
     }
 
     return ret;
-  }
-
-  // What follows is needed because some FormArray methods do not have the option to disable event
-  // sending. These has just been merged into Angular https://github.com/angular/angular/pull/31031.
-  private _filteringEvents: boolean = false;
-  private filterEvent(value: any, index: number): boolean {
-    return !this._filteringEvents;
-  }
-
-  hasDuplicate(): boolean {
-    return !this.form.controls['New'].valid &&
-            this.form.controls['New'].errors['duplicatedAlternative'] !== undefined;
-  }
-
-  onAdd(): void {
-    this.addAlternative(this.form.value.New);
-    this.form.patchValue({New: ''});
-    
-    if (this.Alternatives.length == 2) {
-      this._validable$.next(true);
-    }
-  }
-
-  onDelete(pos: number): void {
-    console.log('on delete ' + pos);
-    this.justDeleted = pos;
-  }
-
-  onDeleteDone(): void {
-    const pos = this.justDeleted;
-    if (pos < 0) {
-      return
-    }
-    console.log('delete ' + pos);
-    this.justDeleted = -1;
-
-    this.Alternatives.removeAt(pos);
-    if (this.Alternatives.length == 1) {
-      this._validable$.next(false);
-    }
   }
 
 }

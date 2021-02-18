@@ -10,16 +10,19 @@
   <mat-form-field class="new-alternative" appearance="standard">
     <mat-label i18n>New alternative</mat-label>
     <input matInput type="text" formControlName="New" [errorStateMatcher]="errorStateMatcher" (keyup.enter)="onAdd()" />
-    <button mat-icon-button matSuffix type="button" (click)="onAdd()" [disabled]="!form.valid" i18n><mat-icon>add</mat-icon></button>
+    <button mat-icon-button matSuffix type="button" (click)="onAdd()" [disabled]="!form.get('New').valid" i18n><mat-icon>add</mat-icon></button>
   </mat-form-field>
 </form>
 <div class="formerrors" *ngIf="!(validable$ | async)">
-  <p *ngIf="hasDuplicate()" i18n>
+  <p *ngIf="newIsDuplicate()" i18n>
     There already is an alternative with the same name.
   </p>
-  <p *ngIf="alternatives.length < 2" i18n>
+  <p *ngIf="hasDuplicate()" i18n>
+    There are alternatives with the same name.
+  </p>
+  <p *ngIf="tooFewAlternatives()" i18n>
     You must add at least
-    { alternatives.length, plural, =0 {two alternatives} =1 { one more alternative} }
+    { Alternatives.length, plural, =0 {two alternatives} =1 { one more alternative} }
     to this poll.
   </p>
 </div>
