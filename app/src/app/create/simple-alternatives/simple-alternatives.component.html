@@ -26,6 +26,9 @@
     { altForm.length, plural, =0 {two alternatives} =1 { one more alternative} }
     to this poll.
   </p>
+  <p *ngIf="emptyAlternative()" i18n>
+    Some alernatives are empty.
+  </p>
 </div>
 
 <ng-template #stepInfo let-query="query$">

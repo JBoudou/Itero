@@ -37,7 +37,7 @@ import { CreateService } from '../create.service';
 import { CreateQuery, SimpleAlternative } from 'src/app/api';
 
 import { ActivatedRouteStub } from '../../../testing/activated-route-stub'
-import { Recorder } from 'src/testing/recorder';
+import { justRecordedFrom, Recorder } from 'src/testing/recorder';
 import {By} from '@angular/platform-browser';
 
 describe('SimpleAlternativesComponent', () => {
@@ -47,6 +47,11 @@ describe('SimpleAlternativesComponent', () => {
   let serviceSpy: jasmine.SpyObj<CreateService>;
   let activatedRouteStub: ActivatedRouteStub;
   let query$: Subject<Partial<CreateQuery>>;
+
+  const hasAnError = function () {
+    const formerrors = fixture.debugElement.query(By.css('.formerrors'));
+    return !!(formerrors && formerrors.query(By.css('p')));
+  };
 
   beforeEach(async () => {
     query$ = new Subject<Partial<CreateQuery>>();
@@ -173,11 +178,6 @@ describe('SimpleAlternativesComponent', () => {
   });
 
   it('mark new as duplicate', async () => {
-    const hasAnError = function () {
-      const formerrors = fixture.debugElement.query(By.css('.formerrors'));
-      return !!(formerrors && formerrors.query(By.css('p')));
-    };
-
     const newAlt = await loader.getChildLoader('.new-alternative');
     const input  = (await newAlt.getHarness(MatInputHarness )) as MatInputHarness;
 
@@ -218,6 +218,22 @@ describe('SimpleAlternativesComponent', () => {
     await input.setValue('Un');
     await (await input.host()).sendKeys(TestKey.ENTER);
     expect(countAlternatives('Un')).toBe(1);
+  });
+
+  it('warn when an alternative is empty', async () => {
+    query$.next({Alternatives: [{ Name: 'Un', Cost: 1 }, { Name: 'Deux', Cost: 1 }]});
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(hasAnError()).toBeFalse();
+    
+    const altInput = fixture.debugElement.query(By.css('.alternatives-list input'));
+    altInput.nativeElement.value = '';
+    altInput.nativeElement.dispatchEvent(new Event('input', { bubbles: false }));
+
+    expect(justRecordedFrom(component.validable$)).toEqual([false]);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(hasAnError()).toBeTrue();
   });
 
 });

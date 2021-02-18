@@ -122,15 +122,25 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
   }
 
   hasDuplicate(): boolean {
-    return !this.altForm.valid &&
+    return !this.altForm.valid && !!this.altForm.errors &&
             this.altForm.errors['duplicateNames'] !== undefined;
   }
 
   tooFewAlternatives(): boolean {
-    return !this.altForm.valid &&
+    return !this.altForm.valid && !!this.altForm.errors &&
            (this.altForm.errors['minlength'] !== undefined ||
             this.altForm.errors['required' ] !== undefined);
   }
+
+  emptyAlternative(): boolean {
+    const check = function (control: FormGroup): boolean {
+      const name = control.get('Name');
+      return !!(name && name.errors && name.errors['required']);
+    }
+    return !this.altForm.valid &&
+            this.altForm.controls.some(check);
+  }
+                                       
 
   onAdd(): void {
     if (!this.newForm.valid) return;
@@ -232,7 +242,7 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
   private addAlternative(name: string, cost?: number): void {
     cost = cost || 1;
     this.altForm.push(this.formBuilder.group({
-      Name: name,
+      Name: [name, [ Validators.required ]],
       Cost: cost,
     }));
   }
