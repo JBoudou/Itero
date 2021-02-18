@@ -172,5 +172,28 @@ describe('SimpleAlternativesComponent', () => {
     }
   });
 
+  it('mark new as duplicate', async () => {
+    const hasAnError = function () {
+      const formerrors = fixture.debugElement.query(By.css('.formerrors'));
+      return !!(formerrors && formerrors.query(By.css('p')));
+    };
+
+    const newAlt = await loader.getChildLoader('.new-alternative');
+    const input  = (await newAlt.getHarness(MatInputHarness )) as MatInputHarness;
+
+    query$.next({Alternatives: [{ Name: 'Un', Cost: 1 }, { Name: 'Deux', Cost: 1 }]});
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(hasAnError()).toBeFalse();
+    
+    await input.setValue('Un');
+    expect(hasAnError()).toBeTrue();
+
+    component.altForm.get([0, 'Name']).setValue('Trois');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(hasAnError()).toBeFalse();
+  });
+
 
 });

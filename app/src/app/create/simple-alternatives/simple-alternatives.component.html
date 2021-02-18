@@ -14,7 +14,7 @@
     <button mat-icon-button matSuffix type="button" (click)="onAdd()" [disabled]="!newForm.valid"><mat-icon>add</mat-icon></button>
   </mat-form-field>
 </form>
-<div class="formerrors" *ngIf="!(validable$ | async)">
+<div class="formerrors" *ngIf="hasErrors()">
   <p *ngIf="newIsDuplicate()" i18n>
     There already is an alternative with the same name.
   </p>

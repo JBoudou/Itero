@@ -112,6 +112,10 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
 
   newErrorState = new ErrorStateNotRequired();
 
+  hasErrors(): boolean {
+    return !this.altForm.valid || this.newErrorState.isErrorState(this.newForm, null);
+  }
+
   newIsDuplicate(): boolean {
     return !this.newForm.valid &&
             this.newForm.errors['existingNew'] !== undefined;
@@ -180,6 +184,9 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
     this._subscriptions.push(
       this.service.query$.subscribe({
         next: (query: Partial<CreateQuery>) => this.synchronizeFromService(query),
+      }),
+      this.altForm.valueChanges.subscribe({
+        next: () => this.newForm.updateValueAndValidity()
       }),
     );
   }
