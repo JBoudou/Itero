@@ -26,7 +26,6 @@ import {
 
 import {
   AbstractControl,
-  FormArray,
   FormBuilder,
   FormControl,
   FormGroup,
@@ -47,24 +46,10 @@ import { ErrorStateMatcher } from '@angular/material/core';
 import { CreateService } from '../create.service';
 import { SimpleAlternative, CreateQuery } from '../../api';
 
-// TODO delete
-class ErrorStateFromObservable implements ErrorStateMatcher {
-
-  private lastState: boolean = false;
-  private subscription: Subscription;
-
-  constructor(source: Observable<boolean>) {
-    this.subscription = source.subscribe({
-      next: (state: boolean) => this.lastState = state,
-    });
-  }
-
-  destroy(): void {
-    this.subscription.unsubscribe();
-  }
-
+class ErrorStateNotRequired implements ErrorStateMatcher {
   isErrorState(control: FormControl|null, form: FormGroupDirective|NgForm|null): boolean {
-    return this.lastState;
+    return !!(control && control.invalid && control.errors &&
+              Object.keys(control.errors).some((prop: string) => prop !== 'required'));
   }
 }
 
@@ -105,56 +90,50 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
   @ViewChild('stepInfo') infoTemplate: TemplateRef<any>;
 
   get validable$(): Observable<boolean> {
-    return this.Alternatives.statusChanges.pipe(map(val => val == 'VALID'), startWith(this.Alternatives.valid));
+    return this.altForm.statusChanges.pipe(map(val => val == 'VALID'), startWith(this.altForm.valid));
   }
 
 
   /* Interface for the template */
 
-  form = this.formBuilder.group({
-    Alternatives: this.formBuilder.array([], [
-      Validators.required,
-      Validators.minLength(2),
-      noDuplicateNames,
-    ]),
-    New: ['', [
+  altForm = this.formBuilder.array([], [
+    Validators.required,
+    Validators.minLength(2),
+    noDuplicateNames,
+  ]);
+  newForm = this.formBuilder.control(
+    '', [
       Validators.required,
       this.newValidator.bind(this),
-    ]],
-  });
+    ]
+  );
 
-  get Alternatives(): FormArray {
-    return this.form?.get('Alternatives') as FormArray;
-  }
-  
-  errorStateMatcher: ErrorStateFromObservable;
-  
   justDeleted: number = -1;
 
+  newErrorState = new ErrorStateNotRequired();
+
   newIsDuplicate(): boolean {
-    return !this.form.controls['New'].valid &&
-            this.form.controls['New'].errors['existingNew'] !== undefined;
+    return !this.newForm.valid &&
+            this.newForm.errors['existingNew'] !== undefined;
   }
 
   hasDuplicate(): boolean {
-    return !this.Alternatives.valid &&
-            this.Alternatives.errors['duplicateNames'] !== undefined;
+    return !this.altForm.valid &&
+            this.altForm.errors['duplicateNames'] !== undefined;
   }
 
   tooFewAlternatives(): boolean {
-    return !this.Alternatives.valid &&
-           (this.Alternatives.errors['minlength'] !== undefined ||
-            this.Alternatives.errors['required' ] !== undefined);
+    return !this.altForm.valid &&
+           (this.altForm.errors['minlength'] !== undefined ||
+            this.altForm.errors['required' ] !== undefined);
   }
 
   onAdd(): void {
-    console.log('on add ' + this.form.value.New);
-    this.addAlternative(this.form.value.New);
-    this.form.patchValue({New: ''});
+    this.addAlternative(this.newForm.value);
+    this.newForm.reset();
   }
 
   onDelete(pos: number): void {
-    console.log('on delete ' + pos);
     this.justDeleted = pos;
   }
 
@@ -163,9 +142,8 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
     if (pos < 0) {
       return
     }
-    console.log('delete ' + pos);
     this.justDeleted = -1;
-    this.Alternatives.removeAt(pos);
+    this.altForm.removeAt(pos);
   }
 
 
@@ -173,8 +151,9 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
 
   private _subscriptions: Subscription[] = [];
 
+  // For testing purpose
   get alternativesUpdates$(): Observable<SimpleAlternative[]> {
-    return this.Alternatives.valueChanges.pipe(filter(this.filterEvent, this));
+    return this.altForm.valueChanges.pipe(filter(this.filterEvent, this));
   }
 
   // What follows is needed because some FormArray methods do not have the option to disable event
@@ -188,10 +167,7 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
     private service: CreateService,
     private route: ActivatedRoute,
     private formBuilder: FormBuilder,
-    private changeDetector: ChangeDetectorRef,
-  ){
-    this.errorStateMatcher = new ErrorStateFromObservable(this.validable$.pipe(map((state: boolean) => !state)));
-  }
+  ){ }
 
   ngOnInit(): void {
     this.route.url.pipe(take(1)).subscribe({
@@ -212,8 +188,6 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
     this._subscriptions.push(
       this.alternativesUpdates$.subscribe({
         next: (alternatives: SimpleAlternative[]) => {
-          // TODO remove
-          console.log('Send ' + JSON.stringify(alternatives));
           this.service.patchQuery(stepSegment, { Alternatives: alternatives });
         }
       }),
@@ -221,8 +195,6 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
   }
 
   private synchronizeFromService(query: Partial<CreateQuery>): void {
-    // TODO remove debug
-    console.log('Receive ' + JSON.stringify(query.Alternatives));
     if (query.Alternatives === undefined || !this.synchronizeAlternatives(query.Alternatives)) {
       return;
     }
@@ -230,16 +202,15 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this._subscriptions.forEach(sub => sub.unsubscribe());
-    this.errorStateMatcher.destroy();
   }
 
 
   /* Validations */
 
   private newValidator(control: AbstractControl): ValidationErrors | null {
-    if (this.Alternatives === undefined) return null;
+    if (this.altForm === undefined) return null;
     const val = control.value;
-    for (let alt of this.Alternatives.value) {
+    for (let alt of this.altForm.value) {
       if (alt.Name === val) {
         return { existingNew: true };
       }
@@ -252,7 +223,7 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
 
   private addAlternative(name: string, cost?: number): void {
     cost = cost || 1;
-    this.Alternatives.push(this.formBuilder.group({
+    this.altForm.push(this.formBuilder.group({
       Name: name,
       Cost: cost,
     }));
@@ -264,19 +235,17 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
    */
   private synchronizeAlternatives(fromService: SimpleAlternative[]): boolean {
     let ret: boolean = false;
-    const model = this.Alternatives;
+    const model = this.altForm;
     const serviceLen = fromService.length;
 
     this._filteringEvents = true;
 
     while (model.controls.length > serviceLen) {
-      console.log('sync remove');
       model.removeAt(serviceLen);
       ret = true;
     }
     const endCheck = model.controls.length;
     while (model.controls.length < serviceLen) {
-      console.log('sync add');
       const alt = fromService[model.controls.length];
       this.addAlternative(alt.Name, alt.Cost);
       ret = true;
@@ -287,7 +256,6 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
       const alt = fromService[i];
       if (group.controls['Name'].value !== alt.Name ||
           group.controls['Cost'].value !== alt.Cost) {
-        console.log('sync patch');
         group.patchValue(alt, { onlySelf: false, emitEvent: false });
         ret = true;
       }
@@ -295,7 +263,6 @@ export class SimpleAlternativesComponent implements OnInit, OnDestroy {
 
     this._filteringEvents = false;
     if (ret) {
-      console.log('sync updt');
       model.updateValueAndValidity();
     }
 

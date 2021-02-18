@@ -30,7 +30,6 @@ import { MatButtonHarness }  from '@angular/material/button/testing';
 import { MatInputHarness } from '@angular/material/input/testing';
 
 import { Subject } from 'rxjs';
-import { filter } from 'rxjs/operators';
 
 import { SimpleAlternativesComponent } from './simple-alternatives.component';
 
@@ -120,8 +119,10 @@ describe('SimpleAlternativesComponent', () => {
   });
 
   it('add an alternative using the form', async () => {
-    const recorder = new Recorder<{ Name: string, Cost: number }[]>();
-    recorder.listen(component.alternativesUpdates$);
+    serviceSpy.patchQuery.and.callFake((segment: string, patch: Partial<CreateQuery>): boolean => {
+      query$.next(patch);
+      return true;
+    });
 
     const newAlt = await loader.getChildLoader('.new-alternative');
     const input  = (await newAlt.getHarness(MatInputHarness )) as MatInputHarness;
@@ -132,10 +133,7 @@ describe('SimpleAlternativesComponent', () => {
     jasmine.clock().tick(1);
     fixture.detectChanges();
     await fixture.whenStable();
-    recorder.unsubscribe();
 
-    const last = recorder.record.length - 1;
-    expect(recorder.record[last]).toEqual([{Name: 'Un', Cost: 1}]);
     expect(serviceSpy.patchQuery).toHaveBeenCalled();
     expect(serviceSpy.patchQuery.calls.mostRecent().args[1]).toEqual({Alternatives: [{Name: 'Un', Cost: 1}]});
   });
@@ -145,9 +143,6 @@ describe('SimpleAlternativesComponent', () => {
       query$.next(patch);
       return true;
     });
-
-    const recorder = new Recorder<{ Name: string, Cost: number }[]>();
-    recorder.listen(component.alternativesUpdates$);
 
     const newAlt = await loader.getChildLoader('.new-alternative');
     const input  = (await newAlt.getHarness(MatInputHarness )) as MatInputHarness;
@@ -165,10 +160,6 @@ describe('SimpleAlternativesComponent', () => {
       fixture.detectChanges();
       await fixture.whenStable();
     }
-
-    recorder.unsubscribe();
-    const last = recorder.record.length - 1;
-    expect(recorder.record[last]).toEqual(values);
 
     expect(serviceSpy.patchQuery).toHaveBeenCalled();
     expect(serviceSpy.patchQuery.calls.mostRecent().args[1]).toEqual({Alternatives: values});
