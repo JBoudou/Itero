@@ -1,0 +1,23 @@
+@import '../sizes'
+@import '../colors'
+
+footer
+  margin: 4em 0 0 0
+  .inner-footer
+    max-width: $contmaxwidth
+    margin: 0 auto
+    border-top: dotted 1px $userbuttonbgcolor
+    padding: 4px 4px 0
+    display: flex
+    justify-content: space-between
+    .right-footer
+      a
+        margin-left: 4px
+      img:not(#irit-logo)
+        position: relative
+        top: -4px
+  #license
+    font-size: 9pt
+    a
+      text-decoration: none
+
