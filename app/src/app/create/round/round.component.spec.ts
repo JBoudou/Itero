@@ -18,6 +18,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule, FormBuilder, FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 
+import { MatRadioModule } from '@angular/material/radio';
+
 import { RoundComponent } from './round.component';
 
 import { CreateService } from '../create.service';
@@ -43,6 +45,7 @@ describe('RoundComponent', () => {
         ReactiveFormsModule,
         FormsModule,
         FormWidgetModule,
+        MatRadioModule,
       ],
       providers: [
         FormBuilder,
