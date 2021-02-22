@@ -71,7 +71,7 @@
         The first round will end
         <ng-container [ngSwitch]="roundDeadlinePassed()">
           <ng-container *ngSwitchCase="true">
-            as soon as three participants has voted.
+            as soon as three participants have voted.
           </ng-container>
           <ng-container *ngSwitchCase="false">
             {{ answer.RoundDeadline | nearDate:'inside' }}.
