@@ -8,6 +8,7 @@
     <textarea matInput rows="1" formControlName="Description"></textarea>
   </mat-form-field>
   <mat-radio-group formControlName="Hidden">
+    <p class="radio-hint" i18n>Publicity</p>
     <mat-radio-button [value]="false" i18n>Display the poll in the list.</mat-radio-button>
     <mat-radio-button [value]="true"  i18n>Manually spread the link.</mat-radio-button>
   </mat-radio-group>
