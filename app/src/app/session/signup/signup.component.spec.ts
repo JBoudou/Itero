@@ -17,6 +17,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule, FormBuilder, FormsModule } from '@angular/forms';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import { Router } from '@angular/router';
 
 import { map } from 'rxjs/operators';
 
@@ -31,7 +32,8 @@ describe('SignupComponent', () => {
   let sessionSpy: jasmine.SpyObj<SessionService>;
 
   beforeEach(async () => {
-    const sessionSpy = jasmine.createSpyObj('SessionService', ['httpOperator']);
+    sessionSpy = jasmine.createSpyObj('SessionService', ['httpOperator']);
+    const routerSpy  = jasmine.createSpyObj('Router', ['navigateByUrl']);
 
     await TestBed.configureTestingModule({
       declarations: [ SignupComponent ],
@@ -43,6 +45,7 @@ describe('SignupComponent', () => {
       providers: [
         FormBuilder,
         {provide: SessionService, useValue: sessionSpy},
+        {provide: Router, useValue: routerSpy}
       ]
     })
     .compileComponents();
@@ -53,7 +56,6 @@ describe('SignupComponent', () => {
     component = fixture.componentInstance;
     fixture.detectChanges();
     httpControler = TestBed.inject(HttpTestingController);
-    sessionSpy = TestBed.inject(SessionService) as jasmine.SpyObj<SessionService>;
   });
 
   afterEach(() => {

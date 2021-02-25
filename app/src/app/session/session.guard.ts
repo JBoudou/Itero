@@ -36,7 +36,6 @@ export class SessionGuard implements CanDeactivate<any> {
     currentState: RouterStateSnapshot,
     nextState?: RouterStateSnapshot
   ): Observable<boolean|UrlTree>|Promise<boolean|UrlTree>|boolean|UrlTree {
-    console.log(!!nextState ? nextState.url : 'called');
     this.service.clearLoginRedirectionUrl();
     return true;
   }
