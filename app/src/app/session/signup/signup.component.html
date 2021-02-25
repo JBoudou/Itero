@@ -1,4 +1,4 @@
-<form *ngIf="!createdUser" class="form-alone" [formGroup]="form" (ngSubmit)="onSignup()">
+<form class="form-alone" [formGroup]="form" (ngSubmit)="onSignup()">
   <mat-form-field class="lone-field" appearance="standard">
     <mat-label i18n>Login</mat-label>
     <input matInput type="text" formControlName="Name">
@@ -45,7 +45,3 @@
     <button type="submit" [disabled]="!form.valid" i18n>Sign up</button>
   </div>
 </form>
-<div *ngIf="!!createdUser">
-  <h3 i18n>Welcome {{createdUser}}!</h3>
-  <p i18n>You have successfully created an account on Itero</p>
-</div>

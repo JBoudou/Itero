@@ -181,7 +181,14 @@ type PollAnswer struct {
 
 func PollHandler(ctx context.Context, response server.Response, request *server.Request) {
 	pollInfo, err := checkPollAccess(ctx, request)
-	must(err)
+	if err != nil {
+		if request.User == nil {
+			err = server.WrapUnauthorizedError(err)
+		} else {
+			err = server.InternalHttpError(err)
+		}
+		panic(err)
+	}
 
 	answer := PollAnswer{
 		Ballot:       pollInfo.BallotType(),

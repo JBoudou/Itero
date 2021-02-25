@@ -14,22 +14,31 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { NgModule } from '@angular/core';
-import { Routes, RouterModule } from '@angular/router';
+import { Injectable } from '@angular/core';
+import { CanDeactivate, ActivatedRouteSnapshot, RouterStateSnapshot, UrlTree } from '@angular/router';
 
-import { LoginComponent }   from './login/login.component';
-import { SessionGuard } from './session.guard';
-import { SignupComponent }  from './signup/signup.component';
+import { Observable } from 'rxjs';
 
-const routes: Routes = [
-  { path: 'r/session', canDeactivate: [ SessionGuard ], children: [
-    { path: 'login', component: LoginComponent },
-    { path: 'signup', component: SignupComponent },
-  ]},
-];
+import { SessionService } from './session.service';
 
-@NgModule({
-  imports: [RouterModule.forChild(routes)],
-  exports: [RouterModule]
+@Injectable({
+  providedIn: 'root'
 })
-export class SessionRoutingModule { }
+export class SessionGuard implements CanDeactivate<any> {
+
+  constructor(
+    private service: SessionService,
+  ) { }
+
+  canDeactivate(
+    component: any,
+    currentRoute: ActivatedRouteSnapshot,
+    currentState: RouterStateSnapshot,
+    nextState?: RouterStateSnapshot
+  ): Observable<boolean|UrlTree>|Promise<boolean|UrlTree>|boolean|UrlTree {
+    console.log(!!nextState ? nextState.url : 'called');
+    this.service.clearLoginRedirectionUrl();
+    return true;
+  }
+  
+}

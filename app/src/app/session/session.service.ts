@@ -46,9 +46,9 @@ export class SessionService {
    */
   sessionId: string = '';
 
-  /** Observable to subscribe to to be notified about session change. */
   _state = new BehaviorSubject<SessionInfo>({logged: false})
 
+  /** Observable to be notified about session change. */
   get state$(): Observable<SessionInfo> {
     return this._state;
   }
@@ -59,7 +59,7 @@ export class SessionService {
   }
 
   get loginUrl(): string {
-    return '/r/login';
+    return '/r/session/login';
   }
 
   private _loginRedirectionUrl : string | undefined;
@@ -83,7 +83,7 @@ export class SessionService {
       return '/r/list';
     }
     const ret = this._loginRedirectionUrl;
-    this._loginRedirectionUrl = undefined;
+    this.clearLoginRedirectionUrl();
     return ret;
   }
 
@@ -93,6 +93,10 @@ export class SessionService {
       console.error('setLoginRedirectionUrl while there already is a redirection URL');
     }
     this._loginRedirectionUrl = url;
+  }
+
+  clearLoginRedirectionUrl(): void {
+    this._loginRedirectionUrl = undefined;
   }
 
   /** Ask the user to log before returning to the current page. */

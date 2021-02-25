@@ -17,6 +17,7 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
 import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 
 import { take } from 'rxjs/operators';
 
@@ -63,7 +64,6 @@ export class SignupComponent implements OnInit {
   });
 
   serverError = ''
-  createdUser = ''
 
   showPassword: boolean = false;
   showConfirm : boolean = false;
@@ -72,6 +72,7 @@ export class SignupComponent implements OnInit {
     private session: SessionService,
     private http: HttpClient,
     private formBuilder: FormBuilder,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -85,7 +86,7 @@ export class SignupComponent implements OnInit {
       .pipe(this.session.httpOperator(toSend.Name), take(1))
       .subscribe({
       next: () => {
-        this.createdUser = toSend.Name;
+        this.router.navigateByUrl(this.session.getLoginRedirectionUrl());
       },
       error: (err: HttpErrorResponse) => {
         if (err.status == 400) {
