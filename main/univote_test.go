@@ -172,7 +172,7 @@ func TestUninominalVoteHandler(t *testing.T) {
 		{
 			Name: "Inactive",
 			Update: func(t *testing.T) {
-				const qInactivate = `UPDATE Polls SET Active = FALSE WHERE Id = ?`
+				const qInactivate = `UPDATE Polls SET State = 'Terminated' WHERE Id = ?`
 				_, err := db.DB.Exec(qInactivate, pollSegment.Id)
 				mustt(t, err)
 			},

@@ -57,7 +57,7 @@ func (self *nextRound) fullCheck() error {
 		qSelectNext = `
 		  SELECT p.Id
 		    FROM Polls AS p LEFT OUTER JOIN Participants AS a ON p.Id = a.Poll
-		  WHERE p.Active AND p.CurrentRound < p.MaxNbRounds
+		  WHERE p.State = 'Active' AND p.CurrentRound < p.MaxNbRounds
 		  GROUP BY p.Id,
 		        p.CurrentRoundStart, p.MaxRoundDuration, p.CurrentRound, p.Publicity, p.RoundThreshold
 		 HAVING ( ADDTIME(p.CurrentRoundStart, p.MaxRoundDuration) <= CURRENT_TIMESTAMP()
@@ -81,7 +81,7 @@ func (self *nextRound) checkOne(pollId uint32) error {
 			CREATE TEMPORARY TABLE Tmp_NextRound (Id int unsigned)
 	      SELECT p.Id
 	        FROM Polls AS p LEFT OUTER JOIN Participants AS a ON p.Id = a.Poll
-	      WHERE p.Id = ? AND p.Active AND p.CurrentRound < p.MaxNbRounds
+	      WHERE p.Id = ? AND p.State = 'Active' AND p.CurrentRound < p.MaxNbRounds
 	      GROUP BY p.Id,
 	            p.CurrentRoundStart, p.MaxRoundDuration, p.CurrentRound, p.Publicity, p.RoundThreshold
 	     HAVING ( ADDTIME(p.CurrentRoundStart, p.MaxRoundDuration) <= CURRENT_TIMESTAMP()
@@ -123,7 +123,7 @@ func (self *nextRound) nextAlarm() alarm.Event {
 		qNext = `
 		  SELECT Id, ADDTIME(CurrentRoundStart, MaxRoundDuration) AS Next, CURRENT_TIMESTAMP()
 			  FROM Polls
-		   WHERE Active HAVING Next >= ?
+		   WHERE State = 'Active' HAVING Next >= ?
 		   ORDER BY Next ASC LIMIT 1`
 	)
 	return self.nextAlarm_helper(qNext, nextRoundDefaultWaitDuration)

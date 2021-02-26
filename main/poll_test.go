@@ -72,7 +72,7 @@ func TestPollHandler(t *testing.T) {
 
 	const (
 		qParticipate = `INSERT INTO Participants (Poll, User) VALUE (?, ?)`
-		qClosePoll = `UPDATE Polls SET Active = false WHERE Id = ?`
+		qClosePoll = `UPDATE Polls SET State = 'Terminated' WHERE Id = ?`
 	)
 
 	var (

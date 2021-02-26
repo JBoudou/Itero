@@ -43,7 +43,7 @@ func TestListHandler(t *testing.T) {
 
 	const (
 		qParticipate = `INSERT INTO Participants(Poll, User) VALUE (?, ?)`
-		qTerminate = `UPDATE Polls SET Active = FALSE WHERE Id = ?`
+		qTerminate = `UPDATE Polls SET State = 'Terminated' WHERE Id = ?`
 
 		poll1Title = "Test 1"
 		poll2Title = "Test 2"

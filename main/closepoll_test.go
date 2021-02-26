@@ -31,7 +31,7 @@ func TestClosePoll_fullCheck(t *testing.T) {
 		qSetMinMax      = `UPDATE Polls SET MinNbRounds = 1, MaxNbRounds = 2 WHERE Id = ?`
 		qSetRound       = `UPDATE Polls SET CurrentRound = ? WHERE Id = ?`
 		qSetExpiredPoll = `UPDATE Polls SET Deadline = CURRENT_TIMESTAMP() WHERE Id = ?`
-		qIsActive       = `SELECT Active FROM Polls WHERE Id = ?`
+		qIsActive       = `SELECT State = 'Active' FROM Polls WHERE Id = ?`
 	)
 
 	// Tests are independent.
@@ -133,7 +133,7 @@ func TestClosePoll_checkOne(t *testing.T) {
 		qSetMinMax      = `UPDATE Polls SET MinNbRounds = 1, MaxNbRounds = 2 WHERE Id = ?`
 		qSetRound       = `UPDATE Polls SET CurrentRound = ? WHERE Id = ?`
 		qSetExpiredPoll = `UPDATE Polls SET Deadline = CURRENT_TIMESTAMP() WHERE Id = ?`
-		qIsActive       = `SELECT Active FROM Polls WHERE Id = ?`
+		qIsActive       = `SELECT State = 'Active' FROM Polls WHERE Id = ?`
 	)
 
 	// Tests are independent.

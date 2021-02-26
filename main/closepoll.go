@@ -56,19 +56,19 @@ func (self *closePoll) fullCheck() error {
 		qSelectClose = `
 		  SELECT Id
 		    FROM Polls
-		  WHERE Active
+		  WHERE State = 'Active'
 		    AND ( CurrentRound >= MaxNbRounds
 		          OR (CurrentRound >= MinNbRounds AND Deadline <= CURRENT_TIMESTAMP) )
 		    FOR UPDATE`
-		qClosePoll = `UPDATE Polls SET Active = false WHERE Id = ?`
+		qClosePoll = `UPDATE Polls SET State = 'Terminated' WHERE Id = ?`
 	)
 	return self.fullCheck_helper(qSelectClose, qClosePoll)
 }
 
 func (self *closePoll) checkOne(pollId uint32) error {
 	const qUpdate = `
-	  UPDATE Polls SET Active = false
-	   WHERE Id = ? AND Active
+	  UPDATE Polls SET State = 'Terminated'
+	   WHERE Id = ? AND State = 'Active'
 	     AND ( CurrentRound >= MaxNbRounds
 	           OR (CurrentRound >= MinNbRounds AND Deadline <= CURRENT_TIMESTAMP) )`
 	return self.checkOne_helper(pollId, func() (sql.Result, error) {
@@ -80,7 +80,7 @@ func (self *closePoll) nextAlarm() alarm.Event {
 	const (
 		qNext = `
 		  SELECT Id, Deadline, CURRENT_TIMESTAMP() FROM Polls
-		   WHERE Active AND Deadline >= ?
+		   WHERE State = 'Active' AND Deadline >= ?
 		   ORDER BY Deadline ASC LIMIT 1`
 	)
 	return self.nextAlarm_helper(qNext, closePollDefaultWaitDuration)

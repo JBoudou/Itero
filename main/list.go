@@ -73,7 +73,7 @@ func ListHandler(ctx context.Context, response server.Response, request *server.
 	const query = `
 	   SELECT p.Id, p.Salt, p.Title, p.CurrentRound, p.MaxNbRounds,
 	          ADDTIME(p.CurrentRoundStart, p.MaxRoundDuration) AS Deadline,
-	          CASE WHEN !p.Active THEN 3
+	          CASE WHEN p.State = 'Terminated' THEN 3
 	               WHEN a.User IS NULL THEN 2
 	               WHEN a.LastRound >= p.CurrentRound THEN 1
 	               ELSE 0 END AS Action
@@ -82,7 +82,7 @@ func ListHandler(ctx context.Context, response server.Response, request *server.
 	               FROM Participants
 	              WHERE User = ?
 	          ) AS a ON p.Id = a.Poll
-	    WHERE (p.Active AND p.CurrentRound = 0 AND p.Publicity <= ?) OR a.User IS NOT NULL
+	    WHERE (p.State != 'Waiting' AND p.CurrentRound = 0 AND p.Publicity <= ?) OR a.User IS NOT NULL
 	 ORDER BY Action ASC, Deadline ASC`
 	rows, err := db.DB.QueryContext(ctx, query, request.User.Id, db.PollPublicityPublicRegistered)
 	if err != nil {

@@ -83,7 +83,7 @@ func checkPollAccess(ctx context.Context, request *server.Request) (poll PollInf
 	// TODO allow unregistered poll
 	if request.User == nil {
 		if request.SessionError != nil {
-			err = request.SessionError
+			err = server.WrapUnauthorizedError(request.SessionError)
 		} else {
 			err = server.UnauthorizedHttpError("Unlogged user")
 		}
@@ -105,7 +105,7 @@ func checkPollAccess(ctx context.Context, request *server.Request) (poll PollInf
 	// Check poll
 	var salt uint32
 	var publicity uint8
-	const qPoll = `SELECT Salt, Publicity, NbChoices, Active, CurrentRound FROM Polls WHERE Id = ?`
+	const qPoll = `SELECT Salt, Publicity, NbChoices, State = 'Active', CurrentRound FROM Polls WHERE Id = ?`
 	row := db.DB.QueryRowContext(ctx, qPoll, poll.Id)
 	err = row.Scan(&salt, &publicity, &poll.NbChoices, &poll.Active, &poll.CurrentRound)
 	if err != nil {
@@ -181,14 +181,7 @@ type PollAnswer struct {
 
 func PollHandler(ctx context.Context, response server.Response, request *server.Request) {
 	pollInfo, err := checkPollAccess(ctx, request)
-	if err != nil {
-		if request.User == nil {
-			err = server.WrapUnauthorizedError(err)
-		} else {
-			err = server.InternalHttpError(err)
-		}
-		panic(err)
-	}
+	must(err)
 
 	answer := PollAnswer{
 		Ballot:       pollInfo.BallotType(),
