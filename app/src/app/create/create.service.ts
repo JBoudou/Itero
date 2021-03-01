@@ -155,6 +155,7 @@ export class CreateService {
     let modified = false;
     for (const prop in patch) {
       if (!isEqual(patch[prop], this._current.query[prop])) {
+        console.log(`Changing ${prop} to ` + JSON.stringify(patch[prop]))
         this._current.query[prop] = cloneDeep(patch[prop]);
         this._current.handledFields.add(prop);
         modified = true;

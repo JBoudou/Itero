@@ -1,6 +1,10 @@
 <form class="basicform" [formGroup]="form">
   <mat-form-field appearance="standard">
-    <mat-label i18n>Poll deadline</mat-label>
+    <mat-label i18n>Poll starts</mat-label>
+    <app-date-time-picker formControlName="Start"></app-date-time-picker>
+  </mat-form-field>
+  <mat-form-field appearance="standard">
+    <mat-label i18n>Poll ends</mat-label>
     <app-date-time-picker formControlName="Deadline"></app-date-time-picker>
   </mat-form-field>
   <mat-form-field class="least-most" appearance="standard" i18n>
@@ -63,7 +67,16 @@
       </ng-container>
     </p>
     <p i18n>
-      The poll ends after the {{ q.MaxNbRounds | ordinal }} round,
+      The poll will start
+      <ng-container [ngSwitch]="startsNow()">
+        <ng-container *ngSwitchCase="true">
+          as soon as it is created.
+        </ng-container>
+        <ng-container *ngSwitchCase="false">
+          {{ q.Start | nearDate:'inside' }}.
+        </ng-container>
+      </ng-container>
+      It will end after the {{ q.MaxNbRounds | ordinal }} round,
       or {{ q.Deadline | nearDate:'inside' }} if at least {{ q.MinNbRounds }} rounds have already been done,
       whichever happens first.
     </p>

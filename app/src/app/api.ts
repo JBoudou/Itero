@@ -123,6 +123,7 @@ export class CreateQuery {
   Title:            string;
   Description:      string;
   Hidden:           boolean;
+  Start:            Date;
   Alternatives:     SimpleAlternative[];
   ReportVote:       boolean;
   MinNbRounds:      number;

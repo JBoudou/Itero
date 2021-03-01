@@ -54,6 +54,7 @@ export class RoundComponent extends CreateSubComponentBase implements OnInit, On
   @ViewChild('stepInfo') infoTemplate: TemplateRef<any>;
 
   form = this.formBuilder.group({
+    Start: [new Date()],
     Deadline: [new Date(Date.now() + (7 * 24 * 3600 * 1000))],
     MinNbRounds: [2, [
       integerValidator,
@@ -88,6 +89,10 @@ export class RoundComponent extends CreateSubComponentBase implements OnInit, On
 
   ngOnDestroy(): void {
     this.unsubscribeAll();
+  }
+
+  startsNow(): boolean {
+    return this.form.value.Start.getTime() <= Date.now();
   }
 
   minMax(): number {
