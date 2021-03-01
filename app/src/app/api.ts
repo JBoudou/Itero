@@ -74,6 +74,8 @@ export class PollAnswer {
   CreationTime:     Date;
   CurrentRound:     number;
   Active:           boolean;
+  State:            string;
+  Start:            Date;
   RoundDeadline:    Date;
   PollDeadline:     Date;
   MaxRoundDuration: number; // milliseconds

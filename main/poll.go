@@ -170,6 +170,8 @@ type PollAnswer struct {
 	CreationTime     time.Time
 	CurrentRound     uint8
 	Active           bool
+	State            string
+	Start            time.Time
 	RoundDeadline    time.Time
 	PollDeadline     time.Time
 	MaxRoundDuration uint64 // in milliseconds
@@ -192,7 +194,7 @@ func PollHandler(ctx context.Context, response server.Response, request *server.
 
 	// Additional informations for display
 	const qSelect = `
-		SELECT p.Title, p.Description, u.Name, p.Created,
+		SELECT p.Title, p.Description, u.Name, p.Created, p.State, p.Start,
 	         ADDTIME(p.CurrentRoundStart, p.MaxRoundDuration), p.Deadline,
 					 TIME_TO_SEC(p.MaxRoundDuration) * 1000, p.MinNbRounds, p.MaxNbRounds
 		  FROM Polls AS p, Users AS u
@@ -200,20 +202,22 @@ func PollHandler(ctx context.Context, response server.Response, request *server.
 		   AND p.Admin = u.Id`
 	row := db.DB.QueryRowContext(ctx, qSelect, pollInfo.Id)
 	var desc sql.NullString
-	var roundDeadline sql.NullTime
-	var pollDeadline sql.NullTime
+	var start, roundDeadline, pollDeadline sql.NullTime
 	var maxRoundDuration sql.NullInt64
 	must(row.Scan(
-		&answer.Title, &desc, &answer.Admin, &answer.CreationTime, &roundDeadline,
+		&answer.Title, &desc, &answer.Admin, &answer.CreationTime, &answer.State, &start, &roundDeadline,
 		&pollDeadline, &maxRoundDuration, &answer.MinNbRounds, &answer.MaxNbRounds))
 	if desc.Valid {
 		answer.Description = desc.String
 	}
+	if start.Valid {
+		answer.Start = start.Time
+	}
 	if roundDeadline.Valid {
-		answer.RoundDeadline = roundDeadline.Time;
+		answer.RoundDeadline = roundDeadline.Time
 	}
 	if pollDeadline.Valid {
-		answer.PollDeadline = pollDeadline.Time;
+		answer.PollDeadline = pollDeadline.Time
 	}
 	if maxRoundDuration.Valid && maxRoundDuration.Int64 > 0 {
 		answer.MaxRoundDuration = uint64(maxRoundDuration.Int64)

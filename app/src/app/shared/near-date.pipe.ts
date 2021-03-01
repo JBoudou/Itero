@@ -34,9 +34,17 @@ import { Pipe, PipeTransform, Inject, LOCALE_ID } from '@angular/core';
 export class NearDatePipe implements PipeTransform {
   constructor(@Inject(LOCALE_ID) private locale: string) {}
 
-  transform(value: Date, format?: string, locale?: string): string {
+  transform(value: Date|string, format?: string, locale?: string): string {
     if (value === undefined) {
       return undefined;
+    }
+
+    if (!(value instanceof Date)) {
+      if (typeof value === 'string') {
+        value = new Date(value);
+      } else {
+        return undefined;
+      }
     }
 
     const today = new Date(Date.now());

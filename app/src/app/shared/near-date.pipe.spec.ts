@@ -30,13 +30,19 @@ describe('NearDatePipe', () => {
   it('should add on only in inside format', () => {
     expect(pipe.transform(new Date('2012-01-01T00:00:00'), 'inside')).toMatch(/^on /);
     expect(pipe.transform(new Date('2012-01-01T00:00:00'), 'noPrep')).not.toMatch(/^on /);
-    expect(pipe.transform(new Date('2012-01-01T00:00:00'), 'alone ')).not.toMatch(/^on /);
+    expect(pipe.transform(new Date('2012-01-01T00:00:00'), 'alone' )).not.toMatch(/^on /);
   });
 
   it('should start with an upper case only in alone mode', () => {
     expect(pipe.transform(new Date(), 'inside')).toMatch(/^today /);
     expect(pipe.transform(new Date(), 'noPrep')).toMatch(/^today /);
     expect(pipe.transform(new Date(), 'alone' )).toMatch(/^Today /);
+  });
+
+  it('should convert string to Date', () => {
+    expect(pipe.transform('2012-01-01T00:00:00', 'inside')).toBeTruthy();
+    expect(pipe.transform('2012-01-01T00:00:00', 'noPrep')).toBeTruthy();
+    expect(pipe.transform('2012-01-01T00:00:00', 'alone' )).toBeTruthy();
   });
 
 });

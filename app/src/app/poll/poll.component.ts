@@ -163,6 +163,9 @@ export class PollComponent implements OnInit {
     this.http.get<PollAnswer>('/a/poll/' + this.segment).pipe(take(1)).subscribe({
       next: (answer: PollAnswer) => {
         this.answer = answer;
+        if (!!this.answer.Start) {
+          this.answer.Start = new Date(this.answer.Start);
+        }
         this.answer.CreationTime  = new Date(this.answer.CreationTime );
         this.answer.RoundDeadline = new Date(this.answer.RoundDeadline);
         this.answer.PollDeadline  = new Date(this.answer.PollDeadline );
