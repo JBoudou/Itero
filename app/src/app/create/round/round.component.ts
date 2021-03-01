@@ -18,8 +18,11 @@ import { Component, ChangeDetectionStrategy, OnInit, OnDestroy, ViewChild, Templ
 import { FormBuilder, Validators, AbstractControl, FormGroup, ValidationErrors } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 
+import { clone } from 'lodash';
+
 import { CreateService } from '../create.service';
 import { CreateSubComponentBase } from '../create-sub-component-base';
+import { CreateQuery } from '../../api';
 
 function customValidator(grp: FormGroup): ValidationErrors | null {
   let ret: ValidationErrors | null = null;
@@ -89,6 +92,16 @@ export class RoundComponent extends CreateSubComponentBase implements OnInit, On
 
   ngOnDestroy(): void {
     this.unsubscribeAll();
+  }
+
+  // Override CreateSubComponentBase implementation.
+  protected modifyQueryToSend(query: Partial<CreateQuery>): Partial<CreateQuery> {
+    if (query.Start !== undefined && query.Start.getTime() <= Date.now()) {
+      let ret = clone(query);
+      ret.Start = undefined;
+      return ret;
+    }
+    return query;
   }
 
   startsNow(): boolean {

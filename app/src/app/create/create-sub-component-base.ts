@@ -58,10 +58,23 @@ export abstract class CreateSubComponentBase {
     });
   }
 
+  /**
+   * Unsubscribe from subcriptions.
+   * Must be called before the component is destroyed, usually ngOnDestroy.
+   */
   protected unsubscribeAll(): void {
     for (const sub of this.subscriptions) {
       sub.unsubscribe();
     }
+  }
+
+  /**
+   * Modify the partial query sent to the model.
+   * Could be overloaded in the component. By default, return the parameter unchanged.
+   * Beware to not modify the parameter.
+   */
+  protected modifyQueryToSend(query: Partial<CreateQuery>): Partial<CreateQuery> {
+    return query;
   }
   
   private _initModel(stepSegment: string): void {
@@ -76,7 +89,7 @@ export abstract class CreateSubComponentBase {
       const control = this.form.controls[prop];
       this.subscriptions.push(
         control.valueChanges.subscribe({
-          next: value => this.service.patchQuery(stepSegment, { [prop]: value }),
+          next: value => this.service.patchQuery(stepSegment, this.modifyQueryToSend({ [prop]: value })),
         })
       );
     };
@@ -84,6 +97,7 @@ export abstract class CreateSubComponentBase {
 
   private _first_synchronize_done: boolean = false;
 
+  /** Synchronize the view from the model. */
   private _synchronize(stepSegment: string, query: Partial<CreateQuery>) {
     this.form.patchValue(query);
 
@@ -98,7 +112,7 @@ export abstract class CreateSubComponentBase {
         }
       }
       if (somethingToSend) {
-        this.service.patchQuery(stepSegment, toSend, { defaultValues: true });
+        this.service.patchQuery(stepSegment, this.modifyQueryToSend(toSend), { defaultValues: true });
       }
       this._first_synchronize_done = true;
     }

@@ -143,6 +143,7 @@ export class CreateService {
    * This method is to be called by components editing the parameters of the poll to be created.
    * Beware that, since this method modifies the query, it usually sends an event on query$.
    * The query is marked as modified, unless defaultValues option is set to true.
+   * To delete a value set it to undefined.
    */
   patchQuery(stepSegment: string, patch: Partial<CreateQuery>,
              options: { defaultValues: boolean } = { defaultValues: false}
@@ -155,9 +156,13 @@ export class CreateService {
     let modified = false;
     for (const prop in patch) {
       if (!isEqual(patch[prop], this._current.query[prop])) {
-        console.log(`Changing ${prop} to ` + JSON.stringify(patch[prop]))
-        this._current.query[prop] = cloneDeep(patch[prop]);
-        this._current.handledFields.add(prop);
+        if (patch[prop] === undefined) {
+          delete this._current.query[prop];
+          this._current.handledFields.delete(prop);
+        } else {
+          this._current.query[prop] = cloneDeep(patch[prop]);
+          this._current.handledFields.add(prop);
+        }
         modified = true;
       }
     }
