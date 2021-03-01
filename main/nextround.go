@@ -175,7 +175,7 @@ func (self *nextRound) run(evtChan <-chan events.Event) {
 				if err := self.checkOne(typed.Poll); err != nil {
 					self.warn.Print(err)
 				}
-			case CreatePollEvent:
+			case CreatePollEvent, StartPollEvent:
 				at.Send <- self.nextAlarm()
 			}
 		}
@@ -188,7 +188,7 @@ func StartNextRound() {
 	events.AddReceiver(events.AsyncForwarder{
 		Filter: func(evt events.Event) bool {
 			switch evt.(type) {
-			case VoteEvent, CreatePollEvent:
+			case VoteEvent, CreatePollEvent, StartPollEvent:
 				return true;
 			}
 			return false

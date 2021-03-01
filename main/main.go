@@ -25,6 +25,7 @@ import (
 
 func main() {
 	// Services
+	StartStartPoll()
 	StartNextRound()
 	StartClosePoll()
 

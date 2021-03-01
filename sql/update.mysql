@@ -102,6 +102,10 @@ BEGIN
   IF NEW.CurrentRound > OLD.CurrentRound THEN
     SET NEW.CurrentRoundStart = CURRENT_TIMESTAMP();
   END IF;
+  IF OLD.State = 'Waiting' AND NEW.State = 'Active' THEN
+    SET NEW.CurrentRound = 0;
+    SET NEW.CurrentRoundStart = CURRENT_TIMESTAMP();
+  END IF;
   CALL Polls_checker_before(NEW.Title, NEW.State, NEW.Start, NEW.Salt, NEW.Publicity, NEW.NbChoices,
                             NEW.MinNbRounds, NEW.MaxNbRounds, NEW.Deadline, NEW.MaxRoundDuration,
                             NEW.RoundThreshold, NEW.CurrentRound, NEW.CurrentRoundStart);
