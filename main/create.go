@@ -18,6 +18,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
 	"time"
 
@@ -41,6 +42,7 @@ type CreateQuery struct {
 	Title            string
 	Description      string
 	Hidden           bool
+	Start            time.Time
 	Alternatives     []SimpleAlternative
 	ReportVote       bool
 	MinNbRounds      uint8
@@ -80,10 +82,23 @@ func CreateHandler(ctx context.Context, response server.Response, request *serve
 	must(request.UnmarshalJSONBody(&query))
 
 	if len(query.Title) < 0 {
-		must(server.NewHttpError(http.StatusBadRequest, "Wrong request", "Missing title"))
+		must(server.NewHttpError(http.StatusBadRequest, "Bad request", "Missing title"))
 	}
 	if len(query.Alternatives) < 2 {
-		must(server.NewHttpError(http.StatusBadRequest, "Wrong request", "Too few alternatives"))
+		must(server.NewHttpError(http.StatusBadRequest, "Bad request", "Too few alternatives"))
+	}
+
+	var start sql.NullTime
+	var state string
+	if query.Start.After(time.Now()) {
+		start.Time = query.Start
+		start.Valid = true
+		state = "Waiting"
+	} else {
+		if !query.Start.IsZero() {
+			must(server.NewHttpError(http.StatusBadRequest, "Bad request", "Start must be after now"))
+		}
+		state = "Active"
 	}
 
 	var err error
@@ -106,9 +121,10 @@ func CreateHandler(ctx context.Context, response server.Response, request *serve
 
 	const (
 		qPoll = `
-			INSERT INTO Polls (Title, Description, Admin, Salt, Publicity, NbChoices, ReportVote,
-			                   MinNbRounds, MaxNbRounds, Deadline, MaxRoundDuration, RoundThreshold)
-				  	 VALUE (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+			INSERT INTO Polls (Title, Description, Admin, State, Start, Salt, Publicity, NbChoices,
+												 ReportVote, MinNbRounds, MaxNbRounds, Deadline, MaxRoundDuration,
+												 RoundThreshold)
+				  	 VALUE (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 		qAlternative = `INSERT INTO Alternatives (Poll, Id, Name) VALUE (?, ?, ?)`
 		qParticipant = `INSERT INTO Participants (Poll, User) VALUE (?, ?)`
 	)
@@ -117,6 +133,8 @@ func CreateHandler(ctx context.Context, response server.Response, request *serve
 		query.Title,
 		query.Description,
 		request.User.Id,
+		state,
+		start,
 		pollSegment.Salt,
 		publicity,
 		len(query.Alternatives),

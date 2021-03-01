@@ -17,6 +17,7 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"reflect"
@@ -61,9 +62,9 @@ func (self *createPollChecker) Check(t *testing.T, response *http.Response, requ
 
 	const (
 		qCheckPoll = `
-			SELECT Title, Description, Admin, Salt, Publicity, ReportVote, MinNbRounds, MaxNbRounds,
-						 Deadline, CurrentRoundStart, ADDTIME(CurrentRoundStart, MaxRoundDuration),
-						 RoundThreshold
+			SELECT Title, Description, Admin, State, Start, Salt, Publicity, ReportVote,
+			       MinNbRounds, MaxNbRounds, Deadline, CurrentRoundStart,
+						 ADDTIME(CurrentRoundStart, MaxRoundDuration), RoundThreshold
 			  FROM Polls
 			 WHERE Id = ?`
 		qCheckAlternative = `SELECT Name FROM Alternatives WHERE Poll = ? ORDER BY Id ASC`
@@ -86,6 +87,8 @@ func (self *createPollChecker) Check(t *testing.T, response *http.Response, requ
 	row := db.DB.QueryRow(qCheckPoll, pollSegment.Id)
 	got := query
 	var admin uint32
+	var state string
+	var startDate sql.NullTime
 	var salt uint32
 	var publicity uint8
 	var roundStart, roundEnd time.Time
@@ -93,6 +96,8 @@ func (self *createPollChecker) Check(t *testing.T, response *http.Response, requ
 		&got.Title,
 		&got.Description,
 		&admin,
+		&state,
+		&startDate,
 		&salt,
 		&publicity,
 		&got.ReportVote,
@@ -103,16 +108,27 @@ func (self *createPollChecker) Check(t *testing.T, response *http.Response, requ
 		&roundEnd,
 		&got.RoundThreshold,
 	))
-	got.MaxRoundDuration = uint64(roundEnd.Sub(roundStart).Milliseconds())
-	got.Deadline = got.Deadline.Truncate(time.Second)
-	got.Hidden = (publicity == db.PollPublicityHidden) ||
-		(publicity == db.PollPublicityHiddenRegistered)
 	if salt != pollSegment.Salt {
 		t.Errorf("Wrong salt. Got %d. Expect %d.", salt, pollSegment.Salt)
 	}
 	if admin != self.user {
 		t.Errorf("Wrong admin. Got %d. Expect %d.", admin, self.user)
 	}
+	var expectState string
+	if startDate.Valid {
+		expectState = "Waiting"
+		got.Start = startDate.Time.UTC()
+	} else {
+		expectState = "Active"
+		got.Start = time.Time{}
+	}
+	if state != expectState {
+		t.Errorf("Wrong state. Got %s. Expect %s.", state, expectState)
+	}
+	got.MaxRoundDuration = uint64(roundEnd.Sub(roundStart).Milliseconds())
+	got.Deadline = got.Deadline.Truncate(time.Second)
+	got.Hidden = (publicity == db.PollPublicityHidden) ||
+		(publicity == db.PollPublicityHiddenRegistered)
 	if !reflect.DeepEqual(got, query) {
 		t.Errorf("Got %v. Expect %v.", got, query)
 	}
@@ -222,6 +238,19 @@ func TestCreateHandler(t *testing.T) {
 					"Title": "Test",
 					"Alternatives": [{"Name":"First", "Cost":1}, {"Name":"Second", "Cost":1}],
 					"ReportVote": false
+				}`,
+			},
+			Checker: &createPollChecker{user: userId},
+		},
+		{
+			Name: "Start later",
+			Request: srvt.Request{
+				UserId: &userId,
+				Method: "POST",
+				Body: `{
+					"Title": "Test",
+					"Alternatives": [{"Name":"First", "Cost":1}, {"Name":"Second", "Cost":1}],
+					"Start": "3000-01-01T12:12:12Z"
 				}`,
 			},
 			Checker: &createPollChecker{user: userId},
