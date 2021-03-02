@@ -50,7 +50,13 @@ const (
 	PollActionModif
 	PollActionPart
 	PollActionTerm
+	PollActionWait
 )
+
+type ListAnswer struct {
+	Public []listAnswerEntry
+	Own []listAnswerEntry
+}
 
 type listAnswerEntry struct {
 	Segment      string
@@ -62,33 +68,64 @@ type listAnswerEntry struct {
 }
 
 func ListHandler(ctx context.Context, response server.Response, request *server.Request) {
-	reply := make([]listAnswerEntry, 0, 16)
-
 	if request.User == nil {
 		// TODO change that
 		response.SendError(ctx, server.NewHttpError(http.StatusNotImplemented, "Unimplemented", ""))
 		return
 	}
 
-	const query = `
-	   SELECT p.Id, p.Salt, p.Title, p.CurrentRound, p.MaxNbRounds,
-	          ADDTIME(p.CurrentRoundStart, p.MaxRoundDuration) AS Deadline,
-	          CASE WHEN p.State = 'Terminated' THEN 3
-	               WHEN a.User IS NULL THEN 2
-	               WHEN a.LastRound >= p.CurrentRound THEN 1
-	               ELSE 0 END AS Action
-	     FROM Polls AS p LEFT OUTER JOIN (
-	              SELECT Poll, User, LastRound
-	               FROM Participants
-	              WHERE User = ?
-	          ) AS a ON p.Id = a.Poll
-	    WHERE (p.State != 'Waiting' AND p.CurrentRound = 0 AND p.Publicity <= ?) OR a.User IS NOT NULL
-	 ORDER BY Action ASC, Deadline ASC`
-	rows, err := db.DB.QueryContext(ctx, query, request.User.Id, db.PollPublicityPublicRegistered)
-	if err != nil {
-		response.SendError(ctx, err)
-		return
-	}
+	const (
+		qPublic = `
+	    SELECT p.Id, p.Salt, p.Title, p.CurrentRound, p.MaxNbRounds,
+	           ADDTIME(p.CurrentRoundStart, p.MaxRoundDuration) AS Deadline,
+	           CASE WHEN p.State = 'Terminated' THEN 3
+	                WHEN a.User IS NULL THEN 2
+	                WHEN a.LastRound >= p.CurrentRound THEN 1
+	                ELSE 0 END AS Action
+	      FROM Polls AS p LEFT OUTER JOIN (
+	               SELECT Poll, User, LastRound
+	                FROM Participants
+	               WHERE User = ?
+	           ) AS a ON p.Id = a.Poll
+	     WHERE ( (p.State != 'Waiting' AND p.CurrentRound = 0 AND p.Publicity <= ?)
+		            OR a.User IS NOT NULL )
+		     AND p.Admin != ?
+	     ORDER BY Action ASC, Deadline ASC`
+		qOwn = `
+	    SELECT p.Id, p.Salt, p.Title, p.CurrentRound, p.MaxNbRounds,
+	           ADDTIME(p.CurrentRoundStart, p.MaxRoundDuration) AS Deadline,
+	           CASE WHEN p.State = 'Waiting' THEN 4
+						      WHEN p.State = 'Terminated' THEN 3
+	                WHEN a.User IS NULL THEN 2
+	                WHEN a.LastRound >= p.CurrentRound THEN 1
+	                ELSE 0 END AS Action
+	      FROM Polls AS p LEFT OUTER JOIN (
+	               SELECT Poll, User, LastRound
+	                FROM Participants
+	               WHERE User = ?
+	           ) AS a ON p.Id = a.Poll
+		   WHERE p.Admin = ?
+	     ORDER BY Action ASC, Deadline ASC`
+	)
+
+	var publicList []listAnswerEntry
+	rows, err := db.DB.QueryContext(ctx, qPublic,
+		request.User.Id, db.PollPublicityPublicRegistered, request.User.Id)
+	must(err)
+	publicList, err = makeListEntriesList(rows)
+	must(err)
+
+	var ownList []listAnswerEntry
+	rows, err = db.DB.QueryContext(ctx, qOwn, request.User.Id, request.User.Id)
+	must(err)
+	ownList, err = makeListEntriesList(rows)
+	must(err)
+
+	response.SendJSON(ctx, ListAnswer{Public: publicList, Own: ownList})
+}
+
+func makeListEntriesList(rows *sql.Rows) (list []listAnswerEntry, err error) {
+	list = make([]listAnswerEntry, 0, 4)
 	defer rows.Close()
 
 	for rows.Next() {
@@ -100,20 +137,17 @@ func ListHandler(ctx context.Context, response server.Response, request *server.
 			&listAnswerEntry.CurrentRound, &listAnswerEntry.MaxRound, &deadline,
 			&listAnswerEntry.Action)
 		if err != nil {
-			response.SendError(ctx, err)
 			return
 		}
 
 		listAnswerEntry.Deadline = NuDate(deadline)
 		listAnswerEntry.Segment, err = segment.Encode()
 		if err != nil {
-			response.SendError(ctx, err)
 			return
 		}
 
-		reply = append(reply, listAnswerEntry)
+		list = append(list, listAnswerEntry)
 	}
 
-	response.SendJSON(ctx, reply)
 	return
 }

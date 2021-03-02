@@ -17,7 +17,6 @@
 package main
 
 import (
-	"bytes"
 	"database/sql"
 	"encoding/json"
 	"net/http"
@@ -29,6 +28,79 @@ import (
 	"github.com/JBoudou/Itero/server"
 	srvt "github.com/JBoudou/Itero/server/servertest"
 )
+
+type listChecker struct {
+	publicInc []listCheckerEntry
+	publicExc []listCheckerEntry
+	ownInc []listCheckerEntry
+	ownExc []listCheckerEntry
+}
+
+type listCheckerEntry struct {
+	title string
+	id *uint32
+	action uint8
+}
+
+func (self *listCheckerEntry) toListEntry(t *testing.T) *listAnswerEntry {
+	segment, err := PollSegment{Id: *self.id, Salt: 42}.Encode()
+	mustt(t, err)
+	return &listAnswerEntry{
+		Title: self.title,
+		Segment: segment,
+		CurrentRound: 0,
+		MaxRound: 3,
+		Action: self.action,
+	}
+}
+
+func (self listChecker) Before(t *testing.T) {
+}
+
+func (self listChecker) Check(t *testing.T, response *http.Response, request *server.Request) {
+	srvt.CheckStatus{http.StatusOK}.Check(t, response, request)
+	
+	var answer ListAnswer
+	mustt(t, json.NewDecoder(response.Body).Decode(&answer))
+
+	listCheckList(t, answer.Public, self.publicInc, self.publicExc)
+	listCheckList(t, answer.Own   , self.ownInc   , self.ownExc   )
+}
+
+func listCheckList(t *testing.T, got []listAnswerEntry,
+	include []listCheckerEntry, exclude []listCheckerEntry) {
+
+	wanted := make(map[string]*listAnswerEntry, len(include) + len(exclude))
+	for _, maker := range include {
+		entry := maker.toListEntry(t)
+		wanted[entry.Segment] = entry
+	}
+	for _, maker := range exclude {
+		entry := maker.toListEntry(t)
+		wanted[entry.Segment] = nil
+	}
+
+	for _, entry := range got {
+		entry.Deadline = NuDate(sql.NullTime{Valid: false})
+		want, ok := wanted[entry.Segment]
+		if !ok {
+			continue
+		}
+		if want == nil {
+			t.Errorf("Unwanted %v", entry)
+		} else if !reflect.DeepEqual(entry, *want) {
+			t.Errorf("Got %v. Expect %v", entry, *want)
+		}
+		delete(wanted, entry.Segment)
+	}
+
+	for _, value := range wanted {
+		if value != nil {
+			t.Errorf("Missing %v", value)
+		}
+	}
+}
+
 
 func TestListHandler(t *testing.T) {
 	// BEWARE! This test is sequential!
@@ -44,75 +116,21 @@ func TestListHandler(t *testing.T) {
 	const (
 		qParticipate = `INSERT INTO Participants(Poll, User) VALUE (?, ?)`
 		qTerminate = `UPDATE Polls SET State = 'Terminated' WHERE Id = ?`
+		qWaiting = `
+		  UPDATE Polls
+			   SET State = 'Waiting', Start = ADDTIME(CURRENT_TIMESTAMP(), '1:00')
+			 WHERE Id = ?`
 
 		poll1Title = "Test 1"
 		poll2Title = "Test 2"
+		poll3Title = "Test 3"
 	)
 
 	var (
 		poll1Id uint32
 		poll2Id uint32
+		poll3Id uint32
 	)
-
-	type maker = func(t *testing.T) listAnswerEntry
-
-	makePollEntry := func(title string, id *uint32, action uint8) maker {
-		return func(t *testing.T) listAnswerEntry {
-			segment, err := PollSegment{Id: *id, Salt: 42}.Encode()
-			if err != nil {
-				t.Fatal(err)
-			}
-			return listAnswerEntry{Title: title, Segment: segment, CurrentRound: 0, MaxRound: 3,
-				Action: action}
-		}
-	}
-
-	checker := func(include []maker, exclude []maker) srvt.Checker {
-		return srvt.CheckerFun(func(t *testing.T, response *http.Response, req *server.Request) {
-			if response.StatusCode != http.StatusOK {
-				t.Errorf("Wrong status code. Got %d. Expect %d", response.StatusCode, http.StatusOK)
-			}
-
-			wanted := make(map[string]*listAnswerEntry, 2)
-			for _, maker := range include {
-				entry := maker(t)
-				wanted[entry.Segment] = &entry
-			}
-			for _, maker := range exclude {
-				entry := maker(t)
-				wanted[entry.Segment] = nil
-			}
-
-			var got []listAnswerEntry
-			var buff bytes.Buffer
-			if _, err := buff.ReadFrom(response.Body); err != nil {
-				t.Fatalf("Error reading body: %s", err)
-			}
-			if err := json.Unmarshal(buff.Bytes(), &got); err != nil {
-				t.Fatalf("Error reading body: %s", err)
-			}
-
-			for _, entry := range got {
-				entry.Deadline = NuDate(sql.NullTime{Valid: false})
-				want, ok := wanted[entry.Segment]
-				if !ok {
-					continue
-				}
-				if want == nil {
-					t.Errorf("Unwanted %v", entry)
-				} else if !reflect.DeepEqual(entry, *want) {
-					t.Errorf("Got %v. Expect %v", entry, *want)
-				}
-				delete(wanted, entry.Segment)
-			}
-
-			for _, value := range wanted {
-				if value != nil {
-					t.Errorf("Missing %v", value)
-				}
-			}
-		})
-	}
 
 	tests := []srvt.Test{
 		// BEWARE! This test is sequential!
@@ -125,12 +143,14 @@ func TestListHandler(t *testing.T) {
 			Name: "PublicRegistered Poll",
 			Update: func(t *testing.T) {
 				poll1Id = env.CreatePoll(poll1Title, userId, db.PollPublicityPublicRegistered)
-				if env.Error != nil {
-					t.Fatalf("Env: %s", env.Error)
-				}
+				env.Must(t)
 			},
 			Request: srvt.Request{UserId: &userId},
-			Checker: checker([]maker{makePollEntry(poll1Title, &poll1Id, PollActionPart)}, []maker{}),
+			Checker: listChecker{
+				ownInc: []listCheckerEntry{
+					{title: poll1Title, id: &poll1Id, action: PollActionPart},
+				},
+			},
 		},
 		{
 			Name: "Other participate",
@@ -141,7 +161,11 @@ func TestListHandler(t *testing.T) {
 				}
 			},
 			Request: srvt.Request{UserId: &userId},
-			Checker: checker([]maker{makePollEntry(poll1Title, &poll1Id, PollActionPart)}, []maker{}),
+			Checker: listChecker{
+				ownInc: []listCheckerEntry{
+					{title: poll1Title, id: &poll1Id, action: PollActionPart},
+				},
+			},
 		},
 		{
 			Name: "HiddenRegistered Poll",
@@ -152,9 +176,24 @@ func TestListHandler(t *testing.T) {
 				}
 			},
 			Request: srvt.Request{UserId: &userId},
-			Checker: checker(
-				[]maker{makePollEntry(poll1Title, &poll1Id, PollActionPart)},
-				[]maker{makePollEntry(poll2Title, &poll2Id, PollActionVote)}),
+			Checker: listChecker{
+				ownInc: []listCheckerEntry{
+					{title: poll1Title, id: &poll1Id, action: PollActionPart},
+					{title: poll2Title, id: &poll2Id, action: PollActionPart},
+				},
+			},
+		},
+		{
+			Name: "HiddenRegistered is hidden",
+			Request: srvt.Request{UserId: &otherId},
+			Checker: listChecker{
+				publicInc: []listCheckerEntry{
+					{title: poll1Title, id: &poll1Id, action: PollActionVote},
+				},
+				publicExc: []listCheckerEntry{
+					{title: poll2Title, id: &poll2Id, action: PollActionPart},
+				},
+			},
 		},
 		{
 			Name: "HiddenRegistered Poll Participate",
@@ -165,10 +204,12 @@ func TestListHandler(t *testing.T) {
 				}
 			},
 			Request: srvt.Request{UserId: &userId},
-			Checker: checker([]maker{
-				makePollEntry(poll1Title, &poll1Id, PollActionPart),
-				makePollEntry(poll2Title, &poll2Id, PollActionVote),
-			}, []maker{}),
+			Checker: listChecker{
+				ownInc: []listCheckerEntry{
+					{title: poll1Title, id: &poll1Id, action: PollActionPart},
+					{title: poll2Title, id: &poll2Id, action: PollActionVote},
+				},
+			},
 		},
 		{
 			Name: "Terminated",
@@ -179,10 +220,34 @@ func TestListHandler(t *testing.T) {
 				}
 			},
 			Request: srvt.Request{UserId: &userId},
-			Checker: checker([]maker{
-				makePollEntry(poll1Title, &poll1Id, PollActionPart),
-				makePollEntry(poll2Title, &poll2Id, PollActionTerm),
-			}, []maker{}),
+			Checker: listChecker{
+				ownInc: []listCheckerEntry{
+					{title: poll1Title, id: &poll1Id, action: PollActionPart},
+					{title: poll2Title, id: &poll2Id, action: PollActionTerm},
+				},
+			},
+		},
+		{
+			Name: "Waiting",
+			Update: func(t *testing.T) {
+				poll3Id = env.CreatePoll(poll3Title, userId, db.PollPublicityPublicRegistered)
+				env.Must(t)
+				_, err := db.DB.Exec(qWaiting, poll3Id)
+				if err != nil {
+					t.Fatal(err)
+				}
+			},
+			Request: srvt.Request{UserId: &userId},
+			Checker: listChecker{
+				ownInc: []listCheckerEntry{ {title: poll3Title, id: &poll3Id, action: PollActionWait}, },
+			},
+		},
+		{
+			Name: "Waiting is hidden",
+			Request: srvt.Request{UserId: &userId},
+			Checker: listChecker{
+				publicExc: []listCheckerEntry{ {title: poll3Title, id: &poll3Id, action: PollActionWait}, },
+			},
 		},
 	}
 
