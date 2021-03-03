@@ -40,7 +40,8 @@ export enum PollAction {
   Vote,
   Modi,
   Part,
-  Term
+  Term,
+  Wait
 }
 
 export class ListAnswerEntry {
@@ -50,6 +51,11 @@ export class ListAnswerEntry {
   MaxRound:     number;
   Deadline:     NuDate;
   Action:       PollAction;
+}
+
+export class ListAnswer {
+  Public: ListAnswerEntry[];
+  Own:    ListAnswerEntry[];
 }
 
 export enum BallotType {

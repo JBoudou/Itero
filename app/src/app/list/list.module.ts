@@ -22,11 +22,13 @@ import { SharedModule } from '../shared/shared.module';
 import { ListRoutingModule } from './list-routing.module';
 
 import { ListComponent } from './list.component';
+import { PollsTableComponent } from './polls-table/polls-table.component';
 
 
 @NgModule({
   declarations: [
     ListComponent,
+    PollsTableComponent,
   ],
   imports: [
     CommonModule,

@@ -14,13 +14,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Component, OnInit } from '@angular/core';
-import {Router} from '@angular/router';
-import {HttpClient} from '@angular/common/http';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 
+import { BehaviorSubject, Observable } from 'rxjs';
 import { take } from 'rxjs/operators';
 
-import { ListAnswerEntry, PollAction } from '../api';
+import { ListAnswer, ListAnswerEntry } from '../api';
 
 function mapListAnswerEntry(e: ListAnswerEntry): ListAnswerEntry {
   e.Deadline = e.Deadline as string == '⋅' ? undefined : new Date(e.Deadline);
@@ -35,48 +35,29 @@ function mapListAnswerEntry(e: ListAnswerEntry): ListAnswerEntry {
   templateUrl: './list.component.html',
   styleUrls: ['./list.component.sass']
 })
-export class ListComponent implements OnInit {
+export class ListComponent implements OnInit, OnDestroy {
 
-  polls: ListAnswerEntry[];
+  private _answer = new BehaviorSubject<ListAnswer>({Public: [], Own: []});
+
+  get answer$(): Observable<ListAnswer> {
+    return this._answer;
+  }
 
   constructor(
-    private router: Router,
     private http: HttpClient
-  ) {
-    this.polls = [];
-  }
-
-  pollActionString(poll: ListAnswerEntry): String {
-    switch (poll.Action) {
-    case PollAction.Vote:
-      return 'Vote';
-    case PollAction.Modi:
-      return 'Modi';
-    case PollAction.Part:
-      return 'Part';
-    case PollAction.Term:
-      return 'Term';
-    }
-  }
-
-  terminated(poll: ListAnswerEntry): boolean {
-    return poll.Action == PollAction.Term;
-  }
+  ) { }
 
   ngOnInit(): void {
     // Retrieve the list of polls each time the component is displayed.
-    this.http.get<ListAnswerEntry[]>('/a/list').pipe(take(1)).subscribe({
-      next: (values: ListAnswerEntry[]) => this.polls = values.map(mapListAnswerEntry),
-      error: (_) => this.polls = []
+    this.http.get<ListAnswer>('/a/list').pipe(take(1)).subscribe({
+      next: (answer: ListAnswer) =>
+        // TODO: Use more standard solution (fromJSON ?).
+        this._answer.next({Public: answer.Public.map(mapListAnswerEntry), Own: answer.Own.map(mapListAnswerEntry)}),
     });
   }
 
-  /**
-   * Receives click event on individual poll.
-   * @Param {string} segment The identifier of the poll.
-   */
-  go(segment: string): void {
-    this.router.navigateByUrl('/r/poll/' + segment)
+  ngOnDestroy(): void {
+    this._answer.complete();
   }
 
 }
