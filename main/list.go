@@ -93,7 +93,8 @@ func ListHandler(ctx context.Context, response server.Response, request *server.
 	     ORDER BY Action ASC, Deadline ASC`
 		qOwn = `
 	    SELECT p.Id, p.Salt, p.Title, p.CurrentRound, p.MaxNbRounds,
-	           ADDTIME(p.CurrentRoundStart, p.MaxRoundDuration) AS Deadline,
+	           CASE WHEN p.State = 'Waiting' THEN p.Start
+						      ELSE ADDTIME(p.CurrentRoundStart, p.MaxRoundDuration) END AS Deadline,
 	           CASE WHEN p.State = 'Waiting' THEN 4
 						      WHEN p.State = 'Terminated' THEN 3
 	                WHEN a.User IS NULL THEN 2
