@@ -18,9 +18,9 @@
     <td class="action" [ngSwitch]="pollActionString(poll)" (click)="go(poll.Segment)">
       <span class ="part" *ngSwitchCase="'Part'" i18n>Join</span>
       <span class ="vote" *ngSwitchCase="'Vote'" i18n>Vote</span>
-      <span class ="modi" *ngSwitchCase="'Modi'" i18n>Modify</span>
-      <span class ="term" *ngSwitchCase="'Term'" i18n>Result</span>
-      <span class ="term" *ngSwitchCase="'Wait'" i18n>Watch</span>
+      <span class ="modi" *ngSwitchCase="'Modi'" i18n>Change vote</span>
+      <span class ="term" *ngSwitchCase="'Term'" i18n>See result</span>
+      <span class ="wait" *ngSwitchCase="'Wait'" i18n>Watch</span>
     </td>
   </tr>
   </tbody>

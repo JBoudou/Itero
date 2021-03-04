@@ -2,6 +2,8 @@
 table
   border: solid 1px $maincolor
   border-collapse: collapse
+  thead
+    border: solid 1px $maincolor
   td, th
     padding: 2px 4px
   tr.tableheader
@@ -9,7 +11,6 @@ table
   tr.poll
     td
       cursor: default
-      border-top: solid 1px $maincolor
     &:hover
       background-color: $softbgcolor
     td.round, td.deadline, td.terminated
@@ -21,7 +22,7 @@ table
         margin: auto
         border-radius: 2px
         font-size: smaller
-        padding: 2px
+        padding: 3px .5em
         text-align: center
       .part
         background-color: lightblue
@@ -31,3 +32,6 @@ table
         background-color: orange
       .term
         background-color: $userbuttonbgcolor
+      .wait
+        background-color: $softbgcolor
+        border: solid 1px $userbuttonbgcolor
