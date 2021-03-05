@@ -57,6 +57,9 @@ func TestCountInfoHandler(t *testing.T) {
 		{Id: 2, Name: "Gram", Cost: 1},
 	}
 
+	// In each pair of the parameter,
+	// the first value is the alternative index,
+	// the second value is the number of votes.
 	makeChecker := func(result [][2]uint32) srvt.Checker {
 		entries := make([]CountInfoEntry, len(result))
 		for i, val := range result {
@@ -93,14 +96,28 @@ func TestCountInfoHandler(t *testing.T) {
 			Checker: makeChecker([][2]uint32{{1,1},{0,0},{2,0}}),
 		},
 		{
-			Name: "Report vote",
+			Name: "Carry forward",
 			Update: func(t *testing.T) {
 				env.Vote(pollSegment.Id, 2, users[1], 0)
 				env.NextRound(pollSegment.Id)
+				// Current round is 3
 				env.QuietExec(qReport, pollSegment.Id)
 				env.QuietExec(qSetRound, 1, users[0])
 				env.QuietExec(qSetRound, 2, users[1])
 				env.QuietExec(qSetRound, 0, users[2])
+				env.Must(t)
+			},
+			Request: request,
+			// 0 voted 1 on round 1
+			// 1 voted 0 on round 2
+			// 2 voted 0 on round 0
+			Checker: makeChecker([][2]uint32{{0,2},{1,1},{2,0}}),
+		},
+		{
+			Name: "Vote after carry forward result",
+			Update: func(t *testing.T) {
+				env.Vote(pollSegment.Id, 3, users[2], 2)
+				env.QuietExec(qSetRound, 3, users[2])
 				env.Must(t)
 			},
 			Request: request,
