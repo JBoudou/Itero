@@ -130,7 +130,9 @@ func (self *nextRound) nextAlarm() alarm.Event {
 }
 
 func (self *nextRound) run(evtChan <-chan events.Event) {
-	at := alarm.New(1, alarm.DiscardLaterEvent)
+	// DiscardDuplicates is needed because otherwise an event may be added after each vote (because of
+	// adjusted time).
+	at := alarm.New(1, alarm.DiscardLaterEvent, alarm.DiscardDuplicates)
 
 	self.updateLastCheck()
 	self.fullCheck()
@@ -175,6 +177,8 @@ func (self *nextRound) run(evtChan <-chan events.Event) {
 				if err := self.checkOne(typed.Poll); err != nil {
 					self.warn.Print(err)
 				}
+				at.Send <- self.nextAlarm()
+
 			case CreatePollEvent, StartPollEvent:
 				at.Send <- self.nextAlarm()
 			}
