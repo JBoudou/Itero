@@ -17,7 +17,6 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -80,13 +79,9 @@ func (self *nextRound) fullCheck() error {
 
 func (self *nextRound) checkOne(pollId uint32) error {
 	// MariaDB 5.5.68 does not allows UPDATE subqueries to reference the updated table.
-	// A temporary table is constructed as a workaround. This forces us to use an sql.Conn.
-
-	// TODO remove table creation. Use SELECT and a Go condition.
 
 	const (
-		qTmpTable = `
-	    CREATE TEMPORARY TABLE Tmp_NextRound (Id int unsigned)
+		qCheck = `
 	      SELECT p.Id
 	        FROM Polls AS p LEFT OUTER JOIN Participants AS a ON p.Id = a.Poll
 	      WHERE p.Id = ? AND p.State = 'Active' AND p.CurrentRound < p.MaxNbRounds
@@ -103,31 +98,20 @@ func (self *nextRound) checkOne(pollId uint32) error {
 								 AND ( (p.CurrentRound + 1 < MinNbRounds)
 							         OR p.Deadline IS NULL
 								       OR (ADDTIME(CURRENT_TIMESTAMP(), p.MaxRoundDuration) < p.Deadline)
-											 OR (p.Deadline < CURRENT_TIMESTAMP()) ))`
+											 OR (p.Deadline < CURRENT_TIMESTAMP()) ))
+	        FOR UPDATE`
 		qUpdate = `
 	    UPDATE Polls SET CurrentRound = CurrentRound + 1
-	     WHERE Id IN ( SELECT Id FROM Tmp_NextRound )`
-		qDropTmp = `DROP TABLE Tmp_NextRound`
+	     WHERE Id = ?`
 	)
 
-	ctx := context.Background()
-	conn, err := db.DB.Conn(ctx)
-	if err != nil {
-		return err
-	}
-
-	// MariaDB 5.5.68 does not allow CREATE OR REPLACE TABLE. Hence we do it ourselve.
-	conn.ExecContext(ctx, qDropTmp)
-	_, err = conn.ExecContext(ctx, qTmpTable, pollId, db.PollPublicityInvited)
+	rows, err := db.DB.Query(qCheck, pollId, db.PollPublicityInvited)
 
 	if err == nil {
 		err = self.checkOne_helper(pollId, func() (sql.Result, error) {
-			return conn.ExecContext(ctx, qUpdate)
+			return db.DB.Exec(qUpdate, sql.NullInt64{Int64: int64(pollId), Valid: rows.Next()})
 		})
 	}
-
-	conn.ExecContext(ctx, qDropTmp)
-	conn.Close()
 
 	return err
 }
