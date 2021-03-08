@@ -22,7 +22,15 @@
         {{ answer.CurrentRound + 1 | ordinal:true }} Round
       </h3>
       <p class="previous-vote" *ngIf="hasCurrentRoundBallot()" i18n>
-        On the current round, you've already voted <span class="vote">{{currentRoundBallot.asString}}</span>.
+        On the current round, you've already
+        <ng-container [ngSwitch]="currentRoundBallot.type != BallotType['Blank']">
+          <ng-container *ngSwitchCase="true">
+            voted <span class="vote">{{currentRoundBallot.asString}}</span>.
+          </ng-container>
+          <ng-container *ngSwitchCase="false">
+            abstained.
+          </ng-container>
+        </ng-container>
         You may now change this vote.
       </p>
       <p class="just-vote" *ngIf="hasJustVoteBallot()" i18n>
@@ -45,7 +53,15 @@
         {{ answer.CurrentRound | ordinal:true }} Round
       </h3>
       <p class="previous-vote" *ngIf="hasPreviousRoundBallot()" i18n>
-        On the previous round, you voted <span class="vote">{{previousRoundBallot.asString}}</span>.
+        On the previous round, you
+        <ng-container [ngSwitch]="previousRoundBallot.type != BallotType['Blank']">
+          <ng-container *ngSwitchCase="true">
+            voted <span class="vote">{{previousRoundBallot.asString}}</span>.
+          </ng-container>
+          <ng-container *ngSwitchCase="false">
+            abstained.
+          </ng-container>
+        </ng-container>
       </p>
       <ng-template PollInformation></ng-template>
     </div>

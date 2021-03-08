@@ -117,7 +117,7 @@ export class UninominalBallotComponent implements OnInit, PollBallotComponent {
 
   private ballotFromId(vote: number|undefined): PollBallot {
     if (vote === undefined) {
-      return NONE_BALLOT;
+      return BLANK_BALLOT;
     }
     return new UninominalBallot(vote!, this.nameOf(vote)!);
   }
