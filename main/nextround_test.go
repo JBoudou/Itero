@@ -33,9 +33,10 @@ func metaTestNextRound(t *testing.T, run func(pollId uint32) error) {
 
 		qAddParticipants = `INSERT INTO Participants(Poll, User) VALUE (?,?)`
 		qUpdatePoll      = `UPDATE Polls SET CurrentRound = ?, RoundThreshold = ? WHERE Id = ?`
-		qSetExpiredRound = `
+		qSetMin          = `UPDATE Polls SET MinNbRounds = ? WHERE Id = ?`
+		qSetNow          = `
 		  UPDATE Polls
-		     SET CurrentRoundStart = SUBTIME(CURRENT_TIMESTAMP(), MaxRoundDuration)
+		     SET CurrentRoundStart = SUBTIME(CURRENT_TIMESTAMP(), ? * MaxRoundDuration)
 		   WHERE Id = ?`
 		qSetDeadline = `
 		  UPDATE Polls
@@ -50,7 +51,8 @@ func metaTestNextRound(t *testing.T, run func(pollId uint32) error) {
 	tests := []struct {
 		name         string
 		round        uint8   // CurrentRound (MaxNbRounds = 3)
-		expired      bool    // whether ADDTIME(CurrentRoundStart, MaxRoundDuration) >= CURRENT_TIMESTAMP
+		minNbRounds  uint8   // applied only if >2
+		nowFact      float32 // if  >0 set Now      = CurrentRoundStart + nowFact      * MaxRoundDuration
 		deadlineFact float32 // if !=0 set Deadline = CurrentRoundStart + deadlineFact * MaxRoundDuration
 		pubInvited   bool    // whether Publicity is Invited
 		threshold    float64 // RoundThreshold
@@ -63,18 +65,18 @@ func metaTestNextRound(t *testing.T, run func(pollId uint32) error) {
 		{
 			name:       "Expired",
 			round:      1,
-			expired:    true,
+			nowFact:    1.,
 			expectNext: true,
 		},
 		{
 			name:       "Round zero - 2 participants",
-			expired:    true,
+			nowFact:    1.,
 			nbVoter:    2,
 			expectNext: false,
 		},
 		{
 			name:       "Round zero - 3 participants",
-			expired:    true,
+			nowFact:    1.,
 			nbVoter:    3,
 			expectNext: true,
 		},
@@ -93,29 +95,50 @@ func metaTestNextRound(t *testing.T, run func(pollId uint32) error) {
 			expectNext: true,
 		},
 		{
-			name: "After deadline",
-			round: 1,
-			threshold:  1,
+			name:         "After deadline",
+			round:        2,
+			threshold:    1,
 			deadlineFact: -0.5,
-			nbVoter: 1,
-			expectNext: true,
+			nbVoter:      1,
+			expectNext:   true,
 		},
 		{
-			name: "Last round time",
-			round: 1,
-			threshold:  1,
-			expired: true,
+			name:         "Last round time",
+			round:        1,
+			threshold:    1,
+			nowFact:      1.,
 			deadlineFact: 1.5,
-			nbVoter: 1,
-			expectNext: false,
+			nbVoter:      1,
+			expectNext:   false,
 		},
 		{
-			name: "Last round vote",
-			round: 1,
-			threshold:  1,
+			name:         "Last round vote",
+			round:        1,
+			threshold:    1,
+			nowFact:      0.75,
+			deadlineFact: 1.25,
+			nbVoter:      3,
+			expectNext:   false,
+		},
+		{
+			name:         "Last round time",
+			round:        1,
+			minNbRounds:  3,
+			threshold:    1,
+			nowFact:      1.,
 			deadlineFact: 1.5,
-			nbVoter: 3,
-			expectNext: false,
+			nbVoter:      1,
+			expectNext:   true,
+		},
+		{
+			name:         "Last round vote",
+			round:        1,
+			minNbRounds:  3,
+			threshold:    1,
+			nowFact:      0.75,
+			deadlineFact: 1.25,
+			nbVoter:      3,
+			expectNext:   true,
 		},
 	}
 	for _, tt := range tests {
@@ -141,8 +164,11 @@ func metaTestNextRound(t *testing.T, run func(pollId uint32) error) {
 			mustt(t, stmt.Close())
 
 			_, err = db.DB.Exec(qUpdatePoll, tt.round, tt.threshold, pollId)
-			if err == nil && tt.expired {
-				_, err = db.DB.Exec(qSetExpiredRound, pollId)
+			if err == nil && tt.minNbRounds > 2 {
+				_, err = db.DB.Exec(qSetMin, tt.minNbRounds, pollId)
+			}
+			if err == nil && tt.nowFact > 0 {
+				_, err = db.DB.Exec(qSetNow, tt.nowFact, pollId)
 			}
 			if err == nil && tt.deadlineFact != 0 {
 				_, err = db.DB.Exec(qSetDeadline, tt.deadlineFact, pollId)

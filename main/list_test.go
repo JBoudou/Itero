@@ -49,7 +49,7 @@ func (self *listCheckerEntry) toListEntry(t *testing.T) *listAnswerEntry {
 		Title: self.title,
 		Segment: segment,
 		CurrentRound: 0,
-		MaxRound: 3,
+		MaxRound: 4,
 		Action: self.action,
 	}
 }
