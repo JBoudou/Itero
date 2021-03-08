@@ -18,10 +18,7 @@ package main
 
 import (
 	"database/sql"
-	"log"
-	"time"
 
-	"github.com/JBoudou/Itero/alarm"
 	"github.com/JBoudou/Itero/db"
 	"github.com/JBoudou/Itero/events"
 )
@@ -30,13 +27,6 @@ import (
 type ClosePollEvent struct {
 	Poll uint32
 }
-
-const (
-	// The time to wait when there seems to be no forthcoming deadline.
-	closePollDefaultWaitDuration = 12 * time.Hour
-	// Run fullCheck instead of checkOne once every closePollFullCheckFreq steps.
-	closePollFullCheckFreq = 7
-)
 
 // closePoll represents a running closePoll service.
 type closePoll struct {
@@ -76,66 +66,22 @@ func (self *closePoll) checkOne(pollId uint32) error {
 	})
 }
 
-func (self *closePoll) nextAlarm() alarm.Event {
-	const (
-		qNext = `
-		  SELECT Id, Deadline, CURRENT_TIMESTAMP() FROM Polls
-		   WHERE State = 'Active' AND Deadline >= ?
-		   ORDER BY Deadline ASC LIMIT 1`
-	)
-	return self.nextAlarm_helper(qNext, closePollDefaultWaitDuration)
-}
-
 func (self *closePoll) run(evtChan <-chan events.Event) {
-	at := alarm.New(1, alarm.DiscardLaterEvent)
-
 	self.updateLastCheck()
 	self.fullCheck()
-	at.Send <- self.nextAlarm()
 
 	for {
 		select {
-		case evt, ok := <-at.Receive:
-			if !ok {
-				self.warn.Print("Alarm closed. Stopping.")
-				break
-			}
-
-			self.updateLastCheck()
-
-			var err error
-			makeFullCheck := self.step >= closePollFullCheckFreq || evt.Data == nil
-			if makeFullCheck {
-				err = self.fullCheck()
-			} else {
-				err = self.checkOne(evt.Data.(uint32))
-			}
-			if err != nil {
-				self.warn.Print(err)
-				continue
-			}
-
-			// Do not send if the channel has been closed.
-			if evt.Remaining == 0 && evtChan != nil {
-				at.Send <- self.nextAlarm()
-			}
-
 		case evt, ok := <-evtChan:
 			if !ok {
-				log.Print("Event manager closing makes closePoll to close too.")
-				close(at.Send)
-				evtChan = nil
-				continue
+				break
 			}
 
 			switch typed := evt.(type) {
 			case NextRoundEvent:
 				if err := self.checkOne(typed.Poll); err != nil {
 					self.warn.Print(err)
-					continue
 				}
-			case CreatePollEvent:
-				at.Send <- self.nextAlarm()
 			}
 		}
 	}
@@ -150,7 +96,7 @@ func StartClosePoll() {
 	events.AddReceiver(events.AsyncForwarder{
 		Filter: func(evt events.Event) bool {
 			switch evt.(type) {
-			case NextRoundEvent, CreatePollEvent:
+			case NextRoundEvent:
 				return true
 			}
 			return false
