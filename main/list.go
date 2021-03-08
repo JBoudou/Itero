@@ -77,7 +77,8 @@ func ListHandler(ctx context.Context, response server.Response, request *server.
 	const (
 		qPublic = `
 	    SELECT p.Id, p.Salt, p.Title, p.CurrentRound, p.MaxNbRounds,
-	           RoundDeadline(p.CurrentRoundStart, p.MaxRoundDuration, p.Deadline) AS Deadline,
+	           RoundDeadline(p.CurrentRoundStart, p.MaxRoundDuration, p.Deadline,
+	                         p.CurrentRound, p.MinNbRounds) AS Deadline,
 	           CASE WHEN p.State = 'Terminated' THEN 3
 	                WHEN a.User IS NULL THEN 2
 	                WHEN a.LastRound >= p.CurrentRound THEN 1
@@ -88,15 +89,16 @@ func ListHandler(ctx context.Context, response server.Response, request *server.
 	               WHERE User = ?
 	           ) AS a ON p.Id = a.Poll
 	     WHERE ( (p.State != 'Waiting' AND p.CurrentRound = 0 AND p.Publicity <= ?)
-		            OR a.User IS NOT NULL )
-		     AND p.Admin != ?
+	              OR a.User IS NOT NULL )
+	       AND p.Admin != ?
 	     ORDER BY Action ASC, Deadline ASC`
-		qOwn = `
+	  qOwn = `
 	    SELECT p.Id, p.Salt, p.Title, p.CurrentRound, p.MaxNbRounds,
 	           CASE WHEN p.State = 'Waiting' THEN p.Start
-						      ELSE RoundDeadline(p.CurrentRoundStart, p.MaxRoundDuration, p.Deadline) END AS Deadline,
+	                ELSE RoundDeadline(p.CurrentRoundStart, p.MaxRoundDuration, p.Deadline,
+	                                   p.CurrentRound, p.MinNbRounds) END AS Deadline,
 	           CASE WHEN p.State = 'Waiting' THEN 4
-						      WHEN p.State = 'Terminated' THEN 3
+	                WHEN p.State = 'Terminated' THEN 3
 	                WHEN a.User IS NULL THEN 2
 	                WHEN a.LastRound >= p.CurrentRound THEN 1
 	                ELSE 0 END AS Action
@@ -105,7 +107,7 @@ func ListHandler(ctx context.Context, response server.Response, request *server.
 	                FROM Participants
 	               WHERE User = ?
 	           ) AS a ON p.Id = a.Poll
-		   WHERE p.Admin = ?
+	     WHERE p.Admin = ?
 	     ORDER BY Action ASC, Deadline ASC`
 	)
 

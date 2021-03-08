@@ -189,8 +189,8 @@ CREATE TABLE Polls (
   # The poll ends as soon as one of the following condition holds:
   #  - CurrentRound >= MaxNbRounds
   #  - Deadline <= CURRENT_TIMESTAMP() AND CurrentRound >= MinNbRounds
-  MinNbRounds       smallint unsigned NOT NULL  DEFAULT 2,
-  MaxNbRounds       smallint unsigned           DEFAULT 10,
+  MinNbRounds       tinyint unsigned  NOT NULL  DEFAULT 2,
+  MaxNbRounds       tinyint unsigned            DEFAULT 10,
   Deadline          datetime,
 
   # The round ends as soon as one of the following conditions holds:
@@ -217,18 +217,23 @@ CREATE TABLE Polls (
 
 DELIMITER //
 
-CREATE FUNCTION RoundDeadline(CurrentRoundStart datetime, MaxRoundDuration time, Deadline datetime)
+CREATE FUNCTION RoundDeadline(
+  CurrentRoundStart datetime,
+  MaxRoundDuration time,
+  Deadline datetime,
+  CurrentRound tinyint,
+  MinNbRounds tinyint
+)
   RETURNS datetime DETERMINISTIC
 BEGIN
-  DECLARE one, two datetime;
-
+  DECLARE one datetime;
   SET one = ADDTIME(CurrentRoundStart, MaxRoundDuration);
-  IF one > Deadline THEN
-    RETURN Deadline;
+
+  IF CurrentRound + 1 < MinNbRounds OR Deadline < one THEN
+    RETURN one;
   END IF;
 
-  SET two = ADDTIME(one, MaxRoundDuration);
-  IF two > Deadline THEN
+  IF ADDTIME(one, MaxRoundDuration) > Deadline THEN
     RETURN Deadline;
   END IF;
 

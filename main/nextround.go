@@ -55,18 +55,24 @@ func newNextRound() *nextRound {
 func (self *nextRound) fullCheck() error {
 	const (
 		qSelectNext = `
-		  SELECT p.Id
-		    FROM Polls AS p LEFT OUTER JOIN Participants AS a ON p.Id = a.Poll
-		  WHERE p.State = 'Active' AND p.CurrentRound < p.MaxNbRounds
-		  GROUP BY p.Id,
-		        p.CurrentRoundStart, p.MaxRoundDuration, p.CurrentRound, p.Publicity, p.RoundThreshold
-		 HAVING ( ADDTIME(p.CurrentRoundStart, p.MaxRoundDuration) <= CURRENT_TIMESTAMP()
-		          AND ( p.CurrentRound > 0 OR COUNT(a.LastRound) > 2 ))
-		     OR ( (p.CurrentRound > 0 OR p.Publicity = %d)
-		           AND ( (p.RoundThreshold = 0 AND SUM(a.LastRound = p.CurrentRound) > 0)
-		                OR ( p.RoundThreshold > 0
-		                     AND SUM(a.LastRound = p.CurrentRound) / COUNT(a.User) >= p.RoundThreshold )))
-		    FOR UPDATE`
+	    SELECT p.Id
+	      FROM Polls AS p LEFT OUTER JOIN Participants AS a ON p.Id = a.Poll
+	    WHERE p.State = 'Active' AND p.CurrentRound < p.MaxNbRounds
+	    GROUP BY p.Id,
+	          p.CurrentRoundStart, p.MaxRoundDuration, p.Deadline, p.CurrentRound, p.MinNbRounds,
+						p.Publicity, p.RoundThreshold
+	   HAVING ( RoundDeadline(p.CurrentRoundStart, p.MaxRoundDuration, p.Deadline,
+	                          p.CurrentRound, p.MinNbRounds) <= CURRENT_TIMESTAMP()
+	            AND ( p.CurrentRound > 0 OR COUNT(a.LastRound) > 2 ))
+	       OR ( (p.CurrentRound > 0 OR p.Publicity = %d)
+	             AND ( (p.RoundThreshold = 0 AND SUM(a.LastRound = p.CurrentRound) > 0)
+	                   OR ( p.RoundThreshold > 0
+	                        AND SUM(a.LastRound = p.CurrentRound) / COUNT(a.User) >= p.RoundThreshold ))
+							 AND ( (p.CurrentRound + 1 < MinNbRounds)
+							       OR p.Deadline IS NULL
+							       OR (ADDTIME(CURRENT_TIMESTAMP(), p.MaxRoundDuration) < p.Deadline)
+										 OR (p.Deadline < CURRENT_TIMESTAMP()) ))
+	      FOR UPDATE`
 		qNextRound = `UPDATE Polls SET CurrentRound = CurrentRound + 1 WHERE Id = ?`
 	)
 	return self.fullCheck_helper(fmt.Sprintf(qSelectNext, db.PollPublicityInvited), qNextRound)
@@ -76,23 +82,31 @@ func (self *nextRound) checkOne(pollId uint32) error {
 	// MariaDB 5.5.68 does not allows UPDATE subqueries to reference the updated table.
 	// A temporary table is constructed as a workaround. This forces us to use an sql.Conn.
 
+	// TODO remove table creation. Use SELECT and a Go condition.
+
 	const (
 		qTmpTable = `
-			CREATE TEMPORARY TABLE Tmp_NextRound (Id int unsigned)
+	    CREATE TEMPORARY TABLE Tmp_NextRound (Id int unsigned)
 	      SELECT p.Id
 	        FROM Polls AS p LEFT OUTER JOIN Participants AS a ON p.Id = a.Poll
 	      WHERE p.Id = ? AND p.State = 'Active' AND p.CurrentRound < p.MaxNbRounds
 	      GROUP BY p.Id,
-	            p.CurrentRoundStart, p.MaxRoundDuration, p.CurrentRound, p.Publicity, p.RoundThreshold
-	     HAVING ( ADDTIME(p.CurrentRoundStart, p.MaxRoundDuration) <= CURRENT_TIMESTAMP()
-		            AND ( p.CurrentRound > 0 OR COUNT(a.LastRound) > 2 ))
+	            p.CurrentRoundStart, p.MaxRoundDuration, p.Deadline, p.CurrentRound, p.MinNbRounds,
+							p.Publicity, p.RoundThreshold
+	     HAVING ( RoundDeadline(p.CurrentRoundStart, p.MaxRoundDuration, p.Deadline,
+	                            p.CurrentRound, p.MinNbRounds) <= CURRENT_TIMESTAMP()
+	              AND ( p.CurrentRound > 0 OR COUNT(a.LastRound) > 2 ))
 	         OR ( (p.CurrentRound > 0 OR p.Publicity = ?)
 	               AND ( (p.RoundThreshold = 0 AND SUM(a.LastRound = p.CurrentRound) > 0)
-	                    OR ( p.RoundThreshold > 0
-	                         AND SUM(a.LastRound = p.CurrentRound) / COUNT(a.User) >= p.RoundThreshold )))`
+	                     OR ( p.RoundThreshold > 0
+	                          AND SUM(a.LastRound = p.CurrentRound) / COUNT(a.User) >= p.RoundThreshold ))
+								 AND ( (p.CurrentRound + 1 < MinNbRounds)
+							         OR p.Deadline IS NULL
+								       OR (ADDTIME(CURRENT_TIMESTAMP(), p.MaxRoundDuration) < p.Deadline)
+											 OR (p.Deadline < CURRENT_TIMESTAMP()) ))`
 		qUpdate = `
-	  	UPDATE Polls SET CurrentRound = CurrentRound + 1
-	  	 WHERE Id IN ( SELECT Id FROM Tmp_NextRound )`
+	    UPDATE Polls SET CurrentRound = CurrentRound + 1
+	     WHERE Id IN ( SELECT Id FROM Tmp_NextRound )`
 		qDropTmp = `DROP TABLE Tmp_NextRound`
 	)
 
@@ -121,8 +135,9 @@ func (self *nextRound) checkOne(pollId uint32) error {
 func (self *nextRound) nextAlarm() alarm.Event {
 	const (
 		qNext = `
-		  SELECT Id, ADDTIME(CurrentRoundStart, MaxRoundDuration) AS Next, CURRENT_TIMESTAMP()
-			  FROM Polls
+		  SELECT Id, RoundDeadline(CurrentRoundStart, MaxRoundDuration, Deadline, CurrentRound, MinNbRounds) AS Next,
+		         CURRENT_TIMESTAMP()
+		    FROM Polls
 		   WHERE State = 'Active' HAVING Next >= ?
 		   ORDER BY Next ASC LIMIT 1`
 	)

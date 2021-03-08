@@ -1,17 +1,28 @@
+ALTER TABLE Polls
+  CHANGE MinNbRounds
+  MinNbRounds       tinyint unsigned  NOT NULL  DEFAULT 2,
+  CHANGE MaxNbRounds
+  MaxNbRounds       tinyint unsigned            DEFAULT 10;
+
 DELIMITER //
 
-CREATE FUNCTION RoundDeadline(CurrentRoundStart datetime, MaxRoundDuration time, Deadline datetime)
+CREATE FUNCTION RoundDeadline(
+  CurrentRoundStart datetime,
+  MaxRoundDuration time,
+  Deadline datetime,
+  CurrentRound tinyint,
+  MinNbRounds tinyint
+)
   RETURNS datetime DETERMINISTIC
 BEGIN
-  DECLARE one, two datetime;
-
+  DECLARE one datetime;
   SET one = ADDTIME(CurrentRoundStart, MaxRoundDuration);
-  IF one > Deadline THEN
-    RETURN Deadline;
+
+  IF CurrentRound + 1 < MinNbRounds OR Deadline < one THEN
+    RETURN one;
   END IF;
 
-  SET two = ADDTIME(one, MaxRoundDuration);
-  IF two > Deadline THEN
+  IF ADDTIME(one, MaxRoundDuration) > Deadline THEN
     RETURN Deadline;
   END IF;
 

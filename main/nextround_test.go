@@ -63,12 +63,6 @@ func metaTestNextRound(t *testing.T, run func(pollId uint32) error) {
 			name: "Default",
 		},
 		{
-			name:       "Expired",
-			round:      1,
-			nowFact:    1.,
-			expectNext: true,
-		},
-		{
 			name:       "Round zero - 2 participants",
 			nowFact:    1.,
 			nbVoter:    2,
@@ -78,6 +72,12 @@ func metaTestNextRound(t *testing.T, run func(pollId uint32) error) {
 			name:       "Round zero - 3 participants",
 			nowFact:    1.,
 			nbVoter:    3,
+			expectNext: true,
+		},
+		{
+			name:       "Expired",
+			round:      1,
+			nowFact:    1.,
 			expectNext: true,
 		},
 		{
@@ -93,14 +93,6 @@ func metaTestNextRound(t *testing.T, run func(pollId uint32) error) {
 			threshold:  1,
 			nbVoter:    3,
 			expectNext: true,
-		},
-		{
-			name:         "After deadline",
-			round:        2,
-			threshold:    1,
-			deadlineFact: -0.5,
-			nbVoter:      1,
-			expectNext:   true,
 		},
 		{
 			name:         "Last round time",
@@ -121,7 +113,7 @@ func metaTestNextRound(t *testing.T, run func(pollId uint32) error) {
 			expectNext:   false,
 		},
 		{
-			name:         "Last round time",
+			name:         "Missing rounds time",
 			round:        1,
 			minNbRounds:  3,
 			threshold:    1,
@@ -131,7 +123,7 @@ func metaTestNextRound(t *testing.T, run func(pollId uint32) error) {
 			expectNext:   true,
 		},
 		{
-			name:         "Last round vote",
+			name:         "Missing rounds vote",
 			round:        1,
 			minNbRounds:  3,
 			threshold:    1,
