@@ -135,7 +135,7 @@ func TestInsert(t *testing.T) {
 	userId := execLIR("INSERT INTO Users (Email, Name, Passwd) VALUES ('test@example.test', ' Test ', 'XXXXXXXXXXXX')")
 	pollId := execLIR("INSERT INTO Polls (Title, Admin, Salt, NbChoices) VALUES ('Test', ?, 42, 2)", userId)
 	exec("INSERT INTO Alternatives (Poll, Id, Name) VALUES (?, 0, 'Blue'), (?, 1, 'Yellow')", pollId, pollId)
-	exec("INSERT INTO Participants (User, Poll) VALUES (?, ?)", userId, pollId)
+	exec("INSERT INTO Participants (User, Poll, Round) VALUES (?, ?, 0)", userId, pollId)
 	exec("INSERT INTO Ballots (User, Poll, Alternative, Round) VALUES (?, ?, 0, 0)", userId, pollId)
 	exec("UPDATE Polls SET CurrentRound = 1 WHERE Id = ?", pollId)
 	exec("INSERT INTO Ballots (User, Poll, Alternative, Round) VALUES (?, ?, 1, 1)", userId, pollId)

@@ -80,16 +80,17 @@ func ListHandler(ctx context.Context, response server.Response, request *server.
 	           RoundDeadline(p.CurrentRoundStart, p.MaxRoundDuration, p.Deadline,
 	                         p.CurrentRound, p.MinNbRounds) AS Deadline,
 	           CASE WHEN p.State = 'Terminated' THEN 3
-	                WHEN a.User IS NULL THEN 2
+	                WHEN a.Poll IS NULL THEN 2
 	                WHEN a.LastRound >= p.CurrentRound THEN 1
 	                ELSE 0 END AS Action
 	      FROM Polls AS p LEFT OUTER JOIN (
-	               SELECT Poll, User, LastRound
+	               SELECT Poll, MAX(Round) AS LastRound
 	                FROM Participants
 	               WHERE User = ?
+								 GROUP BY Poll
 	           ) AS a ON p.Id = a.Poll
 	     WHERE ( (p.State != 'Waiting' AND p.CurrentRound = 0 AND p.Publicity <= ?)
-	              OR a.User IS NOT NULL )
+	              OR a.Poll IS NOT NULL )
 	       AND p.Admin != ?
 	     ORDER BY Action ASC, Deadline ASC`
 	  qOwn = `
@@ -99,13 +100,14 @@ func ListHandler(ctx context.Context, response server.Response, request *server.
 	                                   p.CurrentRound, p.MinNbRounds) END AS Deadline,
 	           CASE WHEN p.State = 'Waiting' THEN 4
 	                WHEN p.State = 'Terminated' THEN 3
-	                WHEN a.User IS NULL THEN 2
+	                WHEN a.Poll IS NULL THEN 2
 	                WHEN a.LastRound >= p.CurrentRound THEN 1
 	                ELSE 0 END AS Action
 	      FROM Polls AS p LEFT OUTER JOIN (
-	               SELECT Poll, User, LastRound
+	               SELECT Poll, MAX(Round) AS LastRound
 	                FROM Participants
 	               WHERE User = ?
+								 GROUP BY Poll
 	           ) AS a ON p.Id = a.Poll
 	     WHERE p.Admin = ?
 	     ORDER BY Action ASC, Deadline ASC`

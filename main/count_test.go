@@ -31,7 +31,7 @@ func TestCountInfoHandler(t *testing.T) {
 
 	const (
 		qReport = `UPDATE Polls SET ReportVote = TRUE WHERE Id = ?`
-		qSetRound = `UPDATE Participants SET LastRound = ? WHERE User = ?`
+		qBlankVote = `INSERT INTO Participants (Poll, Round, User) VALUE (?,?,?)`
 	)
 
 	var env dbt.Env
@@ -102,9 +102,6 @@ func TestCountInfoHandler(t *testing.T) {
 				env.NextRound(pollSegment.Id)
 				// Current round is 3
 				env.QuietExec(qReport, pollSegment.Id)
-				env.QuietExec(qSetRound, 1, users[0])
-				env.QuietExec(qSetRound, 2, users[1])
-				env.QuietExec(qSetRound, 0, users[2])
 				env.Must(t)
 			},
 			Request: request,
@@ -117,7 +114,6 @@ func TestCountInfoHandler(t *testing.T) {
 			Name: "Vote after carry forward result",
 			Update: func(t *testing.T) {
 				env.Vote(pollSegment.Id, 3, users[2], 2)
-				env.QuietExec(qSetRound, 3, users[2])
 				env.Must(t)
 			},
 			Request: request,

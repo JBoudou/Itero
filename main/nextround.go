@@ -55,23 +55,22 @@ func (self *nextRound) fullCheck() error {
 	const (
 		qSelectNext = `
 	    SELECT p.Id
-	      FROM Polls AS p LEFT OUTER JOIN Participants AS a ON p.Id = a.Poll
-	    WHERE p.State = 'Active' AND p.CurrentRound < p.MaxNbRounds
-	    GROUP BY p.Id,
-	          p.CurrentRoundStart, p.MaxRoundDuration, p.Deadline, p.CurrentRound, p.MinNbRounds,
-						p.Publicity, p.RoundThreshold
-	   HAVING ( RoundDeadline(p.CurrentRoundStart, p.MaxRoundDuration, p.Deadline,
-	                          p.CurrentRound, p.MinNbRounds) <= CURRENT_TIMESTAMP()
-	            AND ( p.CurrentRound > 0 OR COUNT(a.LastRound) > 2 ))
-	       OR ( (p.CurrentRound > 0 OR p.Publicity = %d)
-	             AND ( (p.RoundThreshold = 0 AND SUM(a.LastRound = p.CurrentRound) > 0)
-	                   OR ( p.RoundThreshold > 0
-	                        AND SUM(a.LastRound = p.CurrentRound) / COUNT(a.User) >= p.RoundThreshold ))
-							 AND ( (p.CurrentRound + 1 < MinNbRounds)
-							       OR p.Deadline IS NULL
-							       OR (ADDTIME(CURRENT_TIMESTAMP(), p.MaxRoundDuration) < p.Deadline)
-										 OR (p.Deadline < CURRENT_TIMESTAMP()) ))
-	      FOR UPDATE`
+	      FROM Polls AS p
+	      LEFT OUTER JOIN Participants_Round_Count AS r ON (p.Id, p.CurrentRound) = (r.Poll, r.Round)
+	      LEFT OUTER JOIN Participants_Poll_Count  AS a ON p.Id = a.Poll
+	     WHERE p.State = 'Active' AND p.CurrentRound < p.MaxNbRounds
+	       AND (   ( RoundDeadline(p.CurrentRoundStart, p.MaxRoundDuration, p.Deadline,
+	                               p.CurrentRound, p.MinNbRounds) <= CURRENT_TIMESTAMP()
+	                 AND ( p.CurrentRound > 0 OR r.Count > 2 ))
+	            OR (    (p.CurrentRound > 0 OR p.Publicity = %d)
+	                AND (   (p.RoundThreshold = 0 AND r.Count > 0)
+	                     OR ( p.RoundThreshold > 0
+	                          AND r.Count / a.Count >= p.RoundThreshold ) )
+	                AND (   (p.CurrentRound + 1 < MinNbRounds)
+	                     OR p.Deadline IS NULL
+	                     OR (ADDTIME(CURRENT_TIMESTAMP(), p.MaxRoundDuration) < p.Deadline)
+	                     OR (p.Deadline < CURRENT_TIMESTAMP()) )))
+	       FOR UPDATE`
 		qNextRound = `UPDATE Polls SET CurrentRound = CurrentRound + 1 WHERE Id = ?`
 	)
 	return self.fullCheck_helper(fmt.Sprintf(qSelectNext, db.PollPublicityInvited), qNextRound)
@@ -82,24 +81,23 @@ func (self *nextRound) checkOne(pollId uint32) error {
 
 	const (
 		qCheck = `
-	      SELECT p.Id
-	        FROM Polls AS p LEFT OUTER JOIN Participants AS a ON p.Id = a.Poll
-	      WHERE p.Id = ? AND p.State = 'Active' AND p.CurrentRound < p.MaxNbRounds
-	      GROUP BY p.Id,
-	            p.CurrentRoundStart, p.MaxRoundDuration, p.Deadline, p.CurrentRound, p.MinNbRounds,
-							p.Publicity, p.RoundThreshold
-	     HAVING ( RoundDeadline(p.CurrentRoundStart, p.MaxRoundDuration, p.Deadline,
-	                            p.CurrentRound, p.MinNbRounds) <= CURRENT_TIMESTAMP()
-	              AND ( p.CurrentRound > 0 OR COUNT(a.LastRound) > 2 ))
-	         OR ( (p.CurrentRound > 0 OR p.Publicity = ?)
-	               AND ( (p.RoundThreshold = 0 AND SUM(a.LastRound = p.CurrentRound) > 0)
+	    SELECT p.Id
+	      FROM Polls AS p
+	      LEFT OUTER JOIN Participants_Round_Count AS r ON (p.Id, p.CurrentRound) = (r.Poll, r.Round)
+	      LEFT OUTER JOIN Participants_Poll_Count  AS a ON p.Id = a.Poll
+	     WHERE p.Id = ? AND p.State = 'Active' AND p.CurrentRound < p.MaxNbRounds
+	       AND (   ( RoundDeadline(p.CurrentRoundStart, p.MaxRoundDuration, p.Deadline,
+	                               p.CurrentRound, p.MinNbRounds) <= CURRENT_TIMESTAMP()
+	                 AND ( p.CurrentRound > 0 OR r.Count > 2 ))
+	            OR (    (p.CurrentRound > 0 OR p.Publicity = ?)
+	                AND (   (p.RoundThreshold = 0 AND r.Count > 0)
 	                     OR ( p.RoundThreshold > 0
-	                          AND SUM(a.LastRound = p.CurrentRound) / COUNT(a.User) >= p.RoundThreshold ))
-								 AND ( (p.CurrentRound + 1 < MinNbRounds)
-							         OR p.Deadline IS NULL
-								       OR (ADDTIME(CURRENT_TIMESTAMP(), p.MaxRoundDuration) < p.Deadline)
-											 OR (p.Deadline < CURRENT_TIMESTAMP()) ))
-	        FOR UPDATE`
+	                          AND r.Count / a.Count >= p.RoundThreshold ) )
+	                AND (   (p.CurrentRound + 1 < MinNbRounds)
+	                     OR p.Deadline IS NULL
+	                     OR (ADDTIME(CURRENT_TIMESTAMP(), p.MaxRoundDuration) < p.Deadline)
+	                     OR (p.Deadline < CURRENT_TIMESTAMP()) )))
+	       FOR UPDATE`
 		qUpdate = `
 	    UPDATE Polls SET CurrentRound = CurrentRound + 1
 	     WHERE Id = ?`

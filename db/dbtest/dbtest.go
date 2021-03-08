@@ -147,8 +147,8 @@ func (self *Env) NextRound(pollId uint32) {
 // participant. No other check is done.
 func (self *Env) Vote(pollId uint32, round uint8, userId uint32, alternative uint8) {
 	const (
-		qCheckParticipant = `SELECT 1 FROM Participants WHERE Poll = ? AND User = ?`
-		qAddParticipant = `INSERT INTO Participants (Poll, User) VALUE (?, ?)`
+		qCheckParticipant = `SELECT 1 FROM Participants WHERE Poll = ? AND User = ? AND Round = ?`
+		qAddParticipant = `INSERT INTO Participants (Poll, User, Round) VALUE (?, ?, ?)`
 		qVote = `INSERT INTO Ballots (Poll, Round, User, Alternative) VALUE (?, ?, ?, ?)`
 	)
 
@@ -164,12 +164,12 @@ func (self *Env) Vote(pollId uint32, round uint8, userId uint32, alternative uin
 
 	// Ensure the user participate in the poll
 	var rows *sql.Rows
-	rows, self.Error = tx.Query(qCheckParticipant, pollId, userId)
+	rows, self.Error = tx.Query(qCheckParticipant, pollId, userId, round)
 	if self.Error != nil {
 		return
 	}
 	if !rows.Next() {
-		_, self.Error = tx.Exec(qAddParticipant, pollId, userId)
+		_, self.Error = tx.Exec(qAddParticipant, pollId, userId, round)
 	} else {
 		self.Error = rows.Close()
 	}

@@ -120,6 +120,7 @@ func checkPollAccess(ctx context.Context, request *server.Request) (poll PollInf
 	const qParticipate = `SELECT 1 FROM Participants WHERE Poll = ? AND User = ?`
 	rows, err := db.DB.QueryContext(ctx, qParticipate, poll.Id, request.User.Id)
 	poll.Participate = err != nil || rows.Next()
+	rows.Close()
 	if poll.Participate {
 		return
 	}

@@ -31,10 +31,10 @@ func metaTestNextRound(t *testing.T, run func(pollId uint32) error) {
 	const (
 		nbParticipants = 3
 
-		qAddParticipants = `INSERT INTO Participants(Poll, User) VALUE (?,?)`
-		qUpdatePoll      = `UPDATE Polls SET CurrentRound = ?, RoundThreshold = ? WHERE Id = ?`
-		qSetMin          = `UPDATE Polls SET MinNbRounds = ? WHERE Id = ?`
-		qSetNow          = `
+		qParticipate = `INSERT INTO Participants(Poll, User, Round) VALUE (?,?,?)`
+		qUpdatePoll  = `UPDATE Polls SET CurrentRound = ?, RoundThreshold = ? WHERE Id = ?`
+		qSetMin      = `UPDATE Polls SET MinNbRounds = ? WHERE Id = ?`
+		qSetNow      = `
 		  UPDATE Polls
 		     SET CurrentRoundStart = SUBTIME(CURRENT_TIMESTAMP(), ? * MaxRoundDuration)
 		   WHERE Id = ?`
@@ -43,7 +43,6 @@ func metaTestNextRound(t *testing.T, run func(pollId uint32) error) {
 			   SET Deadline = ADDTIME(CurrentRoundStart, ? * MaxRoundDuration)
 			 WHERE Id = ?`
 		qSetInvited = `UPDATE Polls SET Publicity = ? WHERE Id = ?`
-		qAddVoters  = `UPDATE Participants SET LastRound = ? WHERE User = ? AND Poll = ?`
 		qGetRound   = `SELECT CurrentRound FROM Polls WHERE Id = ?`
 	)
 
@@ -147,13 +146,15 @@ func metaTestNextRound(t *testing.T, run func(pollId uint32) error) {
 			var err error
 			var stmt *sql.Stmt
 
-			stmt, err = db.DB.Prepare(qAddParticipants)
-			mustt(t, err)
-			for _, id := range user {
-				_, err = stmt.Exec(pollId, id)
+			if tt.round > 0 {
+				stmt, err = db.DB.Prepare(qParticipate)
 				mustt(t, err)
+				for _, id := range user {
+					_, err = stmt.Exec(pollId, id, 0)
+					mustt(t, err)
+				}
+				mustt(t, stmt.Close())
 			}
-			mustt(t, stmt.Close())
 
 			_, err = db.DB.Exec(qUpdatePoll, tt.round, tt.threshold, pollId)
 			if err == nil && tt.minNbRounds > 2 {
@@ -169,10 +170,10 @@ func metaTestNextRound(t *testing.T, run func(pollId uint32) error) {
 				_, err = db.DB.Exec(qSetInvited, db.PollPublicityInvited, pollId)
 			}
 			if err == nil && tt.nbVoter > 0 {
-				stmt, err = db.DB.Prepare(qAddVoters)
+				stmt, err = db.DB.Prepare(qParticipate)
 				mustt(t, err)
 				for i := 0; i < tt.nbVoter; i++ {
-					_, err = stmt.Exec(tt.round, user[i], pollId)
+					_, err = stmt.Exec(pollId, user[i], tt.round)
 					mustt(t, err)
 				}
 				err = stmt.Close()
