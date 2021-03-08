@@ -65,7 +65,7 @@ func (self *nextRound) fullCheck() error {
 		     OR ( (p.CurrentRound > 0 OR p.Publicity = %d)
 		           AND ( (p.RoundThreshold = 0 AND SUM(a.LastRound = p.CurrentRound) > 0)
 		                OR ( p.RoundThreshold > 0
-		                     AND SUM(a.LastRound = p.CurrentRound) / COUNT(a.LastRound) >= p.RoundThreshold )))
+		                     AND SUM(a.LastRound = p.CurrentRound) / COUNT(a.User) >= p.RoundThreshold )))
 		    FOR UPDATE`
 		qNextRound = `UPDATE Polls SET CurrentRound = CurrentRound + 1 WHERE Id = ?`
 	)
@@ -89,7 +89,7 @@ func (self *nextRound) checkOne(pollId uint32) error {
 	         OR ( (p.CurrentRound > 0 OR p.Publicity = ?)
 	               AND ( (p.RoundThreshold = 0 AND SUM(a.LastRound = p.CurrentRound) > 0)
 	                    OR ( p.RoundThreshold > 0
-	                         AND SUM(a.LastRound = p.CurrentRound) / COUNT(a.LastRound) >= p.RoundThreshold )))`
+	                         AND SUM(a.LastRound = p.CurrentRound) / COUNT(a.User) >= p.RoundThreshold )))`
 		qUpdate = `
 	  	UPDATE Polls SET CurrentRound = CurrentRound + 1
 	  	 WHERE Id IN ( SELECT Id FROM Tmp_NextRound )`
