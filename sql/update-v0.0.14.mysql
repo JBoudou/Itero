@@ -1,0 +1,22 @@
+DELIMITER //
+
+CREATE FUNCTION RoundDeadline(CurrentRoundStart datetime, MaxRoundDuration time, Deadline datetime)
+  RETURNS datetime DETERMINISTIC
+BEGIN
+  DECLARE one, two datetime;
+
+  SET one = ADDTIME(CurrentRoundStart, MaxRoundDuration);
+  IF one > Deadline THEN
+    RETURN Deadline;
+  END IF;
+
+  SET two = ADDTIME(one, MaxRoundDuration);
+  IF two > Deadline THEN
+    RETURN Deadline;
+  END IF;
+
+  RETURN one;
+END;
+//
+
+DELIMITER ;

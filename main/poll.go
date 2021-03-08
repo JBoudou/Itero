@@ -195,7 +195,7 @@ func PollHandler(ctx context.Context, response server.Response, request *server.
 	// Additional informations for display
 	const qSelect = `
 		SELECT p.Title, p.Description, u.Name, p.Created, p.State, p.Start,
-	         ADDTIME(p.CurrentRoundStart, p.MaxRoundDuration), p.Deadline,
+	         RoundDeadline(p.CurrentRoundStart, p.MaxRoundDuration, p.Deadline), p.Deadline,
 					 TIME_TO_SEC(p.MaxRoundDuration) * 1000, p.MinNbRounds, p.MaxNbRounds
 		  FROM Polls AS p, Users AS u
 		 WHERE p.Id = ?

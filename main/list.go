@@ -77,7 +77,7 @@ func ListHandler(ctx context.Context, response server.Response, request *server.
 	const (
 		qPublic = `
 	    SELECT p.Id, p.Salt, p.Title, p.CurrentRound, p.MaxNbRounds,
-	           ADDTIME(p.CurrentRoundStart, p.MaxRoundDuration) AS Deadline,
+	           RoundDeadline(p.CurrentRoundStart, p.MaxRoundDuration, p.Deadline) AS Deadline,
 	           CASE WHEN p.State = 'Terminated' THEN 3
 	                WHEN a.User IS NULL THEN 2
 	                WHEN a.LastRound >= p.CurrentRound THEN 1
@@ -94,7 +94,7 @@ func ListHandler(ctx context.Context, response server.Response, request *server.
 		qOwn = `
 	    SELECT p.Id, p.Salt, p.Title, p.CurrentRound, p.MaxNbRounds,
 	           CASE WHEN p.State = 'Waiting' THEN p.Start
-						      ELSE ADDTIME(p.CurrentRoundStart, p.MaxRoundDuration) END AS Deadline,
+						      ELSE RoundDeadline(p.CurrentRoundStart, p.MaxRoundDuration, p.Deadline) END AS Deadline,
 	           CASE WHEN p.State = 'Waiting' THEN 4
 						      WHEN p.State = 'Terminated' THEN 3
 	                WHEN a.User IS NULL THEN 2

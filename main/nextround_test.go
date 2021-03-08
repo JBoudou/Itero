@@ -46,7 +46,7 @@ func TestNextRound_fullCheck(t *testing.T) {
 	tests := []struct {
 		name       string
 		round      uint8   // CurrentRound
-		expired    bool    // whether ADDTIME(CurrentRoundStart, MaxRoundDuration) >= CURRENT_TIMESTAMP
+		expired    bool    // whether RoundDeadline >= CURRENT_TIMESTAMP
 		pubInvited bool    // whether Publicity is Invited
 		threshold  float64 // RoundThreshold
 		nbVoter    int     // number of Participant with LastRound = Poll.CurrentRound
@@ -192,7 +192,7 @@ func TestNextRound_checkOne(t *testing.T) {
 	tests := []struct {
 		name       string
 		round      uint8   // CurrentRound
-		expired    bool    // whether ADDTIME(CurrentRoundStart, MaxRoundDuration) >= CURRENT_TIMESTAMP
+		expired    bool    // whether RoundDeadline >= CURRENT_TIMESTAMP
 		pubInvited bool    // whether Publicity is Invited
 		threshold  float64 // RoundThreshold
 		nbVoter    int     // number of Participant with LastRound = Poll.CurrentRound
