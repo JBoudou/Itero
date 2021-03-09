@@ -17,12 +17,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule, FormBuilder, FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import { MatRadioModule } from '@angular/material/radio';
+
+import { BehaviorSubject } from 'rxjs';
 
 import { RoundComponent } from './round.component';
 
 import { CreateService } from '../create.service';
+import { CreateQuery } from 'src/app/api';
 import { FormWidgetModule } from '../../form-widget/form-widget.module';
 
 import { ActivatedRouteStub } from '../../../testing/activated-route-stub'
@@ -30,12 +36,14 @@ import { ActivatedRouteStub } from '../../../testing/activated-route-stub'
 describe('RoundComponent', () => {
   let component: RoundComponent;
   let fixture: ComponentFixture<RoundComponent>;
-  let serviceSpy: jasmine.SpyObj<CreateService>;
   let activatedRouteStub: ActivatedRouteStub;
+  let query$: BehaviorSubject<Partial<CreateQuery>>;
+  let serviceSpy: jasmine.SpyObj<CreateService>;
 
   beforeEach(async () => {
-    serviceSpy = jasmine.createSpyObj('CreateService', {register: {}});
     activatedRouteStub = new ActivatedRouteStub();
+    query$ = new BehaviorSubject<Partial<CreateQuery>>({});
+    serviceSpy = jasmine.createSpyObj('CreateService', {}, { query$: query$ });
     
     await TestBed.configureTestingModule({
       declarations: [
@@ -45,7 +53,10 @@ describe('RoundComponent', () => {
         ReactiveFormsModule,
         FormsModule,
         FormWidgetModule,
+        MatFormFieldModule,
+        MatInputModule,
         MatRadioModule,
+        NoopAnimationsModule,
       ],
       providers: [
         FormBuilder,
@@ -60,9 +71,32 @@ describe('RoundComponent', () => {
     fixture = TestBed.createComponent(RoundComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
+    jasmine.clock().install();
+  });
+
+  afterEach(() => {
+    jasmine.clock().uninstall();
   });
 
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  it('display values from the service', async () => {
+    const query = {
+      Start:    new Date('2010-10-10T10:10:10Z'),
+      Deadline: new Date('2011-11-11T11:11:11Z'),
+      MinNbRounds: 3,
+      MaxNbRounds: 4,
+      MaxRoundDuration: 1234000,
+      ReportVote: false
+    };
+    query$.next(query);
+
+    jasmine.clock().tick(1);
+    await fixture.whenStable();
+    
+    expect(component.form.value).toEqual(query);
+  });
+
 });
