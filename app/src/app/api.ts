@@ -99,7 +99,9 @@ export class PollAlternative {
 
 export interface UninominalBallotAnswer {
   Previous?: number;
+  PreviousIsBlank?: boolean;
   Current?: number;
+  CurrentIsBlank?: boolean;
   Alternatives: Array<PollAlternative>;
 }
 
