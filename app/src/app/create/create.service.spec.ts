@@ -73,7 +73,7 @@ describe('CreateService', () => {
     expect(service).toBeTruthy();
   });
 
-  it('goes next', () => {
+  it('goes next', async () => {
     stepRecorder.listen(service.stepStatus$);
     service.next();
     jasmine.clock().tick(1);
@@ -212,9 +212,8 @@ describe('CreateService', () => {
     expect(query.Alternatives).toEqual([simpleAlternative]);
   });
 
-  it('updates query$ on patchQuery', () => {
+  it('updates query$ on patchQuery', async () => {
     queryRecorder.listen(service.query$);
-    jasmine.clock().tick(1);
     service.patchQuery('root', { MaxNbRounds: 4});
     
     expect(queryRecorder.record[0]).toBeDefined();

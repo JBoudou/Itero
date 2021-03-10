@@ -19,7 +19,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 
 import { Observable, BehaviorSubject } from 'rxjs';
-import { take } from 'rxjs/operators';
+import { take, delayWhen, filter } from 'rxjs/operators';
 import { cloneDeep, isEqual } from 'lodash';
 
 import { CreateQuery } from '../api';
@@ -64,7 +64,29 @@ export class CreateService {
    * The sent objects must never be modified directly. Use patchQuery() instead.
    */
   get query$(): Observable<Partial<CreateQuery>> {
-    return this._query$;
+    return this._query$.pipe(delayWhen<Partial<CreateQuery>>(() => this._allowQuery$.pipe(filter((b: boolean) => b))));
+  }
+
+  // We use delayWhen along with _allowQuery$ to suspend and resume query$ events. See
+  // suspendQuery() and resumeQuery().
+  // This solution is not very efficient and rxjs does not guarantee that the blocked events will be
+  // sent in the order they were emitted. A better solution would be to implement our own Operator.
+  private _allowQuery$ = new BehaviorSubject<boolean>(true);
+
+  /**
+   * Prevent query$ to send next events until resumeQuery() is called.
+   * Blocked events are sent when resumeQuery().
+   */
+  private suspendQuery(): void {
+    this._allowQuery$.next(false);
+  }
+
+  /**
+   * Stop blocking query$ to send next events.
+   * Blocked events are sent right now.
+   */
+  private resumeQuery(): void {
+    this._allowQuery$.next(true);
   }
 
   /**
@@ -162,11 +184,9 @@ export class CreateService {
           continue;
         }
         if (patch[prop] === undefined) {
-          console.log(`Delete ${prop}`);
           delete this._current.query[prop];
           this._current.handledFields.delete(prop);
         } else {
-          console.log(`Set ${prop} to ` + JSON.stringify(patch[prop]));
           this._current.query[prop] = cloneDeep(patch[prop]);
           this._current.handledFields.add(prop);
         }
@@ -237,13 +257,16 @@ export class CreateService {
       this._queryModified = false;
     }
 
+    // Sending queries is suspended while the component is changed.
+    // That way, the previous component never receives the query of the next component,
+    // and the next component never receives the query of the previous component.
+    if (options.navigate) {
+      this.suspendQuery();
+    }
     this._current = node;
-    // The query is send before the call to Router.navigate to prevent race conditions.
-    // This means that the previous component receives the new query.
-    // A better approach could be to have an Observable by segment.
     this._query$.next(this._current.query);
     if (options.navigate) {
-      this.navigateToCurrent();
+      this.navigateToCurrent().then(() => this.resumeQuery());
     }
 
     this._stepStatus$.next(this._current.makeStatus());
@@ -253,14 +276,13 @@ export class CreateService {
    * Check whether the current route ends with the right segment, and navigate to it if it's not.
    * \returns Whether navigation occured.
    */
-  private navigateToCurrent(): boolean {
+  private navigateToCurrent(): Promise<boolean> {
     const url = this.router.routerState.snapshot.url;
     if (url.endsWith('/' + this._current.segment)) {
-      return false;
+      return Promise.resolve(false);
     }
 
-    this.router.navigate([this.currentUrl()]);
-    return true;
+    return this.router.navigate([this.currentUrl()]);
   }
 
   private sendRequest(): void {
