@@ -42,8 +42,8 @@ describe('RoundComponent', () => {
 
   beforeEach(async () => {
     activatedRouteStub = new ActivatedRouteStub();
-    query$ = new BehaviorSubject<Partial<CreateQuery>>({});
-    serviceSpy = jasmine.createSpyObj('CreateService', {}, { query$: query$ });
+    query$ = new BehaviorSubject<Partial<CreateQuery>>({Title: 'Foo'});
+    serviceSpy = jasmine.createSpyObj('CreateService', {patchQuery: true}, { query$: query$ });
     
     await TestBed.configureTestingModule({
       declarations: [
@@ -72,6 +72,7 @@ describe('RoundComponent', () => {
     component = fixture.componentInstance;
     fixture.detectChanges();
     jasmine.clock().install();
+    activatedRouteStub.nextUrlFromString('test');
   });
 
   afterEach(() => {
@@ -84,11 +85,11 @@ describe('RoundComponent', () => {
 
   it('display values from the service', async () => {
     const query = {
-      Start:    new Date('2010-10-10T10:10:10Z'),
-      Deadline: new Date('2011-11-11T11:11:11Z'),
+      Start:    new Date('2010-10-10T10:10:00Z'),
+      Deadline: new Date('2011-11-11T11:11:00Z'),
       MinNbRounds: 3,
       MaxNbRounds: 4,
-      MaxRoundDuration: 1234000,
+      MaxRoundDuration: 1200000,
       ReportVote: false
     };
     query$.next(query);

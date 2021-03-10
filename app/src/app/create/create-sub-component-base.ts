@@ -83,16 +83,6 @@ export abstract class CreateSubComponentBase {
         next: (query: Partial<CreateQuery>) => this._synchronize(stepSegment, query),
       })
     );
-
-    // Subscribe to valueChanges for each control in this.form.
-    for (const prop in this.form.controls) {
-      const control = this.form.controls[prop];
-      this.subscriptions.push(
-        control.valueChanges.subscribe({
-          next: value => this.service.patchQuery(stepSegment, this.modifyQueryToSend({ [prop]: value })),
-        })
-      );
-    };
   }
 
   private _first_synchronize_done: boolean = false;
@@ -114,6 +104,17 @@ export abstract class CreateSubComponentBase {
       if (somethingToSend) {
         this.service.patchQuery(stepSegment, this.modifyQueryToSend(toSend), { defaultValues: true });
       }
+
+    // Subscribe to valueChanges for each control in this.form.
+    for (const prop in this.form.controls) {
+      const control = this.form.controls[prop];
+      this.subscriptions.push(
+        control.valueChanges.subscribe({
+          next: value => this.service.patchQuery(stepSegment, this.modifyQueryToSend({ [prop]: value })),
+        })
+      );
+    };
+
       this._first_synchronize_done = true;
     }
   }

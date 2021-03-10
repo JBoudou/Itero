@@ -148,31 +148,38 @@ export class CreateService {
   patchQuery(stepSegment: string, patch: Partial<CreateQuery>,
              options: { defaultValues: boolean } = { defaultValues: false}
   ): boolean {
-    if (stepSegment != this._current.segment) {
-      console.warn('CreateService patch from wrong step');
-      return false;
-    }
+    // When called from the wrong segment,
+    // we still check whether the patch changes any value.
+    // If it does, warning messages are displayed.
+    const ret = stepSegment == this._current.segment;
 
     let modified = false;
     for (const prop in patch) {
       if (!isEqual(patch[prop], this._current.query[prop])) {
+        if (!ret) {
+          console.warn(`Segment ${stepSegment} instead of ${this._current.segment} ` + 
+                       `to change ${prop} from ${this._current.query[prop]} to ${patch[prop]}`);
+          continue;
+        }
         if (patch[prop] === undefined) {
+          console.log(`Delete ${prop}`);
           delete this._current.query[prop];
           this._current.handledFields.delete(prop);
         } else {
+          console.log(`Set ${prop} to ` + JSON.stringify(patch[prop]));
           this._current.query[prop] = cloneDeep(patch[prop]);
           this._current.handledFields.add(prop);
         }
         modified = true;
       }
     }
-    if (modified) {
+    if (ret && modified) {
       if (!options.defaultValues) {
         this._queryModified = true;
       }
       this._query$.next(this._current.query);
     }
-    return true;
+    return ret;
   }
 
 
@@ -231,13 +238,15 @@ export class CreateService {
     }
 
     this._current = node;
+    // The query is send before the call to Router.navigate to prevent race conditions.
+    // This means that the previous component receives the new query.
+    // A better approach could be to have an Observable by segment.
+    this._query$.next(this._current.query);
     if (options.navigate) {
       this.navigateToCurrent();
     }
 
     this._stepStatus$.next(this._current.makeStatus());
-    // The query must be sent later, such that the correct component receives it.
-    setTimeout(() => this._query$.next(this._current.query), 0);
   }
   
   /**

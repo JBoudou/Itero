@@ -214,10 +214,12 @@ describe('CreateService', () => {
 
   it('updates query$ on patchQuery', () => {
     queryRecorder.listen(service.query$);
-    service.patchQuery('root', { MaxNbRounds: 2});
+    jasmine.clock().tick(1);
+    service.patchQuery('root', { MaxNbRounds: 4});
     
-    expect(queryRecorder.record[0]?.MaxNbRounds).toBeUndefined();
-    expect(queryRecorder.record[queryRecorder.record.length - 1].MaxNbRounds).toBe(2);
+    expect(queryRecorder.record[0]).toBeDefined();
+    expect(queryRecorder.record[0].MaxNbRounds).toBeUndefined();
+    expect(queryRecorder.record[queryRecorder.record.length - 1].MaxNbRounds).toBe(4);
   });
 
   it('does not update when the wrong segment is given to patchQuery', () => {
