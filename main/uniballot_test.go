@@ -51,8 +51,9 @@ func TestAllAlternatives(t *testing.T) {
 }
 
 var (
-	noVote  = NullUInt8{Value: 0, Valid: true}
-	yesVote = NullUInt8{Value: 1, Valid: true}
+	noVote  = uninominalBallot{Value: 0, State: uninominalBallotStateValid}
+	yesVote = uninominalBallot{Value: 1, State: uninominalBallotStateValid}
+	blankVote = uninominalBallot{State: uninominalBallotStateBlank}
 )
 
 func TestUninominalBallotAnswer_MarshalJSON(t *testing.T) {
@@ -111,6 +112,30 @@ func TestUninominalBallotAnswer_MarshalJSON(t *testing.T) {
 			},
 			expectValue: `{"Alternatives":[{"Id":0,"Name":"No","Cost":1},{"Id":1,"Name":"Yes","Cost":1}]}`,
 		},
+		{
+			name: "Blank Previous",
+			answer: UninominalBallotAnswer{
+				Previous: blankVote,
+				Alternatives: []PollAlternative{
+					{Id: 0, Name: "No", Cost: 1.},
+					{Id: 1, Name: "Yes", Cost: 1.},
+				},
+			},
+			expectValue: `{"PreviousIsBlank":true,"Alternatives":[{"Id":0,"Name":"No","Cost":1},
+				{"Id":1,"Name":"Yes","Cost":1}]}`,
+		},
+		{
+			name: "Blank Current",
+			answer: UninominalBallotAnswer{
+				Current: blankVote,
+				Alternatives: []PollAlternative{
+					{Id: 0, Name: "No", Cost: 1.},
+					{Id: 1, Name: "Yes", Cost: 1.},
+				},
+			},
+			expectValue: `{"CurrentIsBlank":true,"Alternatives":[{"Id":0,"Name":"No","Cost":1},
+				{"Id":1,"Name":"Yes","Cost":1}]}`,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -161,12 +186,23 @@ func TestUninominalBallotHandler(t *testing.T) {
 		{Id: 1, Name: "Yes", Cost: 1.},
 	}
 
+	const qBlankVote = `DELETE FROM Ballots WHERE User = ? AND Round = ?`;
+
 	vote := func(alternative, round uint8) func(t *testing.T) {
 		return func(t *testing.T) {
 			env.Vote(pollSegment.Id, round, userId, alternative)
 			env.Must(t)
 		}
 	}
+
+	blank := func(round uint8) func(t *testing.T) {
+		return func(t *testing.T) {
+			_, err := db.DB.Exec(qBlankVote, userId, round)
+			mustt(t, err)
+		}
+	}
+
+	// WARNING: The tests are sequential.
 
 	tests := []srvt.Test{
 		{
@@ -202,6 +238,26 @@ func TestUninominalBallotHandler(t *testing.T) {
 			Checker: srvt.CheckJSON{Body: &UninominalBallotAnswer{
 				Previous:     noVote,
 				Current:      yesVote,
+				Alternatives: alternatives,
+			}},
+		},
+		{
+			Name:    "Previous Blank",
+			Update:  blank(0),
+			Request: request,
+			Checker: srvt.CheckJSON{Body: &UninominalBallotAnswer{
+				Previous:     blankVote,
+				Current:      yesVote,
+				Alternatives: alternatives,
+			}},
+		},
+		{
+			Name:    "Both Blank",
+			Update:  blank(1),
+			Request: request,
+			Checker: srvt.CheckJSON{Body: &UninominalBallotAnswer{
+				Previous:     blankVote,
+				Current:      blankVote,
 				Alternatives: alternatives,
 			}},
 		},

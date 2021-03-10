@@ -120,6 +120,7 @@ func checkPollAccess(ctx context.Context, request *server.Request) (poll PollInf
 	const qParticipate = `SELECT 1 FROM Participants WHERE Poll = ? AND User = ?`
 	rows, err := db.DB.QueryContext(ctx, qParticipate, poll.Id, request.User.Id)
 	poll.Participate = err != nil || rows.Next()
+	rows.Close()
 	if poll.Participate {
 		return
 	}
@@ -194,12 +195,12 @@ func PollHandler(ctx context.Context, response server.Response, request *server.
 
 	// Additional informations for display
 	const qSelect = `
-		SELECT p.Title, p.Description, u.Name, p.Created, p.State, p.Start,
-	         ADDTIME(p.CurrentRoundStart, p.MaxRoundDuration), p.Deadline,
-					 TIME_TO_SEC(p.MaxRoundDuration) * 1000, p.MinNbRounds, p.MaxNbRounds
-		  FROM Polls AS p, Users AS u
-		 WHERE p.Id = ?
-		   AND p.Admin = u.Id`
+	  SELECT p.Title, p.Description, u.Name, p.Created, p.State, p.Start,
+	         RoundDeadline(p.CurrentRoundStart, p.MaxRoundDuration, p.Deadline, p.CurrentRound, p.MinNbRounds),
+	         p.Deadline, TIME_TO_SEC(p.MaxRoundDuration) * 1000, p.MinNbRounds, p.MaxNbRounds
+	    FROM Polls AS p, Users AS u
+	   WHERE p.Id = ?
+	     AND p.Admin = u.Id`
 	row := db.DB.QueryRowContext(ctx, qSelect, pollInfo.Id)
 	var desc sql.NullString
 	var start, roundDeadline, pollDeadline sql.NullTime

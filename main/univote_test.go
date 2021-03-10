@@ -65,9 +65,13 @@ func (self *voteChecker) Check(t *testing.T, response *http.Response, request *s
 	mustt(t, request.UnmarshalJSONBody(&query))
 
 	const qCheck = `
-		SELECT p.LastRound, b.Alternative
-		  FROM Participants AS p LEFT OUTER JOIN Ballots AS b
-			  ON (p.Poll, p.User, p.LastRound) = (b.Poll, b.User, b.Round)
+		SELECT p.Round, b.Alternative
+		  FROM (
+						 SELECT Poll, User, MAX(Round) AS Round
+						   FROM Participants
+							GROUP BY Poll, User
+		       ) AS p LEFT OUTER JOIN Ballots AS b
+			  ON (p.Poll, p.User, p.Round) = (b.Poll, b.User, b.Round)
 		 WHERE p.Poll = ? AND p.User = ?`
 
 	row := db.DB.QueryRow(qCheck, self.poll, self.user)

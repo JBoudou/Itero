@@ -1,0 +1,4 @@
+ALTER TABLE Polls
+  ADD COLUMN
+    ReportVote        bool              NOT NULL  DEFAULT FALSE
+  AFTER  BallotCostIsCount;

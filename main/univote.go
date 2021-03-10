@@ -18,6 +18,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
 
 	"github.com/JBoudou/Itero/db"
@@ -62,8 +63,8 @@ func UninominalVoteHandler(ctx context.Context, response server.Response, reques
 	const (
 		qDeleteBallot      = `DELETE FROM Ballots WHERE User = ? AND Poll = ? AND Round = ?`
 		qInsertBallot      = `INSERT INTO Ballots (User, Poll, Alternative, Round) VALUE (?, ?, ?, ?)`
-		qInsertParticipant = `INSERT INTO Participants (User, Poll, LastRound) VALUE (?, ?, ?)`
-		qUpdateParticipant = `UPDATE Participants SET LastRound = ? WHERE User = ? AND Poll = ?`
+		qLastRound         = `SELECT 1 FROM Participants WHERE User = ? AND Poll = ? AND Round = ?`
+		qInsertParticipant = `INSERT INTO Participants (User, Poll, Round) VALUE (?, ?, ?)`
 	)
 
 	tx, err := db.DB.BeginTx(ctx, nil)
@@ -75,21 +76,25 @@ func UninominalVoteHandler(ctx context.Context, response server.Response, reques
 		}
 	}()
 
-	if pollInfo.Participate {
-		_, err = tx.ExecContext(ctx, qDeleteBallot, request.User.Id, pollInfo.Id, pollInfo.CurrentRound)
-	} else {
-		_, err = tx.ExecContext(ctx, qInsertParticipant, request.User.Id, pollInfo.Id,
-			pollInfo.CurrentRound)
-	}
+	var result sql.Result
+	result, err = tx.ExecContext(ctx, qDeleteBallot, request.User.Id, pollInfo.Id, pollInfo.CurrentRound)
 	must(err)
+
+	if affected, err := result.RowsAffected(); err == nil && affected == 0 {
+		var rows *sql.Rows
+		rows, err = tx.QueryContext(ctx, qLastRound, request.User.Id, pollInfo.Id, pollInfo.CurrentRound)
+		must(err)
+		if !rows.Next() {
+			_, err = tx.ExecContext(ctx, qInsertParticipant, request.User.Id, pollInfo.Id,
+				pollInfo.CurrentRound)
+			must(err);
+		}
+		must(rows.Close())
+	}
+
 	if !voteQuery.Blank {
 		_, err = tx.ExecContext(ctx, qInsertBallot, request.User.Id, pollInfo.Id, voteQuery.Alternative,
 			pollInfo.CurrentRound)
-		must(err)
-	}
-	if pollInfo.Participate {
-		_, err = tx.ExecContext(ctx, qUpdateParticipant, pollInfo.CurrentRound, request.User.Id,
-			pollInfo.Id)
 		must(err)
 	}
 

@@ -17,7 +17,6 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -55,18 +54,23 @@ func newNextRound() *nextRound {
 func (self *nextRound) fullCheck() error {
 	const (
 		qSelectNext = `
-		  SELECT p.Id
-		    FROM Polls AS p LEFT OUTER JOIN Participants AS a ON p.Id = a.Poll
-		  WHERE p.State = 'Active' AND p.CurrentRound < p.MaxNbRounds
-		  GROUP BY p.Id,
-		        p.CurrentRoundStart, p.MaxRoundDuration, p.CurrentRound, p.Publicity, p.RoundThreshold
-		 HAVING ( ADDTIME(p.CurrentRoundStart, p.MaxRoundDuration) <= CURRENT_TIMESTAMP()
-		          AND ( p.CurrentRound > 0 OR COUNT(a.LastRound) > 2 ))
-		     OR ( (p.CurrentRound > 0 OR p.Publicity = %d)
-		           AND ( (p.RoundThreshold = 0 AND SUM(a.LastRound = p.CurrentRound) > 0)
-		                OR ( p.RoundThreshold > 0
-		                     AND SUM(a.LastRound = p.CurrentRound) / COUNT(a.LastRound) >= p.RoundThreshold )))
-		    FOR UPDATE`
+	    SELECT p.Id
+	      FROM Polls AS p
+	      LEFT OUTER JOIN Participants_Round_Count AS r ON (p.Id, p.CurrentRound) = (r.Poll, r.Round)
+	      LEFT OUTER JOIN Participants_Poll_Count  AS a ON p.Id = a.Poll
+	     WHERE p.State = 'Active' AND p.CurrentRound < p.MaxNbRounds
+	       AND (   ( RoundDeadline(p.CurrentRoundStart, p.MaxRoundDuration, p.Deadline,
+	                               p.CurrentRound, p.MinNbRounds) <= CURRENT_TIMESTAMP()
+	                 AND ( p.CurrentRound > 0 OR r.Count > 2 ))
+	            OR (    (p.CurrentRound > 0 OR p.Publicity = %d)
+	                AND (   (p.RoundThreshold = 0 AND r.Count > 0)
+	                     OR ( p.RoundThreshold > 0
+	                          AND r.Count / a.Count >= p.RoundThreshold ) )
+	                AND (   (p.CurrentRound + 1 < MinNbRounds)
+	                     OR p.Deadline IS NULL
+	                     OR (ADDTIME(CURRENT_TIMESTAMP(), p.MaxRoundDuration) < p.Deadline)
+	                     OR (p.Deadline < CURRENT_TIMESTAMP()) )))
+	       FOR UPDATE`
 		qNextRound = `UPDATE Polls SET CurrentRound = CurrentRound + 1 WHERE Id = ?`
 	)
 	return self.fullCheck_helper(fmt.Sprintf(qSelectNext, db.PollPublicityInvited), qNextRound)
@@ -74,46 +78,38 @@ func (self *nextRound) fullCheck() error {
 
 func (self *nextRound) checkOne(pollId uint32) error {
 	// MariaDB 5.5.68 does not allows UPDATE subqueries to reference the updated table.
-	// A temporary table is constructed as a workaround. This forces us to use an sql.Conn.
 
 	const (
-		qTmpTable = `
-			CREATE TEMPORARY TABLE Tmp_NextRound (Id int unsigned)
-	      SELECT p.Id
-	        FROM Polls AS p LEFT OUTER JOIN Participants AS a ON p.Id = a.Poll
-	      WHERE p.Id = ? AND p.State = 'Active' AND p.CurrentRound < p.MaxNbRounds
-	      GROUP BY p.Id,
-	            p.CurrentRoundStart, p.MaxRoundDuration, p.CurrentRound, p.Publicity, p.RoundThreshold
-	     HAVING ( ADDTIME(p.CurrentRoundStart, p.MaxRoundDuration) <= CURRENT_TIMESTAMP()
-		            AND ( p.CurrentRound > 0 OR COUNT(a.LastRound) > 2 ))
-	         OR ( (p.CurrentRound > 0 OR p.Publicity = ?)
-	               AND ( (p.RoundThreshold = 0 AND SUM(a.LastRound = p.CurrentRound) > 0)
-	                    OR ( p.RoundThreshold > 0
-	                         AND SUM(a.LastRound = p.CurrentRound) / COUNT(a.LastRound) >= p.RoundThreshold )))`
+		qCheck = `
+	    SELECT p.Id
+	      FROM Polls AS p
+	      LEFT OUTER JOIN Participants_Round_Count AS r ON (p.Id, p.CurrentRound) = (r.Poll, r.Round)
+	      LEFT OUTER JOIN Participants_Poll_Count  AS a ON p.Id = a.Poll
+	     WHERE p.Id = ? AND p.State = 'Active' AND p.CurrentRound < p.MaxNbRounds
+	       AND (   ( RoundDeadline(p.CurrentRoundStart, p.MaxRoundDuration, p.Deadline,
+	                               p.CurrentRound, p.MinNbRounds) <= CURRENT_TIMESTAMP()
+	                 AND ( p.CurrentRound > 0 OR r.Count > 2 ))
+	            OR (    (p.CurrentRound > 0 OR p.Publicity = ?)
+	                AND (   (p.RoundThreshold = 0 AND r.Count > 0)
+	                     OR ( p.RoundThreshold > 0
+	                          AND r.Count / a.Count >= p.RoundThreshold ) )
+	                AND (   (p.CurrentRound + 1 < MinNbRounds)
+	                     OR p.Deadline IS NULL
+	                     OR (ADDTIME(CURRENT_TIMESTAMP(), p.MaxRoundDuration) < p.Deadline)
+	                     OR (p.Deadline < CURRENT_TIMESTAMP()) )))
+	       FOR UPDATE`
 		qUpdate = `
-	  	UPDATE Polls SET CurrentRound = CurrentRound + 1
-	  	 WHERE Id IN ( SELECT Id FROM Tmp_NextRound )`
-		qDropTmp = `DROP TABLE Tmp_NextRound`
+	    UPDATE Polls SET CurrentRound = CurrentRound + 1
+	     WHERE Id = ?`
 	)
 
-	ctx := context.Background()
-	conn, err := db.DB.Conn(ctx)
-	if err != nil {
-		return err
-	}
-
-	// MariaDB 5.5.68 does not allow CREATE OR REPLACE TABLE. Hence we do it ourselve.
-	conn.ExecContext(ctx, qDropTmp)
-	_, err = conn.ExecContext(ctx, qTmpTable, pollId, db.PollPublicityInvited)
+	rows, err := db.DB.Query(qCheck, pollId, db.PollPublicityInvited)
 
 	if err == nil {
 		err = self.checkOne_helper(pollId, func() (sql.Result, error) {
-			return conn.ExecContext(ctx, qUpdate)
+			return db.DB.Exec(qUpdate, sql.NullInt64{Int64: int64(pollId), Valid: rows.Next()})
 		})
 	}
-
-	conn.ExecContext(ctx, qDropTmp)
-	conn.Close()
 
 	return err
 }
@@ -121,8 +117,9 @@ func (self *nextRound) checkOne(pollId uint32) error {
 func (self *nextRound) nextAlarm() alarm.Event {
 	const (
 		qNext = `
-		  SELECT Id, ADDTIME(CurrentRoundStart, MaxRoundDuration) AS Next, CURRENT_TIMESTAMP()
-			  FROM Polls
+		  SELECT Id, RoundDeadline(CurrentRoundStart, MaxRoundDuration, Deadline, CurrentRound, MinNbRounds) AS Next,
+		         CURRENT_TIMESTAMP()
+		    FROM Polls
 		   WHERE State = 'Active' HAVING Next >= ?
 		   ORDER BY Next ASC LIMIT 1`
 	)
@@ -130,7 +127,9 @@ func (self *nextRound) nextAlarm() alarm.Event {
 }
 
 func (self *nextRound) run(evtChan <-chan events.Event) {
-	at := alarm.New(1, alarm.DiscardLaterEvent)
+	// DiscardDuplicates is needed because otherwise an event may be added after each vote (because of
+	// adjusted time).
+	at := alarm.New(1, alarm.DiscardLaterEvent, alarm.DiscardDuplicates)
 
 	self.updateLastCheck()
 	self.fullCheck()
@@ -175,6 +174,8 @@ func (self *nextRound) run(evtChan <-chan events.Event) {
 				if err := self.checkOne(typed.Poll); err != nil {
 					self.warn.Print(err)
 				}
+				at.Send <- self.nextAlarm()
+
 			case CreatePollEvent, StartPollEvent:
 				at.Send <- self.nextAlarm()
 			}

@@ -65,8 +65,8 @@ export class UninominalBallotComponent implements OnInit, PollBallotComponent {
       .pipe(take(1)).subscribe({
       next: (answer: UninominalBallotAnswer) => {
         this.alternatives = answer.Alternatives;
-        this.previousRoundBallot.emit(this.ballotFromId(answer.Previous));
-        this.currentRoundBallot .emit(this.ballotFromId(answer.Current ));
+        this.previousRoundBallot.emit(this.ballotFromId(answer, 'Previous'));
+        this.currentRoundBallot .emit(this.ballotFromId(answer, 'Current' ));
       },
       error: (err: HttpErrorResponse) => {
         this.errors.emit({status: err.status, message: err.error.trim()});
@@ -115,10 +115,11 @@ export class UninominalBallotComponent implements OnInit, PollBallotComponent {
     return null;
   }
 
-  private ballotFromId(vote: number|undefined): PollBallot {
-    if (vote === undefined) {
-      return NONE_BALLOT;
+  private ballotFromId(answer: UninominalBallotAnswer, prop: string): PollBallot {
+    if (answer[prop] === undefined) {
+      return !!answer[prop + 'IsBlank'] ? BLANK_BALLOT : NONE_BALLOT;
     }
+    const vote = answer[prop] as number;
     return new UninominalBallot(vote!, this.nameOf(vote)!);
   }
 

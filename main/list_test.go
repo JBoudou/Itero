@@ -49,7 +49,7 @@ func (self *listCheckerEntry) toListEntry(t *testing.T) *listAnswerEntry {
 		Title: self.title,
 		Segment: segment,
 		CurrentRound: 0,
-		MaxRound: 3,
+		MaxRound: 4,
 		Action: self.action,
 	}
 }
@@ -114,16 +114,16 @@ func TestListHandler(t *testing.T) {
 	env.Must(t)
 
 	const (
-		qParticipate = `INSERT INTO Participants(Poll, User) VALUE (?, ?)`
+		qParticipate = `INSERT INTO Participants(Poll, User, Round) VALUE (?, ?, 0)`
 		qTerminate = `UPDATE Polls SET State = 'Terminated' WHERE Id = ?`
 		qWaiting = `
 		  UPDATE Polls
 			   SET State = 'Waiting', Start = ADDTIME(CURRENT_TIMESTAMP(), '1:00')
 			 WHERE Id = ?`
 
-		poll1Title = "Test 1"
-		poll2Title = "Test 2"
-		poll3Title = "Test 3"
+		poll1Title = "Test-1"
+		poll2Title = "Test-2"
+		poll3Title = "Test-3"
 	)
 
 	var (
@@ -188,7 +188,7 @@ func TestListHandler(t *testing.T) {
 			Request: srvt.Request{UserId: &otherId},
 			Checker: listChecker{
 				publicInc: []listCheckerEntry{
-					{title: poll1Title, id: &poll1Id, action: PollActionVote},
+					{title: poll1Title, id: &poll1Id, action: PollActionModif},
 				},
 				publicExc: []listCheckerEntry{
 					{title: poll2Title, id: &poll2Id, action: PollActionPart},
@@ -207,7 +207,7 @@ func TestListHandler(t *testing.T) {
 			Checker: listChecker{
 				ownInc: []listCheckerEntry{
 					{title: poll1Title, id: &poll1Id, action: PollActionPart},
-					{title: poll2Title, id: &poll2Id, action: PollActionVote},
+					{title: poll2Title, id: &poll2Id, action: PollActionModif},
 				},
 			},
 		},

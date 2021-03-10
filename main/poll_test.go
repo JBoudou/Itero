@@ -71,7 +71,7 @@ func TestPollHandler(t *testing.T) {
 	env.Must(t)
 
 	const (
-		qParticipate = `INSERT INTO Participants (Poll, User) VALUE (?, ?)`
+		qParticipate = `INSERT INTO Participants (Poll, User, Round) VALUE (?, ?, 0)`
 		qClosePoll = `UPDATE Polls SET State = 'Terminated' WHERE Id = ?`
 	)
 

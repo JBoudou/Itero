@@ -70,12 +70,12 @@ func CountInfoHandler(ctx context.Context, response server.Response, request *se
 		         ) AS a LEFT JOIN (
 		           SELECT b.Poll, b.Alternative as Id, COUNT(*) as Count
 		             FROM Ballots AS b JOIN (
-		                    SELECT User, Poll, MAX(LastRound) as Round
-		                      FROM Participants
-		                     WHERE LastRound <= ?
+		                    SELECT User, Poll, MAX(Round) as M
+		                      FROM Ballots
+		                     WHERE Round <= ?
 		                     GROUP BY User, Poll
-		             ) AS p ON (b.User, b.Poll) = (p.User, p.Poll) AND b.Round = p.Round
-		            GROUP BY Poll, Alternative
+		             ) AS c ON (b.User, b.Poll, b.Round) = (c.User, c.Poll, c.M)
+		            GROUP BY b.Poll, b.Alternative
 		         ) AS b ON (a.Poll, a.Id) = (b.Poll, b.Id)
 		   ORDER BY b.Count DESC, a.Id ASC`
 	)

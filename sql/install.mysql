@@ -189,8 +189,8 @@ CREATE TABLE Polls (
   # The poll ends as soon as one of the following condition holds:
   #  - CurrentRound >= MaxNbRounds
   #  - Deadline <= CURRENT_TIMESTAMP() AND CurrentRound >= MinNbRounds
-  MinNbRounds       smallint unsigned NOT NULL  DEFAULT 2,
-  MaxNbRounds       smallint unsigned           DEFAULT 10,
+  MinNbRounds       tinyint unsigned  NOT NULL  DEFAULT 2,
+  MaxNbRounds       tinyint unsigned            DEFAULT 10,
   Deadline          datetime,
 
   # The round ends as soon as one of the following conditions holds:
@@ -216,6 +216,30 @@ CREATE TABLE Polls (
 ) ENGINE = InnoDB;
 
 DELIMITER //
+
+CREATE FUNCTION RoundDeadline(
+  CurrentRoundStart datetime,
+  MaxRoundDuration time,
+  Deadline datetime,
+  CurrentRound tinyint,
+  MinNbRounds tinyint
+)
+  RETURNS datetime DETERMINISTIC
+BEGIN
+  DECLARE one datetime;
+  SET one = ADDTIME(CurrentRoundStart, MaxRoundDuration);
+
+  IF CurrentRound + 1 < MinNbRounds OR Deadline < one THEN
+    RETURN one;
+  END IF;
+
+  IF ADDTIME(one, MaxRoundDuration) > Deadline THEN
+    RETURN Deadline;
+  END IF;
+
+  RETURN one;
+END;
+//
 
 CREATE PROCEDURE Polls_checker_before (
   Title             tinytext,
@@ -384,18 +408,13 @@ DELIMITER ;
 
 CREATE TABLE Participants (
 
-  User      int unsigned NOT NULL,
-  Poll      int unsigned NOT NULL,
-  Since     timestamp    NOT NULL  DEFAULT CURRENT_TIMESTAMP,
+  User      int unsigned      NOT NULL,
+  Poll      int unsigned      NOT NULL,
+  Round     tinyint unsigned  NOT NULL,
 
-  # Last round the participant moved in.
-  # This is needed to take blank votes into account.
-  # May be NULL if the participant has not moved yet.
-  LastRound tinyint unsigned,
+  CONSTRAINT Participants_pk PRIMARY KEY (User, Poll, Round),
 
-  CONSTRAINT Participants_pk PRIMARY KEY (User, Poll),
-
-  CONSTRAINT Participant_User_fk  FOREIGN KEY (User) REFERENCES Users (Id),
+  CONSTRAINT Participants_User_fk FOREIGN KEY (User) REFERENCES Users (Id),
   CONSTRAINT Participants_Poll_fk FOREIGN KEY (Poll) REFERENCES Polls (Id)
 
 ) ENGINE = InnoDB;
@@ -403,8 +422,8 @@ CREATE TABLE Participants (
 DELIMITER //
 
 CREATE PROCEDURE Participants_checker_before (
-  Poll      int unsigned,
-  LastRound tinyint unsigned
+  Poll  int unsigned,
+  Round tinyint unsigned
 )
 BEGIN
   SELECT p.CurrentRound
@@ -412,8 +431,8 @@ BEGIN
     FROM Polls AS p
    WHERE p.id = Poll;
 
-  IF LastRound > @CurrentRound THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'LastRound must be at most CurrentRound';
+  IF Round > @CurrentRound THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Round must be at most CurrentRound';
   END IF;
 END;
 //
@@ -421,22 +440,33 @@ END;
 CREATE TRIGGER Participants_check_before_insert
   BEFORE INSERT ON Participants FOR EACH ROW
 BEGIN
-  SET NEW.Since = CURRENT_TIMESTAMP();
-  CALL Participants_checker_before(NEW.Poll, NEW.LastRound);
+  CALL Participants_checker_before(NEW.Poll, NEW.Round);
 END;
 //
 
 CREATE TRIGGER Participants_check_before_update
   BEFORE UPDATE ON Participants FOR EACH ROW
 BEGIN
-  IF NEW.Since != OLD.Since THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Since cannot be changed';
-  END IF;
-  CALL Participants_checker_before(NEW.Poll, NEW.LastRound);
+  CALL Participants_checker_before(NEW.Poll, NEW.Round);
 END;
 //
 
 DELIMITER ;
+
+CREATE SQL SECURITY INVOKER VIEW Participants_Poll_Count AS
+  SELECT p.Poll, COUNT(*) AS Count
+    FROM (
+           SELECT Poll
+             FROM Participants
+            GROUP By Poll, User
+         ) AS p
+   GROUP BY p.Poll;
+
+CREATE SQL SECURITY INVOKER VIEW Participants_Round_Count AS
+  SELECT Poll, Round, COUNT(*) AS Count
+    FROM Participants
+   GROUP BY Poll, Round;
+
 
 
 ######## Ballots ########
@@ -447,41 +477,24 @@ CREATE TABLE Ballots (
 
   User        int unsigned      NOT NULL,
   Poll        int unsigned      NOT NULL,
-  Alternative tinyint unsigned  NOT NULL,
+  Alternative tinyint unsigned      NULL,
   Round       tinyint unsigned  NOT NULL,
   Rank        tinyint           NOT NULL  DEFAULT 1,
   Modified    timestamp         NOT NULL  DEFAULT CURRENT_TIMESTAMP,
 
   CONSTRAINT Ballots_pk PRIMARY KEY (User, Poll, Alternative, Round),
 
-  CONSTRAINT Ballots_Participant_fk FOREIGN KEY (User, Poll)        REFERENCES Participants (User, Poll) ON DELETE CASCADE,
+  CONSTRAINT Ballots_Participant_fk FOREIGN KEY (User, Poll, Round) REFERENCES Participants (User, Poll, Round) ON DELETE CASCADE,
   CONSTRAINT Ballots_Alternative_fk FOREIGN KEY (Poll, Alternative) REFERENCES Alternatives (Poll, Id)
 
 ) ENGINE = InnoDB;
 
 DELIMITER //
 
-CREATE PROCEDURE Ballots_checker_before (
-  Poll        int unsigned    ,
-  Round       tinyint unsigned
-)
-BEGIN
-  SELECT p.CurrentRound
-    INTO @CurrentRound
-    FROM Polls AS p
-   WHERE p.Id = Poll;
-
-  IF Round > @CurrentRound THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Round must be at most CurrentRound';
-  END IF;
-END;
-//
-
 CREATE TRIGGER Ballots_check_before_insert
   BEFORE INSERT ON Ballots FOR EACH ROW
 BEGIN
   SET NEW.Modified = CURRENT_TIMESTAMP();
-  CALL Ballots_checker_before(NEW.Poll, NEW.Round);
 END;
 //
 
@@ -489,7 +502,6 @@ CREATE TRIGGER Ballots_check_before_update
   BEFORE UPDATE ON Ballots FOR EACH ROW
 BEGIN
   SET NEW.Modified = CURRENT_TIMESTAMP();
-  CALL Ballots_checker_before(NEW.Poll, NEW.Round);
 END;
 //
 

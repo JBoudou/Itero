@@ -92,13 +92,13 @@ func (self *Env) CreateUserWith(salt string) (userId uint32) {
 	return
 }
 
-// CreatePoll adds a poll to the database. The poll has Salt 42, MaxNbRounds 3, and 2 alternatives
+// CreatePoll adds a poll to the database. The poll has Salt 42, MaxNbRounds 4, and 2 alternatives
 // 'No' and 'Yes' (in that order). The poll is deleted by Close.
 func (self *Env) CreatePoll(title string, admin uint32, publicity uint8) uint32 {
 	return self.CreatePollWith(title, admin, publicity, []string{"No", "Yes"})
 }
 
-// CreatePoll adds a poll to the database. The poll has Salt 42, MaxNbRounds 3, and the alternatives
+// CreatePoll adds a poll to the database. The poll has Salt 42, MaxNbRounds 4, and the alternatives
 // given as arguments. All alternatives have Cost 1. The poll is deleted by Close.
 func (self *Env) CreatePollWith(title string, admin uint32, publicity uint8,
 	alternatives []string) (pollId uint32) {
@@ -106,7 +106,7 @@ func (self *Env) CreatePollWith(title string, admin uint32, publicity uint8,
 	const (
 		qCreatePoll = `
 			INSERT INTO Polls(Title, Admin, Salt, NbChoices, Publicity, MaxNbRounds)
-			VALUE (?, ?, 42, ?, ?, 3)`
+			VALUE (?, ?, 42, ?, ?, 4)`
 		qCreateAlternative = `
 			INSERT INTO Alternatives(Poll, Id, Name) VALUE (?, ?, ?)`
 		qRemovePoll = `
@@ -147,8 +147,8 @@ func (self *Env) NextRound(pollId uint32) {
 // participant. No other check is done.
 func (self *Env) Vote(pollId uint32, round uint8, userId uint32, alternative uint8) {
 	const (
-		qCheckParticipant = `SELECT 1 FROM Participants WHERE Poll = ? AND User = ?`
-		qAddParticipant = `INSERT INTO Participants (Poll, User) VALUE (?, ?)`
+		qCheckParticipant = `SELECT 1 FROM Participants WHERE Poll = ? AND User = ? AND Round = ?`
+		qAddParticipant = `INSERT INTO Participants (Poll, User, Round) VALUE (?, ?, ?)`
 		qVote = `INSERT INTO Ballots (Poll, Round, User, Alternative) VALUE (?, ?, ?, ?)`
 	)
 
@@ -164,12 +164,12 @@ func (self *Env) Vote(pollId uint32, round uint8, userId uint32, alternative uin
 
 	// Ensure the user participate in the poll
 	var rows *sql.Rows
-	rows, self.Error = tx.Query(qCheckParticipant, pollId, userId)
+	rows, self.Error = tx.Query(qCheckParticipant, pollId, userId, round)
 	if self.Error != nil {
 		return
 	}
 	if !rows.Next() {
-		_, self.Error = tx.Exec(qAddParticipant, pollId, userId)
+		_, self.Error = tx.Exec(qAddParticipant, pollId, userId, round)
 	} else {
 		self.Error = rows.Close()
 	}

@@ -34,15 +34,15 @@ func TestAlarm(t *testing.T) {
 	}{
 		{
 			name:      "One",
-			durations: []string{ "100ms" },
+			durations: []string{"100ms"},
 		},
 		{
 			name:      "Two",
-			durations: []string{ "100ms", "200ms" },
+			durations: []string{"100ms", "200ms"},
 		},
 		{
 			name:      "One in the past",
-			durations: []string{ "200ms", "100ms", "300ms" },
+			durations: []string{"200ms", "100ms", "300ms"},
 		},
 	}
 	for _, tt := range tests {
@@ -65,12 +65,12 @@ func TestAlarm(t *testing.T) {
 			}
 
 			for _, t := range times {
-				alarm.Send <- Event{ Time: t }
+				alarm.Send <- Event{Time: t}
 			}
 			close(alarm.Send)
 
-			sort.Slice(times, func (i, j int) bool {
-				return durations[i] < durations[j];
+			sort.Slice(times, func(i, j int) bool {
+				return durations[i] < durations[j]
 			})
 			cur := 0
 			for true {
@@ -94,7 +94,7 @@ func TestAlarm(t *testing.T) {
 			}
 
 			if cur < len(times) {
-				t.Errorf("Missing %d events.", len(times) - cur)
+				t.Errorf("Missing %d events.", len(times)-cur)
 			}
 		})
 	}
@@ -107,15 +107,15 @@ func TestAlarm_DiscardLaterEvent(t *testing.T) {
 	}{
 		{
 			name:      "One",
-			durations: []string{ "100ms" },
+			durations: []string{"100ms"},
 		},
 		{
 			name:      "Two",
-			durations: []string{ "100ms", "200ms" },
+			durations: []string{"100ms", "200ms"},
 		},
 		{
 			name:      "One in the past",
-			durations: []string{ "200ms", "100ms", "300ms" },
+			durations: []string{"200ms", "100ms", "300ms"},
 		},
 	}
 	for _, tt := range tests {
@@ -138,21 +138,21 @@ func TestAlarm_DiscardLaterEvent(t *testing.T) {
 			}
 
 			for _, t := range times {
-				alarm.Send <- Event{ Time: t }
+				alarm.Send <- Event{Time: t}
 			}
 			close(alarm.Send)
 
 			filtered := make([]time.Time, 0, len(times))
-			first := now.Add(time.Hour)
+			previous := now.Add(time.Hour)
 			for _, t := range times {
-				if t.Before(first) {
+				if t.Before(previous) {
 					filtered = append(filtered, t)
-					first = t
+					previous = t
 				}
 			}
 
-			sort.Slice(filtered, func (i, j int) bool {
-				return durations[i] < durations[j];
+			sort.Slice(filtered, func(i, j int) bool {
+				return durations[i] < durations[j]
 			})
 			cur := 0
 			for true {
@@ -176,7 +176,81 @@ func TestAlarm_DiscardLaterEvent(t *testing.T) {
 			}
 
 			if cur < len(filtered) {
-				t.Errorf("Missing %d events.", len(filtered) - cur)
+				t.Errorf("Missing %d events.", len(filtered)-cur)
+			}
+		})
+	}
+}
+
+func TestAlarm_DiscardDuplicates(t *testing.T) {
+	tests := []struct {
+		name      string
+		events [][2]string
+		expect    []string
+	}{
+		{
+			name:      "One",
+			events: [][2]string{{"0", "100ms"}},
+			expect:    []string{"0"},
+		},
+		{
+			name:      "Two",
+			events: [][2]string{{"0", "200ms"}, {"1", "100ms"}},
+			expect:    []string{"1", "0"},
+		},
+		{
+			name:      "Duplicate",
+			events: [][2]string{{"0", "300ms"}, {"1", "200ms"}, {"0", "100ms"}},
+			expect:    []string{"1", "0"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			durations := make([]time.Duration, len(tt.events))
+			for i, evt := range tt.events {
+				var err error
+				durations[i], err = time.ParseDuration(evt[1])
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			alarm := New(0, DiscardDuplicates)
+
+			times := make([]time.Time, len(durations))
+			now := time.Now()
+			for i, dur := range durations {
+				times[i] = now.Add(dur)
+			}
+
+			for i, t := range times {
+				alarm.Send <- Event{Time: t, Data: tt.events[i][0]}
+			}
+			close(alarm.Send)
+
+			cur := 0
+			for true {
+				evt, ok := <-alarm.Receive
+				if !ok {
+					break
+				}
+				diff := time.Since(evt.Time)
+
+				if evt.Data.(string) != tt.expect[cur] {
+					t.Errorf("Wrong data. Got %s. Expect %s.", evt.Data.(string), tt.expect[cur])
+					continue
+				}
+				if diff < 0 {
+					t.Errorf("Received event %d too early (%v).", cur, diff)
+				}
+				if diff > AllowedInterval {
+					t.Errorf("Received event %d too late (%v).", cur, diff)
+				}
+				cur++
+			}
+
+			if cur < len(tt.expect) {
+				t.Errorf("Missing %d events.", len(tt.expect)-cur)
 			}
 		})
 	}
@@ -187,11 +261,11 @@ func TestAlarm_Remaining(t *testing.T) {
 
 	const (
 		durationStep = 2 * time.Millisecond
-		nbEvents = 10
+		nbEvents     = 10
 	)
 
-	for i, wait := 0, 100 * time.Millisecond; i < nbEvents; i, wait = i + 1, wait + durationStep {
-		alarm.Send <- Event{ Time: time.Now().Add(wait) }
+	for i, wait := 0, 100*time.Millisecond; i < nbEvents; i, wait = i+1, wait+durationStep {
+		alarm.Send <- Event{Time: time.Now().Add(wait)}
 	}
 
 	for i := nbEvents; i > 0; i -= 1 {
@@ -200,8 +274,8 @@ func TestAlarm_Remaining(t *testing.T) {
 			t.Errorf("Missing %d events", i)
 			break
 		}
-		if (evt.Remaining != i - 1) {
-			t.Errorf("Wrong Remaining. Got %d. Expect %d.", evt.Remaining, i - 1)
+		if evt.Remaining != i-1 {
+			t.Errorf("Wrong Remaining. Got %d. Expect %d.", evt.Remaining, i-1)
 		}
 	}
 }

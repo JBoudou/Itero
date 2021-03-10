@@ -17,6 +17,7 @@
 package alarm
 
 import (
+	"reflect"
 	"time"
 )
 
@@ -34,11 +35,21 @@ type Alarm struct {
 	Receive <-chan Event
 
 	discardLaterEvent bool
+	discardDuplicates bool
 }
 
 func allAfter(waiting map[Event]bool, evt Event) bool {
 	for w := range waiting {
 		if w.Time.Before(evt.Time) {
+			return false
+		}
+	}
+	return true
+}
+
+func noDuplicate(waiting map[Event]bool, evt Event) bool {
+	for w := range waiting {
+		if reflect.DeepEqual(w.Data, evt.Data) {
 			return false
 		}
 	}
@@ -65,7 +76,8 @@ mainLoop:
 		case evt, ok := <-rcv:
 			if !ok {
 				closing = true
-			} else if !self.discardLaterEvent || allAfter(waiting, evt) {
+			} else if (!self.discardLaterEvent || allAfter(waiting, evt)) &&
+				(!self.discardDuplicates || noDuplicate(waiting, evt)) {
 				waiting[evt] = true
 				go wait(tick, evt)
 			}
@@ -91,6 +103,11 @@ var (
 	// Events received by Alarm with Time greater than any waiting event are ignored.
 	DiscardLaterEvent Option = func(evt *Alarm) {
 		evt.discardLaterEvent = true
+	}
+
+	// Event received with same Data as any waiting event are ignored.
+	DiscardDuplicates Option = func(evt *Alarm) {
+		evt.discardDuplicates = true
 	}
 )
 

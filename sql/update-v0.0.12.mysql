@@ -1,13 +1,3 @@
-# v0.0.10
-
-ALTER TABLE Polls
-  ADD COLUMN
-    ReportVote        bool              NOT NULL  DEFAULT FALSE
-  AFTER  BallotCostIsCount;
-
-
-# v0.0.12
-
 ALTER TABLE Polls
   ADD COLUMN
     State             ENUM('Waiting','Active','Terminated') NOT NULL DEFAULT 'Active'

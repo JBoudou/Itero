@@ -126,7 +126,6 @@ func CreateHandler(ctx context.Context, response server.Response, request *serve
 												 RoundThreshold)
 				  	 VALUE (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 		qAlternative = `INSERT INTO Alternatives (Poll, Id, Name) VALUE (?, ?, ?)`
-		qParticipant = `INSERT INTO Participants (Poll, User) VALUE (?, ?)`
 	)
 
 	result, err := tx.ExecContext(ctx, qPoll,
@@ -153,8 +152,6 @@ func CreateHandler(ctx context.Context, response server.Response, request *serve
 		_, err = tx.ExecContext(ctx, qAlternative, pollSegment.Id, id, alt.Name)
 		must(err)
 	}
-	_, err = tx.ExecContext(ctx, qParticipant, pollSegment.Id, request.User.Id)
-	must(err)
 
 	err = tx.Commit()
 	commited = true
