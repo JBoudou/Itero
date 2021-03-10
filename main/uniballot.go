@@ -44,20 +44,39 @@ func allAlternatives(ctx context.Context, poll PollInfo, out *[]PollAlternative)
 	}
 }
 
-type NullUInt8 struct {
+type uninominalBallot struct {
 	Value uint8
-	Valid bool
+	State uint8
 }
 
-func (self *NullUInt8) Set(value uint8) {
-	self.Value, self.Valid = value, true
+const (
+	uninominalBallotStateUndefined = iota
+	uninominalBallotStateBlank
+	uninominalBallotStateValid
+)
+
+// Scan implements database/sql.Scanner.
+func (self *uninominalBallot) Scan(src interface{}) error {
+	switch v := src.(type) {
+	case int64:
+		self.Value = uint8(v)
+		self.State = uninominalBallotStateValid
+	case nil:
+		self.State = uninominalBallotStateBlank
+	default:
+		return errors.New("Type incompatible with uninominalBallot")
+	}
+	return nil
 }
+
 
 // UninominalBallotAnswer represents the response sent by UninominalBallotHandler.
-// The fields Previous and Current are not sent in the JSON representation if they're not valid.
+// The fields Previous and Current are not sent in the JSON representation if the user did not vote.
+// If the user abstained, these fields are replaced with fields PreviousIsBlank or CurrentIsBlank
+// with the boolean value true.
 type UninominalBallotAnswer struct {
-	Previous     NullUInt8
-	Current      NullUInt8
+	Previous     uninominalBallot
+	Current      uninominalBallot
 	Alternatives []PollAlternative
 }
 
@@ -79,15 +98,24 @@ func (self *UninominalBallotAnswer) MarshalJSON() (ret []byte, err error) {
 			_, err = buffer.WriteRune(':')
 		}
 	}
-	encodeBallot := func(name string, ballot NullUInt8) {
-		if err == nil && ballot.Valid {
+	encodeBallot := func(name string, ballot uninominalBallot) {
+		switch ballot.State {
+		case uninominalBallotStateUndefined:
+			return
+		case uninominalBallotStateBlank:
+			encodeHeader(name + "IsBlank")
+			if err == nil {
+				err = encoder.Encode(true)
+			}
+		case uninominalBallotStateValid:
 			encodeHeader(name)
 			if err == nil {
 				err = encoder.Encode(ballot.Value)
 			}
-			if err == nil {
-				_, err = buffer.WriteRune(',')
-			}
+		}
+
+		if err == nil {
+			_, err = buffer.WriteRune(',')
 		}
 	}
 	encodeBallot("Previous", self.Previous)
@@ -113,26 +141,30 @@ func UninominalBallotHandler(ctx context.Context, response server.Response, requ
 	must(err)
 
 	const qGetBallots = `
-		SELECT Round, Alternative FROM Ballots
-		 WHERE User = ? AND Poll = ? AND Round IN (?, ?)
-		 ORDER BY Round`
+		SELECT p.Round, b.Alternative
+		  FROM Participants AS p
+			LEFT OUTER JOIN Ballots AS b ON (p.User, p.Poll, p.Round) = (b.User, b.Poll, b.Round)
+		 WHERE p.User = ? AND p.Poll = ? AND p.Round IN (?, ?)
+		 ORDER BY p.Round`
 	var answer UninominalBallotAnswer
 
 	var previousRound uint8
 	if pollInfo.CurrentRound > 0 {
+		// Round is unsigned
 		previousRound = pollInfo.CurrentRound - 1
 	}
 	rows, err := db.DB.QueryContext(ctx, qGetBallots,
 		request.User.Id, pollInfo.Id, previousRound, pollInfo.CurrentRound)
 	must(err)
 	for rows.Next() {
-		var round, alternative uint8
+		var round uint8
+		var alternative uninominalBallot
 		must(rows.Scan(&round, &alternative))
-		setBallot := func(field *NullUInt8) {
-			if field.Valid {
+		setBallot := func(field *uninominalBallot) {
+			if field.State != uninominalBallotStateUndefined {
 				must(errors.New("Duplicated ballot"))
 			}
-			field.Set(alternative)
+			*field = alternative
 		}
 		switch round {
 		case pollInfo.CurrentRound:
