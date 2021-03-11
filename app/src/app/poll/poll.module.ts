@@ -27,6 +27,7 @@ import { PollComponent } from './poll.component';
 import { PollBallotDirective, PollInformationDirective } from './directives';
 import { UninominalBallotComponent } from './uninominal-ballot/uninominal-ballot.component';
 import { CountsInformationComponent } from './counts-information/counts-information.component';
+import { CountsInformationService } from './counts-information/counts-information.service';
 
 @NgModule({
   declarations: [
@@ -46,5 +47,8 @@ import { CountsInformationComponent } from './counts-information/counts-informat
   exports: [
     PollComponent,
   ],
+  providers: [
+    CountsInformationService,
+  ]
 })
 export class PollModule { }

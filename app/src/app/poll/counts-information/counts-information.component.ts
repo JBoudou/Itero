@@ -15,12 +15,10 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-
-import { take } from 'rxjs/operators';
 
 import { PollSubComponent, ServerError } from '../common';
 import { CountInfoAnswer } from '../../api';
+import { CountsInformationService } from './counts-information.service';
 
 /** Extract the first element of a comma separated list, removing one level of enclosing " or '. */
 function extractFontFamily(css: string): string {
@@ -93,7 +91,7 @@ export class CountsInformationComponent implements OnInit, PollSubComponent {
   ];
 
   constructor(
-    private http: HttpClient,
+    private service: CountsInformationService,
   ) { }
 
   private static palette = [ '#602c57', '#f4723c', '#9c365f', '#ffa600', '#d14b55' ];
@@ -105,9 +103,8 @@ export class CountsInformationComponent implements OnInit, PollSubComponent {
     this.options.fontSize = fontSize * 0.9;
     this.options.annotations.textStyle.fontSize = fontSize * 0.75;
 
-    this.http.get<CountInfoAnswer>('/a/info/count/' + this.pollSegment)
-      .pipe(take(1)).subscribe({
-      next: (answer: CountInfoAnswer) => {
+    this.service.information(this.pollSegment).then(
+      (answer: CountInfoAnswer) => {
         // First pass
         var maxCount = 0;
         var sumCount = 0;
@@ -146,10 +143,9 @@ export class CountsInformationComponent implements OnInit, PollSubComponent {
           this.data.push([shortName, entry.Count, tooltip, annotation, style]);
         }
       },
-      error: (err: HttpErrorResponse) => {
-        this.errors.emit({status: err.status, message: err.error.trim()});
-      }
-    });
+      (err: any) =>
+       this.errors.emit(err as ServerError)
+    );
   }
 
 }
