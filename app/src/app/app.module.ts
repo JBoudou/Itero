@@ -19,6 +19,8 @@ import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { HttpClientModule } from '@angular/common/http';
 
+import { MatIconModule }    from '@angular/material/icon'; 
+
 import { AppRoutingModule } from './app-routing.module';
 import { ListModule }       from './list/list.module';
 import { PollModule }       from './poll/poll.module';
@@ -45,6 +47,7 @@ import { DeadRouteComponent } from './dead-route/dead-route.component';
     BrowserModule,
     HttpClientModule,
     ListModule,
+    MatIconModule,
     PollModule,
     SessionModule,
     AppRoutingModule // Must be last
