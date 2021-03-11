@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
 
 import { PollSubComponent, ServerError } from '../common';
 import { CountInfoAnswer } from '../../api';
@@ -50,7 +50,7 @@ function extractFontSize(css: string): number {
   templateUrl: './counts-information.component.html',
   styleUrls: ['./counts-information.component.sass']
 })
-export class CountsInformationComponent implements OnInit, PollSubComponent {
+export class CountsInformationComponent implements OnInit, OnDestroy, PollSubComponent {
 
   @Input() pollSegment: string;
   @Input() round: number|undefined;
@@ -145,6 +145,11 @@ export class CountsInformationComponent implements OnInit, PollSubComponent {
       (err: any) =>
        this.errors.emit(err as ServerError)
     );
+  }
+
+  ngOnDestroy(): void {
+    this.winner.complete();
+    this.errors.complete();
   }
 
 }

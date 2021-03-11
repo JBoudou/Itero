@@ -15,7 +15,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
 
 import { take } from 'rxjs/operators';
 
@@ -43,7 +43,7 @@ export class UninominalBallot implements PollBallot {
   templateUrl: './uninominal-ballot.component.html',
   styleUrls: ['./uninominal-ballot.component.sass']
 })
-export class UninominalBallotComponent implements OnInit, PollBallotComponent {
+export class UninominalBallotComponent implements OnInit, OnDestroy, PollBallotComponent {
 
   @Input() pollSegment: string;
 
@@ -72,6 +72,13 @@ export class UninominalBallotComponent implements OnInit, PollBallotComponent {
         this.errors.emit({status: err.status, message: err.error.trim()});
       }
     });
+  }
+
+  ngOnDestroy(): void {
+    this.errors.complete();
+    this.previousRoundBallot.complete();
+    this.currentRoundBallot.complete();
+    this.justVoteBallot.complete();
   }
 
   onSelect(id: number): void {

@@ -64,6 +64,9 @@ export class CreateComponent implements OnInit, OnDestroy {
     for (const sub of this._subscriptions) {
       sub.unsubscribe();
     }
+    this._stepStatus$.complete();
+    this._validable$.complete();
+    this.infoTemplate$.complete();
   }
 
   onJump(pos: number): void {

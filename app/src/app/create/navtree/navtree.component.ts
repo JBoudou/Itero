@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Component, OnInit, ChangeDetectionStrategy, Input, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, Input, Output, EventEmitter, OnDestroy } from '@angular/core';
 
 import { NavStepStatus } from './navstep.status';
 
@@ -25,7 +25,7 @@ import { NavStepStatus } from './navstep.status';
   styleUrls: ['./navtree.component.sass'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class NavtreeComponent implements OnInit {
+export class NavtreeComponent implements OnInit, OnDestroy {
 
   @Input() stepStatus: NavStepStatus;
   @Input() validable: boolean = false;
@@ -36,6 +36,10 @@ export class NavtreeComponent implements OnInit {
   constructor() { }
 
   ngOnInit(): void {
+  }
+
+  ngOnDestroy(): void {
+    this.navigateTo.complete();
   }
 
   isNavigable(index: number): boolean {

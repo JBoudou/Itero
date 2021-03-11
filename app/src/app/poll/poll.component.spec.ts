@@ -22,9 +22,8 @@ import { EMPTY } from 'rxjs';
 import { ActivatedRouteStub } from '../../testing/activated-route-stub'
 import { DynamicComponentFactoryStub } from '../../testing/dynamic-component-factory-stub'
 
-import { PollComponent } from './poll.component';
+import { PollBallotDirective, PollInformationDirective, PollPreviousDirective, PollComponent } from './poll.component';
 
-import { PollBallotDirective, PollInformationDirective } from './directives';
 import { UninominalBallotComponent } from './uninominal-ballot/uninominal-ballot.component';
 import { CountsInformationComponent } from './counts-information/counts-information.component';
 import { DynamicComponentFactoryService } from '../dynamic-component-factory.service';
@@ -45,7 +44,12 @@ describe('PollComponent', () => {
     sessionSpy = jasmine.createSpyObj('SessionService', ['logNow'], ['logged']);
 
     await TestBed.configureTestingModule({
-      declarations: [ PollComponent, PollBallotDirective, PollInformationDirective ],
+      declarations: [
+        PollComponent,
+        PollBallotDirective,
+        PollInformationDirective,
+        PollPreviousDirective,
+      ],
       imports: [ HttpClientTestingModule ],
       providers: [
         { provide: ActivatedRoute, useValue: activatedRouteStub },
