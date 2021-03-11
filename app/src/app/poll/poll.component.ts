@@ -17,6 +17,7 @@
 
 import {
   Component,
+  Directive,
   OnInit,
   Type,
   ViewChild,
@@ -26,8 +27,9 @@ import {
 
 import { ActivatedRoute, ParamMap } from '@angular/router';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { FormBuilder } from '@angular/forms';
 
-import { Subscription } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
 import { take } from 'rxjs/operators';
 
 import {
@@ -40,17 +42,38 @@ import {
 } from './common';
 
 import { PollAnswer, BallotType, InformationType } from '../api';
-import { PollBallotDirective, PollInformationDirective } from './directives';
 import { DynamicComponentFactoryService } from '../dynamic-component-factory.service';
 import { SessionService } from '../session/session.service';
 
 import { UninominalBallotComponent } from './uninominal-ballot/uninominal-ballot.component';
 import { CountsInformationComponent } from './counts-information/counts-information.component';
 
+@Directive({
+  selector: '[PollBallot]',
+})
+export class PollBallotDirective {
+  constructor(public viewContainerRef: ViewContainerRef) { }
+}
+
+@Directive({
+  selector: '[PollInformation]',
+})
+export class PollInformationDirective {
+  constructor(public viewContainerRef: ViewContainerRef) { }
+}
+
+@Directive({
+  selector: '[PollPrevious]',
+})
+export class PollPreviousDirective {
+  constructor(public viewContainerRef: ViewContainerRef) { }
+}
+
 // Indexes for the sub component.
 const enum SubComponentId {
   Ballot = 0,
-  Information
+  Information,
+  Previous
 }
 
 /**
@@ -73,9 +96,16 @@ export class PollComponent implements OnInit {
   // Anchors to insert the dynamic sub-component into.
   @ViewChild(PollBallotDirective, { static: false }) ballot: PollBallotDirective;
   @ViewChild(PollInformationDirective, { static: false }) information: PollInformationDirective;
+  @ViewChild(PollPreviousDirective, { static: false }) previousInformation: PollPreviousDirective;
+
+  previousForm = this.formBuilder.group({
+    round: [1]
+  });
 
   segment: string;
   answer: PollAnswer;
+  winner$: Observable<string>;
+  displayedResult: number|undefined;
 
   error: ServerError;
 
@@ -95,6 +125,7 @@ export class PollComponent implements OnInit {
     private http: HttpClient,
     private dynamicComponentFactory: DynamicComponentFactoryService,
     private session: SessionService,
+    private formBuilder: FormBuilder,
   ) { }
 
   ngOnInit(): void {
@@ -139,6 +170,11 @@ export class PollComponent implements OnInit {
     return this.answer.PollDeadline.getTime() < Date.now();
   }
 
+  displayPreviousResults(): boolean {
+    return !!this.answer.Active && this.answer.CurrentRound >= 2 &&
+           PollComponent.informationMap.has(this.answer.Information);
+  }
+
   pollEndCase(): string {
     if (this.pollDeadlinePassed()) {
       return this.answer.CurrentRound + 1 === this.answer.MinNbRounds ? 'current' : 'deadlinePassed';
@@ -148,6 +184,24 @@ export class PollComponent implements OnInit {
       return 'current';
     }
     return this.answer.CurrentRound >= this.answer.MinNbRounds ? 'minExceeded' : 'full';
+  }
+
+  onPreviousResult(): void {
+    const round = this.previousForm.value.round;
+    this.displayedResult = undefined;
+    if (!PollComponent.informationMap.has(this.answer.Information)) {
+      console.warn('Wrong inforamtion type');
+      return;
+    }
+    if (!Number.isInteger(round)) {
+      console.warn('No value selected');
+      return;
+    }
+
+    const type = PollComponent.informationMap.get(this.answer.Information);
+    const comp = this.loadSubComponent(SubComponentId.Previous, type) as PollInformationComponent;
+    comp.round = round - 1;
+    this.displayedResult = round;
   }
 
   private static ballotMap = new Map<BallotType, Type<PollBallotComponent>>([
@@ -209,7 +263,8 @@ export class PollComponent implements OnInit {
       const type = PollComponent.informationMap.get(this.answer.Information);
       const comp =
         this.loadSubComponent(SubComponentId.Information, type) as PollInformationComponent;
-      comp.finalResult = !this.answer.Active;
+      comp.round = this.answer.CurrentRound - 1;
+      this.winner$ = comp.winner;
     }
   }
 
@@ -258,6 +313,11 @@ export class PollComponent implements OnInit {
           return undefined;
         }
         return this.information.viewContainerRef;
+      case SubComponentId.Previous:
+        if (this.previousInformation === undefined) {
+          return undefined;
+        }
+        return this.previousInformation.viewContainerRef;
     }
     return undefined;
   }

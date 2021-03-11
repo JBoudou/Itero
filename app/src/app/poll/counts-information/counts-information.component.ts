@@ -53,12 +53,11 @@ function extractFontSize(css: string): number {
 export class CountsInformationComponent implements OnInit, PollSubComponent {
 
   @Input() pollSegment: string;
-  @Input() finalResult: boolean;
+  @Input() round: number|undefined;
+  @Output() winner = new EventEmitter<string>();
   @Output() errors = new EventEmitter<ServerError>();
 
   data: any[][];
-
-  winner: string;
 
   options = {
     bars: 'horizontal',
@@ -103,7 +102,7 @@ export class CountsInformationComponent implements OnInit, PollSubComponent {
     this.options.fontSize = fontSize * 0.9;
     this.options.annotations.textStyle.fontSize = fontSize * 0.75;
 
-    this.service.information(this.pollSegment).then(
+    this.service.information(this.pollSegment, this.round).then(
       (answer: CountInfoAnswer) => {
         // First pass
         var maxCount = 0;
@@ -113,7 +112,7 @@ export class CountsInformationComponent implements OnInit, PollSubComponent {
           sumCount += entry.Count;
           if (entry.Count > maxCount) {
             maxCount = entry.Count;
-            this.winner = entry.Alternative.Name;
+            this.winner.emit(entry.Alternative.Name);
           }
           if (entry.Alternative.Name.length > maxLen) {
             maxLen = entry.Alternative.Name.length;

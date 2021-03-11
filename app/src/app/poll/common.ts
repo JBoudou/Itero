@@ -73,5 +73,6 @@ export interface PollBallotComponent extends PollSubComponent {
  * the information are usualy displayed differently. Most notably, the winner of the poll must be made clear.
  */
 export interface PollInformationComponent extends PollSubComponent {
-  finalResult: boolean;
+  round: number|undefined;
+  winner: Observable<string>;
 }

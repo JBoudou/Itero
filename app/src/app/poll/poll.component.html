@@ -45,7 +45,7 @@
       <ng-template PollBallot></ng-template>
     </div>
       
-    <div class="poll-result" *ngIf="answer.CurrentRound > 0">
+    <div class="poll-result" *ngIf="answer.CurrentRound >= 1">
       <ng-template #finalTmpl>
         <h3 i18n>Final result</h3>
       </ng-template>
@@ -63,7 +63,24 @@
           </ng-container>
         </ng-container>
       </p>
+      <ng-template #winnerTmpl>
+        <p class="final-result" i18n>The winner is <span class="vote">{{winner$ | async}}</span>.</p>
+      </ng-template>
+      <h4 *ngIf="answer.Active else winnerTmpl" i18n>Results of the previous round</h4>
       <ng-template PollInformation></ng-template>
+    </div>
+
+    <div class="poll-previous-results" *ngIf="displayPreviousResults()">
+      <h3 i18n>Previous rounds</h3>
+      <form (submit)="onPreviousResult()" [formGroup]="previousForm" i18n>
+        Display results of round&nbsp;
+        <mat-form-field appearance="standard">
+          <input matInput type="number" size="2" min="1" [max]="answer.CurrentRound - 1" formControlName="round" />
+          <button mat-icon-button matSuffix type="submit"><mat-icon>addchart</mat-icon></button>
+        </mat-form-field>
+      </form>
+      <h4 *ngIf="displayedResult !== undefined" i18n>Results of round {{ displayedResult }}</h4>
+      <ng-template PollPrevious></ng-template>
     </div>
 
   </div>

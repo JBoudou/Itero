@@ -16,15 +16,19 @@
 
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 
 import { GoogleChartsModule } from 'angular-google-charts';
+import { MatButtonModule } from '@angular/material/button';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule }    from '@angular/material/icon'; 
+import { MatInputModule } from '@angular/material/input';
 
 import { PollRoutingModule } from './poll-routing.module';
 import { FormWidgetModule } from '../form-widget/form-widget.module';
 import { SharedModule } from '../shared/shared.module';
 
-import { PollComponent } from './poll.component';
-import { PollBallotDirective, PollInformationDirective } from './directives';
+import { PollBallotDirective, PollInformationDirective, PollPreviousDirective, PollComponent } from './poll.component';
 import { UninominalBallotComponent } from './uninominal-ballot/uninominal-ballot.component';
 import { CountsInformationComponent } from './counts-information/counts-information.component';
 import { CountsInformationService } from './counts-information/counts-information.service';
@@ -35,13 +39,20 @@ import { CountsInformationService } from './counts-information/counts-informatio
     PollBallotDirective,
     PollComponent,
     PollInformationDirective,
+    PollPreviousDirective,
     UninominalBallotComponent,
   ],
   imports: [
     CommonModule,
+    FormsModule,
     FormWidgetModule,
+    MatButtonModule,
+    MatFormFieldModule,
+    MatIconModule,
+    MatInputModule,
     GoogleChartsModule,
     PollRoutingModule,
+    ReactiveFormsModule,
     SharedModule,
   ],
   exports: [
