@@ -51,6 +51,14 @@ func TestCountInfoHandler(t *testing.T) {
 
 	request := makePollRequest(t, pollSegment, &users[0])
 
+	previousRoundRequest := func(t *testing.T, round uint8) srvt.Request {
+		encoded, err := pollSegment.Encode()
+		mustt(t, err)
+		target := "/a/test/" + strconv.FormatUint(uint64(round), 10) + "/" + encoded
+		return srvt.Request{Target: &target, UserId: &users[0]}
+	}
+		
+
 	alt := [3]PollAlternative{
 		{Id: 0, Name: "Ham", Cost: 1},
 		{Id: 1, Name: "Stram", Cost: 1},
@@ -74,7 +82,7 @@ func TestCountInfoHandler(t *testing.T) {
 		{
 			Name:    "Round Zero",
 			Request: request,
-			Checker: srvt.CheckStatus{http.StatusInternalServerError},
+			Checker: srvt.CheckStatus{http.StatusBadRequest},
 		},
 		{
 			Name: "All voted",
@@ -118,6 +126,26 @@ func TestCountInfoHandler(t *testing.T) {
 			},
 			Request: request,
 			Checker: makeChecker([][2]uint32{{0,2},{1,1},{2,0}}),
+		},
+		{
+			Name: "Round 3",
+			Request: previousRoundRequest(t, 3),
+			Checker: srvt.CheckStatus{http.StatusBadRequest},
+		},
+		{
+			Name: "Round 2",
+			Request: previousRoundRequest(t, 2),
+			Checker: makeChecker([][2]uint32{{0,2},{1,1},{2,0}}),
+		},
+		{
+			Name: "Round 1",
+			Request: previousRoundRequest(t, 1),
+			Checker: makeChecker([][2]uint32{{0,1},{1,1},{2,1}}),
+		},
+		{
+			Name: "Round 0",
+			Request: previousRoundRequest(t, 0),
+			Checker: makeChecker([][2]uint32{{2,2},{0,1},{1,0}}),
 		},
 	}
 	srvt.RunFunc(t, tests, CountInfoHandler)

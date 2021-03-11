@@ -64,6 +64,7 @@ export class CreateService {
    * The sent objects must never be modified directly. Use patchQuery() instead.
    */
   get query$(): Observable<Partial<CreateQuery>> {
+    // see _allowQuery$ below for explanations.
     return this._query$.pipe(delayWhen<Partial<CreateQuery>>(() => this._allowQuery$.pipe(filter((b: boolean) => b))));
   }
 

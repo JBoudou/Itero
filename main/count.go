@@ -19,6 +19,7 @@ package main
 import (
 	"context"
 	"net/http"
+	"strconv"
 
 	"github.com/JBoudou/Itero/db"
 	"github.com/JBoudou/Itero/server"
@@ -33,12 +34,26 @@ type CountInfoAnswer struct {
 	Result     []CountInfoEntry
 }
 
+func getPollRoundFromRequest(request *server.Request, fallback uint8) uint8 {
+	remainingLength := len(request.RemainingPath)
+	if remainingLength >= 2 {
+		tmp, err := strconv.Atoi(request.RemainingPath[0])
+		if err == nil {
+			return uint8(tmp)
+		}
+	}
+	return fallback
+}
+
 // CountInfoEntry sends the plurality result of the previous round.
 func CountInfoHandler(ctx context.Context, response server.Response, request *server.Request) {
 	pollInfo, err := checkPollAccess(ctx, request)
 	must(err)
-	if pollInfo.CurrentRound < 1 {
-		err = server.NewHttpError(http.StatusInternalServerError, "Protocol error", "No previous round")
+
+	// Get the round to return results of.
+	round := getPollRoundFromRequest(request, pollInfo.CurrentRound - 1)
+	if round >= pollInfo.CurrentRound {
+		err = server.NewHttpError(http.StatusBadRequest, "Protocol error", "No result for this round")
 		response.SendError(ctx, err)
 		return
 	}
@@ -90,7 +105,7 @@ func CountInfoHandler(ctx context.Context, response server.Response, request *se
 		query = qCountAbstain
 	}
 
-	rows, err := db.DB.QueryContext(ctx, query, pollInfo.Id, pollInfo.CurrentRound - 1)
+	rows, err := db.DB.QueryContext(ctx, query, pollInfo.Id, round)
 	must(err)
 	for i := 0; rows.Next(); i++ {
 		must(rows.Scan(&answer.Result[i].Alternative.Id,
