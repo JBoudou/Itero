@@ -15,20 +15,26 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 
 import { GoogleChartsModule } from 'angular-google-charts';
 
 import { CountsInformationComponent } from './counts-information.component';
+import { CountsInformationService } from './counts-information.service';
 
 describe('CountsInformationComponent', () => {
   let component: CountsInformationComponent;
   let fixture: ComponentFixture<CountsInformationComponent>;
+  let serviceSpy: jasmine.SpyObj<CountsInformationService>;
 
   beforeEach(async () => {
+    serviceSpy = jasmine.createSpyObj('CountsInformationService', {information: Promise.resolve({})});
+
     await TestBed.configureTestingModule({
       declarations: [ CountsInformationComponent ],
-      imports: [ HttpClientTestingModule, GoogleChartsModule ],
+      imports: [ GoogleChartsModule ],
+      providers: [
+        { provide: CountsInformationService, useValue: serviceSpy },
+      ],
     })
     .compileComponents();
   });

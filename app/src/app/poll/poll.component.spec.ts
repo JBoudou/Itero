@@ -17,6 +17,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute } from '@angular/router';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import { ReactiveFormsModule, FormBuilder, FormsModule } from '@angular/forms';
 import { EMPTY } from 'rxjs';
 
 import { ActivatedRouteStub } from '../../testing/activated-route-stub'
@@ -50,8 +51,13 @@ describe('PollComponent', () => {
         PollInformationDirective,
         PollPreviousDirective,
       ],
-      imports: [ HttpClientTestingModule ],
+      imports: [
+        FormsModule,
+        HttpClientTestingModule,
+        ReactiveFormsModule,
+      ],
       providers: [
+        FormBuilder,
         { provide: ActivatedRoute, useValue: activatedRouteStub },
         { provide: DynamicComponentFactoryService, useValue: dynamicFactoryStub },
         { provide: SessionService, useValue: sessionSpy },
