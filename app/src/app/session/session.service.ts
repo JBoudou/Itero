@@ -22,6 +22,7 @@ import { Observable, BehaviorSubject, pipe, UnaryFunction } from 'rxjs';
 import { map, take, tap } from 'rxjs/operators';
 
 import { SessionAnswer } from '../api';
+import { ScheduleOne } from '../shared/schedule-one';
 
 export class SessionInfo {
   readonly logged: boolean;
@@ -63,6 +64,8 @@ export class SessionService {
   }
 
   private _loginRedirectionUrl : string | undefined;
+
+  private _scheduler = new ScheduleOne();
 
   constructor(
     private router: Router,
@@ -125,7 +128,7 @@ export class SessionService {
           console.warn(`Too short refresh time: ${diff} sec.`);
           diff = minRefreshTime;
         }
-        setTimeout(() => { this.refresh(); }, (data.Expires.getTime() - Date.now()) * 0.75);
+        this._scheduler.schedule(() => { this.refresh(); }, (data.Expires.getTime() - Date.now()) * 0.75);
         
         return true;
       }),
@@ -169,7 +172,7 @@ export class SessionService {
     let sessionId = localStorage.getItem("SessionId");
     if (!!sessionId) {
       this.register(sessionId, localStorage.getItem("User"));
-      setTimeout(() => { this.refresh(); }, minRefreshTime);
+      this._scheduler.schedule(() => { this.refresh(); }, minRefreshTime);
     }
   }
 
