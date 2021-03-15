@@ -138,6 +138,7 @@ func TestInsert(t *testing.T) {
 	exec("INSERT INTO Participants (User, Poll, Round) VALUES (?, ?, 0)", userId, pollId)
 	exec("INSERT INTO Ballots (User, Poll, Alternative, Round) VALUES (?, ?, 0, 0)", userId, pollId)
 	exec("UPDATE Polls SET CurrentRound = 1 WHERE Id = ?", pollId)
+	exec("INSERT INTO Participants (User, Poll, Round) VALUES (?, ?, 1)", userId, pollId)
 	exec("INSERT INTO Ballots (User, Poll, Alternative, Round) VALUES (?, ?, 1, 1)", userId, pollId)
 }
 
