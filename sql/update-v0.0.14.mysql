@@ -34,14 +34,19 @@ DROP PROCEDURE Ballots_checker_before;
 DROP TRIGGER Ballots_check_before_insert;
 DROP TRIGGER Ballots_check_before_update;
 
+
+# MariaDB 5.5 does not allow subquery in view's queries (sic!).
+# Therefore we need an intermediate view...
+CREATE SQL SECURITY INVOKER VIEW Participants_workaround AS
+  SELECT Poll
+    FROM Participants
+   GROUP By Poll, User;
+
+
 CREATE SQL SECURITY INVOKER VIEW Participants_Poll_Count AS
-  SELECT p.Poll, COUNT(*) AS Count
-    FROM (
-           SELECT Poll
-             FROM Participants
-            GROUP By Poll, User
-         ) AS p
-   GROUP BY p.Poll;
+  SELECT Poll, COUNT(*) AS Count
+    FROM Participants_workaround
+   GROUP BY Poll;
 
 CREATE SQL SECURITY INVOKER VIEW Participants_Round_Count AS
   SELECT Poll, Round, COUNT(*) AS Count
