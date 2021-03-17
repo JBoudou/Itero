@@ -147,6 +147,17 @@ func TestCountInfoHandler(t *testing.T) {
 			Request: previousRoundRequest(t, 0),
 			Checker: makeChecker([][2]uint32{{2,2},{0,1},{1,0}}),
 		},
+		{
+			Name: "Abstain",
+			Update: func(t *testing.T) {
+				_, err := db.DB.Exec(qBlankVote, pollSegment.Id, 3, users[0])
+				mustt(t, err)
+				env.NextRound(pollSegment.Id)
+				env.Must(t)
+			},
+			Request: request,
+			Checker: makeChecker([][2]uint32{{0,1},{2,1},{1,0}}),
+		},
 	}
 	srvt.RunFunc(t, tests, CountInfoHandler)
 }

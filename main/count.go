@@ -86,7 +86,7 @@ func CountInfoHandler(ctx context.Context, response server.Response, request *se
 		           SELECT b.Poll, b.Alternative as Id, COUNT(*) as Count
 		             FROM Ballots AS b JOIN (
 		                    SELECT User, Poll, MAX(Round) as M
-		                      FROM Ballots
+		                      FROM Participants
 		                     WHERE Round <= ?
 		                     GROUP BY User, Poll
 		             ) AS c ON (b.User, b.Poll, b.Round) = (c.User, c.Poll, c.M)
