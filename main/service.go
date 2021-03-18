@@ -29,6 +29,193 @@ import (
 	"github.com/JBoudou/Itero/events"
 )
 
+// InjectAlarmInService is the injector of an alarm into services.
+var InjectAlarmInService = injectAlarmInService
+
+func injectAlarmInService() alarm.Alarm {
+	return alarm.New(1, alarm.DiscardLaterEvent, alarm.DiscardDuplicates)
+}
+
+var (
+	NothingToDoYet = errors.New("Nothing to do yet")
+)
+
+// Service is the interface for sercives ran by RunService.
+// Such a service must perform some operations on objects identified by an uint32 value.
+// Those operations must be performed at some time.
+type Service interface {
+
+	// ProcessOne performs the operation on the object with the given id.
+	// If no operation has to be done on that object yet, ProcessOne must return NothingToDoYet.
+	ProcessOne(id uint32) error
+
+	// CheckAll returns a list of all objects on which the operation will have to be done.
+	// The list must be sorted in ascending order on the date.
+	// In case of error, Next() called on the returned iterator must return false and Error() must
+	// return the error.
+	CheckAll() IdAndDateIterator
+
+	// CheckOne returns the time at which the operation must be done on the object with the given id.
+	// If no operation has to be done on that object, CheckOne must return zero time.Time.
+	CheckOne(id uint32) time.Time
+
+	// CheckInterval returns the maximal duration between two full check of the object to proceed.
+	CheckInterval() time.Duration
+
+	Logger() LevelLogger
+}
+
+type IdAndDateIterator interface {
+
+	// Next goes to the next entry if it can, returning false otherwise.
+	// Returning true guarantees that a call to IdAndDate will succeed.
+	// Next must be called before any call to IdAndDate.
+	Next() bool
+
+	IdAndDate() (uint32, time.Time)
+	Err() error
+	Close() error
+}
+
+// LevelLogger is a temporary interface before the new logger facility is implemented.
+type LevelLogger interface {
+	Logf(format string, v ...interface{})
+	Warnf(format string, v ...interface{})
+	Errorf(format string, v ...interface{})
+}
+
+// EasyLogger is a temporary implementation of LevelLogger.
+type EasyLogger struct {}
+
+func (self EasyLogger) Logf(format string, v ...interface{}) {
+	log.Printf(format, v...)
+}
+
+func (self EasyLogger) Warnf(format string, v ...interface{}) {
+	log.Printf("Warn: " + format, v...)
+}
+
+func (self EasyLogger) Errorf(format string, v ...interface{}) {
+	log.Printf("Err: " + format, v...)
+}
+
+// EventReceiver is the interface implemented by services willing to react to some events.
+type EventReceiver interface {
+	FilterEvent(events.Event) bool
+	ReceiveEvent(events.Event, ServiceRunnerControl)
+}
+
+type ServiceRunnerControl interface {
+
+	// Schedule asks the runner to schedule the object with the given id for being processed.
+	Schedule(id uint32)
+
+	// StopService asks the runner to stop the service as soon as possible.
+	StopService()
+}
+
+// Implementation //
+
+// In this first implementation of the new service framework, when the date of a task is already
+// over but ProcessOne returned NothingToDoYet, then the task is scheduled after rescheduleDelay.
+const rescheduleDelay = time.Second
+
+type runner interface {
+	run()
+}
+
+type serviceRunner struct {
+	service       Service
+	alarm         alarm.Alarm
+	lastFullCheck time.Time
+}
+
+func (self *serviceRunner) run() {
+	self.init()
+	for evt := range self.alarm.Receive {
+		self.handleEvent(evt)
+	}
+}
+
+func (self *serviceRunner) init() {
+	self.alarm = InjectAlarmInService()
+	self.fullCheck()
+}
+
+func (self *serviceRunner) fullCheck() {
+	self.lastFullCheck = time.Now()
+	it := self.service.CheckAll()
+	defer it.Close()
+
+	for it.Next() {
+		id, date := it.IdAndDate()
+
+		if date.Before(time.Now()) {
+			if self.processWithDate(id, date) {
+				return
+			}
+		} else {
+			self.schedule(id, date)
+			return
+		}
+	}
+
+	self.scheduleFullCheck()
+}
+
+func (self *serviceRunner) schedule(id uint32, date time.Time) {
+	minFuture := time.Now().Add(rescheduleDelay)
+	if date.Before(minFuture) {
+		date = minFuture
+	}
+	self.service.Logger().Logf("Next action %v for %d", date, id)
+	self.alarm.Send <- alarm.Event{Time: date, Data: id}
+}
+
+func (self *serviceRunner) scheduleFullCheck() {
+	self.alarm.Send <- alarm.Event{Time: self.lastFullCheck.Add(self.service.CheckInterval())}
+}
+
+func (self *serviceRunner) handleEvent(evt alarm.Event) {
+	if evt.Data == nil {
+		self.fullCheck()
+	} else {
+		sent := self.processNoDate(evt.Data.(uint32))
+		if !sent && evt.Remaining == 0 {
+			self.scheduleFullCheck()
+		}
+	}
+}
+
+func (self *serviceRunner) processNoDate(id uint32) bool {
+	date := self.service.CheckOne(id)
+	if date.IsZero() {
+		self.service.Logger().Logf("Nothing to do for %d", id)
+		return false
+	}
+	return self.processWithDate(id, date)
+}
+
+func (self *serviceRunner) processWithDate(id uint32, date time.Time) bool {
+	err := self.service.ProcessOne(id)
+	if err == nil {
+		self.service.Logger().Logf("Done for %d", id)
+		return false
+	}
+	if errors.Is(err, NothingToDoYet) {
+		self.schedule(id, date)
+		return true
+	}
+	self.service.Logger().Errorf("Error processing %d: %v", id, err)
+	return false
+}
+
+func RunService(service Service) {
+	go (&serviceRunner{service: service}).run()
+}
+
+// OLD CODE //
+
 const minWaitDuration = time.Second
 
 // pollService is the base classes of some services like nextRound and closePoll.
@@ -176,7 +363,7 @@ func (self *pollService) nextAlarm_helper(qNext string, defaultWait time.Duratio
 	if err := row.Scan(&pollId, &ret.Time, &timestamp); err == nil {
 		self.adjust = (self.adjust - time.Since(timestamp)) / 2
 		ret.Time = ret.Time.Add(self.adjust)
-		if (time.Until(ret.Time) < minWaitDuration) {
+		if time.Until(ret.Time) < minWaitDuration {
 			ret.Time = time.Now().Add(minWaitDuration)
 		}
 		ret.Data = pollId
