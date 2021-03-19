@@ -17,7 +17,6 @@
 package main
 
 import (
-	"log"
 	"reflect"
 	"testing"
 	"time"
@@ -35,8 +34,10 @@ func testRunService(t *testing.T, service serviceToTest, idle func()) {
 	fakeAlarm, alarmCtrl := alarm.NewFakeAlarm()
 	oldAlarmInjector := func() alarm.Alarm { return fakeAlarm }
 	oldAlarmInjector, InjectAlarmInService = InjectAlarmInService, oldAlarmInjector
+	ticker := time.NewTicker(time.Second / 5)
 
 	defer func() {
+		ticker.Stop()
 		InjectAlarmInService = oldAlarmInjector
 		alarmCtrl.Close()
 	}()
@@ -51,8 +52,7 @@ mainLoop:
 			time.Sleep(2 * time.Millisecond)
 			break mainLoop
 
-		default:
-			log.Println("tick")
+		case <-ticker.C:
 			idle()
 			alarmCtrl.Tick()
 		}
@@ -100,7 +100,6 @@ func (self *testRunServiceService) nextState() {
 }
 
 func (self *testRunServiceService) ProcessOne(id uint32) error {
-	self.Logger().Logf("Processing %d", id)
 	if self.state != id {
 		self.t.Errorf("Proceeding %d instead of %d", id, self.state)
 		if id > self.state {
@@ -223,7 +222,6 @@ func (self *testRunServiceServiceEvent) ReceiveEvent(evt events.Event, ctrl Serv
 	if !ok {
 		return
 	}
-	self.Logger().Logf("Receiving event %d", evtId)
 	ctrl.Schedule(uint32(evtId))
 }
 

@@ -75,7 +75,7 @@ type IdAndDateIterator interface {
 
 	// Next goes to the next entry if it can, returning false otherwise.
 	// Returning true guarantees that a call to IdAndDate will succeed.
-	// Next must be called before any call to IdAndDate.
+	// Next must be called before once before the first call to IdAndDate.
 	Next() bool
 
 	IdAndDate() (uint32, time.Time)
@@ -112,6 +112,34 @@ type ServiceRunnerControl interface {
 
 	// StopService asks the runner to stop the service as soon as possible.
 	StopService()
+}
+
+type StopServiceFunc func()
+
+// RunService runs a service in the background.
+//
+// All methods of the service are called from the same goroutine, wich is different from the
+// goroutine RunService was run from.
+// If the service implements the EventReceiver interface, the runner installs an AsyncForwarder on
+// events.DefaultManager and calls EventReceiver.ReceiveEvent for each received event.
+// The returned function must be called to stop the service and free the resources associated with
+// the runner.
+func RunService(service Service) StopServiceFunc {
+	runner := &serviceRunner{service: service}
+
+	if eventReceiver, ok := service.(EventReceiver); ok {
+		evtChan := make(chan events.Event, 64)
+		events.AddReceiver(events.AsyncForwarder{
+			Filter: eventReceiver.FilterEvent,
+			Chan:   evtChan,
+		})
+		go runner.runWithEvents(evtChan, eventReceiver)
+
+	} else {
+		go runner.run()
+
+	}
+	return runner.StopService
 }
 
 // Implementation //
@@ -189,20 +217,15 @@ func (self *serviceRunner) fullCheck() {
 	self.lastFullCheck = time.Now()
 	it := self.service.CheckAll()
 	defer it.Close()
-	defer func() {
-		self.service.Logger().Logf("fullCheck terminated")
-	}()
 
 	for it.Next() {
 		id, date := it.IdAndDate()
-		self.service.Logger().Logf("fullchecking %d for %v", id, date)
 
 		if date.Before(time.Now()) {
 			if self.processWithDate(id, date) {
 				return
 			}
 		} else {
-			self.service.Logger().Logf("%v not before %v", date, time.Now())
 			if self.schedule(id, date) {
 				return
 			}
@@ -264,26 +287,6 @@ func (self *serviceRunner) processWithDate(id uint32, date time.Time) bool {
 
 func (self *serviceRunner) Schedule(id uint32) {
 	self.schedule(id, time.Time{})
-}
-
-type StopServiceFunc func()
-
-func RunService(service Service) StopServiceFunc {
-	runner := &serviceRunner{service: service}
-
-	if eventReceiver, ok := service.(EventReceiver); ok {
-		evtChan := make(chan events.Event, 64)
-		events.AddReceiver(events.AsyncForwarder{
-			Filter: eventReceiver.FilterEvent,
-			Chan:   evtChan,
-		})
-		go runner.runWithEvents(evtChan, eventReceiver)
-
-	} else {
-		go runner.run()
-
-	}
-	return runner.StopService
 }
 
 // OLD CODE //
