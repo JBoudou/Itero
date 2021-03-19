@@ -137,7 +137,7 @@ mainLoop:
 }
 
 func NewFakeAlarm() (Alarm, FakeAlarmController) {
-	in := make(chan Event, 1)
+	in := make(chan Event, 16)
 	out := make(chan Event)
 	alarm := Alarm{Send: in, Receive: out}
 	runner := newFakeAlarm()

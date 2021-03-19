@@ -33,7 +33,7 @@ import (
 var InjectAlarmInService = injectAlarmInService
 
 func injectAlarmInService() alarm.Alarm {
-	return alarm.New(1, alarm.DiscardLaterEvent, alarm.DiscardDuplicates)
+	return alarm.New(16, alarm.DiscardLaterEvent, alarm.DiscardDuplicates)
 }
 
 var (
@@ -63,6 +63,12 @@ type Service interface {
 	CheckInterval() time.Duration
 
 	Logger() LevelLogger
+}
+
+// EventReceiver is the interface implemented by services willing to react to some events.
+type EventReceiver interface {
+	FilterEvent(events.Event) bool
+	ReceiveEvent(events.Event, ServiceRunnerControl)
 }
 
 type IdAndDateIterator interface {
@@ -97,12 +103,6 @@ func (self EasyLogger) Warnf(format string, v ...interface{}) {
 
 func (self EasyLogger) Errorf(format string, v ...interface{}) {
 	log.Printf("Err: "+format, v...)
-}
-
-// EventReceiver is the interface implemented by services willing to react to some events.
-type EventReceiver interface {
-	FilterEvent(events.Event) bool
-	ReceiveEvent(events.Event, ServiceRunnerControl)
 }
 
 type ServiceRunnerControl interface {
@@ -150,13 +150,38 @@ mainLoop:
 	}
 }
 
+func (self *serviceRunner) runWithEvents(evtCh <-chan events.Event, receiver EventReceiver) {
+	self.init()
+mainLoop:
+	for true {
+		select {
+
+		case evt, ok := <-self.alarm.Receive:
+			if !ok {
+				break mainLoop
+			}
+			self.handleEvent(evt)
+
+		case evt, ok := <-evtCh:
+			if !ok {
+				break mainLoop
+			}
+			receiver.ReceiveEvent(evt, self)
+
+		case <-self.stopped:
+			break mainLoop
+
+		}
+	}
+}
+
 func (self *serviceRunner) init() {
 	self.alarm = InjectAlarmInService()
 	self.stopped = make(chan struct{})
 	self.fullCheck()
 }
 
-func (self *serviceRunner) stop() {
+func (self *serviceRunner) StopService() {
 	close(self.stopped)
 }
 
@@ -164,30 +189,45 @@ func (self *serviceRunner) fullCheck() {
 	self.lastFullCheck = time.Now()
 	it := self.service.CheckAll()
 	defer it.Close()
+	defer func() {
+		self.service.Logger().Logf("fullCheck terminated")
+	}()
 
 	for it.Next() {
 		id, date := it.IdAndDate()
+		self.service.Logger().Logf("fullchecking %d for %v", id, date)
 
 		if date.Before(time.Now()) {
 			if self.processWithDate(id, date) {
 				return
 			}
 		} else {
-			self.schedule(id, date)
-			return
+			self.service.Logger().Logf("%v not before %v", date, time.Now())
+			if self.schedule(id, date) {
+				return
+			}
 		}
 	}
 
 	self.scheduleFullCheck()
 }
 
-func (self *serviceRunner) schedule(id uint32, date time.Time) {
+func (self *serviceRunner) schedule(id uint32, date time.Time) bool {
+	if date.IsZero() {
+		date = self.service.CheckOne(id)
+		if date.IsZero() {
+			self.service.Logger().Logf("Nothing to do for %d", id)
+			return false
+		}
+	}
+
 	minFuture := time.Now().Add(rescheduleDelay)
 	if date.Before(minFuture) {
 		date = minFuture
 	}
-	self.service.Logger().Logf("Next action %v for %d", date, id)
 	self.alarm.Send <- alarm.Event{Time: date, Data: id}
+	self.service.Logger().Logf("Next action %v for %d", date, id)
+	return true
 }
 
 func (self *serviceRunner) scheduleFullCheck() {
@@ -216,26 +256,34 @@ func (self *serviceRunner) processWithDate(id uint32, date time.Time) bool {
 		return false
 	}
 	if errors.Is(err, NothingToDoYet) {
-		if date.IsZero() {
-			date = self.service.CheckOne(id)
-			if date.IsZero() {
-				self.service.Logger().Logf("Nothing to do for %d", id)
-				return false
-			}
-		}
-		self.schedule(id, date)
-		return true
+		return self.schedule(id, date)
 	}
 	self.service.Logger().Errorf("Error processing %d: %v", id, err)
 	return false
+}
+
+func (self *serviceRunner) Schedule(id uint32) {
+	self.schedule(id, time.Time{})
 }
 
 type StopServiceFunc func()
 
 func RunService(service Service) StopServiceFunc {
 	runner := &serviceRunner{service: service}
-	go runner.run()
-	return func() { runner.stop() }
+
+	if eventReceiver, ok := service.(EventReceiver); ok {
+		evtChan := make(chan events.Event, 64)
+		events.AddReceiver(events.AsyncForwarder{
+			Filter: eventReceiver.FilterEvent,
+			Chan:   evtChan,
+		})
+		go runner.runWithEvents(evtChan, eventReceiver)
+
+	} else {
+		go runner.run()
+
+	}
+	return runner.StopService
 }
 
 // OLD CODE //

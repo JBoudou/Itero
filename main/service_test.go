@@ -17,6 +17,7 @@
 package main
 
 import (
+	"log"
 	"reflect"
 	"testing"
 	"time"
@@ -24,6 +25,45 @@ import (
 	"github.com/JBoudou/Itero/alarm"
 	"github.com/JBoudou/Itero/events"
 )
+
+type serviceToTest interface {
+	Service
+	closeChannel() <-chan struct{}
+}
+
+func testRunService(t *testing.T, service serviceToTest, idle func()) {
+	fakeAlarm, alarmCtrl := alarm.NewFakeAlarm()
+	oldAlarmInjector := func() alarm.Alarm { return fakeAlarm }
+	oldAlarmInjector, InjectAlarmInService = InjectAlarmInService, oldAlarmInjector
+
+	defer func() {
+		InjectAlarmInService = oldAlarmInjector
+		alarmCtrl.Close()
+	}()
+
+	stopFunc := RunService(service)
+	defer stopFunc()
+
+mainLoop:
+	for true {
+		select {
+		case <-service.closeChannel():
+			time.Sleep(2 * time.Millisecond)
+			break mainLoop
+
+		default:
+			log.Println("tick")
+			idle()
+			alarmCtrl.Tick()
+		}
+	}
+
+	if !t.Failed() && alarmCtrl.QueueLength() == 0 {
+		t.Errorf("Alarm queue is empty.")
+	}
+}
+
+// Base test without any event //
 
 const (
 	testRunServiceNbTasks   = 4
@@ -37,10 +77,19 @@ const (
 //  2 -> must be delayed twice before been done
 //  3 -> does not have to be done once the previous ones have been done
 type testRunServiceService struct {
+	t        *testing.T
+	start time.Time
 	state    uint32
 	checkCnt int
-	t        *testing.T
 	closeCh  chan struct{}
+}
+
+func newTestRunServiceService(t *testing.T) *testRunServiceService {
+	return &testRunServiceService{
+		t: t,
+		start: time.Now(),
+		closeCh: make(chan struct{}),
+	}
 }
 
 func (self *testRunServiceService) nextState() {
@@ -51,8 +100,12 @@ func (self *testRunServiceService) nextState() {
 }
 
 func (self *testRunServiceService) ProcessOne(id uint32) error {
+	self.Logger().Logf("Processing %d", id)
 	if self.state != id {
 		self.t.Errorf("Proceeding %d instead of %d", id, self.state)
+		if id > self.state {
+			self.state = id
+		}
 	}
 
 	if id == 2 && self.checkCnt < 2 {
@@ -68,21 +121,23 @@ func (self *testRunServiceService) ProcessOne(id uint32) error {
 }
 
 func (self *testRunServiceService) CheckAll() IdAndDateIterator {
-	return &testRunServiceIterator{service: self, pos: self.state, start: time.Now()}
+	return &testRunServiceIterator{
+		service: self,
+		pos:     self.state,
+		end:     testRunServiceNbTasks,
+		start:   self.start,
+	}
 }
 
 func (self *testRunServiceService) CheckOne(id uint32) time.Time {
-	ret := time.Now()
+	ret := self.start.Add(time.Duration(id) * testRunServiceTaskDelay)
 	if id == 3 && self.state == 3 {
 		self.nextState()
 		return time.Time{}
 	}
 	if id == 2 && self.state == 2 && self.checkCnt < 2 {
 		self.checkCnt += 1
-		return ret.Add(testRunServiceTaskDelay)
-	}
-	if id > self.state {
-		return ret.Add(time.Duration(id-self.state) * testRunServiceTaskDelay)
+		return ret.Add(time.Duration(time.Duration(self.checkCnt) * time.Second))
 	}
 	return ret
 }
@@ -95,9 +150,14 @@ func (self *testRunServiceService) Logger() LevelLogger {
 	return EasyLogger{}
 }
 
+func (self *testRunServiceService) closeChannel() <-chan struct{} {
+	return self.closeCh
+}
+
 type testRunServiceIterator struct {
 	service *testRunServiceService
 	pos     uint32
+	end     uint32
 	err     error
 	start   time.Time
 }
@@ -107,11 +167,11 @@ func (self *testRunServiceIterator) Next() bool {
 		return false
 	}
 	self.pos += 1
-	return self.pos <= testRunServiceNbTasks
+	return self.pos <= self.end
 }
 
 func (self *testRunServiceIterator) IdAndDate() (uint32, time.Time) {
-	return self.pos - 1, self.start.Add(time.Duration(self.pos) * testRunServiceTaskDelay)
+	return self.pos - 1, self.start.Add(time.Duration(self.pos - 1) * testRunServiceTaskDelay)
 }
 
 func (self *testRunServiceIterator) Err() error {
@@ -123,36 +183,84 @@ func (self *testRunServiceIterator) Close() error {
 }
 
 func TestRunService_noEvents(t *testing.T) {
-	fakeAlarm, alarmCtrl := alarm.NewFakeAlarm()
-	oldAlarmInjector := func() alarm.Alarm { return fakeAlarm }
-	oldAlarmInjector, InjectAlarmInService = InjectAlarmInService, oldAlarmInjector
+	testRunService(t, newTestRunServiceService(t), func(){})
+}
 
-	service := &testRunServiceService{t: t, closeCh: make(chan struct{})}
+// Test with events, but no event received //
 
-	defer func() {
-		InjectAlarmInService = oldAlarmInjector
-		alarmCtrl.Close()
-	}()
+type testRunServiceServiceDumb struct {
+	*testRunServiceService
+}
 
-	stopFunc := RunService(service)
-	defer stopFunc()
+func (self *testRunServiceServiceDumb) FilterEvent(events.Event) bool {
+	return false
+}
 
-mainLoop:
-	for true {
-		select {
-		case <-service.closeCh:
-			time.Sleep(2 * time.Millisecond)
-			break mainLoop
+func (self *testRunServiceServiceDumb) ReceiveEvent(events.Event, ServiceRunnerControl) {
+}
 
-		default:
-			alarmCtrl.Tick()
-		}
+func TestRunService_dumbEvents(t *testing.T) {
+	testRunService(t, &testRunServiceServiceDumb{
+		testRunServiceService: newTestRunServiceService(t),
+	}, func() {})
+}
+
+// Test with real events //
+
+type testRunServiceEvent uint32
+
+type testRunServiceServiceEvent struct {
+	*testRunServiceService
+}
+
+func (self *testRunServiceServiceEvent) FilterEvent(evt events.Event) bool {
+	_, ok := evt.(testRunServiceEvent)
+	return ok
+}
+
+func (self *testRunServiceServiceEvent) ReceiveEvent(evt events.Event, ctrl ServiceRunnerControl) {
+	evtId, ok := evt.(testRunServiceEvent)
+	if !ok {
+		return
 	}
+	self.Logger().Logf("Receiving event %d", evtId)
+	ctrl.Schedule(uint32(evtId))
+}
 
-	if !t.Failed() && alarmCtrl.QueueLength() == 0 {
-		t.Errorf("Alarm queue is empty.")
+func (self *testRunServiceServiceEvent) CheckAll() IdAndDateIterator {
+	return &testRunServiceIterator{
+		service: self.testRunServiceService,
+		pos:     self.state,
+		end:     2,
+		start:   time.Now().Add(-1 * time.Second),
 	}
 }
+
+type testRunServiceEventSender struct {
+	wait uint32
+	pos uint32
+	end uint32
+}
+
+func (self *testRunServiceEventSender) send() {
+	if self.wait > 0 {
+		self.wait -= 1
+		return
+	}
+	if self.pos < self.end {
+		events.Send(testRunServiceEvent(self.pos))
+		self.pos += 1
+		return
+	}
+}
+
+func TestRunService_events(t *testing.T) {
+	testRunService(t, &testRunServiceServiceEvent{
+		testRunServiceService: newTestRunServiceService(t),
+	},
+	(&testRunServiceEventSender{wait: 1, pos: 2, end: testRunServiceNbTasks}).send)
+}
+
 
 // OLD CODE //
 
