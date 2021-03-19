@@ -25,6 +25,129 @@ import (
 	"github.com/JBoudou/Itero/events"
 )
 
+const (
+	testRunServiceNbTasks   = 4
+	testRunServiceTaskDelay = time.Minute
+)
+
+// testRunServiceTaskDelay is a testing service.
+// It has testRunServiceNbTasks tasks:
+//  0 -> has to be done right now
+//  1 -> has to be done after
+//  2 -> must be delayed twice before been done
+//  3 -> does not have to be done once the previous ones have been done
+type testRunServiceService struct {
+	state    uint32
+	checkCnt int
+	t        *testing.T
+	failed bool
+	closeCh chan<- bool
+}
+
+func (self *testRunServiceService) nextState() {
+	self.state += 1
+	if self.state >= testRunServiceNbTasks {
+		self.closeCh <- !self.failed
+		close(self.closeCh)
+	}
+}
+
+func (self *testRunServiceService) ProcessOne(id uint32) error {
+	if self.state != id {
+		self.t.Errorf("Proceeding %d instead of %d", id, self.state)
+		self.failed = true
+	}
+
+	self.nextState()
+	return nil
+}
+
+func (self *testRunServiceService) CheckAll() IdAndDateIterator {
+	return &testRunServiceIterator{service: self, pos: self.state, start: time.Now()}
+}
+
+func (self *testRunServiceService) CheckOne(id uint32) time.Time {
+	ret := time.Now()
+	if id == 3 && self.state == 3 {
+		self.nextState()
+		return time.Time{}
+	}
+	if id == 2 && self.state == 2 && self.checkCnt < 2 {
+		self.checkCnt += 1
+		return ret.Add(testRunServiceTaskDelay)
+	}
+	if id > self.state {
+		return ret.Add(time.Duration(id-self.state) * testRunServiceTaskDelay)
+	}
+	return ret
+}
+
+func (self *testRunServiceService) CheckInterval() time.Duration {
+	return time.Duration(testRunServiceNbTasks+2) * testRunServiceTaskDelay
+}
+
+func (self *testRunServiceService) Logger() LevelLogger {
+	return EasyLogger{}
+}
+
+type testRunServiceIterator struct {
+	service *testRunServiceService
+	pos     uint32
+	err     error
+	start   time.Time
+}
+
+func (self *testRunServiceIterator) Next() bool {
+	if self.err != nil {
+		return false
+	}
+	self.pos += 1
+	return self.pos <= testRunServiceNbTasks
+}
+
+func (self *testRunServiceIterator) IdAndDate() (uint32, time.Time) {
+	return self.pos - 1, self.start.Add(time.Duration(self.pos) * testRunServiceTaskDelay)
+}
+
+func (self *testRunServiceIterator) Err() error {
+	return self.err
+}
+
+func (self *testRunServiceIterator) Close() error {
+	return self.err
+}
+
+func TestRunService_noEvents(t *testing.T) {
+	fakeAlarm, alarmCtrl := alarm.NewFakeAlarm()
+	oldAlarmInjector := func() alarm.Alarm { return fakeAlarm; }
+	oldAlarmInjector, InjectAlarmInService = InjectAlarmInService, oldAlarmInjector
+
+	resultCh := make(chan bool)
+	service := &testRunServiceService{t: t, closeCh: resultCh}
+
+	defer func() {
+		InjectAlarmInService = oldAlarmInjector
+		alarmCtrl.Close()
+		// TODO stop the service
+	} ()
+
+	RunService(service)
+
+mainLoop:
+	for true {
+		select {
+		case <- resultCh:
+			// TODO if result is true check that the alarm queue is not empty
+			break mainLoop
+
+		default:
+			alarmCtrl.Tick()
+		}
+	}
+}
+
+// OLD CODE //
+
 func TestPollService_updateLastCheck(t *testing.T) {
 	pollService := &pollService{}
 	pollService.updateLastCheck()

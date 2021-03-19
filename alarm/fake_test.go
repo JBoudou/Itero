@@ -21,6 +21,8 @@ import (
 	"time"
 )
 
+const otherRoutineWait = 2 * time.Millisecond
+
 func nonBlockingEventReceive(ch <-chan Event) *Event {
 	select {
 	case evt := <-ch:
@@ -30,18 +32,68 @@ func nonBlockingEventReceive(ch <-chan Event) *Event {
 	}
 }
 
+func isIntWithValue(a interface{}, b int) bool {
+	asInt, ok := a.(int)
+	return ok && (asInt == b)
+}
+
 func TestFakeAlarm(t *testing.T) {
 	alarm, ctrl := NewFakeAlarm()
+	defer ctrl.Close()
 
-	alarm.Send <- Event{Time: time.Date(2000, time.January, 1, 1, 1, 1, 0, time.Local)}
-	time.Sleep(10*time.Millisecond)
-	if got := nonBlockingEventReceive(alarm.Receive); got != nil {
-		t.Errorf("Expect no event to be received. Got %v.", *got)
-	}
+	t.Run("Tick sends event", func(t *testing.T) {
+		alarm.Send <- Event{Time: time.Date(2000, time.January, 1, 1, 1, 1, 0, time.Local)}
+		time.Sleep(otherRoutineWait)
+		if got := nonBlockingEventReceive(alarm.Receive); got != nil {
+			t.Errorf("Expect no event to be received. Got %v.", *got)
+		}
 
-	ctrl.Tick()
-	time.Sleep(10*time.Millisecond)
-	if got := nonBlockingEventReceive(alarm.Receive); got != nil {
-		t.Errorf("Expect event to be received. Got nil.")
-	}
+		ctrl.Tick()
+		time.Sleep(otherRoutineWait)
+		if got := nonBlockingEventReceive(alarm.Receive); got == nil {
+			t.Errorf("Expect event to be received. Got nil.")
+		}
+	})
+
+	t.Run("Event are ordered", func(t *testing.T) {
+		alarm.Send <- Event{
+			Time: time.Date(2002, time.January, 1, 1, 1, 1, 0, time.Local),
+			Data: int(1),
+		}
+		alarm.Send <- Event{
+			Time: time.Date(2000, time.January, 1, 1, 1, 1, 0, time.Local),
+			Data: int(0),
+		}
+		time.Sleep(otherRoutineWait)
+
+		ctrl.Tick()
+		time.Sleep(otherRoutineWait)
+		if got := nonBlockingEventReceive(alarm.Receive); got != nil && !isIntWithValue(got.Data, 0) {
+			t.Errorf("Wrong event received. Expect 0. Got %v.", got)
+		}
+
+		ctrl.Tick()
+		time.Sleep(otherRoutineWait)
+		if got := nonBlockingEventReceive(alarm.Receive); got != nil && !isIntWithValue(got.Data, 1) {
+			t.Errorf("Wrong event received. Expect 1. Got %v.", got)
+		}
+	})
+
+	t.Run("Remaining is set correctly", func(t *testing.T) {
+		alarm.Send <- Event{ Time: time.Date(2000, time.January, 1, 1, 1, 1, 0, time.Local) }
+		alarm.Send <- Event{ Time: time.Date(2002, time.January, 1, 1, 1, 1, 0, time.Local) }
+		time.Sleep(otherRoutineWait)
+
+		ctrl.Tick()
+		time.Sleep(otherRoutineWait)
+		if got := nonBlockingEventReceive(alarm.Receive); got != nil && got.Remaining != 1 {
+			t.Errorf("Wrong Remaining. Expect 1. Got %v.", got)
+		}
+
+		ctrl.Tick()
+		time.Sleep(otherRoutineWait)
+		if got := nonBlockingEventReceive(alarm.Receive); got != nil && got.Remaining != 0 {
+			t.Errorf("Wrong Remaining. Expect 0. Got %v.", got)
+		}
+	})
 }

@@ -100,7 +100,9 @@ mainLoop:
 			if len(queue) == 0 {
 				continue
 			}
-			send <- heap.Pop(&queue).(Event)
+			evt := heap.Pop(&queue).(Event)
+			evt.Remaining = len(queue)
+			send <- evt
 		}
 	}
 }
@@ -108,7 +110,7 @@ mainLoop:
 func NewFakeAlarm() (Alarm, FakeAlarmController) {
 	in := make(chan Event, 1)
 	out := make(chan Event)
-	bch := make(chan bool)
+	bch := make(chan bool, 1)
 	alarm := Alarm{Send: in, Receive: out}
 	runner := fakeAlarm{control: bch}
 	go runner.run(in, bch, out)
