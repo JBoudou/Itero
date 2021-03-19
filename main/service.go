@@ -85,18 +85,18 @@ type LevelLogger interface {
 }
 
 // EasyLogger is a temporary implementation of LevelLogger.
-type EasyLogger struct {}
+type EasyLogger struct{}
 
 func (self EasyLogger) Logf(format string, v ...interface{}) {
 	log.Printf(format, v...)
 }
 
 func (self EasyLogger) Warnf(format string, v ...interface{}) {
-	log.Printf("Warn: " + format, v...)
+	log.Printf("Warn: "+format, v...)
 }
 
 func (self EasyLogger) Errorf(format string, v ...interface{}) {
-	log.Printf("Err: " + format, v...)
+	log.Printf("Err: "+format, v...)
 }
 
 // EventReceiver is the interface implemented by services willing to react to some events.
@@ -128,18 +128,36 @@ type serviceRunner struct {
 	service       Service
 	alarm         alarm.Alarm
 	lastFullCheck time.Time
+	stopped       chan struct{}
 }
 
 func (self *serviceRunner) run() {
 	self.init()
-	for evt := range self.alarm.Receive {
-		self.handleEvent(evt)
+mainLoop:
+	for true {
+		select {
+
+		case evt, ok := <-self.alarm.Receive:
+			if !ok {
+				break mainLoop
+			}
+			self.handleEvent(evt)
+
+		case <-self.stopped:
+			break mainLoop
+
+		}
 	}
 }
 
 func (self *serviceRunner) init() {
 	self.alarm = InjectAlarmInService()
+	self.stopped = make(chan struct{})
 	self.fullCheck()
+}
+
+func (self *serviceRunner) stop() {
+	close(self.stopped)
 }
 
 func (self *serviceRunner) fullCheck() {
@@ -188,12 +206,7 @@ func (self *serviceRunner) handleEvent(evt alarm.Event) {
 }
 
 func (self *serviceRunner) processNoDate(id uint32) bool {
-	date := self.service.CheckOne(id)
-	if date.IsZero() {
-		self.service.Logger().Logf("Nothing to do for %d", id)
-		return false
-	}
-	return self.processWithDate(id, date)
+	return self.processWithDate(id, time.Time{})
 }
 
 func (self *serviceRunner) processWithDate(id uint32, date time.Time) bool {
@@ -203,6 +216,13 @@ func (self *serviceRunner) processWithDate(id uint32, date time.Time) bool {
 		return false
 	}
 	if errors.Is(err, NothingToDoYet) {
+		if date.IsZero() {
+			date = self.service.CheckOne(id)
+			if date.IsZero() {
+				self.service.Logger().Logf("Nothing to do for %d", id)
+				return false
+			}
+		}
 		self.schedule(id, date)
 		return true
 	}
@@ -210,8 +230,12 @@ func (self *serviceRunner) processWithDate(id uint32, date time.Time) bool {
 	return false
 }
 
-func RunService(service Service) {
-	go (&serviceRunner{service: service}).run()
+type StopServiceFunc func()
+
+func RunService(service Service) StopServiceFunc {
+	runner := &serviceRunner{service: service}
+	go runner.run()
+	return func() { runner.stop() }
 }
 
 // OLD CODE //

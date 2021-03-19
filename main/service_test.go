@@ -40,14 +40,12 @@ type testRunServiceService struct {
 	state    uint32
 	checkCnt int
 	t        *testing.T
-	failed bool
-	closeCh chan<- bool
+	closeCh  chan struct{}
 }
 
 func (self *testRunServiceService) nextState() {
 	self.state += 1
 	if self.state >= testRunServiceNbTasks {
-		self.closeCh <- !self.failed
 		close(self.closeCh)
 	}
 }
@@ -55,7 +53,14 @@ func (self *testRunServiceService) nextState() {
 func (self *testRunServiceService) ProcessOne(id uint32) error {
 	if self.state != id {
 		self.t.Errorf("Proceeding %d instead of %d", id, self.state)
-		self.failed = true
+	}
+
+	if id == 2 && self.checkCnt < 2 {
+		self.checkCnt += 1
+		return NothingToDoYet
+	}
+	if id == 3 {
+		return NothingToDoYet
 	}
 
 	self.nextState()
@@ -119,30 +124,33 @@ func (self *testRunServiceIterator) Close() error {
 
 func TestRunService_noEvents(t *testing.T) {
 	fakeAlarm, alarmCtrl := alarm.NewFakeAlarm()
-	oldAlarmInjector := func() alarm.Alarm { return fakeAlarm; }
+	oldAlarmInjector := func() alarm.Alarm { return fakeAlarm }
 	oldAlarmInjector, InjectAlarmInService = InjectAlarmInService, oldAlarmInjector
 
-	resultCh := make(chan bool)
-	service := &testRunServiceService{t: t, closeCh: resultCh}
+	service := &testRunServiceService{t: t, closeCh: make(chan struct{})}
 
 	defer func() {
 		InjectAlarmInService = oldAlarmInjector
 		alarmCtrl.Close()
-		// TODO stop the service
-	} ()
+	}()
 
-	RunService(service)
+	stopFunc := RunService(service)
+	defer stopFunc()
 
 mainLoop:
 	for true {
 		select {
-		case <- resultCh:
-			// TODO if result is true check that the alarm queue is not empty
+		case <-service.closeCh:
+			time.Sleep(2 * time.Millisecond)
 			break mainLoop
 
 		default:
 			alarmCtrl.Tick()
 		}
+	}
+
+	if !t.Failed() && alarmCtrl.QueueLength() == 0 {
+		t.Errorf("Alarm queue is empty.")
 	}
 }
 

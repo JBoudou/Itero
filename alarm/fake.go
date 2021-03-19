@@ -16,26 +16,18 @@
 
 package alarm
 
-import "container/heap"
+import (
+	"container/heap"
+	"sync"
+)
 
 type FakeAlarmController interface {
 	// Tick asks the fake alarm to send its most recent event.
 	Tick()
-	
+
 	Close()
-}
 
-type fakeAlarm struct {
-	// true is tick, false is close
-	control chan<- bool
-}
-
-func (self fakeAlarm) Tick() {
-	self.control <- true
-}
-
-func (self fakeAlarm) Close() {
-	self.control <- false
+	QueueLength() int
 }
 
 type evtHeap []Event
@@ -64,10 +56,39 @@ func (self *evtHeap) Pop() (ret interface{}) {
 	return
 }
 
+// fakeAlarm is both an implementation of FakeAlarmController and an alarm runner.
+type fakeAlarm struct {
+	control chan struct{}
 
-func (self *fakeAlarm) run(rcv <-chan Event, ctrl <-chan bool, send chan<- Event) {
+	locker *sync.Mutex
+	queue  evtHeap
+}
+
+func newFakeAlarm() *fakeAlarm {
 	queue := evtHeap(make(evtHeap, 0, 2))
 	heap.Init(&queue)
+	return &fakeAlarm{
+		control: make(chan struct{}),
+		locker: new(sync.Mutex),
+		queue: queue,
+	}
+}
+
+func (self fakeAlarm) Tick() {
+	self.control <- struct{}{}
+}
+
+func (self fakeAlarm) Close() {
+	close(self.control)
+}
+
+func (self fakeAlarm) QueueLength() int {
+	self.locker.Lock()
+	defer self.locker.Unlock()
+	return len(self.queue)
+}
+
+func (self *fakeAlarm) run(rcv <-chan Event, send chan<- Event) {
 	closed := false
 
 mainLoop:
@@ -79,29 +100,37 @@ mainLoop:
 				if closed {
 					break mainLoop
 				} else {
-					self.control <- false
+					self.Close()
 					continue
 				}
-			} 
+			}
 			if closed {
 				continue
 			}
-			heap.Push(&queue, evt)
 
-		case cmd := <- ctrl:
+			self.locker.Lock()
+			heap.Push(&self.queue, evt)
+			self.locker.Unlock()
+
+		case _, ok := <-self.control:
 			if closed {
 				continue
 			}
-			if !cmd {
+			if !ok {
 				closed = true
-				close(self.control)
 				close(send)
-			}
-			if len(queue) == 0 {
 				continue
 			}
-			evt := heap.Pop(&queue).(Event)
-			evt.Remaining = len(queue)
+
+			self.locker.Lock()
+			if len(self.queue) == 0 {
+				self.locker.Unlock()
+				continue
+			}
+			evt := heap.Pop(&self.queue).(Event)
+			evt.Remaining = len(self.queue)
+			self.locker.Unlock()
+
 			send <- evt
 		}
 	}
@@ -110,9 +139,8 @@ mainLoop:
 func NewFakeAlarm() (Alarm, FakeAlarmController) {
 	in := make(chan Event, 1)
 	out := make(chan Event)
-	bch := make(chan bool, 1)
 	alarm := Alarm{Send: in, Receive: out}
-	runner := fakeAlarm{control: bch}
-	go runner.run(in, bch, out)
+	runner := newFakeAlarm()
+	go runner.run(in, out)
 	return alarm, runner
 }
