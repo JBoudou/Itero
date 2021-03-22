@@ -26,7 +26,7 @@ import (
 func main() {
 	// Services
 	StartStartPoll()
-	RunService(NextRoundService{})
+	RunService(NextRoundService)
 	StartClosePoll()
 
 	// Handlers

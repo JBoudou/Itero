@@ -83,28 +83,6 @@ type IdAndDateIterator interface {
 	Close() error
 }
 
-// LevelLogger is a temporary interface before the new logger facility is implemented.
-type LevelLogger interface {
-	Logf(format string, v ...interface{})
-	Warnf(format string, v ...interface{})
-	Errorf(format string, v ...interface{})
-}
-
-// EasyLogger is a temporary implementation of LevelLogger.
-type EasyLogger struct{}
-
-func (self EasyLogger) Logf(format string, v ...interface{}) {
-	log.Printf(format, v...)
-}
-
-func (self EasyLogger) Warnf(format string, v ...interface{}) {
-	log.Printf("Warn: "+format, v...)
-}
-
-func (self EasyLogger) Errorf(format string, v ...interface{}) {
-	log.Printf("Err: "+format, v...)
-}
-
 type ServiceRunnerControl interface {
 
 	// Schedule asks the runner to schedule the object with the given id for being processed.

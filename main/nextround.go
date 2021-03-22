@@ -31,9 +31,13 @@ type NextRoundEvent struct {
 	Poll uint32
 }
 
-type NextRoundService struct{}
+type nextRoundService struct{
+	logger LevelLogger
+}
 
-func (self NextRoundService) ProcessOne(id uint32) error {
+var NextRoundService = &nextRoundService{logger: NewPrefixLogger("NextRound")}
+
+func (self *nextRoundService) ProcessOne(id uint32) error {
 	const (
 		qCheck = `
 	    SELECT p.Id
@@ -74,7 +78,7 @@ func (self NextRoundService) ProcessOne(id uint32) error {
 	return events.Send(NextRoundEvent{id})
 }
 
-func (self NextRoundService) CheckAll() IdAndDateIterator {
+func (self *nextRoundService) CheckAll() IdAndDateIterator {
 	const (
 		qNext = `
 		  SELECT Id, RoundDeadline(CurrentRoundStart, MaxRoundDuration, Deadline, CurrentRound, MinNbRounds) AS Next
@@ -90,7 +94,7 @@ func (self NextRoundService) CheckAll() IdAndDateIterator {
 	}
 }
 
-func (self NextRoundService) CheckOne(id uint32) (ret time.Time) {
+func (self *nextRoundService) CheckOne(id uint32) (ret time.Time) {
 	const qCheck = `
 	    SELECT RoundDeadline(p.CurrentRoundStart, p.MaxRoundDuration, p.Deadline, p.CurrentRound,
 			                     p.MinNbRounds),
@@ -134,15 +138,15 @@ func (self NextRoundService) CheckOne(id uint32) (ret time.Time) {
 	return
 }
 
-func (self NextRoundService) CheckInterval() time.Duration {
+func (self *nextRoundService) CheckInterval() time.Duration {
 	return nextRoundDefaultWaitDuration
 }
 
-func (self NextRoundService) Logger() LevelLogger {
-	return EasyLogger{}
+func (self *nextRoundService) Logger() LevelLogger {
+	return self.logger
 }
 
-func (self NextRoundService) FilterEvent(evt events.Event) bool {
+func (self *nextRoundService) FilterEvent(evt events.Event) bool {
 	switch evt.(type) {
 	case VoteEvent, CreatePollEvent, StartPollEvent:
 		return true
@@ -150,7 +154,7 @@ func (self NextRoundService) FilterEvent(evt events.Event) bool {
 	return false
 }
 
-func (self NextRoundService) ReceiveEvent(evt events.Event, ctrl ServiceRunnerControl) {
+func (self *nextRoundService) ReceiveEvent(evt events.Event, ctrl ServiceRunnerControl) {
 	switch e := evt.(type) {
 	case VoteEvent:
 		ctrl.Schedule(e.Poll)

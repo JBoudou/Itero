@@ -234,7 +234,7 @@ func nextRound_processOne_checker(t *testing.T, tt *nextRoundTestInstance, pollI
 		},
 	}
 
-	err := NextRoundService{}.ProcessOne(pollId)
+	err := NextRoundService.ProcessOne(pollId)
 
 	nothingToDoYet := false
 	if errors.Is(err, NothingToDoYet) {
@@ -291,7 +291,7 @@ func idDateIteratorHasId(t *testing.T, iterator IdAndDateIterator, id uint32) bo
 }
 
 func nextRound_checkAll_checker(t *testing.T, tt *nextRoundTestInstance, pollId uint32) {
-	iterator := NextRoundService{}.CheckAll()
+	iterator := NextRoundService.CheckAll()
 
 	listed := idDateIteratorHasId(t, iterator, pollId)
 	if listed != tt.expectList {
@@ -310,7 +310,7 @@ func TestNextRoundService_CheckAll(t *testing.T) {
 // CheckOne //
 
 func nextRound_checkOne_checker(t *testing.T, tt *nextRoundTestInstance, pollId uint32) {
-	got := NextRoundService{}.CheckOne(pollId)
+	got := NextRoundService.CheckOne(pollId)
 	diff := time.Until(got)
 	isZero := got.IsZero()
 
