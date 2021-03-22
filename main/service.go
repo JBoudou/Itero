@@ -33,7 +33,7 @@ import (
 var InjectAlarmInService = injectAlarmInService
 
 func injectAlarmInService() alarm.Alarm {
-	return alarm.New(16, alarm.DiscardLaterEvent, alarm.DiscardDuplicates)
+	return alarm.New(maxHandledIds, alarm.DiscardDuplicates)
 }
 
 var (
@@ -144,9 +144,14 @@ func RunService(service Service) StopServiceFunc {
 
 // Implementation //
 
-// In this first implementation of the new service framework, when the date of a task is already
-// over but ProcessOne returned NothingToDoYet, then the task is scheduled after rescheduleDelay.
-const rescheduleDelay = time.Second
+const (
+	// In this first implementation of the new service framework, when the date of a task is already
+	// over but ProcessOne returned NothingToDoYet, then the task is scheduled after rescheduleDelay.
+	rescheduleDelay = time.Second
+
+	// Maximal number of ids that are considered at each full check.
+	maxHandledIds = 1024
+)
 
 type runner interface {
 	run()
@@ -218,12 +223,13 @@ func (self *serviceRunner) fullCheck() {
 	it := self.service.CheckAll()
 	defer it.Close()
 
-	for it.Next() {
+	scheduled := 0
+	for it.Next() && scheduled < maxHandledIds {
 		id, date := it.IdAndDate()
 
 		if date.Before(time.Now()) {
 			if self.processWithDate(id, date) {
-				return
+				scheduled += 1
 			}
 		} else {
 			if self.schedule(id, date) {
@@ -232,7 +238,9 @@ func (self *serviceRunner) fullCheck() {
 		}
 	}
 
-	self.scheduleFullCheck()
+	if scheduled == 0 {
+		self.scheduleFullCheck()
+	}
 }
 
 func (self *serviceRunner) schedule(id uint32, date time.Time) bool {
@@ -254,7 +262,9 @@ func (self *serviceRunner) schedule(id uint32, date time.Time) bool {
 }
 
 func (self *serviceRunner) scheduleFullCheck() {
-	self.alarm.Send <- alarm.Event{Time: self.lastFullCheck.Add(self.service.CheckInterval())}
+	date := self.lastFullCheck.Add(self.service.CheckInterval())
+	self.alarm.Send <- alarm.Event{Time: date}
+	self.service.Logger().Logf("Next full check at %v", date)
 }
 
 func (self *serviceRunner) handleEvent(evt alarm.Event) {
@@ -276,7 +286,7 @@ func (self *serviceRunner) processWithDate(id uint32, date time.Time) bool {
 	err := self.service.ProcessOne(id)
 	if err == nil {
 		self.service.Logger().Logf("Done for %d", id)
-		return false
+		return self.schedule(id, time.Time{})
 	}
 	if errors.Is(err, NothingToDoYet) {
 		return self.schedule(id, date)

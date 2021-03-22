@@ -18,8 +18,10 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/JBoudou/Itero/db"
 	dbt "github.com/JBoudou/Itero/db/dbtest"
@@ -27,7 +29,28 @@ import (
 	"github.com/JBoudou/Itero/events/eventstest"
 )
 
-func metaTestNextRound(t *testing.T, run func(pollId uint32) error) {
+type nextRoundTestInstance struct {
+	name         string
+	round        uint8   // CurrentRound (MaxNbRounds = 3)
+	minNbRounds  uint8   // applied only if >2
+	nowFact      float32 // if  >0 set Now      = CurrentRoundStart + nowFact      * MaxRoundDuration
+	deadlineFact float32 // if !=0 set Deadline = CurrentRoundStart + deadlineFact * MaxRoundDuration
+	pubInvited   bool    // whether Publicity is Invited
+	threshold    float64 // RoundThreshold
+	nbVoter      int     // number of Participant with LastRound = Poll.CurrentRound
+	expectNext   bool
+	expectList   bool // whether it must be listed by CheckAll
+	expectCheck  int  // kind of response from CheckOne (see testCheckOneResult*)
+}
+
+const (
+	testCheckOneResultPast = iota
+	testCheckOneResultFuture
+	testCheckOneResultNever
+)
+
+func metaTestNextRound(t *testing.T, checker func(*testing.T, *nextRoundTestInstance, uint32)) {
+
 	const (
 		nbParticipants = 3
 
@@ -43,41 +66,38 @@ func metaTestNextRound(t *testing.T, run func(pollId uint32) error) {
 			   SET Deadline = ADDTIME(CurrentRoundStart, ? * MaxRoundDuration)
 			 WHERE Id = ?`
 		qSetInvited = `UPDATE Polls SET Publicity = ? WHERE Id = ?`
-		qGetRound   = `SELECT CurrentRound FROM Polls WHERE Id = ?`
 	)
 
 	// Tests are independent.
-	tests := []struct {
-		name         string
-		round        uint8   // CurrentRound (MaxNbRounds = 3)
-		minNbRounds  uint8   // applied only if >2
-		nowFact      float32 // if  >0 set Now      = CurrentRoundStart + nowFact      * MaxRoundDuration
-		deadlineFact float32 // if !=0 set Deadline = CurrentRoundStart + deadlineFact * MaxRoundDuration
-		pubInvited   bool    // whether Publicity is Invited
-		threshold    float64 // RoundThreshold
-		nbVoter      int     // number of Participant with LastRound = Poll.CurrentRound
-		expectNext   bool
-	}{
+	tests := []nextRoundTestInstance{
 		{
-			name: "Default",
+			name:       "Default",
+			expectList: true,
+			expectCheck: testCheckOneResultFuture,
 		},
 		{
 			name:       "Round zero - 2 participants",
 			nowFact:    1.,
 			nbVoter:    2,
 			expectNext: false,
+			expectList: true,
+			expectCheck: testCheckOneResultNever,
 		},
 		{
 			name:       "Round zero - 3 participants",
 			nowFact:    1.,
 			nbVoter:    3,
 			expectNext: true,
+			expectList: true,
+			expectCheck: testCheckOneResultPast,
 		},
 		{
 			name:       "Expired",
 			round:      1,
 			nowFact:    1.,
 			expectNext: true,
+			expectList: true,
+			expectCheck: testCheckOneResultPast,
 		},
 		{
 			name:       "Threshold zero",
@@ -85,6 +105,8 @@ func metaTestNextRound(t *testing.T, run func(pollId uint32) error) {
 			threshold:  0,
 			nbVoter:    1,
 			expectNext: true,
+			expectList: true,
+			expectCheck: testCheckOneResultPast,
 		},
 		{
 			name:       "Threshold one",
@@ -92,6 +114,8 @@ func metaTestNextRound(t *testing.T, run func(pollId uint32) error) {
 			threshold:  1,
 			nbVoter:    3,
 			expectNext: true,
+			expectList: true,
+			expectCheck: testCheckOneResultPast,
 		},
 		{
 			name:         "Last round time",
@@ -101,6 +125,8 @@ func metaTestNextRound(t *testing.T, run func(pollId uint32) error) {
 			deadlineFact: 1.5,
 			nbVoter:      1,
 			expectNext:   false,
+			expectList:   true,
+			expectCheck: testCheckOneResultFuture,
 		},
 		{
 			name:         "Last round vote",
@@ -110,6 +136,8 @@ func metaTestNextRound(t *testing.T, run func(pollId uint32) error) {
 			deadlineFact: 1.25,
 			nbVoter:      3,
 			expectNext:   false,
+			expectList:   true,
+			expectCheck: testCheckOneResultFuture,
 		},
 		{
 			name:         "Missing rounds time",
@@ -120,6 +148,8 @@ func metaTestNextRound(t *testing.T, run func(pollId uint32) error) {
 			deadlineFact: 1.5,
 			nbVoter:      1,
 			expectNext:   true,
+			expectList:   true,
+			expectCheck: testCheckOneResultPast,
 		},
 		{
 			name:         "Missing rounds vote",
@@ -130,6 +160,8 @@ func metaTestNextRound(t *testing.T, run func(pollId uint32) error) {
 			deadlineFact: 1.25,
 			nbVoter:      3,
 			expectNext:   true,
+			expectList:   true,
+			expectCheck: testCheckOneResultPast,
 		},
 	}
 	for _, tt := range tests {
@@ -180,52 +212,136 @@ func metaTestNextRound(t *testing.T, run func(pollId uint32) error) {
 			}
 			mustt(t, err)
 
-			originalManager := events.DefaultManager
-			incremented := false
-			events.DefaultManager = &eventstest.ManagerMock{
-				T: t,
-				Send_: func(evt events.Event) error {
-					if nextEvent, ok := evt.(NextRoundEvent); ok && nextEvent.Poll == pollId {
-						incremented = true
-					}
-					return nil
-				},
-			}
-
-			mustt(t, run(pollId))
-
-			events.DefaultManager = originalManager
-
-			var gotRound uint8
-			row := db.DB.QueryRow(qGetRound, pollId)
-			mustt(t, row.Scan(&gotRound))
-			expectRound := tt.round
-			if tt.expectNext {
-				expectRound += 1
-			}
-
-			if incremented != tt.expectNext {
-				if tt.expectNext {
-					t.Errorf("NextRoundEvent not received.")
-				} else {
-					t.Errorf("NextRoundEvent received.")
-				}
-			}
-			if gotRound != expectRound {
-				t.Errorf("Wrong round. Got %d. Expect %d.", gotRound, expectRound)
-			}
+			checker(t, &tt, pollId)
 		})
 	}
 }
 
-func TestNextRound_fullCheck(t *testing.T) {
-	metaTestNextRound(t, func(pollId uint32) error {
-		return newNextRound().fullCheck()
-	})
+// ProcessOne
+
+func nextRound_processOne_checker(t *testing.T, tt *nextRoundTestInstance, pollId uint32) {
+	const qGetRound = `SELECT CurrentRound FROM Polls WHERE Id = ?`
+
+	originalManager := events.DefaultManager
+	incremented := false
+	events.DefaultManager = &eventstest.ManagerMock{
+		T: t,
+		Send_: func(evt events.Event) error {
+			if nextEvent, ok := evt.(NextRoundEvent); ok && nextEvent.Poll == pollId {
+				incremented = true
+			}
+			return nil
+		},
+	}
+
+	err := NextRoundService{}.ProcessOne(pollId)
+
+	nothingToDoYet := false
+	if errors.Is(err, NothingToDoYet) {
+		nothingToDoYet = true
+		err = nil
+	}
+	mustt(t, err)
+
+	events.DefaultManager = originalManager
+
+	var gotRound uint8
+	row := db.DB.QueryRow(qGetRound, pollId)
+	mustt(t, row.Scan(&gotRound))
+	expectRound := tt.round
+	if tt.expectNext {
+		expectRound += 1
+	}
+
+	if incremented != tt.expectNext {
+		if tt.expectNext {
+			t.Errorf("NextRoundEvent not received.")
+		} else {
+			t.Errorf("NextRoundEvent received.")
+		}
+	}
+	if incremented && nothingToDoYet {
+		t.Errorf("Event received but NothingToDoYet returned")
+	}
+	if tt.expectNext && nothingToDoYet {
+		t.Errorf("NothingToDoYet returned but expected to change round.")
+	}
+	if gotRound != expectRound {
+		t.Errorf("Wrong round. Got %d. Expect %d.", gotRound, expectRound)
+	}
 }
 
-func TestNextRound_checkOne(t *testing.T) {
-	metaTestNextRound(t, func(pollId uint32) error {
-		return newNextRound().checkOne(pollId)
-	})
+func TestNextRoundService_ProcessOne(t *testing.T) {
+	metaTestNextRound(t, nextRound_processOne_checker)
+}
+
+// CheckAll //
+
+func idDateIteratorHasId(t *testing.T, iterator IdAndDateIterator, id uint32) bool {
+	for iterator.Next() {
+		got, _ := iterator.IdAndDate()
+		if got == id {
+			return true
+		}
+	}
+	if err := iterator.Err(); err != nil {
+		t.Errorf("Iterator error: %v.", err)
+	}
+	return false
+}
+
+func nextRound_checkAll_checker(t *testing.T, tt *nextRoundTestInstance, pollId uint32) {
+	iterator := NextRoundService{}.CheckAll()
+
+	listed := idDateIteratorHasId(t, iterator, pollId)
+	if listed != tt.expectList {
+		if tt.expectList {
+			t.Errorf("Poll not listed when it should.")
+		} else {
+			t.Errorf("Poll listed when it shouldn't.")
+		}
+	}
+}
+
+func TestNextRoundService_CheckAll(t *testing.T) {
+	metaTestNextRound(t, nextRound_checkAll_checker)
+}
+
+// CheckOne //
+
+func nextRound_checkOne_checker(t *testing.T, tt *nextRoundTestInstance, pollId uint32) {
+	got := NextRoundService{}.CheckOne(pollId)
+	diff := time.Until(got)
+	isZero := got.IsZero()
+
+	switch tt.expectCheck {
+
+	case testCheckOneResultPast:
+		if isZero {
+			t.Errorf("Got zero time. Expect time in the past.")
+			break
+		}
+		if diff > 2 * time.Millisecond {
+			t.Errorf("Got time in the future. Expect time in the past.")
+		}
+
+	case testCheckOneResultFuture:
+		if isZero {
+			t.Errorf("Got zero time. Expect time in the future.")
+			break
+		}
+		if diff < 2 * time.Millisecond {
+			t.Errorf("Got time in the past. Expect time in the future.")
+		}
+
+	case testCheckOneResultNever:
+		if !isZero{
+			t.Errorf("Got %v. Expect zero time.", got)
+		}
+
+	}
+}
+
+func TestNextRoundService_CheckOne(t *testing.T) {
+	metaTestNextRound(t, nextRound_checkOne_checker)
 }

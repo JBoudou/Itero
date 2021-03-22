@@ -129,6 +129,9 @@ func (self *testRunServiceService) CheckAll() IdAndDateIterator {
 }
 
 func (self *testRunServiceService) CheckOne(id uint32) time.Time {
+	if id < self.state {
+		return time.Time{}
+	}
 	ret := self.start.Add(time.Duration(id) * testRunServiceTaskDelay)
 	if id == 3 && self.state == 3 {
 		self.nextState()
