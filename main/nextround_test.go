@@ -217,7 +217,7 @@ func metaTestNextRound(t *testing.T, checker func(*testing.T, *nextRoundTestInst
 	}
 }
 
-// ProcessOne
+// ProcessOne //
 
 func nextRound_processOne_checker(t *testing.T, tt *nextRoundTestInstance, pollId uint32) {
 	const qGetRound = `SELECT CurrentRound FROM Polls WHERE Id = ?`
@@ -236,14 +236,14 @@ func nextRound_processOne_checker(t *testing.T, tt *nextRoundTestInstance, pollI
 
 	err := NextRoundService.ProcessOne(pollId)
 
+	events.DefaultManager = originalManager
+
 	nothingToDoYet := false
 	if errors.Is(err, NothingToDoYet) {
 		nothingToDoYet = true
 		err = nil
 	}
 	mustt(t, err)
-
-	events.DefaultManager = originalManager
 
 	var gotRound uint8
 	row := db.DB.QueryRow(qGetRound, pollId)

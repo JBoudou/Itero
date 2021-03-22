@@ -63,6 +63,7 @@ func (self *nextRoundService) ProcessOne(id uint32) error {
 	)
 
 	rows, err := db.DB.Query(qCheck, id, db.PollPublicityInvited)
+	defer rows.Close()
 	if err != nil {
 		return err
 	}
@@ -115,6 +116,7 @@ func (self *nextRoundService) CheckOne(id uint32) (ret time.Time) {
 	     WHERE p.Id = ? AND p.State = 'Active' AND p.CurrentRound < p.MaxNbRounds`
 
 	rows, err := db.DB.Query(qCheck, db.PollPublicityInvited, id)
+	defer rows.Close()
 	if err != nil {
 		self.Logger().Errorf("CheckOne query error: %v.", err)
 		return
