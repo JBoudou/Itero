@@ -19,6 +19,7 @@ package dbtest
 
 import (
 	"database/sql"
+	"log"
 	"testing"
 
 	"github.com/JBoudou/Itero/db"
@@ -39,6 +40,13 @@ type Env struct {
 func (self *Env) Defer(fct func()) {
 	if self.Error == nil {
 		self.toClose = append(self.toClose, fct)
+	}
+}
+
+func (self *Env) logExec(query string, args...interface{}) {
+	_, err := db.DB.Exec(query, args...)
+	if err != nil {
+		log.Printf("dbtest.Close error: %v", err)
 	}
 }
 
@@ -86,8 +94,8 @@ func (self *Env) CreateUserWith(salt string) (userId uint32) {
 	userId = self.extractId(result)
 
 	self.Defer(func() {
-		db.DB.Exec(`DELETE FROM Users WHERE Id = ?`, userId)
-		db.DB.Exec(`ALTER TABLE Users AUTO_INCREMENT = 1`)
+		self.logExec(`DELETE FROM Users WHERE Id = ?`, userId)
+		self.logExec(`ALTER TABLE Users AUTO_INCREMENT = 1`)
 	})
 	return
 }
@@ -128,8 +136,8 @@ func (self *Env) CreatePollWith(title string, admin uint32, publicity uint8,
 	self.closeTx(tx)
 
 	self.Defer(func() {
-		db.DB.Exec(qRemovePoll, pollId)
-		db.DB.Exec(`ALTER TABLE Polls AUTO_INCREMENT = 1`)
+		self.logExec(qRemovePoll, pollId)
+		self.logExec(`ALTER TABLE Polls AUTO_INCREMENT = 1`)
 	})
 	return
 }
