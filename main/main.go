@@ -27,7 +27,7 @@ func main() {
 	// Services
 	RunService(StartPollService)
 	RunService(NextRoundService)
-	StartClosePoll()
+	RunService(ClosePollService)
 
 	// Handlers
 	server.HandleFunc("/a/login", LoginHandler)
