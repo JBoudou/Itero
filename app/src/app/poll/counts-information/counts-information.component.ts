@@ -20,6 +20,8 @@ import { PollSubComponent, ServerError } from '../common';
 import { CountInfoAnswer } from '../../api';
 import { CountsInformationService } from './counts-information.service';
 
+const MaxAlternativeNameLength = 20;
+
 /** Extract the first element of a comma separated list, removing one level of enclosing " or '. */
 function extractFontFamily(css: string): string {
   var first = css.split(",", 1)[0].trim();
@@ -132,8 +134,8 @@ export class CountsInformationComponent implements OnInit, OnDestroy, PollSubCom
         this.data = [];
         for (let entry of answer.Result) {
           var shortName = entry.Alternative.Name;
-          if (shortName.length > 21) {
-            shortName = shortName.slice(0, 20) + '...';
+          if (shortName.length > MaxAlternativeNameLength + 1) {
+            shortName = shortName.slice(0, MaxAlternativeNameLength) + '...';
           }
           const tooltip = entry.Alternative.Name;
           const annotation = String(Math.round(entry.Count * 1000 / sumCount) / 10) + '%';
