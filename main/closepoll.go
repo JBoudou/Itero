@@ -18,6 +18,7 @@ package main
 
 import (
 	"database/sql"
+	"time"
 
 	"github.com/JBoudou/Itero/db"
 	"github.com/JBoudou/Itero/events"
@@ -27,6 +28,80 @@ import (
 type ClosePollEvent struct {
 	Poll uint32
 }
+
+type closePollService struct {
+	logger LevelLogger
+}
+
+var ClosePollService = &closePollService{logger: NewPrefixLogger("ClosePoll")}
+
+func (self *closePollService) ProcessOne(id uint32) error {
+	const qUpdate = `
+	  UPDATE Polls SET State = 'Terminated'
+	   WHERE Id = ? AND State = 'Active'
+	     AND ( CurrentRound >= MaxNbRounds
+	           OR (CurrentRound >= MinNbRounds AND Deadline <= CURRENT_TIMESTAMP) )`
+
+	return SqlServiceProcessOne(qUpdate, id, ClosePollEvent{id})
+}
+
+func (self *closePollService) CheckAll() IdAndDateIterator {
+	const	qSelectClose = `
+		  SELECT Id, LEAST(Deadline, CURRENT_TIMESTAMP)
+		    FROM Polls
+		  WHERE State = 'Active'
+		    AND ( CurrentRound >= MaxNbRounds
+		          OR (CurrentRound >= MinNbRounds AND Deadline <= CURRENT_TIMESTAMP) )`
+	return SqlServiceCheckAll(qSelectClose)
+}
+
+func (self *closePollService) CheckOne(id uint32) time.Time {
+	const qCheckOne = `
+	  SELECT 1 FROM Polls
+	   WHERE Id = ? AND State = 'Active'
+	     AND ( CurrentRound >= MaxNbRounds
+	           OR (CurrentRound >= MinNbRounds AND Deadline <= CURRENT_TIMESTAMP) )`
+	
+	rows, err := db.DB.Query(qCheckOne, id)
+	defer rows.Close()
+	if err != nil {
+		self.Logger().Errorf("CheckOne query error: %v", err)
+		return time.Time{}
+	}
+	if !rows.Next() {
+		return time.Time{}
+	}
+	return time.Now()
+}
+
+func (self *closePollService) CheckInterval() time.Duration {
+	return 12 * time.Hour
+}
+
+func (self *closePollService) Logger() LevelLogger {
+	return self.logger
+}
+
+
+func (self *closePollService) FilterEvent(evt events.Event) bool {
+	switch evt.(type) {
+	case NextRoundEvent:
+		return true
+	}
+	return false
+}
+
+func (self *closePollService) ReceiveEvent(evt events.Event, ctrl ServiceRunnerControl) {
+	switch e := evt.(type) {
+	case NextRoundEvent:
+		ctrl.Schedule(e.Poll)
+	}
+}
+
+
+
+
+// OLD CODE //
 
 // closePoll represents a running closePoll service.
 type closePoll struct {

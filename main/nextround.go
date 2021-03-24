@@ -87,12 +87,7 @@ func (self *nextRoundService) CheckAll() IdAndDateIterator {
 		   WHERE State = 'Active' AND CurrentRound < MaxNbRounds
 		   ORDER BY Next ASC`
 	)
-	rows, err := db.DB.Query(qNext)
-	if err != nil {
-		return ErrorIdDateIterator{err}
-	} else {
-		return NewRowsIdDateIterator(rows)
-	}
+	return SqlServiceCheckAll(qNext)
 }
 
 func (self *nextRoundService) CheckOne(id uint32) (ret time.Time) {

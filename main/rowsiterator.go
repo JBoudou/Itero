@@ -14,11 +14,16 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+// TODO: Rename this file into something like sqlservice.go.
+
 package main
 
 import (
 	"database/sql"
 	"time"
+
+	"github.com/JBoudou/Itero/db"
+	"github.com/JBoudou/Itero/events"
 )
 
 type RowsIdDateIterator struct {
@@ -72,4 +77,31 @@ func (self ErrorIdDateIterator) Err() error {
 
 func (self ErrorIdDateIterator) Close() error {
 	return nil
+}
+
+func SqlServiceProcessOne(query string, id uint32, evt events.Event) error {
+	result, err := db.DB.Exec(query, id)
+	if err != nil {
+		return err
+	}
+	
+	var affected int64
+	affected, err = result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return NothingToDoYet
+	}
+
+	return events.Send(evt)
+}
+
+func SqlServiceCheckAll(query string) IdAndDateIterator {
+	rows, err := db.DB.Query(query)
+	if err != nil {
+		return ErrorIdDateIterator{err}
+	} else {
+		return NewRowsIdDateIterator(rows)
+	}
 }

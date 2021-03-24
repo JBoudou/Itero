@@ -43,21 +43,7 @@ func (self *startPollService) ProcessOne(id uint32) error {
 	   WHERE Id = ? AND State = 'Waiting'
 	     AND Start <= CURRENT_TIMESTAMP`
 	
-	result, err := db.DB.Exec(qUpdate, id)
-	if err != nil {
-		return err
-	}
-	
-	var affected int64
-	affected, err = result.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if affected == 0 {
-		return NothingToDoYet
-	}
-
-	return events.Send(StartPollEvent{id})
+	return SqlServiceProcessOne(qUpdate, id, StartPollEvent{id})
 }
 
 func (self *startPollService) CheckAll() IdAndDateIterator {
@@ -67,12 +53,7 @@ func (self *startPollService) CheckAll() IdAndDateIterator {
 		   WHERE State  = 'Waiting'
 			 ORDER BY Start ASC`
 
-	rows, err := db.DB.Query(qSelectStart)
-	if err != nil {
-		return ErrorIdDateIterator{err}
-	} else {
-		return NewRowsIdDateIterator(rows)
-	}
+	return SqlServiceCheckAll(qSelectStart)
 }
 
 func (self *startPollService) CheckOne(id uint32) time.Time {
