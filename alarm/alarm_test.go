@@ -182,28 +182,13 @@ func TestAlarm_DiscardLaterEvent(t *testing.T) {
 	}
 }
 
-func TestAlarm_DiscardDuplicates(t *testing.T) {
-	tests := []struct {
-		name      string
-		events [][2]string
-		expect    []string
-	}{
-		{
-			name:      "One",
-			events: [][2]string{{"0", "100ms"}},
-			expect:    []string{"0"},
-		},
-		{
-			name:      "Two",
-			events: [][2]string{{"0", "200ms"}, {"1", "100ms"}},
-			expect:    []string{"1", "0"},
-		},
-		{
-			name:      "Duplicate",
-			events: [][2]string{{"0", "300ms"}, {"1", "200ms"}, {"0", "100ms"}},
-			expect:    []string{"1", "0"},
-		},
-	}
+type testAlarmInstance struct {
+	name   string
+	events [][2]string
+	expect []string
+}
+
+func runTestAlarmInstances(t *testing.T, tests []testAlarmInstance, gen func() Alarm) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			durations := make([]time.Duration, len(tt.events))
@@ -215,7 +200,7 @@ func TestAlarm_DiscardDuplicates(t *testing.T) {
 				}
 			}
 
-			alarm := New(0, DiscardDuplicates)
+			alarm := gen()
 
 			times := make([]time.Time, len(durations))
 			now := time.Now()
@@ -254,6 +239,38 @@ func TestAlarm_DiscardDuplicates(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestAlarm_DiscardDuplicates(t *testing.T) {
+	tests := []testAlarmInstance {
+		{
+			name:   "One",
+			events: [][2]string{{"0", "100ms"}},
+			expect: []string{"0"},
+		},
+		{
+			name:   "Two",
+			events: [][2]string{{"0", "200ms"}, {"1", "100ms"}},
+			expect: []string{"1", "0"},
+		},
+		{
+			name:   "Duplicate",
+			events: [][2]string{{"0", "300ms"}, {"1", "200ms"}, {"0", "100ms"}},
+			expect: []string{"1", "0"},
+		},
+	}
+	runTestAlarmInstances(t, tests, func() Alarm { return New(0, DiscardDuplicates) })
+}
+
+func TestAlarm_DiscardLateDuplicates(t *testing.T) {
+	tests := []testAlarmInstance {
+		{
+			name:   "Simple",
+			events: [][2]string{{"0", "300ms"}, {"1", "200ms"}, {"0", "100ms"}, {"1", "400ms"}},
+			expect: []string{"0", "1", "0"},
+		},
+	}
+	runTestAlarmInstances(t, tests, func() Alarm { return New(0, DiscardLateDuplicates) })
 }
 
 func TestAlarm_Remaining(t *testing.T) {

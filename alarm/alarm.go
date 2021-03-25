@@ -34,8 +34,9 @@ type Alarm struct {
 	Send    chan<- Event
 	Receive <-chan Event
 
-	discardLaterEvent bool
-	discardDuplicates bool
+	discardLaterEvent     bool
+	discardDuplicates     bool
+	discardLateDuplicates bool
 }
 
 func allAfter(waiting map[Event]bool, evt Event) bool {
@@ -50,6 +51,15 @@ func allAfter(waiting map[Event]bool, evt Event) bool {
 func noDuplicate(waiting map[Event]bool, evt Event) bool {
 	for w := range waiting {
 		if reflect.DeepEqual(w.Data, evt.Data) {
+			return false
+		}
+	}
+	return true
+}
+
+func noLateDuplicate(waiting map[Event]bool, evt Event) bool {
+	for w := range waiting {
+		if w.Time.Before(evt.Time) && reflect.DeepEqual(w.Data, evt.Data) {
 			return false
 		}
 	}
@@ -77,7 +87,8 @@ mainLoop:
 			if !ok {
 				closing = true
 			} else if (!self.discardLaterEvent || allAfter(waiting, evt)) &&
-				(!self.discardDuplicates || noDuplicate(waiting, evt)) {
+				(!self.discardDuplicates || noDuplicate(waiting, evt)) &&
+				(! self.discardLateDuplicates || noLateDuplicate(waiting, evt)) {
 				waiting[evt] = true
 				go wait(tick, evt)
 			}
@@ -108,6 +119,11 @@ var (
 	// Event received with same Data as any waiting event are ignored.
 	DiscardDuplicates Option = func(evt *Alarm) {
 		evt.discardDuplicates = true
+	}
+
+	// Event received with same Data and later Time than some waiting event are ignored.
+	DiscardLateDuplicates Option = func(evt *Alarm) {
+		evt.discardLateDuplicates = true
 	}
 )
 
