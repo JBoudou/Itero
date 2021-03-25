@@ -415,7 +415,7 @@ CREATE TABLE Participants (
   CONSTRAINT Participants_pk PRIMARY KEY (User, Poll, Round),
 
   CONSTRAINT Participants_User_fk FOREIGN KEY (User) REFERENCES Users (Id),
-  CONSTRAINT Participants_Poll_fk FOREIGN KEY (Poll) REFERENCES Polls (Id)
+  CONSTRAINT Participants_Poll_fk FOREIGN KEY (Poll) REFERENCES Polls (Id) ON DELETE CASCADE
 
 ) ENGINE = InnoDB;
 
