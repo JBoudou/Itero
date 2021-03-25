@@ -269,6 +269,11 @@ func TestAlarm_DiscardLateDuplicates(t *testing.T) {
 			events: [][2]string{{"0", "300ms"}, {"1", "200ms"}, {"0", "100ms"}, {"1", "400ms"}},
 			expect: []string{"0", "1", "0"},
 		},
+		{
+			name: "Duplicate",
+			events: [][2]string{{"0", "100ms"}, {"0", "100ms"}, {"0", "100ms"}},
+			expect: []string{"0"},
+		},
 	}
 	runTestAlarmInstances(t, tests, func() Alarm { return New(0, DiscardLateDuplicates) })
 }

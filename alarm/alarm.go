@@ -41,7 +41,7 @@ type Alarm struct {
 
 func allAfter(waiting map[Event]bool, evt Event) bool {
 	for w := range waiting {
-		if w.Time.Before(evt.Time) {
+		if !w.Time.After(evt.Time) {
 			return false
 		}
 	}
@@ -59,7 +59,7 @@ func noDuplicate(waiting map[Event]bool, evt Event) bool {
 
 func noLateDuplicate(waiting map[Event]bool, evt Event) bool {
 	for w := range waiting {
-		if w.Time.Before(evt.Time) && reflect.DeepEqual(w.Data, evt.Data) {
+		if !w.Time.After(evt.Time) && reflect.DeepEqual(w.Data, evt.Data) {
 			return false
 		}
 	}
