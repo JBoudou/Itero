@@ -172,6 +172,7 @@ type PollAnswer struct {
 	CurrentRound     uint8
 	Active           bool
 	State            string
+	CarryForward     bool
 	Start            time.Time
 	RoundDeadline    time.Time
 	PollDeadline     time.Time
@@ -195,7 +196,7 @@ func PollHandler(ctx context.Context, response server.Response, request *server.
 
 	// Additional informations for display
 	const qSelect = `
-	  SELECT p.Title, p.Description, u.Name, p.Created, p.State, p.Start,
+	  SELECT p.Title, p.Description, u.Name, p.Created, p.State, p.ReportVote, p.Start,
 	         RoundDeadline(p.CurrentRoundStart, p.MaxRoundDuration, p.Deadline, p.CurrentRound, p.MinNbRounds),
 	         p.Deadline, TIME_TO_SEC(p.MaxRoundDuration) * 1000, p.MinNbRounds, p.MaxNbRounds
 	    FROM Polls AS p, Users AS u
@@ -206,8 +207,9 @@ func PollHandler(ctx context.Context, response server.Response, request *server.
 	var start, roundDeadline, pollDeadline sql.NullTime
 	var maxRoundDuration sql.NullInt64
 	must(row.Scan(
-		&answer.Title, &desc, &answer.Admin, &answer.CreationTime, &answer.State, &start, &roundDeadline,
-		&pollDeadline, &maxRoundDuration, &answer.MinNbRounds, &answer.MaxNbRounds))
+		&answer.Title, &desc, &answer.Admin, &answer.CreationTime, &answer.State, &answer.CarryForward,
+		&start, &roundDeadline, &pollDeadline, &maxRoundDuration,
+		&answer.MinNbRounds, &answer.MaxNbRounds))
 	if desc.Valid {
 		answer.Description = desc.String
 	}

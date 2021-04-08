@@ -81,6 +81,7 @@ export class PollAnswer {
   CurrentRound:     number;
   Active:           boolean;
   State:            string;
+  CarryForward:     boolean;
   Start:            Date;
   RoundDeadline:    Date;
   PollDeadline:     Date;

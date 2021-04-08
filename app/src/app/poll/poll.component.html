@@ -128,7 +128,15 @@
         <p *ngIf="answer.CurrentRound > 0 else firstRoundTmpl" i18n>
           This is the {{ answer.CurrentRound + 1 | ordinal }} round of the poll.
           You can now change your vote, based on the result of the previous round.
-          If you do not vote before the end of the round, you will be declared abstentionist.
+          If you do not vote before the end of the round,
+          <ng-container [ngSwitch]="answer.CarryForward">
+            <ng-container *ngSwitchCase="false">
+              you will be declared abstentionist.
+            </ng-container>
+            <ng-container *ngSwitchCase="true">
+              your previous vote will be carried forward.
+            </ng-container>
+          </ng-container>
           The round will end {{ answer.RoundDeadline | nearDate:'inside' }} or when all participants have voted,
           whichever comes first.
         </p>
