@@ -88,22 +88,6 @@ input
   p
     margin: 0
     
-//form.basicform
-  display: grid
-  grid-template-columns: max-content max-content
-  gap: 4px
-  align-items: center
-  label, input
-    grid-area: auto
-  .formerrors
-    grid-area: span 1 / span 2
-  .formactions
-    grid-area: span 1 / span 2
-  label
-    white-space: nowrap
-  input, textarea
-    @include userinput
-
 .form-alone
   width: 300px
   margin: 0 auto
@@ -115,6 +99,12 @@ input
 
 .http-error
   font-family: monospace
+
+.error-msg
+  border-left: solid 3px $errorcolor
+  border-right: solid 3px $errorcolor
+  padding: 0 1em
+  color: $errorcolor
 
 .dialog-message
   margin-bottom: $medium-space

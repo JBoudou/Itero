@@ -3,8 +3,12 @@
 </ng-template>
 
 <ng-template #errorTmpl>
-  <p i18n>Unexpected error {{ error.status }}: {{ error.message }}.</p>
+  <p class="error-msg" i18n>Unexpected error {{ error.status }}: {{ error.message }}.</p>
 </ng-template>
+
+<p class="error-msg" *ngIf="!!nextRoundError" i18n>
+  Your vote has not been taken into account because the next round started while you were voting.
+</p>
 
 <div class="information-container" *ngIf="!error else errorTmpl">
   <div class="poll-main" *ngIf="!!answer else loadingTmpl">

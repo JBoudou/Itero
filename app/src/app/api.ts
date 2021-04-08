@@ -107,8 +107,9 @@ export interface UninominalBallotAnswer {
 }
 
 export class UninominalVoteQuery {
-  Blank?: boolean;
+  Blank?:       boolean;
   Alternative?: number;
+  Round:        number;
 }
 
 export class CountInfoEntry {

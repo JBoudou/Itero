@@ -34,9 +34,11 @@ type VoteEvent struct {
 type UninominalVoteQuery struct {
 	Blank       bool `json:",omitempty"`
 	Alternative uint8
+	Round       uint8
 }
 
 func UninominalVoteHandler(ctx context.Context, response server.Response, request *server.Request) {
+
 	// Verifications
 	if err := request.CheckPOST(ctx); err != nil {
 		response.SendError(ctx, err)
@@ -44,6 +46,11 @@ func UninominalVoteHandler(ctx context.Context, response server.Response, reques
 	}
 	pollInfo, err := checkPollAccess(ctx, request)
 	must(err)
+	if !pollInfo.Active {
+		err = server.NewHttpError(http.StatusLocked, "Inactive poll", "Poll is currently not active")
+		response.SendError(ctx, err)
+		return
+	}
 	if pollInfo.BallotType() != BallotTypeUninominal {
 		err = server.NewHttpError(http.StatusBadRequest, "Wrong poll", "Poll is not uninominal")
 		response.SendError(ctx, err)
@@ -56,6 +63,21 @@ func UninominalVoteHandler(ctx context.Context, response server.Response, reques
 		logger.Print(ctx, err)
 		err = server.NewHttpError(http.StatusBadRequest, "Wrong request",
 			"Unable to read UninominalVoteQuery")
+		response.SendError(ctx, err)
+		return
+	}
+
+	// Check round before DB operations.
+	// We should check after the DB operations, but it is more difficul and the difference is
+	// insignificant.
+	if voteQuery.Round != pollInfo.CurrentRound {
+		if voteQuery.Round+1 == pollInfo.CurrentRound {
+			err = server.NewHttpError(http.StatusLocked, "Next round",
+				"Round may have changed while the user voted")
+		} else {
+			err = server.NewHttpError(http.StatusBadRequest, "Wrong round",
+				"Round is neither current nor previous")
+		}
 		response.SendError(ctx, err)
 		return
 	}
@@ -80,6 +102,7 @@ func UninominalVoteHandler(ctx context.Context, response server.Response, reques
 	result, err = tx.ExecContext(ctx, qDeleteBallot, request.User.Id, pollInfo.Id, pollInfo.CurrentRound)
 	must(err)
 
+	// Insert a row in Participants if needed
 	if affected, err := result.RowsAffected(); err == nil && affected == 0 {
 		var rows *sql.Rows
 		rows, err = tx.QueryContext(ctx, qLastRound, request.User.Id, pollInfo.Id, pollInfo.CurrentRound)
@@ -87,11 +110,12 @@ func UninominalVoteHandler(ctx context.Context, response server.Response, reques
 		if !rows.Next() {
 			_, err = tx.ExecContext(ctx, qInsertParticipant, request.User.Id, pollInfo.Id,
 				pollInfo.CurrentRound)
-			must(err);
+			must(err)
 		}
 		must(rows.Close())
 	}
 
+	// Add the ballot
 	if !voteQuery.Blank {
 		_, err = tx.ExecContext(ctx, qInsertBallot, request.User.Id, pollInfo.Id, voteQuery.Alternative,
 			pollInfo.CurrentRound)

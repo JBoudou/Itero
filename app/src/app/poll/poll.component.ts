@@ -108,6 +108,7 @@ export class PollComponent implements OnInit {
   displayedResult: number|undefined;
 
   error: ServerError;
+  nextRoundError = false;
 
   previousRoundBallot: PollBallot = NONE_BALLOT;
   currentRoundBallot : PollBallot = NONE_BALLOT;
@@ -241,6 +242,7 @@ export class PollComponent implements OnInit {
     if (this.answer.Active && PollComponent.ballotMap.has(this.answer.Ballot)) {
       const type = PollComponent.ballotMap.get(this.answer.Ballot);
       const comp = this.loadSubComponent(SubComponentId.Ballot, type) as PollBallotComponent;
+      comp.round = this.answer.CurrentRound;
 
       this.subscriptions[SubComponentId.Ballot].push(
         comp.previousRoundBallot.subscribe({
@@ -252,6 +254,7 @@ export class PollComponent implements OnInit {
         comp.justVoteBallot.subscribe({
           next: (ballot: PollBallot) => {
             this.justVoteBallot = ballot;
+            this.nextRoundError = false;
             this.clearSubComponent(SubComponentId.Ballot);
           }
         }),
@@ -327,6 +330,12 @@ export class PollComponent implements OnInit {
    * This results in all sub-components being cleared.
    */
   private registerError(err: ServerError) {
+    if (err.status == 423 && err.message == "Next round") {
+      this.nextRoundError = true;
+      this.retrieveTypes();
+      return;
+    }
+    this.nextRoundError = false;
     this.error = err;
     for (let i = 0, end = this.subscriptions.length; i < end; i++) {
       this.clearSubComponent(i);
