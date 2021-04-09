@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-package main
+package service
 
 import (
 	"testing"
@@ -44,7 +44,7 @@ func testRunService(t *testing.T, service serviceToTest, idle func()) {
 		alarmCtrl.Close()
 	}()
 
-	stopFunc := RunService(service)
+	stopFunc := Run(service)
 	defer stopFunc()
 
 mainLoop:

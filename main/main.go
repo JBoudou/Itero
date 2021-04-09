@@ -21,13 +21,14 @@ import (
 	"log"
 
 	"github.com/JBoudou/Itero/server"
+	"github.com/JBoudou/Itero/service"
 )
 
 func main() {
 	// Services
-	RunService(StartPollService)
-	RunService(NextRoundService)
-	RunService(ClosePollService)
+	service.Run(StartPollService)
+	service.Run(NextRoundService)
+	service.Run(ClosePollService)
 
 	// Handlers
 	server.HandleFunc("/a/login", LoginHandler)

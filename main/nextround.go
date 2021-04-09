@@ -21,6 +21,7 @@ import (
 
 	"github.com/JBoudou/Itero/db"
 	"github.com/JBoudou/Itero/events"
+	"github.com/JBoudou/Itero/service"
 )
 
 // The time to wait when there seems to be no forthcoming deadline.
@@ -32,10 +33,10 @@ type NextRoundEvent struct {
 }
 
 type nextRoundService struct{
-	logger LevelLogger
+	logger service.LevelLogger
 }
 
-var NextRoundService = &nextRoundService{logger: NewPrefixLogger("NextRound")}
+var NextRoundService = &nextRoundService{logger: service.NewPrefixLogger("NextRound")}
 
 func (self *nextRoundService) ProcessOne(id uint32) error {
 	const (
@@ -69,7 +70,7 @@ func (self *nextRoundService) ProcessOne(id uint32) error {
 	}
 
 	if !rows.Next() {
-		return NothingToDoYet
+		return service.NothingToDoYet
 	}
 	_, err = db.DB.Exec(qUpdate, id)
 	if err != nil {
@@ -79,7 +80,7 @@ func (self *nextRoundService) ProcessOne(id uint32) error {
 	return events.Send(NextRoundEvent{id})
 }
 
-func (self *nextRoundService) CheckAll() IdAndDateIterator {
+func (self *nextRoundService) CheckAll() service.IdAndDateIterator {
 	const (
 		qNext = `
 		  SELECT Id, RoundDeadline(CurrentRoundStart, MaxRoundDuration, Deadline, CurrentRound, MinNbRounds) AS Next
@@ -87,7 +88,7 @@ func (self *nextRoundService) CheckAll() IdAndDateIterator {
 		   WHERE State = 'Active' AND CurrentRound < MaxNbRounds
 		   ORDER BY Next ASC`
 	)
-	return SqlServiceCheckAll(qNext)
+	return service.SqlServiceCheckAll(qNext)
 }
 
 func (self *nextRoundService) CheckOne(id uint32) (ret time.Time) {
@@ -139,7 +140,7 @@ func (self *nextRoundService) CheckInterval() time.Duration {
 	return nextRoundDefaultWaitDuration
 }
 
-func (self *nextRoundService) Logger() LevelLogger {
+func (self *nextRoundService) Logger() service.LevelLogger {
 	return self.logger
 }
 
@@ -151,7 +152,7 @@ func (self *nextRoundService) FilterEvent(evt events.Event) bool {
 	return false
 }
 
-func (self *nextRoundService) ReceiveEvent(evt events.Event, ctrl ServiceRunnerControl) {
+func (self *nextRoundService) ReceiveEvent(evt events.Event, ctrl service.ServiceRunnerControl) {
 	switch e := evt.(type) {
 	case VoteEvent:
 		ctrl.Schedule(e.Poll)

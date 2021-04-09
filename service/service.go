@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-package main
+package service
 
 import (
 	"errors"
@@ -93,7 +93,7 @@ type StopServiceFunc func()
 // events.DefaultManager and calls EventReceiver.ReceiveEvent for each received event.
 // The returned function must be called to stop the service and free the resources associated with
 // the runner.
-func RunService(service Service) StopServiceFunc {
+func Run(service Service) StopServiceFunc {
 	runner := &serviceRunner{service: service}
 
 	if eventReceiver, ok := service.(EventReceiver); ok {
@@ -111,7 +111,9 @@ func RunService(service Service) StopServiceFunc {
 	return runner.StopService
 }
 
+//
 // Implementation //
+//
 
 const (
 	// In this first implementation of the new service framework, when the date of a task is already
