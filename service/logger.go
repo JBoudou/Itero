@@ -48,6 +48,7 @@ type prefixLogger struct {
 	errorPrefix string
 }
 
+// NewPrefixLogger construct a single LevelLogger that simply flag logs.
 func NewPrefixLogger(prefix string) LevelLogger {
 	return &prefixLogger{
 		logPrefix: prefix + " ",

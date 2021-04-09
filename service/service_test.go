@@ -35,12 +35,12 @@ func testRunService(t *testing.T, service serviceToTest, idle func()) {
 		ret, alarmCtrl = alarm.NewFakeAlarm(chanSize, opts...)
 		return
 	}
-	oldAlarmInjector, InjectAlarmInService = InjectAlarmInService, oldAlarmInjector
+	oldAlarmInjector, AlarmInjector = AlarmInjector, oldAlarmInjector
 	ticker := time.NewTicker(time.Second / 5)
 
 	defer func() {
 		ticker.Stop()
-		InjectAlarmInService = oldAlarmInjector
+		AlarmInjector = oldAlarmInjector
 		alarmCtrl.Close()
 	}()
 
@@ -121,7 +121,7 @@ func (self *testRunServiceService) ProcessOne(id uint32) error {
 	return nil
 }
 
-func (self *testRunServiceService) CheckAll() IdAndDateIterator {
+func (self *testRunServiceService) CheckAll() Iterator {
 	return &testRunServiceIterator{
 		service: self,
 		pos:     self.state,
@@ -146,7 +146,7 @@ func (self *testRunServiceService) CheckOne(id uint32) time.Time {
 	return ret
 }
 
-func (self *testRunServiceService) CheckInterval() time.Duration {
+func (self *testRunServiceService) Interval() time.Duration {
 	return time.Duration(testRunServiceNbTasks+2) * testRunServiceTaskDelay
 }
 
@@ -200,7 +200,7 @@ func (self *testRunServiceServiceDumb) FilterEvent(events.Event) bool {
 	return false
 }
 
-func (self *testRunServiceServiceDumb) ReceiveEvent(events.Event, ServiceRunnerControl) {
+func (self *testRunServiceServiceDumb) ReceiveEvent(events.Event, RunnerControler) {
 }
 
 func TestRunService_dumbEvents(t *testing.T) {
@@ -222,7 +222,7 @@ func (self *testRunServiceServiceEvent) FilterEvent(evt events.Event) bool {
 	return ok
 }
 
-func (self *testRunServiceServiceEvent) ReceiveEvent(evt events.Event, ctrl ServiceRunnerControl) {
+func (self *testRunServiceServiceEvent) ReceiveEvent(evt events.Event, ctrl RunnerControler) {
 	evtId, ok := evt.(testRunServiceEvent)
 	if !ok {
 		return
@@ -230,7 +230,7 @@ func (self *testRunServiceServiceEvent) ReceiveEvent(evt events.Event, ctrl Serv
 	ctrl.Schedule(uint32(evtId))
 }
 
-func (self *testRunServiceServiceEvent) CheckAll() IdAndDateIterator {
+func (self *testRunServiceServiceEvent) CheckAll() Iterator {
 	return &testRunServiceIterator{
 		service: self.testRunServiceService,
 		pos:     self.state,

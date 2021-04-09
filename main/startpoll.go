@@ -44,17 +44,17 @@ func (self *startPollService) ProcessOne(id uint32) error {
 	   WHERE Id = ? AND State = 'Waiting'
 	     AND Start <= CURRENT_TIMESTAMP`
 	
-	return service.SqlServiceProcessOne(qUpdate, id, StartPollEvent{id})
+	return service.SQLProcessOne(qUpdate, id, StartPollEvent{id})
 }
 
-func (self *startPollService) CheckAll() service.IdAndDateIterator {
+func (self *startPollService) CheckAll() service.Iterator {
 	const	qSelectStart = `
 		  SELECT Id, Start
 		    FROM Polls
 		   WHERE State  = 'Waiting'
 			 ORDER BY Start ASC`
 
-	return service.SqlServiceCheckAll(qSelectStart)
+	return service.SQLCheckAll(qSelectStart)
 }
 
 func (self *startPollService) CheckOne(id uint32) time.Time {
@@ -79,7 +79,7 @@ func (self *startPollService) CheckOne(id uint32) time.Time {
 	return ret
 }
 
-func (self *startPollService) CheckInterval() time.Duration {
+func (self *startPollService) Interval() time.Duration {
 	return startPollDefaultWaitDuration
 }
 
@@ -96,7 +96,7 @@ func (self *startPollService) FilterEvent(evt events.Event) bool {
 	return false
 }
 
-func (self *startPollService) ReceiveEvent(evt events.Event, ctrl service.ServiceRunnerControl) {
+func (self *startPollService) ReceiveEvent(evt events.Event, ctrl service.RunnerControler) {
 	switch e := evt.(type) {
 	case CreatePollEvent:
 		ctrl.Schedule(e.Poll)

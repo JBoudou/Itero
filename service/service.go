@@ -24,8 +24,8 @@ import (
 	"github.com/JBoudou/Itero/events"
 )
 
-// InjectAlarmInService is the injector of an alarm into services.
-var InjectAlarmInService = alarm.New
+// AlarmInjector is the injector of an alarm into services.
+var AlarmInjector = alarm.New
 
 var (
 	NothingToDoYet = errors.New("Nothing to do yet")
@@ -44,14 +44,14 @@ type Service interface {
 	// The list must be sorted in ascending order on the date.
 	// In case of error, Next() called on the returned iterator must return false and Error() must
 	// return the error.
-	CheckAll() IdAndDateIterator
+	CheckAll() Iterator
 
 	// CheckOne returns the time at which the operation must be done on the object with the given id.
 	// If no operation has to be done on that object, CheckOne must return zero time.Time.
 	CheckOne(id uint32) time.Time
 
-	// CheckInterval returns the maximal duration between two full check of the object to proceed.
-	CheckInterval() time.Duration
+	// Interval returns the maximal duration between two full check of the object to proceed.
+	Interval() time.Duration
 
 	Logger() LevelLogger
 }
@@ -59,10 +59,11 @@ type Service interface {
 // EventReceiver is the interface implemented by services willing to react to some events.
 type EventReceiver interface {
 	FilterEvent(events.Event) bool
-	ReceiveEvent(events.Event, ServiceRunnerControl)
+	ReceiveEvent(events.Event, RunnerControler)
 }
 
-type IdAndDateIterator interface {
+// Iterator iterates on a list of Id and Date representing tasks for a service.
+type Iterator interface {
 
 	// Next goes to the next entry if it can, returning false otherwise.
 	// Returning true guarantees that a call to IdAndDate will succeed.
@@ -74,7 +75,9 @@ type IdAndDateIterator interface {
 	Close() error
 }
 
-type ServiceRunnerControl interface {
+// RunnerControler allows to control the service runner from the service.
+// It should be used only from EventReceiver.ReceiveEvent().
+type RunnerControler interface {
 
 	// Schedule asks the runner to schedule the object with the given id for being processed.
 	Schedule(id uint32)
@@ -83,7 +86,8 @@ type ServiceRunnerControl interface {
 	StopService()
 }
 
-type StopServiceFunc func()
+// StopFunction must be called to cleanly stop a service.
+type StopFunction func()
 
 // RunService runs a service in the background.
 //
@@ -93,7 +97,7 @@ type StopServiceFunc func()
 // events.DefaultManager and calls EventReceiver.ReceiveEvent for each received event.
 // The returned function must be called to stop the service and free the resources associated with
 // the runner.
-func Run(service Service) StopServiceFunc {
+func Run(service Service) StopFunction {
 	runner := &serviceRunner{service: service}
 
 	if eventReceiver, ok := service.(EventReceiver); ok {
@@ -180,7 +184,7 @@ mainLoop:
 }
 
 func (self *serviceRunner) init() {
-	self.alarm = InjectAlarmInService(maxHandledIds, alarm.DiscardLateDuplicates)
+	self.alarm = AlarmInjector(maxHandledIds, alarm.DiscardLateDuplicates)
 	self.stopped = make(chan struct{})
 	self.fullCheck()
 }
@@ -233,7 +237,7 @@ func (self *serviceRunner) schedule(id uint32, date time.Time) bool {
 }
 
 func (self *serviceRunner) scheduleFullCheck() {
-	date := self.lastFullCheck.Add(self.service.CheckInterval())
+	date := self.lastFullCheck.Add(self.service.Interval())
 	self.alarm.Send <- alarm.Event{Time: date}
 	self.service.Logger().Logf("Next full check at %v", date)
 }

@@ -278,7 +278,7 @@ func TestNextRoundService_ProcessOne(t *testing.T) {
 
 // CheckAll //
 
-func idDateIteratorHasId(t *testing.T, iterator service.IdAndDateIterator, id uint32) bool {
+func idDateIteratorHasId(t *testing.T, iterator service.Iterator, id uint32) bool {
 	for iterator.Next() {
 		got, _ := iterator.IdAndDate()
 		if got == id {

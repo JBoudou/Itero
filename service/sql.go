@@ -24,60 +24,18 @@ import (
 	"github.com/JBoudou/Itero/events"
 )
 
-type RowsIdDateIterator struct {
-	rows *sql.Rows
-	err  error
-	id   uint32
-	date time.Time
+// IteratorFromRows constructs an Iterator from an *sql.Rows.
+// Each rows must have exacly two cells: one that can be scanned as a uint32 and one that can be
+// scanned as a time.Time.
+func IteratorFromRows(rows *sql.Rows) Iterator {
+	return &rowsIterator{rows: rows, err: rows.Err()}
 }
 
-func NewRowsIdDateIterator(rows *sql.Rows) *RowsIdDateIterator {
-	return &RowsIdDateIterator{rows: rows, err: rows.Err()}
-}
-
-func (self *RowsIdDateIterator) Next() bool {
-	if !self.rows.Next() {
-		self.err = self.rows.Err()
-		return false
-	}
-	self.err = self.rows.Scan(&self.id, &self.date)
-	return self.err == nil
-}
-
-func (self *RowsIdDateIterator) IdAndDate() (uint32, time.Time) {
-	return self.id, self.date
-}
-
-func (self *RowsIdDateIterator) Err() error {
-	return self.err
-}
-
-func (self *RowsIdDateIterator) Close() error {
-	return self.rows.Close()
-}
-
-
-type ErrorIdDateIterator struct {
-	err error
-}
-
-func (self ErrorIdDateIterator) Next() bool {
-	return false
-}
-
-func (self ErrorIdDateIterator) IdAndDate() (uint32, time.Time) {
-	return 0, time.Time{}
-}
-
-func (self ErrorIdDateIterator) Err() error {
-	return self.err
-}
-
-func (self ErrorIdDateIterator) Close() error {
-	return nil
-}
-
-func SqlServiceProcessOne(query string, id uint32, evt events.Event) error {
+// SQLProcessOne is a helper function to implement Service.ProcessOne.
+// The given query is executed with id as parameter.
+// If the query succeed and at least one row has been affected by the query,
+// the given event is send.
+func SQLProcessOne(query string, id uint32, evt events.Event) error {
 	result, err := db.DB.Exec(query, id)
 	if err != nil {
 		return err
@@ -95,11 +53,68 @@ func SqlServiceProcessOne(query string, id uint32, evt events.Event) error {
 	return events.Send(evt)
 }
 
-func SqlServiceCheckAll(query string) IdAndDateIterator {
+// SQLCheckAll is a helper function to implement Service.CheckAll.
+// It executes the query and return an iterator from the returned rows.
+// The query must return a list of task, each task consisting in an id and a date.
+// See IteratorFromRows for details.
+func SQLCheckAll(query string) Iterator {
 	rows, err := db.DB.Query(query)
 	if err != nil {
-		return ErrorIdDateIterator{err}
+		return errorIdDateIterator{err}
 	} else {
-		return NewRowsIdDateIterator(rows)
+		return IteratorFromRows(rows)
 	}
+}
+
+//
+// Implementation
+//
+
+type rowsIterator struct {
+	rows *sql.Rows
+	err  error
+	id   uint32
+	date time.Time
+}
+
+func (self *rowsIterator) Next() bool {
+	if !self.rows.Next() {
+		self.err = self.rows.Err()
+		return false
+	}
+	self.err = self.rows.Scan(&self.id, &self.date)
+	return self.err == nil
+}
+
+func (self *rowsIterator) IdAndDate() (uint32, time.Time) {
+	return self.id, self.date
+}
+
+func (self *rowsIterator) Err() error {
+	return self.err
+}
+
+func (self *rowsIterator) Close() error {
+	return self.rows.Close()
+}
+
+
+type errorIdDateIterator struct {
+	err error
+}
+
+func (self errorIdDateIterator) Next() bool {
+	return false
+}
+
+func (self errorIdDateIterator) IdAndDate() (uint32, time.Time) {
+	return 0, time.Time{}
+}
+
+func (self errorIdDateIterator) Err() error {
+	return self.err
+}
+
+func (self errorIdDateIterator) Close() error {
+	return nil
 }

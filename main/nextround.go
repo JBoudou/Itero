@@ -80,7 +80,7 @@ func (self *nextRoundService) ProcessOne(id uint32) error {
 	return events.Send(NextRoundEvent{id})
 }
 
-func (self *nextRoundService) CheckAll() service.IdAndDateIterator {
+func (self *nextRoundService) CheckAll() service.Iterator {
 	const (
 		qNext = `
 		  SELECT Id, RoundDeadline(CurrentRoundStart, MaxRoundDuration, Deadline, CurrentRound, MinNbRounds) AS Next
@@ -88,7 +88,7 @@ func (self *nextRoundService) CheckAll() service.IdAndDateIterator {
 		   WHERE State = 'Active' AND CurrentRound < MaxNbRounds
 		   ORDER BY Next ASC`
 	)
-	return service.SqlServiceCheckAll(qNext)
+	return service.SQLCheckAll(qNext)
 }
 
 func (self *nextRoundService) CheckOne(id uint32) (ret time.Time) {
@@ -136,7 +136,7 @@ func (self *nextRoundService) CheckOne(id uint32) (ret time.Time) {
 	return
 }
 
-func (self *nextRoundService) CheckInterval() time.Duration {
+func (self *nextRoundService) Interval() time.Duration {
 	return nextRoundDefaultWaitDuration
 }
 
@@ -152,7 +152,7 @@ func (self *nextRoundService) FilterEvent(evt events.Event) bool {
 	return false
 }
 
-func (self *nextRoundService) ReceiveEvent(evt events.Event, ctrl service.ServiceRunnerControl) {
+func (self *nextRoundService) ReceiveEvent(evt events.Event, ctrl service.RunnerControler) {
 	switch e := evt.(type) {
 	case VoteEvent:
 		ctrl.Schedule(e.Poll)

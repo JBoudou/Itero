@@ -42,17 +42,17 @@ func (self *closePollService) ProcessOne(id uint32) error {
 	     AND ( CurrentRound >= MaxNbRounds
 	           OR (CurrentRound >= MinNbRounds AND Deadline <= CURRENT_TIMESTAMP) )`
 
-	return service.SqlServiceProcessOne(qUpdate, id, ClosePollEvent{id})
+	return service.SQLProcessOne(qUpdate, id, ClosePollEvent{id})
 }
 
-func (self *closePollService) CheckAll() service.IdAndDateIterator {
+func (self *closePollService) CheckAll() service.Iterator {
 	const qSelectClose = `
 		  SELECT Id, COALESCE(LEAST(Deadline, CURRENT_TIMESTAMP), CURRENT_TIMESTAMP)
 		    FROM Polls
 		  WHERE State = 'Active'
 		    AND ( CurrentRound >= MaxNbRounds
 		          OR (CurrentRound >= MinNbRounds AND Deadline <= CURRENT_TIMESTAMP) )`
-	return service.SqlServiceCheckAll(qSelectClose)
+	return service.SQLCheckAll(qSelectClose)
 }
 
 func (self *closePollService) CheckOne(id uint32) time.Time {
@@ -74,7 +74,7 @@ func (self *closePollService) CheckOne(id uint32) time.Time {
 	return time.Now()
 }
 
-func (self *closePollService) CheckInterval() time.Duration {
+func (self *closePollService) Interval() time.Duration {
 	return 12 * time.Hour
 }
 
@@ -90,7 +90,7 @@ func (self *closePollService) FilterEvent(evt events.Event) bool {
 	return false
 }
 
-func (self *closePollService) ReceiveEvent(evt events.Event, ctrl service.ServiceRunnerControl) {
+func (self *closePollService) ReceiveEvent(evt events.Event, ctrl service.RunnerControler) {
 	switch e := evt.(type) {
 	case NextRoundEvent:
 		ctrl.Schedule(e.Poll)
