@@ -25,11 +25,7 @@ import (
 )
 
 // InjectAlarmInService is the injector of an alarm into services.
-var InjectAlarmInService = injectAlarmInService
-
-func injectAlarmInService() alarm.Alarm {
-	return alarm.New(maxHandledIds, alarm.DiscardLateDuplicates)
-}
+var InjectAlarmInService = alarm.New
 
 var (
 	NothingToDoYet = errors.New("Nothing to do yet")
@@ -182,7 +178,7 @@ mainLoop:
 }
 
 func (self *serviceRunner) init() {
-	self.alarm = InjectAlarmInService()
+	self.alarm = InjectAlarmInService(maxHandledIds, alarm.DiscardLateDuplicates)
 	self.stopped = make(chan struct{})
 	self.fullCheck()
 }

@@ -30,8 +30,11 @@ type serviceToTest interface {
 }
 
 func testRunService(t *testing.T, service serviceToTest, idle func()) {
-	fakeAlarm, alarmCtrl := alarm.NewFakeAlarm()
-	oldAlarmInjector := func() alarm.Alarm { return fakeAlarm }
+	var alarmCtrl alarm.FakeAlarmController
+	oldAlarmInjector := func(chanSize int, opts ...alarm.Option) (ret alarm.Alarm) {
+		ret, alarmCtrl = alarm.NewFakeAlarm(chanSize, opts...)
+		return
+	}
 	oldAlarmInjector, InjectAlarmInService = InjectAlarmInService, oldAlarmInjector
 	ticker := time.NewTicker(time.Second / 5)
 

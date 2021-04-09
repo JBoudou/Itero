@@ -33,14 +33,64 @@ type Event struct {
 type Alarm struct {
 	Send    chan<- Event
 	Receive <-chan Event
+}
+
+type Option func(evt *alarmLogic)
+
+var (
+	// Events received by Alarm with Time greater than any waiting event are ignored.
+	DiscardLaterEvent Option = func(evt *alarmLogic) {
+		evt.discardLaterEvent = true
+	}
+
+	// Event received with same Data as any waiting event are ignored.
+	DiscardDuplicates Option = func(evt *alarmLogic) {
+		evt.discardDuplicates = true
+	}
+
+	// Event received with same Data and later Time than some waiting event are ignored.
+	DiscardLateDuplicates Option = func(evt *alarmLogic) {
+		evt.discardLateDuplicates = true
+	}
+)
+
+// New creates a new Alarm with the given size for Send.
+// Receive is always unbuffered. Thus, settings chanSize to zero may result in deadlocks.
+func New(chanSize int, opts ...Option) Alarm {
+	alarm, logic := newAlarmLogic(chanSize, opts...)
+	go run(logic)
+	return alarm
+}
+
+//
+// Logic
+//
+
+// alarmLogic encapsulates all the logic of alarm, except the timing part.
+type alarmLogic struct {
+	receive <-chan Event
+	send    chan<- Event
 
 	discardLaterEvent     bool
 	discardDuplicates     bool
 	discardLateDuplicates bool
+
+	waiting map[Event]bool
 }
 
-func allAfter(waiting map[Event]bool, evt Event) bool {
-	for w := range waiting {
+func newAlarmLogic(chanSize int, opts ...Option) (alarm Alarm, logic *alarmLogic) {
+	in := make(chan Event, chanSize)
+	out := make(chan Event)
+	alarm = Alarm{Send: in, Receive: out}
+	logic = &alarmLogic{receive: in, send: out, waiting: make(map[Event]bool)}
+	for _, opt := range opts {
+		opt(logic)
+	}
+	return
+}
+
+func (self *alarmLogic) allAfter(evt Event) bool {
+	for w := range self.waiting {
 		if !w.Time.After(evt.Time) {
 			return false
 		}
@@ -48,8 +98,8 @@ func allAfter(waiting map[Event]bool, evt Event) bool {
 	return true
 }
 
-func noDuplicate(waiting map[Event]bool, evt Event) bool {
-	for w := range waiting {
+func (self *alarmLogic) noDuplicate(evt Event) bool {
+	for w := range self.waiting {
 		if reflect.DeepEqual(w.Data, evt.Data) {
 			return false
 		}
@@ -57,14 +107,49 @@ func noDuplicate(waiting map[Event]bool, evt Event) bool {
 	return true
 }
 
-func noLateDuplicate(waiting map[Event]bool, evt Event) bool {
-	for w := range waiting {
+func (self *alarmLogic) noLateDuplicate(evt Event) bool {
+	for w := range self.waiting {
 		if !w.Time.After(evt.Time) && reflect.DeepEqual(w.Data, evt.Data) {
 			return false
 		}
 	}
 	return true
 }
+
+// AddEvent checks whether an incoming Event must be added to the waiting list.
+// If it is the case, it is added to self.waiting.
+func (self *alarmLogic) AddEvent(evt Event) bool {
+	active, ok := self.waiting[evt]
+	if (!ok || !active) &&
+		(!self.discardLaterEvent || self.allAfter(evt)) &&
+		(!self.discardDuplicates || self.noDuplicate(evt)) &&
+		(!self.discardLateDuplicates || self.noLateDuplicate(evt)) {
+		self.waiting[evt] = true
+		return true
+	}
+	return false
+}
+
+// ResendEvent resend an event from the waiting list.
+// It returns whether the event was active.
+// If found, the event is removed from self.waiting.
+func (self *alarmLogic) ResendEvent(evt Event) bool {
+	active, ok := self.waiting[evt]
+	if ok {
+		delete(self.waiting, evt)
+	}
+	evt.Remaining = len(self.waiting)
+	self.send <- evt
+	return ok && active
+}
+
+func (self *alarmLogic) Close() {
+	close(self.send)
+}
+
+//
+// Runner
+//
 
 func wait(send chan<- Event, evt Event) {
 	duration := time.Until(evt.Time)
@@ -74,8 +159,7 @@ func wait(send chan<- Event, evt Event) {
 	send <- evt
 }
 
-func (self Alarm) run(rcv <-chan Event, send chan<- Event) {
-	waiting := make(map[Event]bool, 1)
+func run(logic *alarmLogic) {
 	tick := make(chan Event)
 	closing := false
 
@@ -83,21 +167,16 @@ mainLoop:
 	for true {
 		select {
 
-		case evt, ok := <-rcv:
+		case evt, ok := <-logic.receive:
 			if !ok {
 				closing = true
-			} else if (!self.discardLaterEvent || allAfter(waiting, evt)) &&
-				(!self.discardDuplicates || noDuplicate(waiting, evt)) &&
-				(! self.discardLateDuplicates || noLateDuplicate(waiting, evt)) {
-				waiting[evt] = true
+			} else if logic.AddEvent(evt) {
 				go wait(tick, evt)
 			}
 
 		case evt := <-tick:
-			delete(waiting, evt)
-			evt.Remaining = len(waiting)
-			send <- evt
-			if closing && len(waiting) == 0 {
+			logic.ResendEvent(evt)
+			if closing && len(logic.waiting) == 0 {
 				break mainLoop
 			}
 
@@ -105,37 +184,5 @@ mainLoop:
 	}
 
 	close(tick)
-	close(send)
-}
-
-type Option func(evt *Alarm)
-
-var (
-	// Events received by Alarm with Time greater than any waiting event are ignored.
-	DiscardLaterEvent Option = func(evt *Alarm) {
-		evt.discardLaterEvent = true
-	}
-
-	// Event received with same Data as any waiting event are ignored.
-	DiscardDuplicates Option = func(evt *Alarm) {
-		evt.discardDuplicates = true
-	}
-
-	// Event received with same Data and later Time than some waiting event are ignored.
-	DiscardLateDuplicates Option = func(evt *Alarm) {
-		evt.discardLateDuplicates = true
-	}
-)
-
-// New creates a new Alarm with the given size for Send.
-// Receive is always unbuffered. Thus, settings chanSize to zero may result in deadlocks.
-func New(chanSize int, opts ...Option) Alarm {
-	in := make(chan Event, chanSize)
-	out := make(chan Event)
-	alarm := Alarm{Send: in, Receive: out}
-	for _, opt := range opts {
-		opt(&alarm)
-	}
-	go alarm.run(in, out)
-	return alarm
+	logic.Close()
 }

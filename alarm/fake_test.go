@@ -38,7 +38,7 @@ func isIntWithValue(a interface{}, b int) bool {
 }
 
 func TestFakeAlarm(t *testing.T) {
-	alarm, ctrl := NewFakeAlarm()
+	alarm, ctrl := NewFakeAlarm(16)
 	defer ctrl.Close()
 
 	t.Run("Tick sends event", func(t *testing.T) {
