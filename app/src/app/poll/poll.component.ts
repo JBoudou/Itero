@@ -44,10 +44,10 @@ import {
 import { PollAnswer, BallotType, InformationType } from '../api';
 import { DynamicComponentFactoryService } from '../dynamic-component-factory.service';
 import { SessionService } from '../session/session.service';
+import { AppTitleService } from '../app-title.service';
 
 import { UninominalBallotComponent } from './uninominal-ballot/uninominal-ballot.component';
 import { CountsInformationComponent } from './counts-information/counts-information.component';
-import { AppTitleService } from '../app-title.service';
 
 @Directive({
   selector: '[PollBallot]',

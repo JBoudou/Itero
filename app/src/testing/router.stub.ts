@@ -14,7 +14,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Params, ParamMap, UrlTree, UrlSegmentGroup, UrlSegment } from '@angular/router';
+import { Event, Params, ParamMap, UrlTree, UrlSegmentGroup, UrlSegment } from '@angular/router';
+import { Subject } from 'rxjs';
 
 export class ParamMapStub implements ParamMap {
   keys: string[] = [];
@@ -57,6 +58,7 @@ export class RouterStub {
   navigate = jasmine.createSpy('navigate');
   navigateByUrl = jasmine.createSpy('navigateByUrl');
   parseUrl = jasmine.createSpy('parseUrl');
+  events = new Subject<Event>();
 
   get routerState() {
     return { snapshot: { url: this.url } };

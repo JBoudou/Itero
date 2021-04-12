@@ -30,6 +30,7 @@ import { CountsInformationComponent } from './counts-information/counts-informat
 import { DynamicComponentFactoryService } from '../dynamic-component-factory.service';
 import { BallotType, InformationType } from '../api';
 import { SessionService } from '../session/session.service';
+import { AppTitleService } from '../app-title.service';
 
 describe('PollComponent', () => {
   let component: PollComponent;
@@ -38,11 +39,13 @@ describe('PollComponent', () => {
   let activatedRouteStub: ActivatedRouteStub;
   let dynamicFactoryStub: DynamicComponentFactoryStub;
   let sessionSpy: jasmine.SpyObj<SessionService>;
+  let titleSpy: jasmine.SpyObj<AppTitleService>;
 
   beforeEach(async () => {
     activatedRouteStub = new ActivatedRouteStub();
     dynamicFactoryStub = new DynamicComponentFactoryStub();
     sessionSpy = jasmine.createSpyObj('SessionService', ['logNow'], ['logged']);
+    titleSpy = jasmine.createSpyObj('AppTitleService', ['setTitle']);
 
     await TestBed.configureTestingModule({
       declarations: [
@@ -61,6 +64,7 @@ describe('PollComponent', () => {
         { provide: ActivatedRoute, useValue: activatedRouteStub },
         { provide: DynamicComponentFactoryService, useValue: dynamicFactoryStub },
         { provide: SessionService, useValue: sessionSpy },
+        { provide: AppTitleService, useValue: titleSpy },
       ]
     })
     .compileComponents();
