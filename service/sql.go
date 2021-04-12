@@ -35,6 +35,7 @@ func IteratorFromRows(rows *sql.Rows) Iterator {
 // The given query is executed with id as parameter.
 // If the query succeed and at least one row has been affected by the query,
 // the given event is send.
+// If the query succeed but no row is affected, NothingToDoYet is returned.
 func SQLProcessOne(query string, id uint32, evt events.Event) error {
 	result, err := db.DB.Exec(query, id)
 	if err != nil {
