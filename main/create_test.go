@@ -81,7 +81,6 @@ func (self *createPollChecker) Check(t *testing.T, response *http.Response, requ
 
 	query := defaultCreateQuery()
 	mustt(t, request.UnmarshalJSONBody(&query))
-	query.Deadline = query.Deadline.Truncate(time.Second)
 
 	// Check Polls
 	row := db.DB.QueryRow(qCheckPoll, pollSegment.Id)
@@ -125,8 +124,13 @@ func (self *createPollChecker) Check(t *testing.T, response *http.Response, requ
 	if state != expectState {
 		t.Errorf("Wrong state. Got %s. Expect %s.", state, expectState)
 	}
+	dateDiff := got.Deadline.Sub(query.Deadline)
+	if (dateDiff >= 1*time.Second) || (dateDiff <= -1*time.Second) {
+		t.Errorf("Deadline differ. Got %v. Expect %v. Difference %v.",
+			got.Deadline, query.Deadline, dateDiff)
+	}
+	got.Deadline = query.Deadline
 	got.MaxRoundDuration = uint64(roundEnd.Sub(roundStart).Milliseconds())
-	got.Deadline = got.Deadline.Truncate(time.Second)
 	got.Hidden = (publicity == db.PollPublicityHidden) ||
 		(publicity == db.PollPublicityHiddenRegistered)
 	if !reflect.DeepEqual(got, query) {
@@ -137,7 +141,7 @@ func (self *createPollChecker) Check(t *testing.T, response *http.Response, requ
 	rows, err := db.DB.Query(qCheckAlternative, pollSegment.Id)
 	mustt(t, err)
 	for id, alt := range query.Alternatives {
-		if (!rows.Next()) {
+		if !rows.Next() {
 			t.Errorf("Premature end of the alternatives. Got %d. Expect %d.", id, len(query.Alternatives))
 			break
 		}
@@ -147,7 +151,7 @@ func (self *createPollChecker) Check(t *testing.T, response *http.Response, requ
 			t.Errorf("Wrong alternative %d. Got %s. Expect %s.", id, name, alt.Name)
 		}
 	}
-	if (rows.Next()) {
+	if rows.Next() {
 		t.Errorf("Unexpected alternatives.")
 		rows.Close()
 	}
