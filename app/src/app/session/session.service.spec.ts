@@ -48,6 +48,11 @@ describe('SessionService', () => {
   afterEach(() => {
     // After every test, assert that there are no more pending requests.
     httpTestingController.verify();
+
+    // Remove any session
+    if (!!service) {
+      service.logoff();
+    }
   });
 
   it('should be created', () => {
