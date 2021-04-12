@@ -174,8 +174,12 @@ export class PollComponent implements OnInit {
   }
 
   displayPreviousResults(): boolean {
-    return !!this.answer.Active && this.answer.CurrentRound >= 2 &&
+    return this.answer.CurrentRound >= 2 &&
            PollComponent.informationMap.has(this.answer.Information);
+  }
+
+  lastDisplayRound(): number {
+    return !!this.answer.Active ? this.answer.CurrentRound - 1 : this.answer.CurrentRound;
   }
 
   pollEndCase(): string {
