@@ -23,8 +23,8 @@ import { SignupComponent }  from './signup/signup.component';
 
 const routes: Routes = [
   { path: 'r/session', canDeactivate: [ SessionGuard ], children: [
-    { path: 'login', component: LoginComponent },
-    { path: 'signup', component: SignupComponent },
+    { path: 'login' , component: LoginComponent , data: {title: 'Log in' } },
+    { path: 'signup', component: SignupComponent, data: {title: 'Sign up'} },
   ]},
 ];
 

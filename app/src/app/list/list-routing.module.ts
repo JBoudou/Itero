@@ -22,7 +22,7 @@ import { LoggedGuard } from '../session/logged.guard';
 import { ListComponent } from './list.component';
 
 const routes: Routes = [
-  { path: 'r/list', component: ListComponent, canActivate: [ LoggedGuard ] },
+  { path: 'r/list', component: ListComponent, canActivate: [ LoggedGuard ], data: {title: 'Polls'} },
 ];
 
 @NgModule({

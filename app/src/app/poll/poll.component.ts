@@ -47,6 +47,7 @@ import { SessionService } from '../session/session.service';
 
 import { UninominalBallotComponent } from './uninominal-ballot/uninominal-ballot.component';
 import { CountsInformationComponent } from './counts-information/counts-information.component';
+import { AppTitleService } from '../app-title.service';
 
 @Directive({
   selector: '[PollBallot]',
@@ -127,6 +128,7 @@ export class PollComponent implements OnInit {
     private dynamicComponentFactory: DynamicComponentFactoryService,
     private session: SessionService,
     private formBuilder: FormBuilder,
+    private title: AppTitleService,
   ) { }
 
   ngOnInit(): void {
@@ -224,6 +226,7 @@ export class PollComponent implements OnInit {
         this.answer.CreationTime  = new Date(this.answer.CreationTime );
         this.answer.RoundDeadline = new Date(this.answer.RoundDeadline);
         this.answer.PollDeadline  = new Date(this.answer.PollDeadline );
+        this.title.setTitle(this.answer.Title);
         // When need the ViewChilds to appear before inserting components in them.
         setTimeout(() => this.synchronizeSubComponents(), 0);
       },

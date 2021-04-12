@@ -28,6 +28,7 @@ const routes: Routes = [
     path: 'r/create',
     canLoad: [ LoggedGuard ],
     loadChildren: () => import('./create/create.module').then(m => m.CreateModule),
+    data: {title: "Create a new poll"},
   },
   { path: '**', component: DeadRouteComponent },
 ];
