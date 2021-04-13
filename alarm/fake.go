@@ -21,6 +21,16 @@ import (
 	"sync"
 )
 
+// NewFakeAlarm creates a fake alarm replacement where an event is resend each time
+// FakeAlarmController.Tick() is called.
+func NewFakeAlarm(chanSize int, opts ...Option) (Alarm, FakeAlarmController) {
+	alarm, logic := newAlarmLogic(chanSize, opts...)
+	runner := newFakeAlarm(logic)
+	go runner.run()
+	return alarm, runner
+}
+
+// FakeAlarmController allows to control a fake alarm returned by NewFakeAlarm.
 type FakeAlarmController interface {
 	// Tick asks the fake alarm to send its most recent event.
 	Tick()
@@ -29,6 +39,10 @@ type FakeAlarmController interface {
 
 	QueueLength() int
 }
+
+//
+// Heap
+//
 
 type evtHeap []Event
 
@@ -56,18 +70,25 @@ func (self *evtHeap) Pop() (ret interface{}) {
 	return
 }
 
+//
+// Runner
+//
+
 // fakeAlarm is both an implementation of FakeAlarmController and an alarm runner.
 type fakeAlarm struct {
+	logic *alarmLogic
+
 	control chan struct{}
 
 	locker *sync.Mutex
 	queue  evtHeap
 }
 
-func newFakeAlarm() *fakeAlarm {
+func newFakeAlarm(logic *alarmLogic) *fakeAlarm {
 	queue := evtHeap(make(evtHeap, 0, 2))
 	heap.Init(&queue)
 	return &fakeAlarm{
+		logic: logic,
 		control: make(chan struct{}),
 		locker: new(sync.Mutex),
 		queue: queue,
@@ -88,14 +109,14 @@ func (self fakeAlarm) QueueLength() int {
 	return len(self.queue)
 }
 
-func (self *fakeAlarm) run(rcv <-chan Event, send chan<- Event) {
+func (self *fakeAlarm) run() {
 	closed := false
 
 mainLoop:
 	for true {
 		select {
 
-		case evt, ok := <-rcv:
+		case evt, ok := <-self.logic.receive:
 			if !ok {
 				if closed {
 					break mainLoop
@@ -108,6 +129,9 @@ mainLoop:
 				continue
 			}
 
+			if !self.logic.AddEvent(evt) {
+				continue
+			}
 			self.locker.Lock()
 			heap.Push(&self.queue, evt)
 			self.locker.Unlock()
@@ -118,7 +142,7 @@ mainLoop:
 			}
 			if !ok {
 				closed = true
-				close(send)
+				self.logic.Close()
 				continue
 			}
 
@@ -128,19 +152,9 @@ mainLoop:
 				continue
 			}
 			evt := heap.Pop(&self.queue).(Event)
-			evt.Remaining = len(self.queue)
 			self.locker.Unlock()
 
-			send <- evt
+			self.logic.ResendEvent(evt)
 		}
 	}
-}
-
-func NewFakeAlarm() (Alarm, FakeAlarmController) {
-	in := make(chan Event, 16)
-	out := make(chan Event)
-	alarm := Alarm{Send: in, Receive: out}
-	runner := newFakeAlarm()
-	go runner.run(in, out)
-	return alarm, runner
 }

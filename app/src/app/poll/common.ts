@@ -51,6 +51,7 @@ export const BLANK_BALLOT: PollBallot = {
  */
 export interface PollSubComponent {
   pollSegment: string;
+  round: number|undefined;
   errors: Observable<ServerError>;
 }
 
@@ -73,6 +74,5 @@ export interface PollBallotComponent extends PollSubComponent {
  * the information are usualy displayed differently. Most notably, the winner of the poll must be made clear.
  */
 export interface PollInformationComponent extends PollSubComponent {
-  round: number|undefined;
   winner: Observable<string>;
 }

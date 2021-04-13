@@ -25,6 +25,7 @@ import (
 	dbt "github.com/JBoudou/Itero/db/dbtest"
 	"github.com/JBoudou/Itero/events"
 	"github.com/JBoudou/Itero/events/eventstest"
+	"github.com/JBoudou/Itero/service"
 )
 
 type closePollTestInstance struct {
@@ -118,7 +119,7 @@ func closePoll_processOne_checker(t *testing.T, tt *closePollTestInstance, pollI
 	events.DefaultManager = originalManager
 
 	nothingToDoYet := false
-	if errors.Is(err, NothingToDoYet) {
+	if errors.Is(err, service.NothingToDoYet) {
 		nothingToDoYet = true
 		err = nil
 	}

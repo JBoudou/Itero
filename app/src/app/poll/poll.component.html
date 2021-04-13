@@ -3,8 +3,12 @@
 </ng-template>
 
 <ng-template #errorTmpl>
-  <p i18n>Unexpected error {{ error.status }}: {{ error.message }}.</p>
+  <p class="error-msg" i18n>Unexpected error {{ error.status }}: {{ error.message }}.</p>
 </ng-template>
+
+<p class="error-msg" *ngIf="!!nextRoundError" i18n>
+  Your vote has not been taken into account because the next round started while you were voting.
+</p>
 
 <div class="information-container" *ngIf="!error else errorTmpl">
   <div class="poll-main" *ngIf="!!answer else loadingTmpl">
@@ -75,7 +79,7 @@
       <form (submit)="onPreviousResult()" [formGroup]="previousForm" i18n>
         Display results of round&nbsp;
         <mat-form-field appearance="standard">
-          <input matInput type="number" size="2" min="1" [max]="answer.CurrentRound - 1" formControlName="round" />
+          <input matInput type="number" size="2" min="1" [max]="lastDisplayRound()" formControlName="round" />
           <button mat-icon-button matSuffix type="submit"><mat-icon>addchart</mat-icon></button>
         </mat-form-field>
       </form>

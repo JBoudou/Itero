@@ -44,6 +44,7 @@ import {
 import { PollAnswer, BallotType, InformationType } from '../api';
 import { DynamicComponentFactoryService } from '../dynamic-component-factory.service';
 import { SessionService } from '../session/session.service';
+import { AppTitleService } from '../app-title.service';
 
 import { UninominalBallotComponent } from './uninominal-ballot/uninominal-ballot.component';
 import { CountsInformationComponent } from './counts-information/counts-information.component';
@@ -108,6 +109,7 @@ export class PollComponent implements OnInit {
   displayedResult: number|undefined;
 
   error: ServerError;
+  nextRoundError = false;
 
   previousRoundBallot: PollBallot = NONE_BALLOT;
   currentRoundBallot : PollBallot = NONE_BALLOT;
@@ -126,6 +128,7 @@ export class PollComponent implements OnInit {
     private dynamicComponentFactory: DynamicComponentFactoryService,
     private session: SessionService,
     private formBuilder: FormBuilder,
+    private title: AppTitleService,
   ) { }
 
   ngOnInit(): void {
@@ -171,8 +174,12 @@ export class PollComponent implements OnInit {
   }
 
   displayPreviousResults(): boolean {
-    return !!this.answer.Active && this.answer.CurrentRound >= 2 &&
+    return this.answer.CurrentRound >= 2 &&
            PollComponent.informationMap.has(this.answer.Information);
+  }
+
+  lastDisplayRound(): number {
+    return !!this.answer.Active ? this.answer.CurrentRound - 1 : this.answer.CurrentRound;
   }
 
   pollEndCase(): string {
@@ -223,6 +230,7 @@ export class PollComponent implements OnInit {
         this.answer.CreationTime  = new Date(this.answer.CreationTime );
         this.answer.RoundDeadline = new Date(this.answer.RoundDeadline);
         this.answer.PollDeadline  = new Date(this.answer.PollDeadline );
+        this.title.setTitle(this.answer.Title);
         // When need the ViewChilds to appear before inserting components in them.
         setTimeout(() => this.synchronizeSubComponents(), 0);
       },
@@ -241,6 +249,7 @@ export class PollComponent implements OnInit {
     if (this.answer.Active && PollComponent.ballotMap.has(this.answer.Ballot)) {
       const type = PollComponent.ballotMap.get(this.answer.Ballot);
       const comp = this.loadSubComponent(SubComponentId.Ballot, type) as PollBallotComponent;
+      comp.round = this.answer.CurrentRound;
 
       this.subscriptions[SubComponentId.Ballot].push(
         comp.previousRoundBallot.subscribe({
@@ -252,6 +261,7 @@ export class PollComponent implements OnInit {
         comp.justVoteBallot.subscribe({
           next: (ballot: PollBallot) => {
             this.justVoteBallot = ballot;
+            this.nextRoundError = false;
             this.clearSubComponent(SubComponentId.Ballot);
           }
         }),
@@ -327,6 +337,12 @@ export class PollComponent implements OnInit {
    * This results in all sub-components being cleared.
    */
   private registerError(err: ServerError) {
+    if (err.status == 423 && err.message == "Next round") {
+      this.nextRoundError = true;
+      this.retrieveTypes();
+      return;
+    }
+    this.nextRoundError = false;
     this.error = err;
     for (let i = 0, end = this.subscriptions.length; i < end; i++) {
       this.clearSubComponent(i);

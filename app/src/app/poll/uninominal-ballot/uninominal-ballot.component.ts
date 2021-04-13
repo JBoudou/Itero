@@ -46,6 +46,7 @@ export class UninominalBallot implements PollBallot {
 export class UninominalBallotComponent implements OnInit, OnDestroy, PollBallotComponent {
 
   @Input() pollSegment: string;
+  @Input() round: number|undefined;
 
   @Output() errors = new EventEmitter<ServerError>();
   @Output() previousRoundBallot = new EventEmitter<PollBallot>();
@@ -94,17 +95,20 @@ export class UninominalBallotComponent implements OnInit, OnDestroy, PollBallotC
   }
 
   onVote(): void {
-    this.vote({Alternative: this.selected})
+    this.vote({Alternative: this.selected, Round: this.round})
   }
 
   onAbstain(): void {
-    this.vote({Blank: true})
+    this.vote({Blank: true, Round: this.round})
   }
 
   private vote(vote: UninominalVoteQuery): void {
     this.http.post('/a/vote/uninominal/' + this.pollSegment, vote)
-      .subscribe({
+      .pipe(take(1)).subscribe({
         next: _ => this.justVoteBallot.emit(this.ballotFromQuery(vote)),
+        error: (err: HttpErrorResponse) => {
+          this.errors.emit({status: err.status, message: err.error.trim()});
+        }
       });
   }
 

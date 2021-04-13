@@ -160,18 +160,28 @@ func TestUninominalVoteHandler(t *testing.T) {
 				env.NextRound(pollSegment.Id)
 				env.Must(t)
 			},
-			Request: makeRequest(&userId, pollSegment, UninominalVoteQuery{Blank: true}),
+			Request: makeRequest(&userId, pollSegment, UninominalVoteQuery{Blank: true, Round: 1}),
 			Checker: &voteChecker{poll: pollSegment.Id, user: userId, round: 1},
 		},
 		{
 			Name:    "Change to non-blank",
-			Request: makeRequest(&userId, pollSegment, UninominalVoteQuery{Alternative: 1}),
+			Request: makeRequest(&userId, pollSegment, UninominalVoteQuery{Alternative: 1, Round: 1}),
 			Checker: &voteChecker{poll: pollSegment.Id, user: userId, round: 1},
 		},
 		{
 			Name:    "Change to blank",
-			Request: makeRequest(&userId, pollSegment, UninominalVoteQuery{Blank: true}),
+			Request: makeRequest(&userId, pollSegment, UninominalVoteQuery{Blank: true, Round: 1}),
 			Checker: &voteChecker{poll: pollSegment.Id, user: userId, round: 1},
+		},
+		{
+			Name: "Previous round",
+			Request: makeRequest(&userId, pollSegment, UninominalVoteQuery{Blank: true, Round: 0}),
+			Checker: srvt.CheckError{Code: http.StatusLocked, Body: "Next round"},
+		},
+		{
+			Name: "Next round",
+			Request: makeRequest(&userId, pollSegment, UninominalVoteQuery{Blank: true, Round: 2}),
+			Checker: srvt.CheckStatus{Code: http.StatusBadRequest},
 		},
 		{
 			Name: "Inactive",
@@ -181,7 +191,7 @@ func TestUninominalVoteHandler(t *testing.T) {
 				mustt(t, err)
 			},
 			Request: makeRequest(&userId, pollSegment, UninominalVoteQuery{}),
-			Checker: srvt.CheckStatus{http.StatusBadRequest},
+			Checker: srvt.CheckStatus{http.StatusLocked},
 		},
 	}
 
