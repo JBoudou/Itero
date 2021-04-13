@@ -37,14 +37,14 @@ func TestLoginHandler(t *testing.T) {
 	}
 
 	tests := []srvt.Test{
-		{
+		&srvt.T{
 			Name: "no body",
 			Request: srvt.Request{
 				Method: "POST",
 			},
 			Checker: srvt.CheckStatus{http.StatusBadRequest},
 		},
-		{
+		&srvt.T{
 			Name: "empty user",
 			Request: srvt.Request{
 				Method: "POST",
@@ -52,7 +52,7 @@ func TestLoginHandler(t *testing.T) {
 			},
 			Checker: srvt.CheckStatus{http.StatusForbidden},
 		},
-		{
+		&srvt.T{
 			Name: "empty passwd",
 			Request: srvt.Request{
 				Method: "POST",
@@ -60,7 +60,7 @@ func TestLoginHandler(t *testing.T) {
 			},
 			Checker: srvt.CheckStatus{http.StatusForbidden},
 		},
-		{
+		&srvt.T{
 			Name: "success user",
 			Request: srvt.Request{
 				Method: "POST",
@@ -68,7 +68,7 @@ func TestLoginHandler(t *testing.T) {
 			},
 			Checker: srvt.CheckStatus{http.StatusOK},
 		},
-		{
+		&srvt.T{
 			Name: "success email",
 			Request: srvt.Request{
 				Method: "POST",

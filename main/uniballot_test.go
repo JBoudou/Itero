@@ -205,12 +205,12 @@ func TestUninominalBallotHandler(t *testing.T) {
 	// WARNING: The tests are sequential.
 
 	tests := []srvt.Test{
-		{
+		&srvt.T{
 			Name:    "No Ballot",
 			Request: request,
 			Checker: srvt.CheckJSON{Body: &UninominalBallotAnswer{Alternatives: alternatives}},
 		},
-		{
+		&srvt.T{
 			Name:    "Current ballot",
 			Update:  vote(0, 0),
 			Request: request,
@@ -219,7 +219,7 @@ func TestUninominalBallotHandler(t *testing.T) {
 				Alternatives: alternatives,
 			}},
 		},
-		{
+		&srvt.T{
 			Name: "Previous ballot",
 			Update: func(t *testing.T) {
 				env.NextRound(pollSegment.Id)
@@ -231,7 +231,7 @@ func TestUninominalBallotHandler(t *testing.T) {
 				Alternatives: alternatives,
 			}},
 		},
-		{
+		&srvt.T{
 			Name:    "Both ballots",
 			Update:  vote(1, 1),
 			Request: request,
@@ -241,7 +241,7 @@ func TestUninominalBallotHandler(t *testing.T) {
 				Alternatives: alternatives,
 			}},
 		},
-		{
+		&srvt.T{
 			Name:    "Previous Blank",
 			Update:  blank(0),
 			Request: request,
@@ -251,7 +251,7 @@ func TestUninominalBallotHandler(t *testing.T) {
 				Alternatives: alternatives,
 			}},
 		},
-		{
+		&srvt.T{
 			Name:    "Both Blank",
 			Update:  blank(1),
 			Request: request,

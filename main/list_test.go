@@ -134,12 +134,12 @@ func TestListHandler(t *testing.T) {
 
 	tests := []srvt.Test{
 		// BEWARE! This test is sequential!
-		{
+		&srvt.T{
 			Name: "No session",
 			// TODO fix this test once implemented
 			Checker: srvt.CheckStatus{http.StatusNotImplemented},
 		},
-		{
+		&srvt.T{
 			Name: "PublicRegistered Poll",
 			Update: func(t *testing.T) {
 				poll1Id = env.CreatePoll(poll1Title, userId, db.PollPublicityPublicRegistered)
@@ -152,7 +152,7 @@ func TestListHandler(t *testing.T) {
 				},
 			},
 		},
-		{
+		&srvt.T{
 			Name: "Other participate",
 			Update: func(t *testing.T) {
 				_, err := db.DB.Exec(qParticipate, poll1Id, otherId)
@@ -167,7 +167,7 @@ func TestListHandler(t *testing.T) {
 				},
 			},
 		},
-		{
+		&srvt.T{
 			Name: "HiddenRegistered Poll",
 			Update: func(t *testing.T) {
 				poll2Id = env.CreatePoll(poll2Title, userId, db.PollPublicityHiddenRegistered)
@@ -183,7 +183,7 @@ func TestListHandler(t *testing.T) {
 				},
 			},
 		},
-		{
+		&srvt.T{
 			Name: "HiddenRegistered is hidden",
 			Request: srvt.Request{UserId: &otherId},
 			Checker: listChecker{
@@ -195,7 +195,7 @@ func TestListHandler(t *testing.T) {
 				},
 			},
 		},
-		{
+		&srvt.T{
 			Name: "HiddenRegistered Poll Participate",
 			Update: func(t *testing.T) {
 				_, err := db.DB.Exec(qParticipate, poll2Id, userId)
@@ -211,7 +211,7 @@ func TestListHandler(t *testing.T) {
 				},
 			},
 		},
-		{
+		&srvt.T{
 			Name: "Terminated",
 			Update: func(t *testing.T) {
 				_, err := db.DB.Exec(qTerminate, poll2Id)
@@ -227,7 +227,7 @@ func TestListHandler(t *testing.T) {
 				},
 			},
 		},
-		{
+		&srvt.T{
 			Name: "Waiting",
 			Update: func(t *testing.T) {
 				poll3Id = env.CreatePoll(poll3Title, userId, db.PollPublicityPublicRegistered)
@@ -242,7 +242,7 @@ func TestListHandler(t *testing.T) {
 				ownInc: []listCheckerEntry{ {title: poll3Title, id: &poll3Id, action: PollActionWait}, },
 			},
 		},
-		{
+		&srvt.T{
 			Name: "Waiting is hidden",
 			Request: srvt.Request{UserId: &userId},
 			Checker: listChecker{

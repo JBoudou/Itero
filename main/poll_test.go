@@ -101,18 +101,18 @@ func TestPollHandler(t *testing.T) {
 	}
 
 	tests := []srvt.Test{
-		{
+		&srvt.T{
 			Name: "No segment",
 			Request: srvt.Request{ UserId: &userId },
 			Checker: srvt.CheckStatus{http.StatusBadRequest},
 		},
-		{
+		&srvt.T{
 			Name: "No session",
 			Update:  createPoll(&segment1, &target1, db.PollPublicityHiddenRegistered),
 			Request: srvt.Request{ Target: &target1 },
 			Checker: srvt.CheckStatus{http.StatusForbidden},
 		},
-		{
+		&srvt.T{
 			Name: "Wrong salt",
 			Update: func(t *testing.T) {
 				segment := PollSegment{ Id: segment1.Id, Salt: 9999 }
@@ -125,13 +125,13 @@ func TestPollHandler(t *testing.T) {
 			Request: srvt.Request{ Target: &target1wrong, UserId: &userId },
 			Checker: srvt.CheckStatus{http.StatusNotFound},
 		},
-		{
+		&srvt.T{
 			Name: "Private poll",
 			Update:  createPoll(&segment2, &target2, db.PollPublicityInvited),
 			Request: srvt.Request{ Target: &target2, UserId: &userId },
 			Checker: srvt.CheckStatus{http.StatusNotFound},
 		},
-		{
+		&srvt.T{
 			Name: "Late public poll",
 			Update:  func(t *testing.T) {
 				createPoll(&segment3, &target3, db.PollPublicityPublic)(t)
@@ -141,7 +141,7 @@ func TestPollHandler(t *testing.T) {
 			Request: srvt.Request{ Target: &target3, UserId: &userId },
 			Checker: srvt.CheckStatus{http.StatusNotFound},
 		},
-		{
+		&srvt.T{
 			Name: "Ok Hidden Registered",
 			Request: srvt.Request{ Target: &target1, UserId: &userId },
 			Checker: srvt.CheckJSON{
@@ -154,7 +154,7 @@ func TestPollHandler(t *testing.T) {
 				Partial: true,
 			},
 		},
-		{
+		&srvt.T{
 			Name: "Ok Invited",
 			Update: func(t *testing.T) {
 				_, err := db.DB.Exec(qParticipate, segment2.Id, userId)
@@ -173,7 +173,7 @@ func TestPollHandler(t *testing.T) {
 				Partial: true,
 			},
 		},
-		{
+		&srvt.T{
 			Name: "Ok next round",
 			Update: func(t *testing.T) {
 				_, err := db.DB.Exec(qParticipate, segment1.Id, userId)
@@ -195,7 +195,7 @@ func TestPollHandler(t *testing.T) {
 				Partial: true,
 			},
 		},
-		{
+		&srvt.T{
 			Name: "Ok closed",
 			Update: func(t *testing.T) {
 				_, err := db.DB.Exec(qClosePoll, segment1.Id)

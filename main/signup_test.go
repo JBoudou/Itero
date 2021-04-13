@@ -31,12 +31,12 @@ func TestSignupHandler_Error(t *testing.T) {
 	precheck(t)
 
 	tests := []srvt.Test{
-		{
+		&srvt.T{
 			Name:    "Bad request",
 			Request: srvt.Request{Method: "POST"},
 			Checker: srvt.CheckStatus{http.StatusBadRequest},
 		},
-		{
+		&srvt.T{
 			Name: "Name too short",
 			Request: srvt.Request{
 				Method: "POST",
@@ -44,7 +44,7 @@ func TestSignupHandler_Error(t *testing.T) {
 			},
 			Checker: srvt.CheckError{http.StatusBadRequest, "Name too short"},
 		},
-		{
+		&srvt.T{
 			Name: "Name starting with a space",
 			Request: srvt.Request{
 				Method: "POST",
@@ -52,7 +52,7 @@ func TestSignupHandler_Error(t *testing.T) {
 			},
 			Checker: srvt.CheckError{http.StatusBadRequest, "Name has spaces"},
 		},
-		{
+		&srvt.T{
 			Name: "Name ending with a space",
 			Request: srvt.Request{
 				Method: "POST",
@@ -60,7 +60,7 @@ func TestSignupHandler_Error(t *testing.T) {
 			},
 			Checker: srvt.CheckError{http.StatusBadRequest, "Name has spaces"},
 		},
-		{
+		&srvt.T{
 			Name: "Name containing @",
 			Request: srvt.Request{
 				Method: "POST",
@@ -68,7 +68,7 @@ func TestSignupHandler_Error(t *testing.T) {
 			},
 			Checker: srvt.CheckError{http.StatusBadRequest, "Name has at sign"},
 		},
-		{
+		&srvt.T{
 			Name: "Password too short",
 			Request: srvt.Request{
 				Method: "POST",
@@ -76,7 +76,7 @@ func TestSignupHandler_Error(t *testing.T) {
 			},
 			Checker: srvt.CheckError{http.StatusBadRequest, "Passwd too short"},
 		},
-		{
+		&srvt.T{
 			Name: "Wrong email 1",
 			Request: srvt.Request{
 				Method: "POST",
@@ -84,7 +84,7 @@ func TestSignupHandler_Error(t *testing.T) {
 			},
 			Checker: srvt.CheckError{http.StatusBadRequest, "Email invalid"},
 		},
-		{
+		&srvt.T{
 			Name: "Wrong email 2",
 			Request: srvt.Request{
 				Method: "POST",
@@ -128,7 +128,7 @@ func TestSignupHandler_Success(t *testing.T) {
 	}
 
 	tests := []srvt.Test{
-		{
+		&srvt.T{
 			Name: "Name already exists",
 			Request: srvt.Request{
 				Method: "POST",
@@ -136,7 +136,7 @@ func TestSignupHandler_Success(t *testing.T) {
 			},
 			Checker: srvt.CheckError{http.StatusBadRequest, "Already exists"},
 		},
-		{
+		&srvt.T{
 			Name: "Name already exists",
 			Request: srvt.Request{
 				Method: "POST",

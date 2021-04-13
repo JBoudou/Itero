@@ -27,21 +27,21 @@ func TestRefreshHandler(t *testing.T) {
 	var userId uint32 = 27
 
 	tests := []srvt.Test{
-		{
+		&srvt.T{
 			Name: "No user",
 			Request: srvt.Request {
 				Method: "POST",
 			},
 			Checker: srvt.CheckStatus{http.StatusForbidden},
 		},
-		{
+		&srvt.T{
 			Name: "GET",
 			Request: srvt.Request {
 				UserId: &userId,
 			},
 			Checker: srvt.CheckStatus{http.StatusForbidden},
 		},
-		{
+		&srvt.T{
 			Name: "Success",
 			Request: srvt.Request {
 				UserId: &userId,

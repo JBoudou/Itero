@@ -76,7 +76,7 @@ func (self *Request) Make() (req *http.Request, err error) {
 		}
 		server.AddSessionIdToRequest(req, sessionId)
 		user := server.User{Name: " Test ", Id: *self.UserId}
-		sessionAnswer := server.SessionAnswer{ SessionId: sessionId }
+		sessionAnswer := server.SessionAnswer{SessionId: sessionId}
 		session := server.NewSession(clientStore, &server.SessionOptions, &sessionAnswer, user)
 		clientStore.Save(req, nil, session)
 	}
@@ -85,13 +85,41 @@ func (self *Request) Make() (req *http.Request, err error) {
 }
 
 // Test represents a test to be executed by Run().
-//
-// Update is called before the test, if not nil.
-type Test struct {
+// A simple implementation is given by T.
+type Test interface {
+	GetName() string
+	GetRequest() *Request
+	Prepare(t *testing.T)
+	Checker
+}
+
+type T struct {
 	Name    string
-	Update  func(t *testing.T)
 	Request Request
-	Checker Checker
+
+	// Update is called before the test, if not nil.
+	Update func(t *testing.T)
+
+	Checker CheckerWithBefore
+}
+
+func (self *T) GetName() string {
+	return self.Name
+}
+
+func (self *T) GetRequest() *Request {
+	return &self.Request
+}
+
+func (self *T) Prepare(t *testing.T) {
+	if self.Update != nil {
+		self.Update(t)
+	}
+	self.Checker.Before(t)
+}
+
+func (self *T) Check(t *testing.T, response *http.Response, request *server.Request) {
+	self.Checker.Check(t, response, request)
 }
 
 // Run executes all the given tests on the given Handler.
@@ -105,13 +133,11 @@ type Test struct {
 func Run(t *testing.T, tests []Test, handler server.Handler) {
 	t.Helper()
 	for _, tt := range tests {
-		t.Run(tt.Name, func(t *testing.T) {
+		tt := tt // Copy in case tests are run in parallel.
+		t.Run(tt.GetName(), func(t *testing.T) {
 			t.Helper()
-			if tt.Update != nil {
-				tt.Update(t)
-			}
-			tt.Checker.Before(t)
-			req, err := tt.Request.Make()
+			tt.Prepare(t)
+			req, err := tt.GetRequest().Make()
 			if err != nil {
 				t.Fatalf("Error creating request: %s", err)
 			}
@@ -119,7 +145,7 @@ func Run(t *testing.T, tests []Test, handler server.Handler) {
 			wrapper := server.NewHandlerWrapper("/a/test", handler)
 			ctx, sResp, sReq := wrapper.MakeParams(mock, req)
 			wrapper.Exec(ctx, sResp, sReq)
-			tt.Checker.Check(t, mock.Result(), sReq)
+			tt.Check(t, mock.Result(), sReq)
 		})
 	}
 }

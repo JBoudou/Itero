@@ -68,7 +68,7 @@ func TestCountInfoHandler(t *testing.T) {
 	// In each pair of the parameter,
 	// the first value is the alternative index,
 	// the second value is the number of votes.
-	makeChecker := func(result [][2]uint32) srvt.Checker {
+	makeChecker := func(result [][2]uint32) srvt.CheckerWithBefore {
 		entries := make([]CountInfoEntry, len(result))
 		for i, val := range result {
 			entries[i].Alternative = alt[val[0]]
@@ -79,12 +79,12 @@ func TestCountInfoHandler(t *testing.T) {
 
 	tests := []srvt.Test{
 		// WARNING: Tests are sequential!
-		{
+		&srvt.T{
 			Name:    "Round Zero",
 			Request: request,
 			Checker: srvt.CheckStatus{http.StatusBadRequest},
 		},
-		{
+		&srvt.T{
 			Name: "All voted",
 			Update: func(t *testing.T) {
 				env.NextRound(pollSegment.Id)
@@ -93,7 +93,7 @@ func TestCountInfoHandler(t *testing.T) {
 			Request: request,
 			Checker: makeChecker([][2]uint32{{2,2}, {0,1}, {1,0}}),
 		},
-		{
+		&srvt.T{
 			Name: "One voted",
 			Update: func(t *testing.T) {
 				env.Vote(pollSegment.Id, 1, users[0], 1)
@@ -103,7 +103,7 @@ func TestCountInfoHandler(t *testing.T) {
 			Request: request,
 			Checker: makeChecker([][2]uint32{{1,1},{0,0},{2,0}}),
 		},
-		{
+		&srvt.T{
 			Name: "Carry forward",
 			Update: func(t *testing.T) {
 				env.Vote(pollSegment.Id, 2, users[1], 0)
@@ -118,7 +118,7 @@ func TestCountInfoHandler(t *testing.T) {
 			// 2 voted 0 on round 0
 			Checker: makeChecker([][2]uint32{{0,2},{1,1},{2,0}}),
 		},
-		{
+		&srvt.T{
 			Name: "Vote after carry forward result",
 			Update: func(t *testing.T) {
 				env.Vote(pollSegment.Id, 3, users[2], 2)
@@ -127,27 +127,27 @@ func TestCountInfoHandler(t *testing.T) {
 			Request: request,
 			Checker: makeChecker([][2]uint32{{0,2},{1,1},{2,0}}),
 		},
-		{
+		&srvt.T{
 			Name: "Round 3",
 			Request: previousRoundRequest(t, 3),
 			Checker: srvt.CheckStatus{http.StatusBadRequest},
 		},
-		{
+		&srvt.T{
 			Name: "Round 2",
 			Request: previousRoundRequest(t, 2),
 			Checker: makeChecker([][2]uint32{{0,2},{1,1},{2,0}}),
 		},
-		{
+		&srvt.T{
 			Name: "Round 1",
 			Request: previousRoundRequest(t, 1),
 			Checker: makeChecker([][2]uint32{{0,1},{1,1},{2,1}}),
 		},
-		{
+		&srvt.T{
 			Name: "Round 0",
 			Request: previousRoundRequest(t, 0),
 			Checker: makeChecker([][2]uint32{{2,2},{0,1},{1,0}}),
 		},
-		{
+		&srvt.T{
 			Name: "Abstain",
 			Update: func(t *testing.T) {
 				_, err := db.DB.Exec(qBlankVote, pollSegment.Id, 3, users[0])

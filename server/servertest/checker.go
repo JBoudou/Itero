@@ -28,13 +28,18 @@ import (
 
 // Checker checks that a given response is as expected.
 type Checker interface {
-	// Before is called at the beginning of each test, before the handler is called, but after the
-	// Update function.
-	Before(t *testing.T)
-
 	// Check is called at the end of each test, after the handler has been called. This method must
 	// check that the handler has done its job correctly.
 	Check(t *testing.T, response *http.Response, request *server.Request)
+}
+
+// Checker with a Before function. This interface is used by T.
+type CheckerWithBefore interface  {
+	Checker
+
+	// Before is called at the beginning of each test, before the handler is called, but after the
+	// Update function.
+	Before(t *testing.T)
 }
 
 /* ChecherFun */

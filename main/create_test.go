@@ -186,12 +186,12 @@ func TestCreateHandler(t *testing.T) {
 	}
 
 	tests := []srvt.Test{
-		{
+		&srvt.T{
 			Name:    "No user",
 			Request: makeRequest(nil, "", []string{"No", "Yes"}),
 			Checker: srvt.CheckStatus{http.StatusForbidden},
 		},
-		{
+		&srvt.T{
 			Name: "GET",
 			Request: srvt.Request{
 				UserId: &userId,
@@ -203,7 +203,7 @@ func TestCreateHandler(t *testing.T) {
 			},
 			Checker: srvt.CheckStatus{http.StatusForbidden},
 		},
-		{
+		&srvt.T{
 			Name: "Duplicate",
 			Request: srvt.Request{
 				UserId: &userId,
@@ -215,12 +215,12 @@ func TestCreateHandler(t *testing.T) {
 			},
 			Checker: srvt.CheckAnyErrorStatus,
 		},
-		{
+		&srvt.T{
 			Name:    "Success",
 			Request: makeRequest(&userId, "", []string{"No", "Yes"}),
 			Checker: &createPollChecker{user: userId},
 		},
-		{
+		&srvt.T{
 			Name: "Hidden",
 			Request: srvt.Request{
 				UserId: &userId,
@@ -233,7 +233,7 @@ func TestCreateHandler(t *testing.T) {
 			},
 			Checker: &createPollChecker{user: userId},
 		},
-		{
+		&srvt.T{
 			Name: "ReportVote",
 			Request: srvt.Request{
 				UserId: &userId,
@@ -246,7 +246,7 @@ func TestCreateHandler(t *testing.T) {
 			},
 			Checker: &createPollChecker{user: userId},
 		},
-		{
+		&srvt.T{
 			Name: "Start later",
 			Request: srvt.Request{
 				UserId: &userId,

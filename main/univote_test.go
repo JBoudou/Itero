@@ -129,32 +129,32 @@ func TestUninominalVoteHandler(t *testing.T) {
 	}
 
 	tests := []srvt.Test{
-		{
+		&srvt.T{
 			Name:    "No user",
 			Request: makeRequest(nil, pollSegment, UninominalVoteQuery{}),
 			Checker: srvt.CheckStatus{http.StatusForbidden},
 		},
-		{
+		&srvt.T{
 			Name:    "Wrong segment",
 			Request: makeRequest(&userId, forbiddenSegment, UninominalVoteQuery{}),
 			Checker: srvt.CheckStatus{http.StatusNotFound},
 		},
-		{
+		&srvt.T{
 			Name:    "First vote",
 			Request: makeRequest(&userId, pollSegment, UninominalVoteQuery{Alternative: 1}),
 			Checker: &voteChecker{poll: pollSegment.Id, user: userId, round: 0},
 		},
-		{
+		&srvt.T{
 			Name:    "Change vote",
 			Request: makeRequest(&userId, pollSegment, UninominalVoteQuery{Alternative: 0}),
 			Checker: &voteChecker{poll: pollSegment.Id, user: userId, round: 0},
 		},
-		{
+		&srvt.T{
 			Name:    "Change vote again",
 			Request: makeRequest(&userId, pollSegment, UninominalVoteQuery{Alternative: 1}),
 			Checker: &voteChecker{poll: pollSegment.Id, user: userId, round: 0},
 		},
-		{
+		&srvt.T{
 			Name: "First blank",
 			Update: func(t *testing.T) {
 				env.NextRound(pollSegment.Id)
@@ -163,27 +163,27 @@ func TestUninominalVoteHandler(t *testing.T) {
 			Request: makeRequest(&userId, pollSegment, UninominalVoteQuery{Blank: true, Round: 1}),
 			Checker: &voteChecker{poll: pollSegment.Id, user: userId, round: 1},
 		},
-		{
+		&srvt.T{
 			Name:    "Change to non-blank",
 			Request: makeRequest(&userId, pollSegment, UninominalVoteQuery{Alternative: 1, Round: 1}),
 			Checker: &voteChecker{poll: pollSegment.Id, user: userId, round: 1},
 		},
-		{
+		&srvt.T{
 			Name:    "Change to blank",
 			Request: makeRequest(&userId, pollSegment, UninominalVoteQuery{Blank: true, Round: 1}),
 			Checker: &voteChecker{poll: pollSegment.Id, user: userId, round: 1},
 		},
-		{
+		&srvt.T{
 			Name: "Previous round",
 			Request: makeRequest(&userId, pollSegment, UninominalVoteQuery{Blank: true, Round: 0}),
 			Checker: srvt.CheckError{Code: http.StatusLocked, Body: "Next round"},
 		},
-		{
+		&srvt.T{
 			Name: "Next round",
 			Request: makeRequest(&userId, pollSegment, UninominalVoteQuery{Blank: true, Round: 2}),
 			Checker: srvt.CheckStatus{Code: http.StatusBadRequest},
 		},
-		{
+		&srvt.T{
 			Name: "Inactive",
 			Update: func(t *testing.T) {
 				const qInactivate = `UPDATE Polls SET State = 'Terminated' WHERE Id = ?`
