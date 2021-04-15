@@ -40,6 +40,7 @@ func main() {
 	server.HandleFunc("/a/vote/uninominal/", UninominalVoteHandler)
 	server.HandleFunc("/a/info/count/", CountInfoHandler, server.Compress)
 	server.HandleFunc("/a/create", CreateHandler)
+	server.HandleFunc("/a/delete/", DeleteHandler)
 
 	log.Println("Server starting")
 	if err := server.Start(); err != nil {

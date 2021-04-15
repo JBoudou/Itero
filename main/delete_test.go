@@ -31,7 +31,6 @@ import (
 type deleteHandlerTest struct {
 	name          string
 	state         string
-	wrongUser     bool
 	round         uint8   // First round is 0
 	roundTime     float32 // if not zero, set CurrentRoundStart = NOW - roundTime * MaxRoundDuration
 	expectStatus  int
@@ -75,12 +74,7 @@ func (self *deleteHandlerTest) Prepare(t *testing.T) {
 }
 
 func (self *deleteHandlerTest) GetRequest(t *testing.T) *srvt.Request {
-	userId := &self.userId
-	if self.wrongUser {
-		userId = new(uint32)
-		*userId = self.userId + 1;
-	}
-	return makePollRequest(t, self.pollId, userId)
+	return makePollRequest(t, self.pollId, &self.userId)
 }
 
 func (self *deleteHandlerTest) Check(t *testing.T, response *http.Response, request *server.Request) {
@@ -107,6 +101,36 @@ func (self *deleteHandlerTest) Close() {
 	self.dbEnv.Close()
 }
 
+type deleteHandlerTestWrongUser struct {
+	deleteHandlerTest
+}
+
+func (self *deleteHandlerTestWrongUser) GetRequest(t *testing.T) *srvt.Request {
+	userId := new(uint32)
+	*userId = self.userId + 1
+	return makePollRequest(t, self.pollId, userId)
+}
+
+type deleteHandlerTestNoUser struct {
+	deleteHandlerTest
+}
+
+func (self *deleteHandlerTestNoUser) GetRequest(t *testing.T) *srvt.Request {
+	return makePollRequest(t, self.pollId, nil)
+}
+
+type deleteHandlerTestWithVote struct {
+	deleteHandlerTest
+}
+
+func (self *deleteHandlerTestWithVote) Prepare(t *testing.T) {
+	self.deleteHandlerTest.Prepare(t)
+	for i := uint8(0); i <= self.round; i++ {
+		self.dbEnv.Vote(self.pollId, i, self.userId, 0)
+	}
+	self.dbEnv.Must(t)
+}
+
 func TestDeleteHandler(t *testing.T) {
 	tests := []srvt.Test {
 		&deleteHandlerTest{
@@ -119,12 +143,16 @@ func TestDeleteHandler(t *testing.T) {
 			expectStatus: http.StatusLocked,
 			expectMessage: "Not deletable",
 		},
-		&deleteHandlerTest{
+		&deleteHandlerTestNoUser{ deleteHandlerTest{
+			name: "No user",
+			expectStatus: http.StatusForbidden,
+			expectMessage: server.UnauthorizedHttpErrorMsg,
+		}},
+		&deleteHandlerTestWrongUser{ deleteHandlerTest{
 			name: "Wrong admin",
-			wrongUser: true,
 			expectStatus: http.StatusLocked,
 			expectMessage: "Not deletable",
-		},
+		}},
 		&deleteHandlerTest{
 			name: "Round 2",
 			round: 1,
@@ -142,6 +170,10 @@ func TestDeleteHandler(t *testing.T) {
 			name: "Round 1 over",
 			roundTime: 1.1,
 		},
+		&deleteHandlerTestWithVote{ deleteHandlerTest{
+			name: "Round 1 with vote",
+			roundTime: 1.1,
+		}},
 	}
 
 	srvt.RunFunc(t, tests, DeleteHandler)

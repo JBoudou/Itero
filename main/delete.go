@@ -30,6 +30,10 @@ func DeleteHandler(ctx context.Context, response server.Response, request *serve
 		ImpossibleMessage = "Not deletable"
 	)
 
+	if request.User == nil {
+		panic(server.UnauthorizedHttpError("No session"))
+	}
+
 	segment, err := pollSegmentFromRequest(request)
 	must(err)
 
