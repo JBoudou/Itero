@@ -6,6 +6,8 @@ table
     border: solid 1px $maincolor
   td, th
     padding: 2px 4px
+  th.manage
+    padding: 2px 0
   tr.tableheader
     background-color: $softbgcolor
   tr.poll
@@ -35,7 +37,10 @@ table
       .wait
         background-color: $softbgcolor
         border: solid 1px $userbuttonbgcolor
-    td.manage span
-      cursor: pointer
-      &:hover
-        color: $maincolor
+    td.manage
+      padding: 2px 0
+      span
+        margin-right: 2px
+        cursor: pointer
+        &:hover
+          color: $maincolor
