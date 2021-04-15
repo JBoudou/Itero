@@ -88,9 +88,10 @@ func (self *Request) Make() (req *http.Request, err error) {
 // A simple implementation is given by T.
 type Test interface {
 	GetName() string
-	GetRequest() *Request
+	GetRequest(t *testing.T) *Request
 	Prepare(t *testing.T)
 	Checker
+	Close()
 }
 
 type T struct {
@@ -107,7 +108,7 @@ func (self *T) GetName() string {
 	return self.Name
 }
 
-func (self *T) GetRequest() *Request {
+func (self *T) GetRequest(t *testing.T) *Request {
 	return &self.Request
 }
 
@@ -116,6 +117,9 @@ func (self *T) Prepare(t *testing.T) {
 		self.Update(t)
 	}
 	self.Checker.Before(t)
+}
+
+func (self *T) Close() {
 }
 
 func (self *T) Check(t *testing.T, response *http.Response, request *server.Request) {
@@ -136,8 +140,9 @@ func Run(t *testing.T, tests []Test, handler server.Handler) {
 		tt := tt // Copy in case tests are run in parallel.
 		t.Run(tt.GetName(), func(t *testing.T) {
 			t.Helper()
+			defer tt.Close()
 			tt.Prepare(t)
-			req, err := tt.GetRequest().Make()
+			req, err := tt.GetRequest(t).Make()
 			if err != nil {
 				t.Fatalf("Error creating request: %s", err)
 			}

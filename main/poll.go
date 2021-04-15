@@ -74,6 +74,16 @@ func noPollError(reason string) server.HttpError {
 	return server.NewHttpError(http.StatusNotFound, "No poll", reason)
 }
 
+// pollSegmentFromRequest retrieves the poll id from the last segment of the URL.
+func pollSegmentFromRequest(request *server.Request) (segment PollSegment, err error) {
+	remainingLength := len(request.RemainingPath)
+	if remainingLength == 0 {
+		err = server.NewHttpError(http.StatusBadRequest, "No poll segment", "No poll segment")
+		return
+	}
+  return PollSegmentDecode(request.RemainingPath[remainingLength-1])
+}
+
 // checkPollAccess ensure that the user can access the poll.
 //
 // It checks that the request has a session and a valid poll segment. It also check that the user
@@ -91,12 +101,8 @@ func checkPollAccess(ctx context.Context, request *server.Request) (poll PollInf
 	}
 
 	// Check segment
-	remainingLength := len(request.RemainingPath)
-	if remainingLength == 0 {
-		err = server.NewHttpError(http.StatusBadRequest, "No poll segment", "No poll segment")
-		return
-	}
-	segment, err := PollSegmentDecode(request.RemainingPath[remainingLength-1])
+	var segment PollSegment
+	segment, err = pollSegmentFromRequest(request)
 	if err != nil {
 		return
 	}

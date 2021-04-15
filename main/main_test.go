@@ -40,9 +40,10 @@ func precheck(t *testing.T) {
 	}
 }
 
-func makePollRequest(t *testing.T, pollSegment PollSegment, userId *uint32) srvt.Request {
+func makePollRequest(t *testing.T, pollId uint32, userId *uint32) *srvt.Request {
+	pollSegment := PollSegment{Salt: 42, Id: pollId}
 	encoded, err := pollSegment.Encode()
 	mustt(t, err)
 	target := "/a/test/" + encoded
-	return srvt.Request{Target: &target, UserId: userId}
+	return &srvt.Request{Target: &target, UserId: userId}
 }

@@ -174,12 +174,11 @@ func TestUninominalBallotHandler(t *testing.T) {
 	env := new(dbt.Env)
 	defer env.Close()
 
-	pollSegment := PollSegment{Salt: 42}
 	userId := env.CreateUser()
-	pollSegment.Id = env.CreatePoll("UninominalBallotHandler", userId, db.PollPublicityPublic)
+	pollId := env.CreatePoll("UninominalBallotHandler", userId, db.PollPublicityPublic)
 	mustt(t, env.Error)
 
-	request := makePollRequest(t, pollSegment, &userId)
+	request := *makePollRequest(t, pollId, &userId)
 
 	alternatives := []PollAlternative{
 		{Id: 0, Name: "No", Cost: 1.},
@@ -190,7 +189,7 @@ func TestUninominalBallotHandler(t *testing.T) {
 
 	vote := func(alternative, round uint8) func(t *testing.T) {
 		return func(t *testing.T) {
-			env.Vote(pollSegment.Id, round, userId, alternative)
+			env.Vote(pollId, round, userId, alternative)
 			env.Must(t)
 		}
 	}
@@ -222,7 +221,7 @@ func TestUninominalBallotHandler(t *testing.T) {
 		&srvt.T{
 			Name: "Previous ballot",
 			Update: func(t *testing.T) {
-				env.NextRound(pollSegment.Id)
+				env.NextRound(pollId)
 				env.Must(t)
 			},
 			Request: request,

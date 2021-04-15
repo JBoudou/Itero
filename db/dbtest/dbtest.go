@@ -35,7 +35,7 @@ type Env struct {
 	Error   error
 }
 
-// Defer adds a function to be called by Close. As other Env's method, nothing is done if Error is
+// Defer adds a function to be called by Close. As other Env's method, nothing is added if Error is
 // not nil.
 func (self *Env) Defer(fct func()) {
 	if self.Error == nil {
@@ -57,6 +57,7 @@ func (self *Env) Close() {
 	}
 }
 
+// Must makes the test fail is some error have happened.
 func (self *Env) Must(t *testing.T) {
 	if self.Error != nil {
 		t.Helper()

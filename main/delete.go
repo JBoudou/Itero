@@ -30,20 +30,17 @@ func DeleteHandler(ctx context.Context, response server.Response, request *serve
 		ImpossibleMessage = "Not deletable"
 	)
 
-	pollInfo, err := checkPollAccess(ctx, request)
+	segment, err := pollSegmentFromRequest(request)
 	must(err)
-	if pollInfo.CurrentRound > 0 {
-		panic(server.NewHttpError(ImpossibleStatus, ImpossibleMessage, "First round terminated"))
-	}
 
 	const qDelete = `
 	  DELETE FROM Polls
 		 WHERE Id = ? AND Admin = ?
 		   AND ( State = 'Waiting' OR
 			       ( State = 'Active' AND CurrentRound = 0 AND
-						   ADDTIME(CurrentRoundStart, MaxRoundDuration) > CURRENT_TIMESTAMP ) )`
+						   ADDTIME(CurrentRoundStart, MaxRoundDuration) < CURRENT_TIMESTAMP ) )`
 
-	result, err := db.DB.ExecContext(ctx, qDelete, pollInfo.Id, request.User.Id)
+	result, err := db.DB.ExecContext(ctx, qDelete, segment.Id, request.User.Id)
 	must(err)
 	affected, err := result.RowsAffected()
 	must(err)

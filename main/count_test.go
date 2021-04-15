@@ -30,7 +30,7 @@ func TestCountInfoHandler(t *testing.T) {
 	precheck(t)
 
 	const (
-		qReport = `UPDATE Polls SET ReportVote = TRUE WHERE Id = ?`
+		qReport    = `UPDATE Polls SET ReportVote = TRUE WHERE Id = ?`
 		qBlankVote = `INSERT INTO Participants (Poll, Round, User) VALUE (?,?,?)`
 	)
 
@@ -41,23 +41,22 @@ func TestCountInfoHandler(t *testing.T) {
 		users[i] = env.CreateUserWith(strconv.FormatInt(int64(i), 10))
 	}
 
-	pollSegment := PollSegment{Salt: 42}
-	pollSegment.Id = env.CreatePollWith("Test", users[0], db.PollPublicityPublic, []string{
-		"Ham", "Stram", "Gram"})
-	env.Vote(pollSegment.Id, 0, users[0], 2)
-	env.Vote(pollSegment.Id, 0, users[1], 2)
-	env.Vote(pollSegment.Id, 0, users[2], 0)
+	pollId := env.CreatePollWith("Test", users[0], db.PollPublicityPublic,
+		[]string{"Ham", "Stram", "Gram"})
+	env.Vote(pollId, 0, users[0], 2)
+	env.Vote(pollId, 0, users[1], 2)
+	env.Vote(pollId, 0, users[2], 0)
 	env.Must(t)
 
-	request := makePollRequest(t, pollSegment, &users[0])
+	request := *makePollRequest(t, pollId, &users[0])
 
 	previousRoundRequest := func(t *testing.T, round uint8) srvt.Request {
+		pollSegment := PollSegment{Salt: 42, Id: pollId}
 		encoded, err := pollSegment.Encode()
 		mustt(t, err)
 		target := "/a/test/" + strconv.FormatUint(uint64(round), 10) + "/" + encoded
 		return srvt.Request{Target: &target, UserId: &users[0]}
 	}
-		
 
 	alt := [3]PollAlternative{
 		{Id: 0, Name: "Ham", Cost: 1},
@@ -87,76 +86,76 @@ func TestCountInfoHandler(t *testing.T) {
 		&srvt.T{
 			Name: "All voted",
 			Update: func(t *testing.T) {
-				env.NextRound(pollSegment.Id)
+				env.NextRound(pollId)
 				env.Must(t)
 			},
 			Request: request,
-			Checker: makeChecker([][2]uint32{{2,2}, {0,1}, {1,0}}),
+			Checker: makeChecker([][2]uint32{{2, 2}, {0, 1}, {1, 0}}),
 		},
 		&srvt.T{
 			Name: "One voted",
 			Update: func(t *testing.T) {
-				env.Vote(pollSegment.Id, 1, users[0], 1)
-				env.NextRound(pollSegment.Id)
+				env.Vote(pollId, 1, users[0], 1)
+				env.NextRound(pollId)
 				env.Must(t)
 			},
 			Request: request,
-			Checker: makeChecker([][2]uint32{{1,1},{0,0},{2,0}}),
+			Checker: makeChecker([][2]uint32{{1, 1}, {0, 0}, {2, 0}}),
 		},
 		&srvt.T{
 			Name: "Carry forward",
 			Update: func(t *testing.T) {
-				env.Vote(pollSegment.Id, 2, users[1], 0)
-				env.NextRound(pollSegment.Id)
+				env.Vote(pollId, 2, users[1], 0)
+				env.NextRound(pollId)
 				// Current round is 3
-				env.QuietExec(qReport, pollSegment.Id)
+				env.QuietExec(qReport, pollId)
 				env.Must(t)
 			},
 			Request: request,
 			// 0 voted 1 on round 1
 			// 1 voted 0 on round 2
 			// 2 voted 0 on round 0
-			Checker: makeChecker([][2]uint32{{0,2},{1,1},{2,0}}),
+			Checker: makeChecker([][2]uint32{{0, 2}, {1, 1}, {2, 0}}),
 		},
 		&srvt.T{
 			Name: "Vote after carry forward result",
 			Update: func(t *testing.T) {
-				env.Vote(pollSegment.Id, 3, users[2], 2)
+				env.Vote(pollId, 3, users[2], 2)
 				env.Must(t)
 			},
 			Request: request,
-			Checker: makeChecker([][2]uint32{{0,2},{1,1},{2,0}}),
+			Checker: makeChecker([][2]uint32{{0, 2}, {1, 1}, {2, 0}}),
 		},
 		&srvt.T{
-			Name: "Round 3",
+			Name:    "Round 3",
 			Request: previousRoundRequest(t, 3),
 			Checker: srvt.CheckStatus{http.StatusBadRequest},
 		},
 		&srvt.T{
-			Name: "Round 2",
+			Name:    "Round 2",
 			Request: previousRoundRequest(t, 2),
-			Checker: makeChecker([][2]uint32{{0,2},{1,1},{2,0}}),
+			Checker: makeChecker([][2]uint32{{0, 2}, {1, 1}, {2, 0}}),
 		},
 		&srvt.T{
-			Name: "Round 1",
+			Name:    "Round 1",
 			Request: previousRoundRequest(t, 1),
-			Checker: makeChecker([][2]uint32{{0,1},{1,1},{2,1}}),
+			Checker: makeChecker([][2]uint32{{0, 1}, {1, 1}, {2, 1}}),
 		},
 		&srvt.T{
-			Name: "Round 0",
+			Name:    "Round 0",
 			Request: previousRoundRequest(t, 0),
-			Checker: makeChecker([][2]uint32{{2,2},{0,1},{1,0}}),
+			Checker: makeChecker([][2]uint32{{2, 2}, {0, 1}, {1, 0}}),
 		},
 		&srvt.T{
 			Name: "Abstain",
 			Update: func(t *testing.T) {
-				_, err := db.DB.Exec(qBlankVote, pollSegment.Id, 3, users[0])
+				_, err := db.DB.Exec(qBlankVote, pollId, 3, users[0])
 				mustt(t, err)
-				env.NextRound(pollSegment.Id)
+				env.NextRound(pollId)
 				env.Must(t)
 			},
 			Request: request,
-			Checker: makeChecker([][2]uint32{{0,1},{2,1},{1,0}}),
+			Checker: makeChecker([][2]uint32{{0, 1}, {2, 1}, {1, 0}}),
 		},
 	}
 	srvt.RunFunc(t, tests, CountInfoHandler)
