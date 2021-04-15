@@ -15,26 +15,22 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
-import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 
 import { ListComponent } from './list.component';
-import { SessionService } from '../session/session.service';
+import { ListService } from './list.service';
 
 describe('ListComponent', () => {
   let component: ListComponent;
   let fixture: ComponentFixture<ListComponent>;
+  let serviceSpy: jasmine.SpyObj<ListService>;
 
   beforeEach(async () => {
-    const sessionSpy = jasmine.createSpyObj('SessionService', ['makeURL']);
-    const routerSpy  = jasmine.createSpyObj('Router', ['navigateByUrl']);
+    serviceSpy = jasmine.createSpyObj('ListService', ['refresh']);
 
     await TestBed.configureTestingModule({
       declarations: [ ListComponent ],
-      imports: [ HttpClientTestingModule ],
       providers: [
-        {provide: SessionService, useValue: sessionSpy},
-        {provide: Router, useValue: routerSpy}
+        {provide: ListService, useValue: serviceSpy},
       ]
     })
     .compileComponents();
@@ -48,5 +44,9 @@ describe('ListComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('calls refresh on init', () => {
+    expect(serviceSpy.refresh).toHaveBeenCalled();
   });
 });

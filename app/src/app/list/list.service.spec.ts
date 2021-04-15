@@ -17,6 +17,8 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { Router } from '@angular/router';
+import { MatDialog, MatDialogRef } from '@angular/material/dialog';
+import { of } from 'rxjs';
 
 import { RouterStub } from '../../testing/router.stub';
 import { Recorder } from '../../testing/recorder';
@@ -30,9 +32,16 @@ describe('ListService', () => {
   let service: ListService;
   let httpControler: HttpTestingController;
   let routerStub: RouterStub;
+  let dialogSpy: jasmine.SpyObj<MatDialog>;
+
+  const makeDialogSay = function(what: any) {
+    const ref = jasmine.createSpyObj('MatDialogRef', {'afterClosed': of(what) });
+    dialogSpy.open.and.returnValue(ref);
+  }
 
   beforeEach(() => {
     routerStub = new RouterStub('');
+    dialogSpy = jasmine.createSpyObj('MatDialog', ['open'])
 
     TestBed.configureTestingModule({
       imports: [
@@ -40,6 +49,7 @@ describe('ListService', () => {
       ],
       providers: [
         { provide: Router, useValue: routerStub },
+        { provide: MatDialog, useValue: dialogSpy },
       ],
     });
 
@@ -126,6 +136,7 @@ describe('ListService', () => {
   });
 
   it('sends delete request', () => {
+    makeDialogSay(true);
     service.delete({
       Segment: '123456789',
       Title: 'Public',
@@ -143,6 +154,7 @@ describe('ListService', () => {
     const rec = new Recorder<ServerError>();
     rec.listen(service.error$);
 
+    makeDialogSay(true);
     service.delete({
       Segment: '123456789',
       Title: 'Public',

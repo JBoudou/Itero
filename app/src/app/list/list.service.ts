@@ -14,12 +14,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Injectable } from '@angular/core';
+import { Component, Inject, Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { take } from 'rxjs/operators';
+import { MatDialog, MAT_DIALOG_DATA } from '@angular/material/dialog';
 
 import { ListAnswer, ListAnswerEntry } from '../api';
 import { ServerError } from '../shared/server-error';
@@ -55,18 +56,26 @@ export class ListService {
   }
 
   delete(poll: ListAnswerEntry): void {
-    this.http.get('/a/delete/' + poll.Segment).pipe(take(1)).subscribe({
-      next: () => this.refresh(),
-      error: (err: HttpErrorResponse) => {
-        this._error.next(new ServerError(err, 'deleting poll ' + poll.Segment));
-        this._refresh();
-      },
+    const ref = this.dialog.open<DeletePollDialog, ListAnswerEntry, boolean>(DeletePollDialog, { data: poll });
+    ref.afterClosed().pipe(take(1)).subscribe({
+      next: (result: boolean) => {
+        if (result) {
+          this.http.get('/a/delete/' + poll.Segment).pipe(take(1)).subscribe({
+            next: () => this.refresh(),
+            error: (err: HttpErrorResponse) => {
+              this._error.next(new ServerError(err, 'deleting poll ' + poll.Segment));
+              this._refresh();
+            },
+          });
+        }
+      }
     });
   }
 
   constructor(
     private http: HttpClient,
     private router: Router,
+    private dialog: MatDialog,
   ) { }
 
   private _refresh(): void {
@@ -80,4 +89,14 @@ export class ListService {
         this._error.next(new ServerError(err, 'fetching the list of polls')),
     });
   }
+}
+
+@Component({
+  selector: 'delete-poll-dialog',
+  templateUrl: 'delete-poll.dialog.html',
+})
+export class DeletePollDialog {
+  constructor(
+    @Inject(MAT_DIALOG_DATA) public poll: ListAnswerEntry,
+  ) { }
 }
