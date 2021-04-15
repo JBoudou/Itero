@@ -55,16 +55,17 @@ const (
 
 type ListAnswer struct {
 	Public []listAnswerEntry
-	Own []listAnswerEntry
+	Own    []listAnswerEntry
 }
 
 type listAnswerEntry struct {
 	Segment      string
 	Title        string
-	CurrentRound uint8 
-	MaxRound     uint8 
+	CurrentRound uint8
+	MaxRound     uint8
 	Deadline     NuDate
 	Action       uint8
+	Deletable    bool `json:",omitempty"`
 }
 
 func ListHandler(ctx context.Context, response server.Response, request *server.Request) {
@@ -82,18 +83,19 @@ func ListHandler(ctx context.Context, response server.Response, request *server.
 	           CASE WHEN p.State = 'Terminated' THEN 3
 	                WHEN a.Poll IS NULL THEN 2
 	                WHEN a.LastRound >= p.CurrentRound THEN 1
-	                ELSE 0 END AS Action
+	                ELSE 0 END AS Action,
+	                FALSE AS Deletable
 	      FROM Polls AS p LEFT OUTER JOIN (
 	               SELECT Poll, MAX(Round) AS LastRound
 	                FROM Participants
 	               WHERE User = ?
-								 GROUP BY Poll
+	               GROUP BY Poll
 	           ) AS a ON p.Id = a.Poll
 	     WHERE ( (p.State != 'Waiting' AND p.CurrentRound = 0 AND p.Publicity <= ?)
 	              OR a.Poll IS NOT NULL )
 	       AND p.Admin != ?
 	     ORDER BY Action ASC, Deadline ASC`
-	  qOwn = `
+		qOwn = `
 	    SELECT p.Id, p.Salt, p.Title, p.CurrentRound, p.MaxNbRounds,
 	           CASE WHEN p.State = 'Waiting' THEN p.Start
 	                ELSE RoundDeadline(p.CurrentRoundStart, p.MaxRoundDuration, p.Deadline,
@@ -102,12 +104,16 @@ func ListHandler(ctx context.Context, response server.Response, request *server.
 	                WHEN p.State = 'Terminated' THEN 3
 	                WHEN a.Poll IS NULL THEN 2
 	                WHEN a.LastRound >= p.CurrentRound THEN 1
-	                ELSE 0 END AS Action
+	                ELSE 0 END AS Action,
+	           ( p.State = 'Waiting' OR
+	             ( p.State = 'Active' AND p.CurrentRound = 0 AND
+	               ADDTIME(p.CurrentRoundStart, p.MaxRoundDuration) < CURRENT_TIMESTAMP )
+	           ) AS Deletable
 	      FROM Polls AS p LEFT OUTER JOIN (
 	               SELECT Poll, MAX(Round) AS LastRound
 	                FROM Participants
 	               WHERE User = ?
-								 GROUP BY Poll
+	               GROUP BY Poll
 	           ) AS a ON p.Id = a.Poll
 	     WHERE p.Admin = ?
 	     ORDER BY Action ASC, Deadline ASC`
@@ -140,7 +146,7 @@ func makeListEntriesList(rows *sql.Rows) (list []listAnswerEntry, err error) {
 
 		err = rows.Scan(&segment.Id, &segment.Salt, &listAnswerEntry.Title,
 			&listAnswerEntry.CurrentRound, &listAnswerEntry.MaxRound, &deadline,
-			&listAnswerEntry.Action)
+			&listAnswerEntry.Action, &listAnswerEntry.Deletable)
 		if err != nil {
 			return
 		}

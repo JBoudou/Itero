@@ -32,25 +32,27 @@ import (
 type listChecker struct {
 	publicInc []listCheckerEntry
 	publicExc []listCheckerEntry
-	ownInc []listCheckerEntry
-	ownExc []listCheckerEntry
+	ownInc    []listCheckerEntry
+	ownExc    []listCheckerEntry
 }
 
 type listCheckerEntry struct {
-	title string
-	id *uint32
-	action uint8
+	title     string
+	id        *uint32
+	action    uint8
+	deletable bool
 }
 
 func (self *listCheckerEntry) toListEntry(t *testing.T) *listAnswerEntry {
 	segment, err := PollSegment{Id: *self.id, Salt: 42}.Encode()
 	mustt(t, err)
 	return &listAnswerEntry{
-		Title: self.title,
-		Segment: segment,
+		Title:        self.title,
+		Segment:      segment,
 		CurrentRound: 0,
-		MaxRound: 4,
-		Action: self.action,
+		MaxRound:     4,
+		Action:       self.action,
+		Deletable:    self.deletable,
 	}
 }
 
@@ -59,18 +61,18 @@ func (self listChecker) Before(t *testing.T) {
 
 func (self listChecker) Check(t *testing.T, response *http.Response, request *server.Request) {
 	srvt.CheckStatus{http.StatusOK}.Check(t, response, request)
-	
+
 	var answer ListAnswer
 	mustt(t, json.NewDecoder(response.Body).Decode(&answer))
 
 	listCheckList(t, answer.Public, self.publicInc, self.publicExc)
-	listCheckList(t, answer.Own   , self.ownInc   , self.ownExc   )
+	listCheckList(t, answer.Own, self.ownInc, self.ownExc)
 }
 
 func listCheckList(t *testing.T, got []listAnswerEntry,
 	include []listCheckerEntry, exclude []listCheckerEntry) {
 
-	wanted := make(map[string]*listAnswerEntry, len(include) + len(exclude))
+	wanted := make(map[string]*listAnswerEntry, len(include)+len(exclude))
 	for _, maker := range include {
 		entry := maker.toListEntry(t)
 		wanted[entry.Segment] = entry
@@ -101,7 +103,6 @@ func listCheckList(t *testing.T, got []listAnswerEntry,
 	}
 }
 
-
 func TestListHandler(t *testing.T) {
 	// BEWARE! This test is sequential!
 	precheck(t)
@@ -115,8 +116,8 @@ func TestListHandler(t *testing.T) {
 
 	const (
 		qParticipate = `INSERT INTO Participants(Poll, User, Round) VALUE (?, ?, 0)`
-		qTerminate = `UPDATE Polls SET State = 'Terminated' WHERE Id = ?`
-		qWaiting = `
+		qTerminate   = `UPDATE Polls SET State = 'Terminated' WHERE Id = ?`
+		qWaiting     = `
 		  UPDATE Polls
 			   SET State = 'Waiting', Start = ADDTIME(CURRENT_TIMESTAMP(), '1:00')
 			 WHERE Id = ?`
@@ -184,7 +185,7 @@ func TestListHandler(t *testing.T) {
 			},
 		},
 		&srvt.T{
-			Name: "HiddenRegistered is hidden",
+			Name:    "HiddenRegistered is hidden",
 			Request: srvt.Request{UserId: &otherId},
 			Checker: listChecker{
 				publicInc: []listCheckerEntry{
@@ -239,14 +240,16 @@ func TestListHandler(t *testing.T) {
 			},
 			Request: srvt.Request{UserId: &userId},
 			Checker: listChecker{
-				ownInc: []listCheckerEntry{ {title: poll3Title, id: &poll3Id, action: PollActionWait}, },
+				ownInc: []listCheckerEntry{
+					{title: poll3Title, id: &poll3Id, action: PollActionWait, deletable: true},
+				},
 			},
 		},
 		&srvt.T{
-			Name: "Waiting is hidden",
+			Name:    "Waiting is hidden",
 			Request: srvt.Request{UserId: &userId},
 			Checker: listChecker{
-				publicExc: []listCheckerEntry{ {title: poll3Title, id: &poll3Id, action: PollActionWait}, },
+				publicExc: []listCheckerEntry{{title: poll3Title, id: &poll3Id, action: PollActionWait}},
 			},
 		},
 	}
