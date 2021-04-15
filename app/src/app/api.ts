@@ -33,9 +33,6 @@ export class SessionAnswer {
   Expires: Date;
 }
 
-// Null-able Date
-export type NuDate = Date | '.'
-
 export enum PollAction {
   Vote,
   Modi,
@@ -49,13 +46,36 @@ export class ListAnswerEntry {
   Title:        string;
   CurrentRound: number;
   MaxRound:     number;
-  Deadline:     NuDate;
+  Deadline:     Date|undefined;
   Action:       PollAction;
+  Deletable:    boolean;
 }
 
 export class ListAnswer {
   Public: ListAnswerEntry[];
   Own:    ListAnswerEntry[];
+
+  static fromJSON(json: string): ListAnswer {
+    const ret = JSON.parse(json, function(key: string, value: any) {
+      if (key === 'Deadline') {
+        return value === '⋅' ? undefined : new Date(value);
+      }
+      return value;
+    });
+
+    const normalize = function (entry: any) {
+      if (!entry.hasOwnProperty('Deadline')) {
+        entry.Deadline = undefined;
+      }
+      if (!entry.hasOwnProperty('Deletable')) {
+        entry.Deletable = false;
+      }
+    }
+    ret.Public.forEach(normalize);
+    ret.Own   .forEach(normalize);
+
+    return ret;
+  }
 }
 
 export enum BallotType {

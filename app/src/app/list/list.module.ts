@@ -17,6 +17,8 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
+import { MatIconModule }    from '@angular/material/icon'; 
+
 import { SharedModule } from '../shared/shared.module';
 
 import { ListRoutingModule } from './list-routing.module';
@@ -33,6 +35,7 @@ import { PollsTableComponent } from './polls-table/polls-table.component';
   imports: [
     CommonModule,
     ListRoutingModule,
+    MatIconModule,
     SharedModule,
   ],
   exports: [

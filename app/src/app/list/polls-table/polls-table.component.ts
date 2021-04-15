@@ -16,9 +16,9 @@
 
 
 import { Component, Input, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
 
 import { ListAnswerEntry, PollAction } from '../../api';
+import { ListService } from '../list.service';
 
 @Component({
   selector: 'app-polls-table',
@@ -30,7 +30,7 @@ export class PollsTableComponent implements OnInit {
   @Input() polls: ListAnswerEntry[];
 
   constructor(
-    private router: Router,
+    public service: ListService
   ) { }
 
   ngOnInit(): void {
@@ -53,14 +53,6 @@ export class PollsTableComponent implements OnInit {
 
   terminated(poll: ListAnswerEntry): boolean {
     return poll.Action == PollAction.Term;
-  }
-
-  /**
-   * Receives click event on individual poll.
-   * @Param {string} segment The identifier of the poll.
-   */
-  go(segment: string): void {
-    this.router.navigateByUrl('/r/poll/' + segment)
   }
 
 }

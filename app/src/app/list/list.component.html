@@ -1,8 +1,8 @@
-<div class="poll-list" *ngIf="(answer$ | async).Public.length">
+<div class="poll-list" *ngIf="(publicList$ | async).length">
   <h3>Polls you participate in</h3>
-  <app-polls-table [polls]="(answer$ | async).Public"></app-polls-table>
+  <app-polls-table [polls]="publicList$ | async"></app-polls-table>
 </div>
-<div class="poll-list" *ngIf="(answer$ | async).Own.length">
+<div class="poll-list" *ngIf="(ownList$ | async).length">
   <h3>Polls you have created</h3>
-  <app-polls-table [polls]="(answer$ | async).Own"></app-polls-table>
+  <app-polls-table [polls]="ownList$ | async"></app-polls-table>
 </div>
