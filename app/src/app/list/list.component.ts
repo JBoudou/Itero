@@ -19,6 +19,7 @@ import { Component, OnInit } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { ListAnswerEntry } from '../api';
+import { ServerError } from '../shared/server-error';
 import { ListService } from './list.service';
 
 /**
@@ -36,6 +37,9 @@ export class ListComponent implements OnInit {
   }
   get ownList$(): Observable<ListAnswerEntry[]> {
     return this.service.ownList$;
+  }
+  get error$(): Observable<ServerError> {
+    return this.service.error$;
   }
 
   constructor(

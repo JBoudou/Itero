@@ -22,6 +22,7 @@ import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { take } from 'rxjs/operators';
 
 import { ListAnswer, ListAnswerEntry } from '../api';
+import { ServerError } from '../shared/server-error';
 
 @Injectable({
   providedIn: 'root'
@@ -38,31 +39,28 @@ export class ListService {
     return this._own;
   }
 
-  private _error = new Subject<HttpErrorResponse>();
+  private _error = new Subject<ServerError>();
 
-  get error$(): Observable<HttpErrorResponse> {
+  get error$(): Observable<ServerError> {
     return this._error;
   }
 
   refresh(): void {
-    this.http.get('/a/list', {responseType: 'text'}).pipe(take(1)).subscribe({
-      next: (answerText: string) => {
-        const answer = ListAnswer.fromJSON(answerText);
-        this._public.next(answer.Public);
-        this._own   .next(answer.Own   );
-      },
-      error: (err: HttpErrorResponse) => this.handleError(err),
-    });
+    this._error.next(new ServerError());
+    this._refresh();
   }
 
   go(poll: ListAnswerEntry): void {
-    this.router.navigateByUrl('/r/poll/' + poll.Segment)
+    this.router.navigateByUrl('/r/poll/' + poll.Segment);
   }
 
   delete(poll: ListAnswerEntry): void {
-    this.http.get('/a/delete/' + poll.Segment, {responseType: 'text'}).pipe(take(1)).subscribe({
+    this.http.get('/a/delete/' + poll.Segment).pipe(take(1)).subscribe({
       next: () => this.refresh(),
-      error: (err: HttpErrorResponse) => this.handleError(err),
+      error: (err: HttpErrorResponse) => {
+        this._error.next(new ServerError(err, 'deleting poll ' + poll.Segment));
+        this._refresh();
+      },
     });
   }
 
@@ -71,7 +69,15 @@ export class ListService {
     private router: Router,
   ) { }
 
-  private handleError(err: HttpErrorResponse): void {
-    this._error.next(err);
+  private _refresh(): void {
+    this.http.get('/a/list', {responseType: 'text'}).pipe(take(1)).subscribe({
+      next: (answerText: string) => {
+        const answer = ListAnswer.fromJSON(answerText);
+        this._public.next(answer.Public);
+        this._own   .next(answer.Own   );
+      },
+      error: (err: HttpErrorResponse) =>
+        this._error.next(new ServerError(err, 'fetching the list of polls')),
+    });
   }
 }

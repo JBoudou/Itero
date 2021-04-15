@@ -1,3 +1,4 @@
+<app-server-error [error]="error$ | async"></app-server-error>
 <div class="poll-list" *ngIf="(publicList$ | async).length">
   <h3>Polls you participate in</h3>
   <app-polls-table [polls]="publicList$ | async"></app-polls-table>

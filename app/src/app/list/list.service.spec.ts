@@ -15,7 +15,6 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { TestBed } from '@angular/core/testing';
-import { HttpErrorResponse } from '@angular/common/http';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { Router } from '@angular/router';
 
@@ -25,6 +24,7 @@ import { Recorder } from '../../testing/recorder';
 import { ListService } from './list.service';
 
 import { ListAnswerEntry, PollAction } from '../api';
+import { ServerError } from '../shared/server-error';
 
 describe('ListService', () => {
   let service: ListService;
@@ -140,7 +140,7 @@ describe('ListService', () => {
   });
 
   it('transmit http errors', () => {
-    const rec = new Recorder<HttpErrorResponse>();
+    const rec = new Recorder<ServerError>();
     rec.listen(service.error$);
 
     service.delete({
@@ -161,8 +161,7 @@ describe('ListService', () => {
     expect(rec.record.length).toBeGreaterThan(0);
     const lastError = rec.record[rec.record.length - 1];
     expect(lastError.status).toBe(404);
-    // TODO: Check the message. It seems that TestRequest does not allow body with error response.
-    //expect(lastError.message.trim()).toBe('Some error');
+    expect(lastError.message).toBe('Some error');
 
     rec.unsubscribe();
   });

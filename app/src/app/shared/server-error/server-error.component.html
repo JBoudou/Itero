@@ -1,0 +1,4 @@
+<p *ngIf="!!error && !error.ok" class="error-msg" i18n>
+  Unexpected error (<span class="http-error">{{ error.status }} {{ error.message }}</span>)
+  while {{ error.context }}.
+</p>

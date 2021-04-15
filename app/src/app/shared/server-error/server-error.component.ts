@@ -14,21 +14,21 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { NgModule } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { OrdinalPipe } from './ordinal.pipe';
-import { NearDatePipe } from './near-date.pipe';
-import { ServerErrorComponent } from './server-error/server-error.component';
+import { Component, Input, OnInit } from '@angular/core';
+import { ServerError } from '../server-error';
 
-@NgModule({
-  declarations: [OrdinalPipe, NearDatePipe, ServerErrorComponent],
-  imports: [
-    CommonModule
-  ],
-  exports: [
-    NearDatePipe,
-    OrdinalPipe,
-    ServerErrorComponent,
-  ]
+@Component({
+  selector: 'app-server-error',
+  templateUrl: './server-error.component.html',
+  styleUrls: ['./server-error.component.sass']
 })
-export class SharedModule { }
+export class ServerErrorComponent implements OnInit {
+
+  @Input() error: ServerError;
+
+  constructor() { }
+
+  ngOnInit(): void {
+  }
+
+}

@@ -14,21 +14,20 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { NgModule } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { OrdinalPipe } from './ordinal.pipe';
-import { NearDatePipe } from './near-date.pipe';
-import { ServerErrorComponent } from './server-error/server-error.component';
+import { HttpErrorResponse } from '@angular/common/http';
 
-@NgModule({
-  declarations: [OrdinalPipe, NearDatePipe, ServerErrorComponent],
-  imports: [
-    CommonModule
-  ],
-  exports: [
-    NearDatePipe,
-    OrdinalPipe,
-    ServerErrorComponent,
-  ]
-})
-export class SharedModule { }
+export class ServerError {
+  readonly ok: boolean;
+  readonly status: number;
+  readonly message: string;
+  readonly context: string;
+
+  constructor();
+  constructor(err: HttpErrorResponse, context: string);
+  constructor(err?: HttpErrorResponse, context?: string) {
+    this.ok = !err;
+    this.status = err && err.status || 200;
+    this.message = err && err.error.trim() || '';
+    this.context = err && context || '';
+  }
+}

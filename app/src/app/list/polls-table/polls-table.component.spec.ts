@@ -15,21 +15,22 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
 
 import { PollsTableComponent } from './polls-table.component';
+
+import { ListService } from '../list.service';
 
 describe('PollsTableComponent', () => {
   let component: PollsTableComponent;
   let fixture: ComponentFixture<PollsTableComponent>;
 
   beforeEach(async () => {
-    const routerSpy  = jasmine.createSpyObj('Router', ['navigateByUrl']);
+    const serviceSpy  = jasmine.createSpyObj('ListService', ['go', 'delete']);
 
     await TestBed.configureTestingModule({
       declarations: [ PollsTableComponent ],
       providers: [
-        {provide: Router, useValue: routerSpy},
+        {provide: ListService, useValue: serviceSpy},
       ],
     })
     .compileComponents();
