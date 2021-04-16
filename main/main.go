@@ -30,6 +30,9 @@ func main() {
 	service.Run(NextRoundService)
 	service.Run(ClosePollService)
 
+	// Misc
+	RunPollNotif(PollNotifDelay)
+
 	// Handlers
 	server.HandleFunc("/a/login", LoginHandler)
 	server.HandleFunc("/a/signup", SignupHandler)
