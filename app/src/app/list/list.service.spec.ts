@@ -58,12 +58,12 @@ describe('ListService', () => {
     jasmine.clock().install();
   });
 
-  it('should be created', () => {
-    expect(service).toBeTruthy();
-  });
-
   afterEach(function() {
     jasmine.clock().uninstall();
+  });
+
+  it('should be created', () => {
+    expect(service).toBeTruthy();
   });
 
   it('fetches lists', () => {

@@ -164,3 +164,24 @@ export class CreateQuery {
   MaxRoundDuration: number; // milliseconds
   RoundThreshold:   number;
 }
+
+export enum PollNotifAction {
+  Start,
+  Next,
+  Term,
+  Delete,
+}
+
+export class PollNotifAnswerEntry {
+  Timestamp: Date;
+  Segment:   string;
+  Round:     number;
+  Action:    PollNotifAction;
+
+  static fromJSONList(json: string): PollNotifAnswerEntry[] {
+    return JSON.parse(json, function(key: string, value: any) {
+      if (key === 'Timestamp') { return new Date(value as string); }
+      return value;
+    });
+  }
+}

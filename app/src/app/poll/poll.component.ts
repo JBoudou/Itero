@@ -18,6 +18,7 @@
 import {
   Component,
   Directive,
+  OnDestroy,
   OnInit,
   Type,
   ViewChild,
@@ -41,10 +42,11 @@ import {
   ServerError
 } from './common';
 
-import { PollAnswer, BallotType, InformationType } from '../api';
+import { PollAnswer, BallotType, InformationType, PollNotifAnswerEntry } from '../api';
 import { DynamicComponentFactoryService } from '../dynamic-component-factory.service';
 import { SessionService } from '../session/session.service';
 import { AppTitleService } from '../app-title.service';
+import { PollNotifService } from '../poll-notif.service';
 
 import { UninominalBallotComponent } from './uninominal-ballot/uninominal-ballot.component';
 import { CountsInformationComponent } from './counts-information/counts-information.component';
@@ -92,7 +94,7 @@ const enum SubComponentId {
   styleUrls: ['./poll.component.sass'],
   encapsulation: ViewEncapsulation.None,
 })
-export class PollComponent implements OnInit {
+export class PollComponent implements OnInit, OnDestroy {
 
   // Anchors to insert the dynamic sub-component into.
   @ViewChild(PollBallotDirective, { static: false }) ballot: PollBallotDirective;
@@ -120,7 +122,10 @@ export class PollComponent implements OnInit {
   BallotType = BallotType;
 
   /** Subscription for the sub component. The first index must be a SubComponentId. */
-  private subscriptions: Subscription[][] = [];
+  private subsubscriptions: Subscription[][] = [];
+
+  /** Other subscriptions, not corresponding to any subcomponent. */
+  private subscriptions: Subscription[] = [];
 
   constructor(
     private route: ActivatedRoute,
@@ -129,6 +134,7 @@ export class PollComponent implements OnInit {
     private session: SessionService,
     private formBuilder: FormBuilder,
     private title: AppTitleService,
+    private notif: PollNotifService,
   ) { }
 
   ngOnInit(): void {
@@ -136,6 +142,15 @@ export class PollComponent implements OnInit {
       this.segment = params.get('pollSegment');
       this.retrieveTypes();
     });
+    this.subscriptions.push(
+      this.notif.event$.subscribe({
+        next: (evt: PollNotifAnswerEntry) => this.handleEvent(evt),
+      }),
+    );
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.forEach((sub: Subscription) => sub.unsubscribe());
   }
 
   /** Whether the response from the middleware has been received. */
@@ -251,7 +266,7 @@ export class PollComponent implements OnInit {
       const comp = this.loadSubComponent(SubComponentId.Ballot, type) as PollBallotComponent;
       comp.round = this.answer.CurrentRound;
 
-      this.subscriptions[SubComponentId.Ballot].push(
+      this.subsubscriptions[SubComponentId.Ballot].push(
         comp.previousRoundBallot.subscribe({
           next: (ballot: PollBallot) => this.previousRoundBallot = ballot,
         }),
@@ -280,8 +295,8 @@ export class PollComponent implements OnInit {
 
   /** Disconnect then remove a sub-component. */
   private clearSubComponent(componentIndex: number): void {
-    if (!!this.subscriptions[componentIndex]) {
-      for (let subscription of this.subscriptions[componentIndex]) {
+    if (!!this.subsubscriptions[componentIndex]) {
+      for (let subscription of this.subsubscriptions[componentIndex]) {
         subscription.unsubscribe();
       }
     }
@@ -302,7 +317,7 @@ export class PollComponent implements OnInit {
       this.dynamicComponentFactory.createComponent<PollSubComponent>(viewContainerRef, type);
     instance.pollSegment = this.segment;
 
-    this.subscriptions[componentIndex] = [instance.errors.subscribe({
+    this.subsubscriptions[componentIndex] = [instance.errors.subscribe({
       next: (err: ServerError) => {
         this.registerError(err);
       }
@@ -339,15 +354,31 @@ export class PollComponent implements OnInit {
   private registerError(err: ServerError) {
     if (err.status == 423 && err.message == "Next round") {
       this.nextRoundError = true;
-      this.retrieveTypes();
+      this.refresh();
       return;
     }
     this.nextRoundError = false;
     this.error = err;
-    for (let i = 0, end = this.subscriptions.length; i < end; i++) {
+    for (let i = 0, end = this.subsubscriptions.length; i < end; i++) {
       this.clearSubComponent(i);
     }
-    this.subscriptions = [];
+    this.subsubscriptions = [];
+  }
+
+  private handleEvent(evt: PollNotifAnswerEntry): void {
+    if (evt.Segment != this.segment) {
+      return
+    }
+    setTimeout(() => {
+      this.refresh();
+    }, this.justVoteBallot === NONE_BALLOT ? 0 : 10000)
+  }
+  
+  private refresh(): void {
+    this.previousRoundBallot = NONE_BALLOT;
+    this.currentRoundBallot  = NONE_BALLOT;
+    this.justVoteBallot      = NONE_BALLOT;
+    this.retrieveTypes();
   }
 
 }

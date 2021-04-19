@@ -33,8 +33,6 @@ const minRefreshTime = 15 * 1000;
 
 /**
  * Manage the session.
- *
- * TODO
  */
 @Injectable({
   providedIn: 'root'
