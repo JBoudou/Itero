@@ -128,8 +128,9 @@ func TestPollNotif(t *testing.T) {
 			action: PollNotifStart,
 		},
 		{
-			event:  NextRoundEvent{Poll: 2},
+			event:  NextRoundEvent{Poll: 2, Round: 4},
 			id:     2,
+			round:  4,
 			action: PollNotifNext,
 		},
 		{
@@ -297,7 +298,7 @@ func TestPollNotifHandler(t *testing.T) {
 			name:     "Admin All",
 			events:   []func(uint32) events.Event{create, next, term},
 			userKind: pollNotifHandlerTestUserAdmin,
-			expect:   []PollNotifAnswerEntry{
+			expect: []PollNotifAnswerEntry{
 				{Action: PollNotifStart},
 				{Action: PollNotifNext},
 				{Action: PollNotifTerm},

@@ -21,8 +21,13 @@ import (
 	"net/http"
 
 	"github.com/JBoudou/Itero/db"
+	"github.com/JBoudou/Itero/events"
 	"github.com/JBoudou/Itero/server"
 )
+
+type DeletePollEvent struct {
+	Poll uint32
+}
 
 func DeleteHandler(ctx context.Context, response server.Response, request *server.Request) {
 	const (
@@ -52,5 +57,6 @@ func DeleteHandler(ctx context.Context, response server.Response, request *serve
 		panic(server.NewHttpError(ImpossibleStatus, ImpossibleMessage, "The query affects no row"))
 	}
 
+	events.Send(DeletePollEvent{segment.Id})
 	response.SendJSON(ctx, "Ok")
 }

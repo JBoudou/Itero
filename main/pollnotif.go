@@ -56,11 +56,16 @@ func NewPollNotification(evt events.Event) (ret *PollNotification) {
 
 	case NextRoundEvent:
 		ret.Id = e.Poll
+		ret.Round = e.Round
 		ret.Action = PollNotifNext
 
 	case ClosePollEvent:
 		ret.Id = e.Poll
 		ret.Action = PollNotifTerm
+
+	case DeletePollEvent:
+		ret.Id = e.Poll
+		ret.Action = PollNotifDelete
 	}
 
 	return
@@ -188,7 +193,7 @@ func newPollNotifRunner(delay time.Duration) *pollNotifRunner {
 
 func (self *pollNotifRunner) filter(evt events.Event) bool {
 	switch evt.(type) {
-	case CreatePollEvent, NextRoundEvent, ClosePollEvent:
+	case CreatePollEvent, NextRoundEvent, ClosePollEvent, DeletePollEvent:
 		return true
 	}
 	return false

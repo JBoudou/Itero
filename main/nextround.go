@@ -29,10 +29,11 @@ const nextRoundDefaultWaitDuration = time.Hour
 
 // NextRoundEvent is the type of events send when a new round starts.
 type NextRoundEvent struct {
-	Poll uint32
+	Poll  uint32
+	Round uint8
 }
 
-type nextRoundService struct{
+type nextRoundService struct {
 	logger service.LevelLogger
 }
 
@@ -41,7 +42,7 @@ var NextRoundService = &nextRoundService{logger: service.NewPrefixLogger("NextRo
 func (self *nextRoundService) ProcessOne(id uint32) error {
 	const (
 		qCheck = `
-	    SELECT p.Id
+	    SELECT p.CurrentRound
 	      FROM Polls AS p
 	      LEFT OUTER JOIN Participants_Round_Count AS r ON (p.Id, p.CurrentRound) = (r.Poll, r.Round)
 	      LEFT OUTER JOIN Participants_Poll_Count  AS a ON p.Id = a.Poll
@@ -72,12 +73,18 @@ func (self *nextRoundService) ProcessOne(id uint32) error {
 	if !rows.Next() {
 		return service.NothingToDoYet
 	}
+	var round uint8
+	err = rows.Scan(&round)
+	if err != nil {
+		return err
+	}
+
 	_, err = db.DB.Exec(qUpdate, id)
 	if err != nil {
 		return err
 	}
 
-	return events.Send(NextRoundEvent{id})
+	return events.Send(NextRoundEvent{Poll: id, Round: round + 1})
 }
 
 func (self *nextRoundService) CheckAll() service.Iterator {
