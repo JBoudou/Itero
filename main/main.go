@@ -44,6 +44,7 @@ func main() {
 	server.HandleFunc("/a/info/count/", CountInfoHandler, server.Compress)
 	server.HandleFunc("/a/create", CreateHandler)
 	server.HandleFunc("/a/delete/", DeleteHandler)
+	server.HandleFunc("/a/pollnotif", PollNotifHandler, server.Compress)
 
 	log.Println("Server starting")
 	if err := server.Start(); err != nil {

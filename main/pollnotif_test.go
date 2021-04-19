@@ -17,10 +17,18 @@
 package main
 
 import (
+	"encoding/json"
+	"net/http"
+	"reflect"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/JBoudou/Itero/db"
+	dbt "github.com/JBoudou/Itero/db/dbtest"
 	"github.com/JBoudou/Itero/events"
+	"github.com/JBoudou/Itero/server"
+	srvt "github.com/JBoudou/Itero/server/servertest"
 )
 
 // TestPollNotifList_Global tests all PollNotifList's methods but in only one scenario.
@@ -154,4 +162,178 @@ func TestPollNotif(t *testing.T) {
 			t.Errorf("Wrong notif action at index %d. Got %d. Expect %d.", i, sl[i].Action, elements[i].action)
 		}
 	}
+}
+
+//
+// Handler test
+//
+
+const (
+	pollNotifHandlerTestUserAdmin = iota
+	pollNotifHandlerTestUserPart
+	pollNotifHandlerTestUserAlien
+)
+
+type pollNotifHandlerTest struct {
+	name      string
+	events    []func(uint32) events.Event
+	userKind  uint8
+	lastDelay time.Duration // Compute LastUpdate in query as Now - lastDelay. Default to one second.
+	expect    []PollNotifAnswerEntry
+
+	dbEnv  dbt.Env
+	admnId uint32
+	partId uint32
+	pollId uint32
+}
+
+func (self *pollNotifHandlerTest) GetName() string {
+	return self.name
+}
+
+func (self *pollNotifHandlerTest) Prepare(t *testing.T) {
+	t.Parallel()
+
+	self.admnId = self.dbEnv.CreateUserWith("PollNotifHandler" + self.name + "Admin")
+	if self.userKind != pollNotifHandlerTestUserAdmin {
+		self.partId = self.dbEnv.CreateUserWith("PollNotifHandler" + self.name + "Part")
+	}
+	self.pollId = self.dbEnv.CreatePoll("DeleteHandler", self.admnId, db.PollPublicityPublicRegistered)
+
+	const (
+		qParticipate = `INSERT INTO Participants(User,Poll,Round) VALUE (?,?,0)`
+	)
+
+	if self.userKind == pollNotifHandlerTestUserPart {
+		self.dbEnv.QuietExec(qParticipate, self.partId, self.pollId)
+	}
+
+	self.dbEnv.Must(t)
+
+	for _, fct := range self.events {
+		mustt(t, events.Send(fct(self.pollId)))
+		time.Sleep(time.Millisecond)
+	}
+}
+
+func (self *pollNotifHandlerTest) GetRequest(t *testing.T) *srvt.Request {
+	userId := &self.partId
+	if self.userKind == pollNotifHandlerTestUserAdmin {
+		userId = &self.admnId
+	}
+
+	// Body
+	if self.lastDelay == 0 {
+		self.lastDelay = time.Second
+	}
+	last := time.Now().Add(-1 * self.lastDelay)
+	body, err := json.Marshal(PollNotifQuery{LastUpdate: last})
+	mustt(t, err)
+
+	return &srvt.Request{Method: "POST", UserId: userId, Body: string(body)}
+}
+
+func (self *pollNotifHandlerTest) Check(t *testing.T, response *http.Response, request *server.Request) {
+	if response.StatusCode != http.StatusOK {
+		t.Errorf("Unexpected HTTP error %d.", response.StatusCode)
+	}
+
+	decoder := json.NewDecoder(response.Body)
+	var got []PollNotifAnswerEntry
+	mustt(t, decoder.Decode(&got))
+
+	glen := len(got)
+	if glen != len(self.expect) {
+		t.Errorf("Wrong length. Got %d. Expect %d.", glen, len(self.expect))
+		if glen > len(self.expect) {
+			glen = len(self.expect)
+		}
+	}
+
+	segment, err := PollSegment{Id: self.pollId, Salt: 42}.Encode()
+	mustt(t, err)
+	for i := 0; i < glen; i++ {
+		got[i].Timestamp = time.Time{}
+		self.expect[i].Segment = segment
+		if !reflect.DeepEqual(got[i], self.expect[i]) {
+			t.Errorf("Wrong value index %d. Got %v. Expect %v.", i, got[i], self.expect[i])
+		}
+	}
+}
+
+func (self *pollNotifHandlerTest) Close() {
+	self.dbEnv.Close()
+}
+
+var testPollNotifHandlerRunPollNotif sync.Once
+
+func TestPollNotifHandler(t *testing.T) {
+	testPollNotifHandlerRunPollNotif.Do(func() { RunPollNotif(time.Second) })
+
+	create := func(id uint32) events.Event { return CreatePollEvent{Poll: id} }
+	next := func(id uint32) events.Event { return NextRoundEvent{Poll: id} }
+	term := func(id uint32) events.Event { return ClosePollEvent{Poll: id} }
+
+	tests := []srvt.Test{
+		&pollNotifHandlerTest{
+			name:     "Admin Create",
+			events:   []func(uint32) events.Event{create},
+			userKind: pollNotifHandlerTestUserAdmin,
+			expect:   []PollNotifAnswerEntry{{Action: PollNotifStart}},
+		},
+		&pollNotifHandlerTest{
+			name:     "Admin Next",
+			events:   []func(uint32) events.Event{next},
+			userKind: pollNotifHandlerTestUserAdmin,
+			expect:   []PollNotifAnswerEntry{{Action: PollNotifNext}},
+		},
+		&pollNotifHandlerTest{
+			name:     "Admin Term",
+			events:   []func(uint32) events.Event{term},
+			userKind: pollNotifHandlerTestUserAdmin,
+			expect:   []PollNotifAnswerEntry{{Action: PollNotifTerm}},
+		},
+		&pollNotifHandlerTest{
+			name:     "Admin All",
+			events:   []func(uint32) events.Event{create, next, term},
+			userKind: pollNotifHandlerTestUserAdmin,
+			expect:   []PollNotifAnswerEntry{
+				{Action: PollNotifStart},
+				{Action: PollNotifNext},
+				{Action: PollNotifTerm},
+			},
+		},
+		&pollNotifHandlerTest{
+			name:     "Part Next",
+			events:   []func(uint32) events.Event{next},
+			userKind: pollNotifHandlerTestUserPart,
+			expect:   []PollNotifAnswerEntry{{Action: PollNotifNext}},
+		},
+		&pollNotifHandlerTest{
+			name:     "Part Term",
+			events:   []func(uint32) events.Event{term},
+			userKind: pollNotifHandlerTestUserPart,
+			expect:   []PollNotifAnswerEntry{{Action: PollNotifTerm}},
+		},
+		&pollNotifHandlerTest{
+			name:     "Alien Create",
+			events:   []func(uint32) events.Event{create},
+			userKind: pollNotifHandlerTestUserAlien,
+			expect:   []PollNotifAnswerEntry{},
+		},
+		&pollNotifHandlerTest{
+			name:     "Alien Next",
+			events:   []func(uint32) events.Event{next},
+			userKind: pollNotifHandlerTestUserAlien,
+			expect:   []PollNotifAnswerEntry{},
+		},
+		&pollNotifHandlerTest{
+			name:     "Alien Term",
+			events:   []func(uint32) events.Event{term},
+			userKind: pollNotifHandlerTestUserAlien,
+			expect:   []PollNotifAnswerEntry{},
+		},
+	}
+
+	srvt.RunFunc(t, tests, PollNotifHandler)
 }

@@ -17,10 +17,15 @@
 package main
 
 import (
+	"context"
 	"errors"
+	"fmt"
+	"net/http"
 	"time"
 
+	"github.com/JBoudou/Itero/db"
 	"github.com/JBoudou/Itero/events"
+	"github.com/JBoudou/Itero/server"
 )
 
 //
@@ -138,7 +143,7 @@ func (self *PollNotifList) Copy() *PollNotifList {
 }
 
 //
-// PollNotifService
+// PollNotif "Service"
 //
 
 // PollNotifChannel provides lists of recent notifications.
@@ -170,10 +175,6 @@ func RunPollNotif(delay time.Duration) error {
 	go runner.run(eventChan, notifChan)
 	return nil
 }
-
-//
-// implementation
-//
 
 type pollNotifRunner struct {
 	toKeep *PollNotifList
@@ -209,4 +210,78 @@ func (self *pollNotifRunner) run(eventChan <-chan events.Event, notifChan chan<-
 			self.toSend.Add(notif)
 		}
 	}
+}
+
+//
+// PollNotifHandler
+//
+
+type PollNotifQuery struct {
+	LastUpdate time.Time
+}
+
+type PollNotifAnswerEntry struct {
+	Timestamp time.Time
+	Segment   string
+	Round     uint8
+	Action    uint8
+}
+
+func PollNotifHandler(ctx context.Context, response server.Response, request *server.Request) {
+	if request.User == nil {
+		if request.SessionError != nil {
+			must(request.SessionError)
+		} else {
+			panic(server.UnauthorizedHttpError("Unlogged user"))
+		}
+	}
+	must(request.CheckPOST(ctx))
+	
+	var query PollNotifQuery
+	err := request.UnmarshalJSONBody(&query)
+	if err != nil {
+		panic(server.WrapError(http.StatusBadRequest, "Bad request", err))
+	}
+
+	baseList := <-PollNotifChannel
+	if len(baseList) == 0 {
+		response.SendJSON(ctx, make([]PollNotifAnswerEntry, 0))
+		return
+	}
+
+	const qCheck = `
+	  SELECT Salt FROM Polls
+		 WHERE Id = ?
+		   AND (Admin = %[1]d OR Id IN ( SELECT Poll FROM Participants WHERE User = %[1]d ))`
+	stmt, err := db.DB.PrepareContext(ctx, fmt.Sprintf(qCheck, request.User.Id))
+	must(err)
+	defer stmt.Close()
+
+	answer := make([]PollNotifAnswerEntry, 0, len(baseList)/2)
+	for _, notif := range baseList {
+		if notif.Timestamp.Before(query.LastUpdate) {
+			continue
+		}
+
+		rows, err := stmt.QueryContext(ctx, notif.Id)
+		must(err)
+		if !rows.Next() {
+			continue
+		}
+		segment := PollSegment{Id: notif.Id}
+		err = rows.Scan(&segment.Salt)
+		rows.Close()
+		must(err)
+		encoded, err := segment.Encode()
+		must(err)
+		
+		answer = append(answer, PollNotifAnswerEntry{
+			Timestamp: notif.Timestamp,
+			Segment: encoded,
+			Round: notif.Round,
+			Action: notif.Action,
+		})
+	}
+			
+	response.SendJSON(ctx, answer)
 }

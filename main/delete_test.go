@@ -48,7 +48,7 @@ func (self *deleteHandlerTest) GetName() string {
 func (self *deleteHandlerTest) Prepare(t *testing.T) {
 	t.Parallel()
 
-	self.userId = self.dbEnv.CreateUserWith(self.name)
+	self.userId = self.dbEnv.CreateUserWith("DeleteHandle" + self.name)
 	self.pollId = self.dbEnv.CreatePoll("DeleteHandler", self.userId, db.PollPublicityPublicRegistered)
 
 	const (
