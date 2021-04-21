@@ -20,6 +20,7 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { HttpClientModule } from '@angular/common/http';
 
 import { MatIconModule }    from '@angular/material/icon'; 
+import { MatMenuModule }    from '@angular/material/menu';
 
 import { AppRoutingModule } from './app-routing.module';
 import { ListModule }       from './list/list.module';
@@ -48,6 +49,7 @@ import { DeadRouteComponent } from './dead-route/dead-route.component';
     HttpClientModule,
     ListModule,
     MatIconModule,
+    MatMenuModule,
     PollModule,
     SessionModule,
     AppRoutingModule // Must be last

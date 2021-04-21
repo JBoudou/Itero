@@ -7,6 +7,8 @@ $maincolor: #602c57;
 //$maincolor: #5421ad
 //$maincolor: #d48500
 
+$nav-hover-bg: color.adjust($maincolor, $lightness: 30%);
+
 $userbuttonbgcolor: color.adjust($maincolor, $saturation: -10%, $lightness: 50%);
 $softbgcolor: color.adjust($userbuttonbgcolor, $lightness: 20%);
 

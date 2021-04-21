@@ -14,8 +14,12 @@
     <a *ngIf="(session.state$ | async).logged"  routerLink="/r/create" routerLinkActive="active">
       <span class="navitem">Create</span>
     </a>
-    <a *ngIf="(session.state$ | async).logged" (click)="logoff()">
-      <span class="navitem">Log off</span>
+    <a *ngIf="(session.state$ | async).logged" [matMenuTriggerFor]="profileMenu">
+      <span class="navitem"><mat-icon>person</mat-icon></span>
     </a>
   </nav>
 </div>
+<mat-menu #profileMenu="matMenu" class="nav-menu" xPosition="before">
+  <button mat-menu-item><mat-icon>notifications</mat-icon> Notifications</button>
+  <button mat-menu-item (click)="logoff()"><mat-icon>logout</mat-icon> Log off</button>
+</mat-menu>
