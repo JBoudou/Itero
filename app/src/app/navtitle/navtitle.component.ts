@@ -18,6 +18,7 @@ import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 
 import { SessionService } from '../session/session.service';
+import { NotifyService } from '../notify.service';
 
 /**
  * The navigation bar.
@@ -30,6 +31,7 @@ import { SessionService } from '../session/session.service';
 export class NavtitleComponent implements OnInit {
 
   constructor(public session: SessionService,
+              public notify: NotifyService,
               private router: Router,
              ) { }
 
