@@ -26,7 +26,9 @@ import (
 )
 
 type DeletePollEvent struct {
-	Poll uint32
+	Poll         uint32
+	Title        string
+	Participants map[uint32]bool
 }
 
 func DeleteHandler(ctx context.Context, response server.Response, request *server.Request) {
@@ -41,15 +43,41 @@ func DeleteHandler(ctx context.Context, response server.Response, request *serve
 
 	segment, err := pollSegmentFromRequest(request)
 	must(err)
+	event := DeletePollEvent{Poll: segment.Id, Participants: make(map[uint32]bool, 2)}
 
-	const qDelete = `
-	  DELETE FROM Polls
-		 WHERE Id = ? AND Admin = ?
-		   AND ( State = 'Waiting' OR
-			       ( State = 'Active' AND CurrentRound = 0 AND
-						   ADDTIME(CurrentRoundStart, MaxRoundDuration) < CURRENT_TIMESTAMP ) )`
+	const (
+		qTitle = `
+		  SELECT Title FROM Polls
+		   WHERE Id = ? AND Admin = ?
+		     AND ( State = 'Waiting' OR
+		  	       ( State = 'Active' AND CurrentRound = 0 AND
+		  				   ADDTIME(CurrentRoundStart, MaxRoundDuration) < CURRENT_TIMESTAMP ) )`
+		qParticipants = `SELECT DISTINCT User FROM Participants WHERE Poll = ?`
+		qDelete       = `DELETE FROM Polls WHERE Id = ?`
+	)
 
-	result, err := db.DB.ExecContext(ctx, qDelete, segment.Id, request.User.Id)
+	rows, err := db.DB.QueryContext(ctx, qTitle, segment.Id, request.User.Id)
+	must(err)
+	if !rows.Next() {
+		panic(server.NewHttpError(ImpossibleStatus, ImpossibleMessage, ""))
+	}
+	must(rows.Scan(&event.Title))
+	if rows.Next() {
+		panic(server.NewHttpError(http.StatusInternalServerError, server.InternalHttpErrorMsg,
+			"Two polls witht the same Id"))
+	}
+	rows.Close()
+
+	rows, err = db.DB.QueryContext(ctx, qParticipants, segment.Id)
+	must(err)
+	for rows.Next() {
+		var uid uint32
+		must(rows.Scan(&uid))
+		event.Participants[uid] = true
+	}
+	event.Participants[request.User.Id] = true
+
+	result, err := db.DB.ExecContext(ctx, qDelete, segment.Id)
 	must(err)
 	affected, err := result.RowsAffected()
 	must(err)
@@ -57,6 +85,6 @@ func DeleteHandler(ctx context.Context, response server.Response, request *serve
 		panic(server.NewHttpError(ImpossibleStatus, ImpossibleMessage, "The query affects no row"))
 	}
 
-	events.Send(DeletePollEvent{segment.Id})
+	events.Send(event)
 	response.SendJSON(ctx, "Ok")
 }

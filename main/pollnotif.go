@@ -29,6 +29,92 @@ import (
 )
 
 //
+// PollNotifHandler
+//
+
+type PollNotifQuery struct {
+	LastUpdate time.Time
+}
+
+type PollNotifAnswerEntry struct {
+	Timestamp time.Time
+	Segment   string
+	Title     string
+	Round     uint8
+	Action    uint8
+}
+
+func PollNotifHandler(ctx context.Context, response server.Response, request *server.Request) {
+	if request.User == nil {
+		if request.SessionError != nil {
+			must(request.SessionError)
+		} else {
+			panic(server.UnauthorizedHttpError("Unlogged user"))
+		}
+	}
+	must(request.CheckPOST(ctx))
+
+	var query PollNotifQuery
+	err := request.UnmarshalJSONBody(&query)
+	if err != nil {
+		panic(server.WrapError(http.StatusBadRequest, "Bad request", err))
+	}
+
+	baseList := <-PollNotifChannel
+	if len(baseList) == 0 {
+		response.SendJSON(ctx, make([]PollNotifAnswerEntry, 0))
+		return
+	}
+
+	const qCheck = `
+	  SELECT Title, Salt
+		  FROM Polls
+		 WHERE Id = ?
+		   AND (Admin = %[1]d OR Id IN ( SELECT Poll FROM Participants WHERE User = %[1]d ))`
+	stmt, err := db.DB.PrepareContext(ctx, fmt.Sprintf(qCheck, request.User.Id))
+	must(err)
+	defer stmt.Close()
+
+	answer := make([]PollNotifAnswerEntry, 0, len(baseList)/2)
+	for _, notif := range baseList {
+		if notif.Timestamp.Before(query.LastUpdate) {
+			continue
+		}
+
+		entry := PollNotifAnswerEntry{
+			Timestamp: notif.Timestamp,
+			Round:     notif.Round,
+			Action:    notif.Action,
+		}
+
+		if notif.Participants != nil {
+			if member, ok := notif.Participants[request.User.Id]; !ok || !member {
+				continue
+			}
+			entry.Title = notif.Title
+
+		} else {
+			rows, err := stmt.QueryContext(ctx, notif.Id)
+			must(err)
+			if !rows.Next() {
+				continue
+			}
+			segment := PollSegment{Id: notif.Id}
+			err = rows.Scan(&entry.Title, &segment.Salt)
+			rows.Close()
+			must(err)
+
+			entry.Segment, err = segment.Encode()
+			must(err)
+		}
+
+		answer = append(answer, entry)
+	}
+
+	response.SendJSON(ctx, answer)
+}
+
+//
 // PollNotifications
 //
 
@@ -40,24 +126,26 @@ const (
 )
 
 type PollNotification struct {
-	Timestamp time.Time
-	Id        uint32
-	Round     uint8
-	Action    uint8
+	Timestamp    time.Time
+	Id           uint32
+	Action       uint8
+	Round        uint8
+	Title        string
+	Participants map[uint32]bool
 }
 
 func NewPollNotification(evt events.Event) (ret *PollNotification) {
-	ret = &PollNotification{ Timestamp: time.Now() }
+	ret = &PollNotification{Timestamp: time.Now()}
 
 	switch e := evt.(type) {
-	case CreatePollEvent:
+	case StartPollEvent:
 		ret.Id = e.Poll
 		ret.Action = PollNotifStart
 
 	case NextRoundEvent:
 		ret.Id = e.Poll
-		ret.Round = e.Round
 		ret.Action = PollNotifNext
+		ret.Round = e.Round
 
 	case ClosePollEvent:
 		ret.Id = e.Poll
@@ -66,6 +154,8 @@ func NewPollNotification(evt events.Event) (ret *PollNotification) {
 	case DeletePollEvent:
 		ret.Id = e.Poll
 		ret.Action = PollNotifDelete
+		ret.Title = e.Title
+		ret.Participants = e.Participants
 	}
 
 	return
@@ -193,7 +283,7 @@ func newPollNotifRunner(delay time.Duration) *pollNotifRunner {
 
 func (self *pollNotifRunner) filter(evt events.Event) bool {
 	switch evt.(type) {
-	case CreatePollEvent, NextRoundEvent, ClosePollEvent, DeletePollEvent:
+	case StartPollEvent, NextRoundEvent, ClosePollEvent, DeletePollEvent:
 		return true
 	}
 	return false
@@ -215,78 +305,4 @@ func (self *pollNotifRunner) run(eventChan <-chan events.Event, notifChan chan<-
 			self.toSend.Add(notif)
 		}
 	}
-}
-
-//
-// PollNotifHandler
-//
-
-type PollNotifQuery struct {
-	LastUpdate time.Time
-}
-
-type PollNotifAnswerEntry struct {
-	Timestamp time.Time
-	Segment   string
-	Round     uint8
-	Action    uint8
-}
-
-func PollNotifHandler(ctx context.Context, response server.Response, request *server.Request) {
-	if request.User == nil {
-		if request.SessionError != nil {
-			must(request.SessionError)
-		} else {
-			panic(server.UnauthorizedHttpError("Unlogged user"))
-		}
-	}
-	must(request.CheckPOST(ctx))
-	
-	var query PollNotifQuery
-	err := request.UnmarshalJSONBody(&query)
-	if err != nil {
-		panic(server.WrapError(http.StatusBadRequest, "Bad request", err))
-	}
-
-	baseList := <-PollNotifChannel
-	if len(baseList) == 0 {
-		response.SendJSON(ctx, make([]PollNotifAnswerEntry, 0))
-		return
-	}
-
-	const qCheck = `
-	  SELECT Salt FROM Polls
-		 WHERE Id = ?
-		   AND (Admin = %[1]d OR Id IN ( SELECT Poll FROM Participants WHERE User = %[1]d ))`
-	stmt, err := db.DB.PrepareContext(ctx, fmt.Sprintf(qCheck, request.User.Id))
-	must(err)
-	defer stmt.Close()
-
-	answer := make([]PollNotifAnswerEntry, 0, len(baseList)/2)
-	for _, notif := range baseList {
-		if notif.Timestamp.Before(query.LastUpdate) {
-			continue
-		}
-
-		rows, err := stmt.QueryContext(ctx, notif.Id)
-		must(err)
-		if !rows.Next() {
-			continue
-		}
-		segment := PollSegment{Id: notif.Id}
-		err = rows.Scan(&segment.Salt)
-		rows.Close()
-		must(err)
-		encoded, err := segment.Encode()
-		must(err)
-		
-		answer = append(answer, PollNotifAnswerEntry{
-			Timestamp: notif.Timestamp,
-			Segment: encoded,
-			Round: notif.Round,
-			Action: notif.Action,
-		})
-	}
-			
-	response.SendJSON(ctx, answer)
 }

@@ -31,6 +31,10 @@ import (
 	srvt "github.com/JBoudou/Itero/server/servertest"
 )
 
+//
+// Implementation details tests
+//
+
 // TestPollNotifList_Global tests all PollNotifList's methods but in only one scenario.
 func TestPollNotifList_Global(t *testing.T) {
 	const delay = 70 * time.Millisecond
@@ -123,7 +127,7 @@ func TestPollNotif(t *testing.T) {
 		action uint8
 	}{
 		{
-			event:  CreatePollEvent{Poll: 1},
+			event:  StartPollEvent{Poll: 1},
 			id:     1,
 			action: PollNotifStart,
 		},
@@ -199,7 +203,7 @@ func (self *pollNotifHandlerTest) Prepare(t *testing.T) {
 	if self.userKind != pollNotifHandlerTestUserAdmin {
 		self.partId = self.dbEnv.CreateUserWith("PollNotifHandler" + self.name + "Part")
 	}
-	self.pollId = self.dbEnv.CreatePoll("DeleteHandler", self.admnId, db.PollPublicityPublicRegistered)
+	self.pollId = self.dbEnv.CreatePoll("Title", self.admnId, db.PollPublicityPublicRegistered)
 
 	const (
 		qParticipate = `INSERT INTO Participants(User,Poll,Round) VALUE (?,?,0)`
@@ -254,8 +258,15 @@ func (self *pollNotifHandlerTest) Check(t *testing.T, response *http.Response, r
 	segment, err := PollSegment{Id: self.pollId, Salt: 42}.Encode()
 	mustt(t, err)
 	for i := 0; i < glen; i++ {
+
+		// Fix things
 		got[i].Timestamp = time.Time{}
 		self.expect[i].Segment = segment
+		if self.expect[i].Title == "" {
+			self.expect[i].Title = "Title"
+		}
+
+		// Check
 		if !reflect.DeepEqual(got[i], self.expect[i]) {
 			t.Errorf("Wrong value index %d. Got %v. Expect %v.", i, got[i], self.expect[i])
 		}
@@ -271,7 +282,7 @@ var testPollNotifHandlerRunPollNotif sync.Once
 func TestPollNotifHandler(t *testing.T) {
 	testPollNotifHandlerRunPollNotif.Do(func() { RunPollNotif(time.Second) })
 
-	create := func(id uint32) events.Event { return CreatePollEvent{Poll: id} }
+	create := func(id uint32) events.Event { return StartPollEvent{Poll: id} }
 	next := func(id uint32) events.Event { return NextRoundEvent{Poll: id} }
 	term := func(id uint32) events.Event { return ClosePollEvent{Poll: id} }
 

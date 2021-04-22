@@ -22,6 +22,8 @@ import { take } from 'rxjs/operators';
 
 import { PollNotifAnswerEntry } from './api';
 
+export type PollNotification = PollNotifAnswerEntry;
+
 @Injectable({
   providedIn: 'root'
 })
@@ -30,8 +32,8 @@ export class PollNotifService {
   private _lastUpdate = new Date();
   private _intervalId: number;
 
-  private _events = new Subject<PollNotifAnswerEntry>();
-  get event$(): Observable<PollNotifAnswerEntry> {
+  private _events = new Subject<PollNotification>();
+  get event$(): Observable<PollNotification> {
     return this._events;
   }
 

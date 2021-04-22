@@ -175,6 +175,7 @@ export enum PollNotifAction {
 export class PollNotifAnswerEntry {
   Timestamp: Date;
   Segment:   string;
+  Title:     string;
   Round:     number;
   Action:    PollNotifAction;
 

@@ -15,21 +15,11 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { Injectable } from '@angular/core';
+import {Router} from '@angular/router';
 
 import { BehaviorSubject, Observable, Subscription } from 'rxjs';
-import {PollNotifAction, PollNotifAnswerEntry} from './api';
-import {PollNotifService} from './poll-notif.service';
-
-class Notif {
-  constructor(
-    public message: string,
-    public tag: string,
-  ) { }
-
-  send(): void {
-    new Notification('Itero', { body: this.message, tag: this.tag });
-  }
-}
+import { PollNotifAction } from './api';
+import { PollNotifService, PollNotification } from './poll-notif.service';
 
 @Injectable({
   providedIn: 'root'
@@ -45,6 +35,7 @@ export class NotifyService {
 
   constructor(
     private pollNotifs: PollNotifService,
+    private router: Router,
   ) {
     this.handlePermission(Notification.permission);
   }
@@ -67,7 +58,7 @@ export class NotifyService {
 
     this._subscriptions.push(
       this.pollNotifs.event$.subscribe({
-        next: (notif: PollNotifAnswerEntry) => this.sendPollNotif(notif),
+        next: (notif: PollNotification) => this.sendPollNotif(notif),
       }),
     );
   }
@@ -77,23 +68,32 @@ export class NotifyService {
     this._subscriptions = [];
   }
 
-  private sendPollNotif(notif: PollNotifAnswerEntry): void {
+  private sendPollNotif(notif: PollNotification): void {
     let msg: string;
     switch (notif.Action) {
     case PollNotifAction.Next:
-      msg = `New round started for poll ${notif.Segment}.`;
+      msg = `Round ${notif.Round} has started for poll "${notif.Title}".`;
       break;
     case PollNotifAction.Term:
-      msg = `Poll ${notif.Segment} has been closed.`;
+      msg = `Poll "${notif.Title}" has been closed.`;
       break;
     case PollNotifAction.Start:
-      msg = `Poll ${notif.Segment} has been started.`;
+      msg = `Poll "${notif.Title}" has been started.`;
       break;
     case PollNotifAction.Delete:
-      msg = `Poll ${notif.Segment} has been deleted.`;
+      msg = `Poll "${notif.Title}" has been deleted.`;
       break;
     }
-    (new Notif(msg, notif.Segment)).send();
+    this.send(msg, notif.Segment, notif.Segment);
+  }
+
+  private send(message: string, tag: string, segment?: string): void {
+    const notif = new Notification('Itero', { body: message, tag: tag });
+    if (segment !== undefined && segment !== '') {
+      notif.addEventListener<'click'>('click', () => {
+        this.router.navigate(['/r/poll', segment]);
+      });
+    }
   }
   
 }
