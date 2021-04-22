@@ -17,10 +17,11 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 
-import { Observable, Subject } from 'rxjs';
-import { take } from 'rxjs/operators';
+import { Observable, Subject, Subscription } from 'rxjs';
+import { filter, take, timeout } from 'rxjs/operators';
 
 import { PollNotifAnswerEntry } from './api';
+import { SessionInfo, SessionService, SessionState } from './session/session.service';
 
 export type PollNotification = PollNotifAnswerEntry;
 
@@ -29,33 +30,72 @@ export type PollNotification = PollNotifAnswerEntry;
 })
 export class PollNotifService {
 
+  static interval = 15000;
+
   private _lastUpdate = new Date();
-  private _intervalId: number;
+  private _intervalId: number|undefined;
 
   private _events = new Subject<PollNotification>();
   get event$(): Observable<PollNotification> {
     return this._events;
   }
 
+  private _subscriptions: Subscription[] = [];
+
   constructor(
+    private session: SessionService,
     private http: HttpClient,
   ) {
-    this._intervalId = window.setInterval(() => this.pull(), 15000);
+    this._subscriptions.push(
+      this.session.state$.subscribe({
+        next: (state: SessionInfo) => {
+          switch (state.state) {
+          case SessionState.Unlogged:
+            this.stop();
+            break;
+          case SessionState.Logged:
+            this.start();
+            break;
+          }
+        },
+      }),
+    );
   }
 
   destroy() {
+    this._subscriptions.forEach((sub: Subscription) => sub.unsubscribe());
+    this.stop();
+  }
+
+  private start(): void {
+    if (this._intervalId !== undefined) { return; }
+    const interval = PollNotifService.interval + Math.floor(Math.random() * 20);
+    this._intervalId = window.setInterval(() => this.pull(), interval);
+  }
+
+  private stop(): void {
     window.clearInterval(this._intervalId);
+    this._lastUpdate = new Date();
+    this._intervalId = undefined;
   }
 
   private pull() {
-    this.http.post('/a/pollnotif', {LastUpdate: this._lastUpdate}, {responseType: 'text'})
-      .pipe(take(1)).subscribe({
-        next: (body: string) =>
-          PollNotifAnswerEntry.fromJSONList(body)
-            .forEach((evt: PollNotifAnswerEntry) => this._events.next(evt)),
-        // TODO handle errors somehow
-      });
-    this._lastUpdate = new Date();
+    this.session.state$.pipe(
+      filter((state: SessionInfo) => state.state === SessionState.Logged),
+      take(1),
+      timeout(PollNotifService.interval * 0.99)
+    ).subscribe({
+      next: () => {
+        this.http.post('/a/pollnotif', {LastUpdate: this._lastUpdate}, {responseType: 'text'})
+          .pipe(take(1)).subscribe({
+            next: (body: string) =>
+              PollNotifAnswerEntry.fromJSONList(body)
+                .forEach((evt: PollNotifAnswerEntry) => this._events.next(evt)),
+            // TODO handle errors somehow
+          });
+        this._lastUpdate = new Date();
+      }
+    });
   }
 
 }

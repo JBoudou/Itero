@@ -24,9 +24,21 @@ import { map, take, tap } from 'rxjs/operators';
 import { SessionAnswer } from '../api';
 import { ScheduleOne } from '../shared/schedule-one';
 
+export enum SessionState {
+  Unlogged,
+  Logged,
+  Refreshing,
+}
+
 export class SessionInfo {
-  readonly logged: boolean;
-  readonly user?: string;
+  constructor(
+    readonly state: SessionState,
+    readonly user?: string,
+  ) { }
+
+  get logged(): boolean {
+    return this.state !== SessionState.Unlogged;
+  }
 }
 
 const minRefreshTime = 15 * 1000;
@@ -45,7 +57,7 @@ export class SessionService {
    */
   sessionId: string = '';
 
-  _state = new BehaviorSubject<SessionInfo>({logged: false})
+  _state = new BehaviorSubject<SessionInfo>(new SessionInfo(SessionState.Unlogged));
 
   /** Observable to be notified about session change. */
   get state$(): Observable<SessionInfo> {
@@ -144,7 +156,7 @@ export class SessionService {
     localStorage.removeItem("SessionId");
     localStorage.removeItem("User");
     document.cookie = "s=; Path=/; Max-Age=0; Secure";
-    this._state.next({logged: false});
+    this._state.next(new SessionInfo(SessionState.Unlogged));
   }
 
   /**
@@ -176,7 +188,7 @@ export class SessionService {
 
   private register(sessionId: string, user: string): void {
     this.sessionId = sessionId;
-    this._state.next({logged: true, user: user});
+    this._state.next(new SessionInfo(SessionState.Logged, user));
   }
 
   private hasCookie(): boolean {
@@ -196,6 +208,7 @@ export class SessionService {
     }
 
     const user = this._state.value.user;
+    this._state.next(new SessionInfo(SessionState.Refreshing));
     this.http
       .post('/a/refresh', user)
       .pipe(this.httpOperator(user), take(1))
