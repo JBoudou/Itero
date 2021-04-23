@@ -16,29 +16,38 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
+import { MatMenuModule }    from '@angular/material/menu';
 
-import { of } from 'rxjs';
+import { of, Subject } from 'rxjs';
 
 import { NavtitleComponent } from './navtitle.component';
 
 import { SessionService } from '../session/session.service';
+import { PollNotification, PollNotifService } from '../poll-notif.service';
 
 describe('NavtitleComponent', () => {
   let component: NavtitleComponent;
   let fixture: ComponentFixture<NavtitleComponent>;
   let sessionSpy : jasmine.SpyObj<SessionService>;
+  let pollNotifEvents: Subject<PollNotification>;
 
   beforeEach(async () => {
     sessionSpy = jasmine.createSpyObj('SessionService', ['checkSession', 'login'], {
       state$: of({logged: false}),
     });
     const routerSpy  = jasmine.createSpyObj('Router', ['navigateByUrl']);
+    pollNotifEvents = new Subject<PollNotification>();
+    const notifSpy = jasmine.createSpyObj('PollNotifService', [], {event$: pollNotifEvents});
 
     await TestBed.configureTestingModule({
       declarations: [ NavtitleComponent ],
+      imports:  [
+        MatMenuModule,
+      ],
       providers: [
-        {provide: SessionService, useValue: sessionSpy},
-        {provide: Router, useValue: routerSpy}
+        { provide: SessionService, useValue: sessionSpy },
+        { provide: Router, useValue: routerSpy },
+        { provide: PollNotifService, useValue: notifSpy },
       ]
     })
     .compileComponents();

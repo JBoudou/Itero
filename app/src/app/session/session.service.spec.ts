@@ -84,7 +84,8 @@ describe('SessionService', () => {
 
     const last = recorder.record.length - 1;
     expect(last).toBeGreaterThanOrEqual(0);
-    expect(recorder.record[last]).toEqual({ logged: true, user: 'foo' });
+    expect(recorder.record[last].logged).toBeTrue();
+    expect(recorder.record[last].user).toBe('foo');
     expect(service.logged).toBeTrue();
     expect(service.sessionId).toBe('ABCD');
   });
@@ -101,7 +102,8 @@ describe('SessionService', () => {
     const last = recorder.record.length - 1;
     expect(last).toBeGreaterThanOrEqual(0);
     expect(recorder.record[last].logged).toBeFalse();
-    expect(recorder.record[last - 1]).toEqual({ logged: true, user: 'foo' });
+    expect(recorder.record[last - 1].logged).toBeTrue();
+    expect(recorder.record[last - 1].user).toBe('foo');
   });
 
 });

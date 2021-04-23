@@ -18,7 +18,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute } from '@angular/router';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { ReactiveFormsModule, FormBuilder, FormsModule } from '@angular/forms';
-import { EMPTY } from 'rxjs';
+import { EMPTY, Subject } from 'rxjs';
 
 import { ActivatedRouteStub } from '../../testing/activated-route-stub'
 import { DynamicComponentFactoryStub } from '../../testing/dynamic-component-factory-stub'
@@ -31,6 +31,7 @@ import { DynamicComponentFactoryService } from '../dynamic-component-factory.ser
 import { BallotType, InformationType } from '../api';
 import { SessionService } from '../session/session.service';
 import { AppTitleService } from '../app-title.service';
+import { PollNotification, PollNotifService } from '../poll-notif.service';
 
 describe('PollComponent', () => {
   let component: PollComponent;
@@ -40,12 +41,15 @@ describe('PollComponent', () => {
   let dynamicFactoryStub: DynamicComponentFactoryStub;
   let sessionSpy: jasmine.SpyObj<SessionService>;
   let titleSpy: jasmine.SpyObj<AppTitleService>;
+  let pollNotifEvents: Subject<PollNotification>;
 
   beforeEach(async () => {
     activatedRouteStub = new ActivatedRouteStub();
     dynamicFactoryStub = new DynamicComponentFactoryStub();
     sessionSpy = jasmine.createSpyObj('SessionService', ['logNow'], ['logged']);
     titleSpy = jasmine.createSpyObj('AppTitleService', ['setTitle']);
+    pollNotifEvents = new Subject<PollNotification>();
+    const notifSpy = jasmine.createSpyObj('PollNotifService', [], {event$: pollNotifEvents});
 
     await TestBed.configureTestingModule({
       declarations: [
@@ -65,6 +69,7 @@ describe('PollComponent', () => {
         { provide: DynamicComponentFactoryService, useValue: dynamicFactoryStub },
         { provide: SessionService, useValue: sessionSpy },
         { provide: AppTitleService, useValue: titleSpy },
+        { provide: PollNotifService, useValue: notifSpy },
       ]
     })
     .compileComponents();
