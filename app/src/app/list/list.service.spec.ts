@@ -17,8 +17,8 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { Router } from '@angular/router';
-import { MatDialog, MatDialogRef } from '@angular/material/dialog';
-import { of } from 'rxjs';
+import { MatDialog } from '@angular/material/dialog';
+import { Subject, of } from 'rxjs';
 
 import { RouterStub } from '../../testing/router.stub';
 import { Recorder } from '../../testing/recorder';
@@ -27,12 +27,15 @@ import { ListService } from './list.service';
 
 import { ListAnswerEntry, PollAction } from '../api';
 import { ServerError } from '../shared/server-error';
+import { PollNotification, PollNotifService } from '../poll-notif.service';
+import { setSpyProperty } from 'src/testing/misc';
 
 describe('ListService', () => {
   let service: ListService;
   let httpControler: HttpTestingController;
   let routerStub: RouterStub;
   let dialogSpy: jasmine.SpyObj<MatDialog>;
+  let pollNotifEvent: Subject<PollNotification>;
 
   const makeDialogSay = function(what: any) {
     const ref = jasmine.createSpyObj('MatDialogRef', {'afterClosed': of(what) });
@@ -41,7 +44,10 @@ describe('ListService', () => {
 
   beforeEach(() => {
     routerStub = new RouterStub('');
-    dialogSpy = jasmine.createSpyObj('MatDialog', ['open'])
+    dialogSpy = jasmine.createSpyObj('MatDialog', ['open']);
+
+    const pollNotifSpy = jasmine.createSpyObj('PollNotifService', [], ['event$']);
+    setSpyProperty(pollNotifSpy, 'event$', new Subject<PollNotification>());
 
     TestBed.configureTestingModule({
       imports: [
@@ -50,15 +56,18 @@ describe('ListService', () => {
       providers: [
         { provide: Router, useValue: routerStub },
         { provide: MatDialog, useValue: dialogSpy },
+        { provide: PollNotifService, useValue: pollNotifSpy },
       ],
     });
+    jasmine.clock().install();
 
     service = TestBed.inject(ListService);
     httpControler = TestBed.inject(HttpTestingController);
-    jasmine.clock().install();
+    pollNotifEvent = TestBed.inject(PollNotifService).event$ as Subject<PollNotification>;
   });
 
   afterEach(function() {
+    pollNotifEvent.complete();
     jasmine.clock().uninstall();
   });
 
@@ -66,74 +75,77 @@ describe('ListService', () => {
     expect(service).toBeTruthy();
   });
 
-  it('fetches lists', () => {
-    const publicList = [{
-      Segment: '123456789',
-      Title: 'Public',
-      CurrentRound: 1,
-      MaxRound: 3,
-      Deadline: new Date('2012-12-12T12:12:12Z'),
-      Action: PollAction.Vote,
-      Deletable: false,
-    }];
-    const ownList = [{
-      Segment: '987654321',
-      Title: 'Own',
-      CurrentRound: 2,
-      MaxRound: 32,
-      Deadline: new Date('2012-12-21T12:12:12Z'),
-      Action: PollAction.Modi,
-      Deletable: true,
-    }];
+  describe('when activated', () => {
 
-    const recPublic = new Recorder<ListAnswerEntry[]>();
-    const recOwn    = new Recorder<ListAnswerEntry[]>();
-    recPublic.listen(service.publicList$);
-    recOwn   .listen(service   .ownList$);
+    beforeEach(() => { service.activate() });
+    afterEach(() => { service.desactivate() });
 
-    service.refresh();
+    it('fetches lists', () => {
+      const publicList = [{
+        Segment: '123456789',
+        Title: 'Public',
+        CurrentRound: 1,
+        MaxRound: 3,
+        Deadline: new Date('2012-12-12T12:12:12Z'),
+        Action: PollAction.Vote,
+        Deletable: false,
+      }];
+      const ownList = [{
+        Segment: '987654321',
+        Title: 'Own',
+        CurrentRound: 2,
+        MaxRound: 32,
+        Deadline: new Date('2012-12-21T12:12:12Z'),
+        Action: PollAction.Modi,
+        Deletable: true,
+      }];
 
-    const req = httpControler.expectOne('/a/list');
-    expect(req.request.method).toEqual('GET');
-    req.flush({
-      Public: publicList,
-      Own:    ownList,
+      const recPublic = new Recorder<ListAnswerEntry[]>();
+      const recOwn    = new Recorder<ListAnswerEntry[]>();
+      recPublic.listen(service.publicList$);
+      recOwn   .listen(service   .ownList$);
+
+      const req = httpControler.expectOne('/a/list');
+      expect(req.request.method).toEqual('GET');
+      req.flush({
+        Public: publicList,
+        Own:    ownList,
+      });
+      jasmine.clock().tick(1);
+
+      expect(recPublic.record[recPublic.record.length - 1]).toEqual(publicList);
+      expect(recOwn   .record[recOwn   .record.length - 1]).toEqual(   ownList);
+
+      recPublic.unsubscribe();
+      recOwn   .unsubscribe();
     });
-    jasmine.clock().tick(1);
 
-    expect(recPublic.record[recPublic.record.length - 1]).toEqual(publicList);
-    expect(recOwn   .record[recOwn   .record.length - 1]).toEqual(   ownList);
+    it('converts JSON', () => {
+      const recPublic = new Recorder<ListAnswerEntry[]>();
+      recPublic.listen(service.publicList$);
 
-    recPublic.unsubscribe();
-    recOwn   .unsubscribe();
-  });
+      const req = httpControler.expectOne('/a/list');
+      expect(req.request.method).toEqual('GET');
+      req.flush('{"Public":[{' +
+                '"Segment":"123456789","Title":"Public","CurrentRound":1,"MaxRound":3,' +
+                '"Deadline":"⋅","Action":3}],' +
+                '"Own":[]}');
+      jasmine.clock().tick(1);
 
-  it('converts JSON', () => {
-    const recPublic = new Recorder<ListAnswerEntry[]>();
-    recPublic.listen(service.publicList$);
+      expect(recPublic.record[recPublic.record.length - 1]).toEqual([{
+        Segment: '123456789',
+        Title: 'Public',
+        CurrentRound: 1,
+        MaxRound: 3,
+        Deadline: undefined,
+        Action: PollAction.Term,
+        Deletable: false,
+      }]);
 
-    service.refresh();
+      recPublic.unsubscribe();
+    });
 
-    const req = httpControler.expectOne('/a/list');
-    expect(req.request.method).toEqual('GET');
-    req.flush('{"Public":[{' +
-              '"Segment":"123456789","Title":"Public","CurrentRound":1,"MaxRound":3,' +
-              '"Deadline":"⋅","Action":3}],' +
-              '"Own":[]}');
-    jasmine.clock().tick(1);
-
-    expect(recPublic.record[recPublic.record.length - 1]).toEqual([{
-      Segment: '123456789',
-      Title: 'Public',
-      CurrentRound: 1,
-      MaxRound: 3,
-      Deadline: undefined,
-      Action: PollAction.Term,
-      Deletable: false,
-    }]);
-
-    recPublic.unsubscribe();
-  });
+  }); // "when activated" nested describe
 
   it('sends delete request', () => {
     makeDialogSay(true);

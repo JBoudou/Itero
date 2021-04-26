@@ -47,6 +47,7 @@ import { DynamicComponentFactoryService } from '../dynamic-component-factory.ser
 import { SessionService } from '../session/session.service';
 import { AppTitleService } from '../app-title.service';
 import { PollNotifService } from '../poll-notif.service';
+import { Suspendable } from '../shared/suspender';
 
 import { UninominalBallotComponent } from './uninominal-ballot/uninominal-ballot.component';
 import { CountsInformationComponent } from './counts-information/counts-information.component';
@@ -278,6 +279,7 @@ export class PollComponent implements OnInit, OnDestroy {
             this.justVoteBallot = ballot;
             this.nextRoundError = false;
             this.clearSubComponent(SubComponentId.Ballot);
+            this.refresh.suspend(5000);
           }
         }),
       )
@@ -369,16 +371,14 @@ export class PollComponent implements OnInit, OnDestroy {
     if (evt.Segment != this.segment) {
       return
     }
-    setTimeout(() => {
-      this.refresh();
-    }, this.justVoteBallot === NONE_BALLOT ? 0 : 10000)
+    this.refresh();
   }
   
-  private refresh(): void {
+  private readonly refresh = Suspendable(function(): void {
     this.previousRoundBallot = NONE_BALLOT;
     this.currentRoundBallot  = NONE_BALLOT;
     this.justVoteBallot      = NONE_BALLOT;
     this.retrieveTypes();
-  }
+  });
 
 }

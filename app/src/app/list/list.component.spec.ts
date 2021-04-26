@@ -25,7 +25,7 @@ describe('ListComponent', () => {
   let serviceSpy: jasmine.SpyObj<ListService>;
 
   beforeEach(async () => {
-    serviceSpy = jasmine.createSpyObj('ListService', ['refresh']);
+    serviceSpy = jasmine.createSpyObj('ListService', ['activate', 'desactivate']);
 
     await TestBed.configureTestingModule({
       declarations: [ ListComponent ],
@@ -46,7 +46,9 @@ describe('ListComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('calls refresh on init', () => {
-    expect(serviceSpy.refresh).toHaveBeenCalled();
+  it('calls activate/desactivate on init/destroy', () => {
+    expect(serviceSpy.activate).toHaveBeenCalled();
+    fixture.destroy();
+    expect(serviceSpy.desactivate).toHaveBeenCalled();
   });
 });

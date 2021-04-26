@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 
 import { Observable } from 'rxjs';
 
@@ -30,7 +30,7 @@ import { ListService } from './list.service';
   templateUrl: './list.component.html',
   styleUrls: ['./list.component.sass']
 })
-export class ListComponent implements OnInit {
+export class ListComponent implements OnInit, OnDestroy {
 
   get publicList$(): Observable<ListAnswerEntry[]> {
     return this.service.publicList$;
@@ -47,8 +47,11 @@ export class ListComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    // Retrieve the list of polls each time the component is displayed.
-    this.service.refresh();
+    this.service.activate();
+  }
+
+  ngOnDestroy(): void {
+    this.service.desactivate();
   }
 
 }

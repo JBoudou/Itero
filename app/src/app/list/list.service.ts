@@ -18,12 +18,14 @@ import { Component, Inject, Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 
-import { BehaviorSubject, Observable, Subject } from 'rxjs';
+import { BehaviorSubject, Observable, Subject, Subscription } from 'rxjs';
 import { take } from 'rxjs/operators';
 import { MatDialog, MAT_DIALOG_DATA } from '@angular/material/dialog';
 
 import { ListAnswer, ListAnswerEntry } from '../api';
 import { ServerError } from '../shared/server-error';
+import { PollNotifService } from '../poll-notif.service';
+import { Suspendable } from '../shared/suspender';
 
 @Injectable({
   providedIn: 'root'
@@ -46,11 +48,6 @@ export class ListService {
     return this._error;
   }
 
-  refresh(): void {
-    this._error.next(new ServerError());
-    this._refresh();
-  }
-
   go(poll: ListAnswerEntry): void {
     this.router.navigateByUrl('/r/poll/' + poll.Segment);
   }
@@ -61,7 +58,7 @@ export class ListService {
       next: (result: boolean) => {
         if (result) {
           this.http.get('/a/delete/' + poll.Segment).pipe(take(1)).subscribe({
-            next: () => this.refresh(),
+            next: () => this._refresh(),
             error: (err: HttpErrorResponse) => {
               this._error.next(new ServerError(err, 'deleting poll ' + poll.Segment));
               this._refresh();
@@ -76,9 +73,39 @@ export class ListService {
     private http: HttpClient,
     private router: Router,
     private dialog: MatDialog,
+    private pollNotif: PollNotifService,
   ) { }
 
-  private _refresh(): void {
+  private _activation: number = 0;
+  private _pollNotifSubscription: Subscription;
+
+  /**
+   * Inform ListService that some list is displayed.
+   * A call to desactivate() is expected when the lists stop being displayed.
+   */
+  activate(): void {
+    if (this._activation === 0) {
+      this._error.next(new ServerError());
+      this._refresh();
+      this._pollNotifSubscription = this.pollNotif.event$.subscribe({
+        next: () => this._refresh(),
+      });
+    }
+    this._activation += 1;
+  }
+
+  /**
+   * Inform ListService that some list are not displayed anymore.
+   * Each call to desactivate() must correspond to one call to activate().
+   */
+  desactivate(): void {
+    this._activation -= 1;
+    if (this._activation === 0) {
+      this._pollNotifSubscription.unsubscribe();
+    }
+  }
+
+  private readonly _refresh = Suspendable(function(): void {
     this.http.get('/a/list', {responseType: 'text'}).pipe(take(1)).subscribe({
       next: (answerText: string) => {
         const answer = ListAnswer.fromJSON(answerText);
@@ -88,7 +115,7 @@ export class ListService {
       error: (err: HttpErrorResponse) =>
         this._error.next(new ServerError(err, 'fetching the list of polls')),
     });
-  }
+  }, 2000);
 }
 
 @Component({

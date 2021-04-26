@@ -72,7 +72,7 @@ export class NotifyService {
     let msg: string;
     switch (notif.Action) {
     case PollNotifAction.Next:
-      msg = `Round ${notif.Round} has started for poll "${notif.Title}".`;
+      msg = `Round ${notif.Round + 1} has started for poll "${notif.Title}".`;
       break;
     case PollNotifAction.Term:
       msg = `Poll "${notif.Title}" has been closed.`;
