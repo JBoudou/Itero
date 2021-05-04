@@ -39,16 +39,20 @@ func init() {
 //
 // Its zero value is valid and produces the request "GET /a/test". See Make() for details.
 type Request struct {
-	Method string
-	Target *string
-	Body   string
-	UserId *uint32
+	Method     string
+	Target     *string
+	RemoteAddr *string
+	Body       string
+	UserId     *uint32
+	Hash       *uint32
 }
 
 // Make generates an http.Request.
 //
-// Default value for Method is "GET". Default value for Target is "/a/test". If UserId is not nil
-// then a valid session for that user is added to the request.
+// Default value for Method is "GET". Default value for Target is "/a/test".
+// If RemoteAddr is not nil, the RemoteAddr field of the returned request is set to its value.
+// If UserId is not nil and Hash is nil then a valid session for that user is added to the request.
+// If UserId and Hash are both non-nil then an "unlogged cookie" is added to the request.
 func (self *Request) Make() (req *http.Request, err error) {
 	var target string
 	if self.Target == nil {
@@ -68,16 +72,25 @@ func (self *Request) Make() (req *http.Request, err error) {
 		req.Header.Add("Origin", server.BaseURL())
 	}
 
-	if self.UserId != nil {
+	if self.RemoteAddr != nil {
+		req.RemoteAddr = *self.RemoteAddr
+	}
+
+	if self.UserId != nil && self.Hash == nil {
 		var sessionId string
 		sessionId, err = server.MakeSessionId()
 		if err != nil {
 			return
 		}
 		server.AddSessionIdToRequest(req, sessionId)
-		user := server.User{Name: " Test ", Id: *self.UserId}
+		user := server.User{Name: " Test ", Id: *self.UserId, Logged: true}
 		sessionAnswer := server.SessionAnswer{SessionId: sessionId}
 		session := server.NewSession(clientStore, &server.SessionOptions, &sessionAnswer, user)
+		clientStore.Save(req, nil, session)
+	}
+	if self.UserId != nil && self.Hash != nil {
+		user := server.User{Id: *self.UserId, Hash: *self.Hash, Logged: false}
+		session := server.NewUnloggedUser(clientStore, &server.SessionOptions, user)
 		clientStore.Save(req, nil, session)
 	}
 
@@ -159,4 +172,14 @@ func Run(t *testing.T, tests []Test, handler server.Handler) {
 func RunFunc(t *testing.T, tests []Test, handler server.HandleFunction) {
 	t.Helper()
 	Run(t, tests, server.HandlerFunc(handler))
+}
+
+// FindCookie returns a cookie by name.
+func FindCookie(response *http.Response, name string) (found *http.Cookie) {
+	for _, cookie := range response.Cookies() {
+		if cookie.Name == name {
+			return cookie
+		}
+	}
+	return
 }

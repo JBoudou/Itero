@@ -85,6 +85,6 @@ func LoginHandler(ctx context.Context, response server.Response, request *server
 		return
 	}
 
-	response.SendLoginAccepted(ctx, server.User{Name: loginQuery.User, Id: id}, request)
+	response.SendLoginAccepted(ctx, server.User{Name: loginQuery.User, Id: id, Logged: true}, request)
 	return
 }

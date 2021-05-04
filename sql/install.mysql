@@ -48,48 +48,55 @@ CREATE TABLE Users (
 
   # Passwd stores only a hash signature.
   Id      int unsigned  NOT NULL  AUTO_INCREMENT,
-  Email   varchar(128)  NOT NULL,
-  Name    varchar(64)   NOT NULL,
-  Passwd  binary(32)    NOT NULL,
+  Email   varchar(128)  ,
+  Name    varchar(64)   ,
+  Passwd  binary(32)    ,
+  Hash    binary(3)     ,
   Created timestamp     NOT NULL  DEFAULT CURRENT_TIMESTAMP,
 
   CONSTRAINT Users_pk PRIMARY KEY (Id),
   CONSTRAINT Users_Email_unique UNIQUE (Email),
-  CONSTRAINT Users_Name_unique  UNIQUE (Name)
+  CONSTRAINT Users_Name_unique  UNIQUE (Name),
+  CONSTRAINT Users_Hash_unique UNIQUE (Hash)
 
 ) ENGINE = InnoDB;
 
 DELIMITER //
 
-CREATE PROCEDURE Users_checker_before (
+CREATE OR REPLACE PROCEDURE Users_checker_before (
   Email   varchar(128),
-  Name    varchar(64)
+  Name    varchar(64),
+  Passwd  binary(32),
+  Hash    binary(3)
 )
 BEGIN
-  IF Email NOT LIKE '_%@_%.__%' THEN
+  IF Hash IS NULL AND (Email IS NULL OR Name IS NULL OR Passwd IS NULL) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'When Hash is NULL, Email, Name and Passwd must not be NULL';
+  END IF;
+  IF Hash IS NULL AND Email NOT LIKE '_%@_%.__%' THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Email field is not valid';
   END IF;
-  IF length(Name) < 2 THEN
+  IF Hash IS NULL AND length(Name) < 2 THEN
     SIGNAL SQLSTATE '44999' SET MESSAGE_TEXT = 'Name field is too short';
   END IF;
 END;
 //
 
-CREATE TRIGGER Users_check_before_insert
+CREATE OR REPLACE TRIGGER Users_check_before_insert
   BEFORE INSERT ON Users FOR EACH ROW
 BEGIN
   SET NEW.Created = CURRENT_TIMESTAMP();
-  CALL Users_checker_before(NEW.Email, NEW.Name);
+  CALL Users_checker_before(NEW.Email, NEW.Name, NEW.Passwd, NEW.Hash);
 END;
 //
 
-CREATE TRIGGER Users_check_before_update
+CREATE OR REPLACE TRIGGER Users_check_before_update
   BEFORE UPDATE ON Users FOR EACH ROW
 BEGIN
   IF NEW.Created != OLD.Created THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Created cannot be changed';
   END IF;
-  CALL Users_checker_before(NEW.Email, NEW.Name);
+  CALL Users_checker_before(NEW.Email, NEW.Name, NEW.Passwd, NEW.Hash);
 END;
 //
 

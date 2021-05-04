@@ -117,6 +117,10 @@ func SignupHandler(ctx context.Context, response server.Response, request *serve
 
 	// Start session //
 
-	response.SendLoginAccepted(ctx, server.User{Name: signupQuery.Name, Id: uint32(rawId)}, request)
+	response.SendLoginAccepted(ctx, server.User{
+		Name: signupQuery.Name,
+		Id: uint32(rawId),
+		Logged: true,
+	}, request)
 	return
 }

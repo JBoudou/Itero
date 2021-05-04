@@ -25,40 +25,147 @@ import (
 	"net/http/httptest"
 	"reflect"
 	"testing"
+
+	"github.com/gorilla/securecookie"
+	"github.com/gorilla/sessions"
 )
 
 func TestNewRequest(t *testing.T) {
 	precheck(t)
 
+	codecs := securecookie.CodecsFromPairs(SessionKeys()...)
+
+	type cookie struct {
+		name   string
+		values map[interface{}]interface{}
+	}
 	type args struct {
 		basePattern string
-		original    *http.Request
+		method      string
+		target      string
+		cookies     []cookie
+	}
+	type expect struct {
+		user          *User
+		sessionError  error
+		fullPath      []string
+		remainingPath []string
 	}
 	tests := []struct {
 		name   string
 		args   args
-		expect Request
+		expect expect
 	}{
 		{
-			name: "Basic",
+			name: "Path",
 			args: args{
 				basePattern: "/foo/bar",
-				original:    httptest.NewRequest("GET", "/foo/bar/baz/last", nil),
+				method:      "GET",
+				target:      "/foo/bar/baz/last",
 			},
-			expect: Request{
-				SessionError:  nil, // No session error when there is no cookie
-				FullPath:      []string{"foo", "bar", "baz", "last"},
-				RemainingPath: []string{"baz", "last"},
-				// original is set to args.original during the execution
+			expect: expect{
+				sessionError:  nil, // No session error when there is no cookie
+				fullPath:      []string{"foo", "bar", "baz", "last"},
+				remainingPath: []string{"baz", "last"},
+			},
+		},
+		{
+			name: "Full Unlogged",
+			args: args{
+				method: "GET",
+				cookies: []cookie{{
+					name: SessionUnlogged,
+					values: map[interface{}]interface{}{
+						sessionKeyUserId: uint32(42),
+						sessionKeyHash:   uint32(27),
+					},
+				}},
+			},
+			expect: expect{
+				user: &User{Id: 42, Hash: 27, Logged: false},
+			},
+		},
+		{
+			name: "Unlogged no Id",
+			args: args{
+				method: "GET",
+				cookies: []cookie{{
+					name: SessionUnlogged,
+					values: map[interface{}]interface{}{
+						sessionKeyHash:   uint32(27),
+					},
+				}},
+			},
+			expect: expect{
+				user: nil,
+			},
+		},
+		{
+			name: "Unlogged no Hash",
+			args: args{
+				method: "GET",
+				cookies: []cookie{{
+					name: SessionUnlogged,
+					values: map[interface{}]interface{}{
+						sessionKeyUserId: uint32(42),
+					},
+				}},
+			},
+			expect: expect{
+				user: nil,
+			},
+		},
+		{
+			name: "Unlogged wrong type",
+			args: args{
+				method: "GET",
+				cookies: []cookie{{
+					name: SessionUnlogged,
+					values: map[interface{}]interface{}{
+						sessionKeyUserId: "42",
+						sessionKeyHash:   "27",
+					},
+				}},
+			},
+			expect: expect{
+				user: nil,
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := newRequest(tt.args.basePattern, tt.args.original)
-			tt.expect.original = tt.args.original
-			if !reflect.DeepEqual(*got, tt.expect) {
-				t.Errorf("Got %v. Expect %v", got, tt.expect)
+			// Fix tt
+			if tt.args.target == "" {
+				tt.args.target = "/"
+			}
+			if tt.expect.fullPath == nil {
+				tt.expect.fullPath = []string{""}
+			}
+			if tt.expect.remainingPath == nil {
+				tt.expect.remainingPath = []string{}
+			}
+
+			// Make http.Request
+			request := httptest.NewRequest(tt.args.method, tt.args.target, nil)
+			for _, cookie := range tt.args.cookies {
+				encoded, err := securecookie.EncodeMulti(cookie.name, cookie.values, codecs...)
+				mustt(t, err)
+				request.AddCookie(sessions.NewCookie(cookie.name, encoded, &SessionOptions))
+			}
+
+			// Run test
+			got := newRequest(tt.args.basePattern, request)
+			if !reflect.DeepEqual(got.User, tt.expect.user) {
+				t.Errorf("Wrong user. Got %v. Expect %v.", got.User, tt.expect.user)
+			}
+			if !errors.Is(got.SessionError, tt.expect.sessionError) {
+				t.Errorf("Wrong session error. Got %v. Expect %v.", got.SessionError, tt.expect.sessionError)
+			}
+			if !reflect.DeepEqual(got.FullPath, tt.expect.fullPath) {
+				t.Errorf("Wrong full path. Got %v. Expect %v.", got.FullPath, tt.expect.fullPath)
+			}
+			if !reflect.DeepEqual(got.RemainingPath, tt.expect.remainingPath) {
+				t.Errorf("Wrong remaining path. Got %v. Expect %v.", got.RemainingPath, tt.expect.remainingPath)
 			}
 		})
 	}
@@ -71,7 +178,7 @@ func TestLoginThenNewRequest(t *testing.T) {
 
 	const singlePath = "foo"
 	const fullPath = "/" + singlePath
-	user := User{Name: "John", Id: 42}
+	user := User{Name: "John", Id: 42, Logged: true}
 
 	addCorrectSession := func(t *testing.T, result *http.Response, request *http.Request) {
 		var body SessionAnswer
@@ -90,14 +197,14 @@ func TestLoginThenNewRequest(t *testing.T) {
 	}
 
 	checkSuccess := func(t *testing.T, got *Request, original *http.Request) {
-		expect := Request{
-			User:          &user,
-			FullPath:      []string{singlePath},
-			RemainingPath: []string{},
-			original:      original,
+		if !reflect.DeepEqual(got.User, &user) {
+			t.Errorf("Wrong User. Got %v. Expect %v.", got.User, user)
 		}
-		if !reflect.DeepEqual(*got, expect) {
-			t.Errorf("Got %v. Expect %v.", got, expect)
+		if !reflect.DeepEqual(got.FullPath, []string{singlePath}) {
+			t.Errorf("Wrong FullPath. Got %v. Expect [%s].", got.FullPath, singlePath)
+		}
+		if !reflect.DeepEqual(got.RemainingPath, []string{}) {
+			t.Errorf("Wrong RemainingPath. Got %v. Expect [].", got.RemainingPath)
 		}
 	}
 
@@ -175,8 +282,8 @@ func TestRequest_CheckPOST(t *testing.T) {
 			errorMsg: "Missing Origin",
 		},
 		{
-			name:   "Wrong origin host",
-			method: "POST",
+			name:    "Wrong origin host",
+			method:  "POST",
 			address: "example.com",
 			headers: map[string]string{
 				"Origin": "https://impossible.dummy.address/",
@@ -184,8 +291,8 @@ func TestRequest_CheckPOST(t *testing.T) {
 			errorMsg: "Unauthorized",
 		},
 		{
-			name:   "Wrong origin scheme",
-			method: "POST",
+			name:    "Wrong origin scheme",
+			method:  "POST",
 			address: "example.com",
 			headers: map[string]string{
 				"Origin": "http://example.com/",
@@ -193,8 +300,8 @@ func TestRequest_CheckPOST(t *testing.T) {
 			errorMsg: "Unauthorized",
 		},
 		{
-			name:   "Wrong port",
-			method: "POST",
+			name:    "Wrong port",
+			method:  "POST",
 			address: "example.com:17",
 			headers: map[string]string{
 				"Origin": "https://example.com:18/",
@@ -202,8 +309,8 @@ func TestRequest_CheckPOST(t *testing.T) {
 			errorMsg: "Unauthorized",
 		},
 		{
-			name:   "Wrong port default 1",
-			method: "POST",
+			name:    "Wrong port default 1",
+			method:  "POST",
 			address: "example.com",
 			headers: map[string]string{
 				"Origin": "https://example.com:18/",
@@ -211,8 +318,8 @@ func TestRequest_CheckPOST(t *testing.T) {
 			errorMsg: "Unauthorized",
 		},
 		{
-			name:   "Wrong port default 2",
-			method: "POST",
+			name:    "Wrong port default 2",
+			method:  "POST",
 			address: "example.com:42",
 			headers: map[string]string{
 				"Origin": "https://example.com/",
@@ -220,40 +327,40 @@ func TestRequest_CheckPOST(t *testing.T) {
 			errorMsg: "Unauthorized",
 		},
 		{
-			name:   "Good port default 1",
-			method: "POST",
+			name:    "Good port default 1",
+			method:  "POST",
 			address: "example.com",
 			headers: map[string]string{
 				"Origin": "https://example.com:443/",
 			},
 		},
 		{
-			name:   "Good port default 2",
-			method: "POST",
+			name:    "Good port default 2",
+			method:  "POST",
 			address: "example.com:443",
 			headers: map[string]string{
 				"Origin": "https://example.com/",
 			},
 		},
 		{
-			name:   "Good port explicit",
-			method: "POST",
+			name:    "Good port explicit",
+			method:  "POST",
 			address: "example.com:42",
 			headers: map[string]string{
 				"Origin": "https://example.com:42/",
 			},
 		},
 		{
-			name:   "Success Origin",
-			method: "POST",
+			name:    "Success Origin",
+			method:  "POST",
 			address: "example.com",
 			headers: map[string]string{
 				"Origin": "https://example.com/",
 			},
 		},
 		{
-			name:   "Success Referer",
-			method: "POST",
+			name:    "Success Referer",
+			method:  "POST",
 			address: "example.com",
 			headers: map[string]string{
 				"Referer": "https://example.com/something/else",

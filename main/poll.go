@@ -67,7 +67,10 @@ type PollInfo struct {
 	NbChoices    uint8
 	Active       bool
 	CurrentRound uint8
-	Participate  bool
+	Public       bool
+
+	Logged      bool
+	Participate bool
 }
 
 func noPollError(reason string) server.HttpError {
@@ -81,7 +84,7 @@ func pollSegmentFromRequest(request *server.Request) (segment PollSegment, err e
 		err = server.NewHttpError(http.StatusBadRequest, "No poll segment", "No poll segment")
 		return
 	}
-  return PollSegmentDecode(request.RemainingPath[remainingLength-1])
+	return PollSegmentDecode(request.RemainingPath[remainingLength-1])
 }
 
 // checkPollAccess ensure that the user can access the poll.
@@ -90,15 +93,11 @@ func pollSegmentFromRequest(request *server.Request) (segment PollSegment, err e
 // participates in the poll. If she doesn't, poll.Participate is set to false.
 func checkPollAccess(ctx context.Context, request *server.Request) (poll PollInfo, err error) {
 	// Check user
-	// TODO allow unregistered poll
-	if request.User == nil {
-		if request.SessionError != nil {
-			err = server.WrapUnauthorizedError(request.SessionError)
-		} else {
-			err = server.UnauthorizedHttpError("Unlogged user")
-		}
+	if request.SessionError != nil {
+		err = server.WrapUnauthorizedError(request.SessionError)
 		return
 	}
+	poll.Logged = request.User != nil && request.User.Logged
 
 	// Check segment
 	var segment PollSegment
@@ -121,20 +120,24 @@ func checkPollAccess(ctx context.Context, request *server.Request) (poll PollInf
 		err = noPollError("Wrong salt")
 		return
 	}
+	poll.Public = publicity == db.PollPublicityPublic || publicity == db.PollPublicityHidden
+	if !poll.Logged && !poll.Public {
+		err = noPollError("Non-public poll")
+		return
+	}
 
 	// Check participant
-	const qParticipate = `SELECT 1 FROM Participants WHERE Poll = ? AND User = ?`
-	rows, err := db.DB.QueryContext(ctx, qParticipate, poll.Id, request.User.Id)
-	poll.Participate = err != nil || rows.Next()
-	rows.Close()
-	if poll.Participate {
-		return
+	if request.User != nil {
+		const qParticipate = `SELECT 1 FROM Participants WHERE Poll = ? AND User = ?`
+		var rows *sql.Rows
+		rows, err = db.DB.QueryContext(ctx, qParticipate, poll.Id, request.User.Id)
+		poll.Participate = rows.Next()
+		rows.Close()
+		if err != nil {
+			return
+		}
 	}
-	if publicity >= db.PollPublicityInvited {
-		err = noPollError("Private poll")
-		return
-	}
-	if poll.CurrentRound > 0 {
+	if !poll.Public && !poll.Participate && poll.CurrentRound > 0 {
 		err = noPollError("Cannot join a poll after the first round")
 		return
 	}

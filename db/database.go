@@ -17,13 +17,15 @@
 package db
 
 import (
+	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"strings"
 	"time"
 
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/go-sql-driver/mysql"
 
 	"github.com/JBoudou/Itero/config"
 )
@@ -81,8 +83,8 @@ func init() {
 	// Open DB
 	var err error
 	DB, err = sql.Open("mysql", cfg.DSN)
-	must(err, "Error initializing database:")
-	must(DB.Ping(), "Error connecting the the database:")
+	mustm(err, "Error initializing database:")
+	mustm(DB.Ping(), "Error connecting the the database:")
 
 	// configure DB
 	if dur, err := time.ParseDuration(cfg.MaxLifetime); err == nil {
@@ -118,12 +120,12 @@ func AddURLQuery(url, query string) string {
 
 func fillVars(table string, assoc map[string]*uint8) {
 	rows, err := DB.Query("SELECT Id, Label FROM " + table)
-	must(err, "Query on "+table+":")
+	mustm(err, "Query on "+table+":")
 
 	for rows.Next() {
 		var id uint8
 		var label string
-		must(rows.Scan(&id, &label), "Parsing error:")
+		mustm(rows.Scan(&id, &label), "Parsing error:")
 
 		ptr, ok := assoc[label]
 		if !ok {
@@ -152,7 +154,43 @@ func MillisecondsToTime(milli uint64) string {
 	)
 }
 
-func must(err error, msg string) {
+// RepeatDeadlocked repeats a transaction as long as it produce mySQL deadlocks.
+// MySQL deadlocks are detected by a panic of a mysql.MySQLError with Number 1213.
+func RepeatDeadlocked(ctx context.Context, opts *sql.TxOptions, fct func(tx *sql.Tx)) {
+	must := func (err error) { if err != nil { panic(err) } }
+	repeat := true
+	for repeat {
+		func() {
+			tx, err := DB.BeginTx(ctx, opts)
+			must(err)
+			commited := false
+			
+			defer func() {
+				if !commited {
+					tx.Rollback()
+				}
+				exc := recover()
+				if exc == nil {
+					repeat = false
+					return
+				}
+				log.Printf("RepeatDeadlocked recover %v.", exc)
+				err, ok := exc.(error)
+				var mySqlError *mysql.MySQLError
+				if !ok || !errors.As(err, &mySqlError) || mySqlError.Number != 1213 {
+					panic(exc)
+				}
+			}()
+
+			fct(tx)
+
+			must(tx.Commit())
+			commited = true
+		}()
+	}
+}
+
+func mustm(err error, msg string) {
 	if err != nil {
 		log.Fatal(msg, " ", err)
 	}

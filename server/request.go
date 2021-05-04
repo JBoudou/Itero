@@ -58,9 +58,14 @@ func newRequest(basePattern string, original *http.Request) (req *Request) {
 	req = &Request{original: original}
 
 	var session *gs.Session
-	session, req.SessionError = sessionStore.Get(original, sessionName)
+	session, req.SessionError = sessionStore.Get(original, SessionName)
 	if req.SessionError == nil && !session.IsNew {
 		req.addSession(session)
+	} else {
+		session, req.SessionError = sessionStore.Get(original, SessionUnlogged)
+		if req.SessionError == nil && !session.IsNew {
+			req.addUnlogged(session)
+		}
 	}
 
 	req.FullPath = splitPath(req.original.URL.Path)
@@ -129,6 +134,10 @@ func (self *Request) UnmarshalJSONBody(dst interface{}) (err error) {
 		}
 	}
 	return json.Unmarshal(self.body, &dst)
+}
+
+func (self *Request) RemoteAddr() string {
+	return self.original.RemoteAddr
 }
 
 // AddSessionIdToRequest adds a session id to an http.Request.
@@ -201,9 +210,40 @@ func (self *Request) addSession(session *gs.Session) {
 		return
 	}
 
-	self.User = &User{Name: userName, Id: userId}
+	self.User = &User{Name: userName, Id: userId, Logged: true}
 	self.SessionError = nil
 	logger.Push(self.original.Context(), sessionId)
+}
+
+func (self *Request) addUnlogged(session *gs.Session) {
+	failed := false
+	registerError := func(detail string) {
+		// Errors are just logged
+		logger.Print(self.original.Context(), "Error loading Unlogged cookie: ", detail)
+		failed = true
+	}
+
+	extractUInt32 := func(key string) (value uint32) {
+		unconverted, ok := session.Values[key]
+		if !ok {
+			registerError("No key " + key)
+			return
+		}
+		value, ok = unconverted.(uint32)
+		if !ok {
+			registerError("Wrong type for key " + key)
+		}
+		return
+	}
+
+	user := &User{
+		Id: extractUInt32(sessionKeyUserId),
+		Hash: extractUInt32(sessionKeyHash),
+		Logged: false,
+	}
+	if !failed {
+		self.User = user
+	}
 }
 
 func splitPath(pathStr string) (pathSli []string) {

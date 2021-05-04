@@ -95,6 +95,7 @@ func (self *Env) CreateUserWith(salt string) (userId uint32) {
 	userId = self.extractId(result)
 
 	self.Defer(func() {
+		self.logExec(`DELETE FROM Participants WHERE User = ?`, userId)
 		self.logExec(`DELETE FROM Users WHERE Id = ?`, userId)
 		self.logExec(`ALTER TABLE Users AUTO_INCREMENT = 1`)
 	})

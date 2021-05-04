@@ -42,12 +42,17 @@ const (
 	// Additional delay accorded after deadline is reached.
 	sessionGraceTime = 20
 
-	sessionName = "s"
+	// Name of the cookie for sessions.
+	SessionName     = "s"
+
+	// Name of the cookie for unlogged users.
+	SessionUnlogged = "u"
 
 	sessionKeySessionId = "sid"
 	sessionKeyUserName  = "usr"
 	sessionKeyUserId    = "uid"
 	sessionKeyDeadline  = "dl"
+	sessionKeyHash      = "hash"
 
 	defaultPort   = ":443"
 	sessionHeader = "X-CSRF"
@@ -91,6 +96,7 @@ func init() {
 	sessionStore.MaxAge(sessionMaxAge)
 	sessionStore.Options.Domain = HostOnly(cfg.Address)
 	sessionStore.Options.SameSite = http.SameSiteLaxMode
+	sessionStore.Options.Secure = true
 	SessionOptions = *sessionStore.Options
 }
 
@@ -104,8 +110,12 @@ func HostOnly(address string) string {
 
 // User represents a logged user.
 type User struct {
-	Name string
 	Id   uint32
+	Name string
+	Hash uint32
+
+	// If Logged is true then Name is meaningfull else Hash is meaningfull.
+	Logged bool
 }
 
 var interceptorChain = alice.New(logger.Constructor, addRequestInfo)

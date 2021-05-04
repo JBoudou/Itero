@@ -148,6 +148,13 @@ func UninominalBallotHandler(ctx context.Context, response server.Response, requ
 		 ORDER BY p.Round`
 	var answer UninominalBallotAnswer
 
+	if request.User == nil {
+		var user server.User
+		user, err = UnloggedFromAddr(ctx, request.RemoteAddr())
+		must(err)
+		request.User = &user
+	}
+
 	var previousRound uint8
 	if pollInfo.CurrentRound > 0 {
 		// Round is unsigned

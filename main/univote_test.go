@@ -19,7 +19,6 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"testing"
 
@@ -74,15 +73,17 @@ func (self *voteChecker) Check(t *testing.T, response *http.Response, request *s
 			  ON (p.Poll, p.User, p.Round) = (b.Poll, b.User, b.Round)
 		 WHERE p.Poll = ? AND p.User = ?`
 
-	row := db.DB.QueryRow(qCheck, self.poll, self.user)
+	rows, err := db.DB.Query(qCheck, self.poll, self.user)
+	mustt(t, err)
+	defer rows.Close()
+	if !rows.Next() {
+		t.Errorf("User %d does not participate in poll %d.", self.user, self.poll)
+		return
+	}
 	var gotRound, gotAlternative sql.NullInt32
-	err := row.Scan(&gotRound, &gotAlternative)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			t.Errorf("User %d does not participate in poll %d.", self.user, self.poll)
-			return
-		}
-		t.Fatal(err)
+	mustt(t, rows.Scan(&gotRound, &gotAlternative))
+	if rows.Next() {
+		t.Errorf("More than one alternative for user %d on poll %d.", self.user, self.poll)
 	}
 	if !gotRound.Valid || gotRound.Int32 != int32(self.round) {
 		t.Errorf("Wrong round. Got %v. Expect %d.", gotRound, self.round)
@@ -105,6 +106,10 @@ func (self *voteChecker) Check(t *testing.T, response *http.Response, request *s
 	}
 }
 
+func voteCheckerFactory(param PollTestCheckerFactoryParam) srvt.Checker {
+	return &voteChecker{poll: param.PollId, user: param.UserId, round: param.Round}
+}
+
 func TestUninominalVoteHandler(t *testing.T) {
 	precheck(t)
 
@@ -112,29 +117,27 @@ func TestUninominalVoteHandler(t *testing.T) {
 	defer env.Close()
 	userId := env.CreateUser()
 	pollId := env.CreatePoll("Test", userId, db.PollPublicityPublicRegistered)
-	forbiddenId := env.CreatePoll("Forbidden", userId, db.PollPublicityInvited)
 	env.Must(t)
 
-	makeRequest := func(userId *uint32, pollId uint32, vote UninominalVoteQuery) (req srvt.Request) {
-		req = *makePollRequest(t, pollId, userId)
+	fillRequest := func(vote UninominalVoteQuery, req srvt.Request) srvt.Request {
 		b, err := json.Marshal(vote)
 		mustt(t, err)
 		req.Body = string(b)
 		req.Method = "POST"
-		return
+		return req
 	}
 
+	makeRequest := func(userId *uint32, pollId uint32, vote UninominalVoteQuery) srvt.Request {
+		return fillRequest(vote, *makePollRequest(t, pollId, userId))
+	}
+
+	s := func(s string) *string { return &s }
+
 	tests := []srvt.Test{
-		&srvt.T{
-			Name:    "No user",
-			Request: makeRequest(nil, pollId, UninominalVoteQuery{}),
-			Checker: srvt.CheckStatus{http.StatusForbidden},
-		},
-		&srvt.T{
-			Name:    "Wrong segment",
-			Request: makeRequest(&userId, forbiddenId, UninominalVoteQuery{}),
-			Checker: srvt.CheckStatus{http.StatusNotFound},
-		},
+
+		// Sequential tests first //
+		// TODO make them all independent
+
 		&srvt.T{
 			Name:    "First vote",
 			Request: makeRequest(&userId, pollId, UninominalVoteQuery{Alternative: 1}),
@@ -170,12 +173,12 @@ func TestUninominalVoteHandler(t *testing.T) {
 			Checker: &voteChecker{poll: pollId, user: userId, round: 1},
 		},
 		&srvt.T{
-			Name: "Previous round",
+			Name:    "Previous round",
 			Request: makeRequest(&userId, pollId, UninominalVoteQuery{Blank: true, Round: 0}),
 			Checker: srvt.CheckError{Code: http.StatusLocked, Body: "Next round"},
 		},
 		&srvt.T{
-			Name: "Next round",
+			Name:    "Next round",
 			Request: makeRequest(&userId, pollId, UninominalVoteQuery{Blank: true, Round: 2}),
 			Checker: srvt.CheckStatus{Code: http.StatusBadRequest},
 		},
@@ -188,6 +191,122 @@ func TestUninominalVoteHandler(t *testing.T) {
 			},
 			Request: makeRequest(&userId, pollId, UninominalVoteQuery{}),
 			Checker: srvt.CheckStatus{http.StatusLocked},
+		},
+
+		// Independent tests //
+
+		&pollTest{
+			Name:       "No user public",
+			Sequential: true,
+			Publicity:  db.PollPublicityPublic,
+			UserType:   pollTestUserTypeNone,
+			Request:    fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{RemoteAddr: s("1.2.3.4:5")}),
+			Checker:    voteCheckerFactory,
+		},
+		&pollTest{
+			Name:       "No user hidden",
+			Sequential: true,
+			Publicity:  db.PollPublicityHidden,
+			UserType:   pollTestUserTypeNone,
+			Request:    fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{RemoteAddr: s("1.2.3.4:5")}),
+			Checker:    voteCheckerFactory,
+		},
+		&pollTest{
+			Name:       "Unlogged public",
+			Sequential: true,
+			Publicity:  db.PollPublicityPublic,
+			UserType:   pollTestUserTypeUnlogged,
+			Request:    fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
+			Checker:    voteCheckerFactory,
+		},
+		&pollTest{
+			Name:       "Unlogged hidden",
+			Sequential: true,
+			Publicity:  db.PollPublicityHidden,
+			UserType:   pollTestUserTypeUnlogged,
+			Request:    fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
+			Checker:    voteCheckerFactory,
+		},
+
+		&pollTest{
+			Name:       "No user public change",
+			Sequential: true,
+			Publicity:  db.PollPublicityPublic,
+			Vote:       []pollTestVote{{User: 1, Alt: 1}},
+			UserType:   pollTestUserTypeNone,
+			Request:    fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{RemoteAddr: s("1.2.3.4:5")}),
+			Checker:    voteCheckerFactory,
+		},
+		&pollTest{
+			Name:       "No user hidden change",
+			Sequential: true,
+			Publicity:  db.PollPublicityHidden,
+			Vote:       []pollTestVote{{User: 1, Alt: 1}},
+			UserType:   pollTestUserTypeNone,
+			Request:    fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{RemoteAddr: s("1.2.3.4:5")}),
+			Checker:    voteCheckerFactory,
+		},
+		&pollTest{
+			Name:       "Unlogged public change",
+			Sequential: true,
+			Publicity:  db.PollPublicityPublic,
+			Vote:       []pollTestVote{{User: 1, Alt: 1}},
+			UserType:   pollTestUserTypeUnlogged,
+			Request:    fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
+			Checker:    voteCheckerFactory,
+		},
+		&pollTest{
+			Name:       "Unlogged hidden change",
+			Sequential: true,
+			Publicity:  db.PollPublicityHidden,
+			Vote:       []pollTestVote{{User: 1, Alt: 1}},
+			UserType:   pollTestUserTypeUnlogged,
+			Request:    fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
+			Checker:    voteCheckerFactory,
+		},
+
+		&pollTest{
+			Name:      "No user registered",
+			Publicity: db.PollPublicityPublicRegistered,
+			UserType:  pollTestUserTypeNone,
+			Request:   fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
+			Checker:   srvt.CheckStatus{http.StatusNotFound},
+		},
+		&pollTest{
+			Name:      "No user hidden registered",
+			Publicity: db.PollPublicityHiddenRegistered,
+			UserType:  pollTestUserTypeNone,
+			Request:   fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
+			Checker:   srvt.CheckStatus{http.StatusNotFound},
+		},
+		&pollTest{
+			Name:      "Unlogged registered",
+			Publicity: db.PollPublicityPublicRegistered,
+			UserType:  pollTestUserTypeUnlogged,
+			Request:   fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
+			Checker:   srvt.CheckStatus{http.StatusNotFound},
+		},
+		&pollTest{
+			Name:      "Unlogged hidden registered",
+			Publicity: db.PollPublicityHiddenRegistered,
+			UserType:  pollTestUserTypeUnlogged,
+			Request:   fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
+			Checker:   srvt.CheckStatus{http.StatusNotFound},
+		},
+
+		&pollTest{
+			Name:      "No user public cookie",
+			Publicity: db.PollPublicityPublic,
+			UserType:  pollTestUserTypeNone,
+			Request:   fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{RemoteAddr: s("1.2.3.4:5")}),
+			Checker:   srvt.CheckCookieIsSet{Name: server.SessionUnlogged},
+		},
+		&pollTest{
+			Name:      "No user hidden cookie",
+			Publicity: db.PollPublicityHidden,
+			UserType:  pollTestUserTypeNone,
+			Request:   fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{RemoteAddr: s("1.2.3.4:5")}),
+			Checker:   srvt.CheckCookieIsSet{Name: server.SessionUnlogged},
 		},
 	}
 

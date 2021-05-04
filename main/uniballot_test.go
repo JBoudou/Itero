@@ -19,6 +19,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 	"reflect"
 	"testing"
 
@@ -51,9 +52,10 @@ func TestAllAlternatives(t *testing.T) {
 }
 
 var (
-	noVote  = uninominalBallot{Value: 0, State: uninominalBallotStateValid}
-	yesVote = uninominalBallot{Value: 1, State: uninominalBallotStateValid}
-	blankVote = uninominalBallot{State: uninominalBallotStateBlank}
+	noVote        = uninominalBallot{Value: 0, State: uninominalBallotStateValid}
+	yesVote       = uninominalBallot{Value: 1, State: uninominalBallotStateValid}
+	blankVote     = uninominalBallot{State: uninominalBallotStateBlank}
+	undefinedVote = uninominalBallot{State: uninominalBallotStateUndefined}
 )
 
 func TestUninominalBallotAnswer_MarshalJSON(t *testing.T) {
@@ -185,7 +187,7 @@ func TestUninominalBallotHandler(t *testing.T) {
 		{Id: 1, Name: "Yes", Cost: 1.},
 	}
 
-	const qBlankVote = `DELETE FROM Ballots WHERE User = ? AND Round = ?`;
+	const qBlankVote = `DELETE FROM Ballots WHERE User = ? AND Round = ?`
 
 	vote := func(alternative, round uint8) func(t *testing.T) {
 		return func(t *testing.T) {
@@ -201,9 +203,13 @@ func TestUninominalBallotHandler(t *testing.T) {
 		}
 	}
 
-	// WARNING: The tests are sequential.
+	s := func (s string) *string { return &s }
 
 	tests := []srvt.Test{
+
+		// Sequential tests first //
+		// TODO make them all independent
+
 		&srvt.T{
 			Name:    "No Ballot",
 			Request: request,
@@ -260,6 +266,103 @@ func TestUninominalBallotHandler(t *testing.T) {
 				Alternatives: alternatives,
 			}},
 		},
+
+		// Independent tests //
+
+		&pollTest{
+			Name:      "No user public",
+			Publicity: db.PollPublicityPublic,
+			Vote:      []pollTestVote{{1, 0, 0}},
+			UserType:  pollTestUserTypeNone,
+			Checker: srvt.CheckJSON{Body: &UninominalBallotAnswer{
+				Previous:     undefinedVote,
+				Current:      undefinedVote,
+				Alternatives: alternatives,
+			}},
+		},
+		&pollTest{
+			Name:      "No user Hidden",
+			Publicity: db.PollPublicityHidden,
+			Vote:      []pollTestVote{{1, 0, 0}},
+			UserType:  pollTestUserTypeNone,
+			Checker: srvt.CheckJSON{Body: &UninominalBallotAnswer{
+				Previous:     undefinedVote,
+				Current:      undefinedVote,
+				Alternatives: alternatives,
+			}},
+		},
+		&pollTest{
+			Name:      "Same addr public",
+			Publicity: db.PollPublicityPublic,
+			Vote:      []pollTestVote{{1, 0, 0}},
+			UserType:  pollTestUserTypeNone,
+			Request: srvt.Request{RemoteAddr: s("1.2.3.4:56")},
+			Checker: srvt.CheckJSON{Body: &UninominalBallotAnswer{
+				Previous:     undefinedVote,
+				Current:      noVote,
+				Alternatives: alternatives,
+			}},
+		},
+		&pollTest{
+			Name:      "Same addr Hidden",
+			Publicity: db.PollPublicityHidden,
+			Vote:      []pollTestVote{{1, 0, 0}},
+			UserType:  pollTestUserTypeNone,
+			Request: srvt.Request{RemoteAddr: s("9.2.3.4:56")},
+			Checker: srvt.CheckJSON{Body: &UninominalBallotAnswer{
+				Previous:     undefinedVote,
+				Current:      noVote,
+				Alternatives: alternatives,
+			}},
+		},
+		&pollTest{
+			Name:      "Unlogged public",
+			Publicity: db.PollPublicityPublic,
+			Vote:      []pollTestVote{{1, 0, 0}},
+			UserType:  pollTestUserTypeUnlogged,
+			Checker: srvt.CheckJSON{Body: &UninominalBallotAnswer{
+				Previous:     undefinedVote,
+				Current:      noVote,
+				Alternatives: alternatives,
+			}},
+		},
+		&pollTest{
+			Name:      "Unlogged hidden",
+			Publicity: db.PollPublicityHidden,
+			Vote:      []pollTestVote{{1, 0, 0}},
+			UserType:  pollTestUserTypeUnlogged,
+			Checker: srvt.CheckJSON{Body: &UninominalBallotAnswer{
+				Previous:     undefinedVote,
+				Current:      noVote,
+				Alternatives: alternatives,
+			}},
+		},
+
+		&pollTest{
+			Name:      "No user registered",
+			Publicity: db.PollPublicityPublicRegistered,
+			UserType:  pollTestUserTypeNone,
+			Checker:   srvt.CheckStatus{http.StatusNotFound},
+		},
+		&pollTest{
+			Name:      "No user hidden registered",
+			Publicity: db.PollPublicityHiddenRegistered,
+			UserType:  pollTestUserTypeNone,
+			Checker:   srvt.CheckStatus{http.StatusNotFound},
+		},
+		&pollTest{
+			Name:      "Unlogged registered",
+			Publicity: db.PollPublicityPublicRegistered,
+			UserType:  pollTestUserTypeUnlogged,
+			Checker:   srvt.CheckStatus{http.StatusNotFound},
+		},
+		&pollTest{
+			Name:      "Unlogged hidden registered",
+			Publicity: db.PollPublicityHiddenRegistered,
+			UserType:  pollTestUserTypeUnlogged,
+			Checker:   srvt.CheckStatus{http.StatusNotFound},
+		},
+
 	}
 	srvt.RunFunc(t, tests, UninominalBallotHandler)
 }

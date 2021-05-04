@@ -194,3 +194,15 @@ var CheckAnyErrorStatus =
 			t.Errorf("Wrong status code. Got %d. Expect at least 400.", response.StatusCode)
 		}
 	})
+
+/* CheckCookieIsSet */
+
+type CheckCookieIsSet struct {
+	Name string
+}
+
+func (self CheckCookieIsSet) Check(t *testing.T, response *http.Response, request *server.Request) {
+	if FindCookie(response, self.Name) == nil {
+		t.Errorf("No cookie named %s.", self.Name)
+	}
+}

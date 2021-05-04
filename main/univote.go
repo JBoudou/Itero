@@ -57,6 +57,15 @@ func UninominalVoteHandler(ctx context.Context, response server.Response, reques
 		return
 	}
 
+	// Unlogged
+	sendUnloggedCookie := request.User == nil
+	if sendUnloggedCookie {
+		var user server.User
+		user, err = UnloggedFromAddr(ctx, request.RemoteAddr())
+		must(err)
+		request.User = &user
+	}
+
 	// Get query
 	var voteQuery UninominalVoteQuery
 	if err := request.UnmarshalJSONBody(&voteQuery); err != nil {
@@ -89,41 +98,35 @@ func UninominalVoteHandler(ctx context.Context, response server.Response, reques
 		qInsertParticipant = `INSERT INTO Participants (User, Poll, Round) VALUE (?, ?, ?)`
 	)
 
-	tx, err := db.DB.BeginTx(ctx, nil)
-	must(err)
-	commited := false
-	defer func() {
-		if !commited {
-			tx.Rollback()
-		}
-	}()
-
-	var result sql.Result
-	result, err = tx.ExecContext(ctx, qDeleteBallot, request.User.Id, pollInfo.Id, pollInfo.CurrentRound)
-	must(err)
-
-	// Insert a row in Participants if needed
-	if affected, err := result.RowsAffected(); err == nil && affected == 0 {
-		var rows *sql.Rows
-		rows, err = tx.QueryContext(ctx, qLastRound, request.User.Id, pollInfo.Id, pollInfo.CurrentRound)
+	db.RepeatDeadlocked(ctx, nil, func(tx *sql.Tx) {
+		var result sql.Result
+		result, err = tx.ExecContext(ctx, qDeleteBallot, request.User.Id, pollInfo.Id, pollInfo.CurrentRound)
 		must(err)
-		if !rows.Next() {
-			_, err = tx.ExecContext(ctx, qInsertParticipant, request.User.Id, pollInfo.Id,
+
+		// Insert a row in Participants if needed
+		if affected, err := result.RowsAffected(); err == nil && affected == 0 {
+			var rows *sql.Rows
+			rows, err = tx.QueryContext(ctx, qLastRound, request.User.Id, pollInfo.Id, pollInfo.CurrentRound)
+			must(err)
+			if !rows.Next() {
+				_, err = tx.ExecContext(ctx, qInsertParticipant, request.User.Id, pollInfo.Id,
+					pollInfo.CurrentRound)
+				must(err)
+			}
+			must(rows.Close())
+		}
+
+		// Add the ballot
+		if !voteQuery.Blank {
+			_, err = tx.ExecContext(ctx, qInsertBallot, request.User.Id, pollInfo.Id, voteQuery.Alternative,
 				pollInfo.CurrentRound)
 			must(err)
 		}
-		must(rows.Close())
-	}
+	})
 
-	// Add the ballot
-	if !voteQuery.Blank {
-		_, err = tx.ExecContext(ctx, qInsertBallot, request.User.Id, pollInfo.Id, voteQuery.Alternative,
-			pollInfo.CurrentRound)
-		must(err)
+	if sendUnloggedCookie {
+		response.SendUnloggedId(ctx, *request.User, request)
 	}
-
-	must(tx.Commit())
-	commited = true
 	response.SendJSON(ctx, "Ok")
 	events.Send(VoteEvent{pollInfo.Id})
 }

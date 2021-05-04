@@ -1,5 +1,5 @@
 // Itero - Online iterative vote application
-// Copyright (C) 2020 Joseph Boudou
+// Copyright (C) 2021 Joseph Boudou
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -14,41 +14,36 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-package server
+package servertest
 
 import (
+	"context"
 	"testing"
 )
 
-func TestHostOnly(t *testing.T) {
-	tests := []struct {
-		name string
-		arg  string
-		want string
-	}{
-		{
-			name: "Without port",
-			arg: "foo.bar",
-			want: "foo.bar",
-		},
-		{
-			name: "With port",
-			arg: "foo.bar:12",
-			want: "foo.bar",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := HostOnly(tt.arg); got != tt.want {
-				t.Errorf("HostOnly() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func mustt(t *testing.T, err error) {
-	t.Helper()
-	if err != nil {
-		t.Fatal(err)
-	}
+func TestMockResponse_SendJSON(t *testing.T) {
+	t.Run("Without", func(t *testing.T){
+		ttt := &testing.T{}
+		MockResponse{T:ttt}.SendJSON(context.Background(), 0)
+		if !ttt.Failed() {
+			t.Errorf("SendJSON did not fail")
+		}
+	})
+	t.Run("With", func(t *testing.T){
+		called := 0
+		mock := MockResponse{
+			T: &testing.T{},
+			JsonFct: func(t *testing.T, ctx context.Context, data interface{}) {
+				if converted, ok := data.(int); ok && converted == 42 {
+					called += 1
+				} else {
+					t.Errorf("Wrong data %v.", data)
+				}
+			},
+		}
+		mock.SendJSON(context.Background(), 42)
+		if called != 1 {
+			t.Errorf("Given function called %d times. Expect one.", called)
+		}
+	})
 }

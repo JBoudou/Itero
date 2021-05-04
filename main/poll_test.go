@@ -1,27 +1,30 @@
 // Itero - Online iterative vote application
 // Copyright (C) 2020 Joseph Boudou
-// 
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
 // published by the Free Software Foundation, either version 3 of the
 // License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Affero General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 package main
 
 import (
+	"context"
 	"net/http"
+	"strconv"
 	"testing"
 
 	"github.com/JBoudou/Itero/db"
 	dbt "github.com/JBoudou/Itero/db/dbtest"
+	"github.com/JBoudou/Itero/server"
 	srvt "github.com/JBoudou/Itero/server/servertest"
 )
 
@@ -72,17 +75,13 @@ func TestPollHandler(t *testing.T) {
 
 	const (
 		qParticipate = `INSERT INTO Participants (Poll, User, Round) VALUE (?, ?, 0)`
-		qClosePoll = `UPDATE Polls SET State = 'Terminated' WHERE Id = ?`
+		qClosePoll   = `UPDATE Polls SET State = 'Terminated' WHERE Id = ?`
 	)
 
 	var (
 		segment1 PollSegment
-		segment2 PollSegment
-		segment3 PollSegment
 
 		target1 string
-		target2 string
-		target3 string
 
 		target1wrong string
 	)
@@ -101,73 +100,37 @@ func TestPollHandler(t *testing.T) {
 	}
 
 	tests := []srvt.Test{
+
+		// Sequential tests first //
+		// TODO make them all independent
+
 		&srvt.T{
-			Name: "No segment",
-			Request: srvt.Request{ UserId: &userId },
+			Name:    "No segment",
+			Request: srvt.Request{UserId: &userId},
 			Checker: srvt.CheckStatus{http.StatusBadRequest},
-		},
-		&srvt.T{
-			Name: "No session",
-			Update:  createPoll(&segment1, &target1, db.PollPublicityHiddenRegistered),
-			Request: srvt.Request{ Target: &target1 },
-			Checker: srvt.CheckStatus{http.StatusForbidden},
 		},
 		&srvt.T{
 			Name: "Wrong salt",
 			Update: func(t *testing.T) {
-				segment := PollSegment{ Id: segment1.Id, Salt: 9999 }
+				createPoll(&segment1, &target1, db.PollPublicityHiddenRegistered)(t)
+				segment := PollSegment{Id: segment1.Id, Salt: 9999}
 				encoded, err := segment.Encode()
 				if err != nil {
 					t.Fatal(err)
 				}
 				target1wrong = "/a/test/" + encoded
 			},
-			Request: srvt.Request{ Target: &target1wrong, UserId: &userId },
+			Request: srvt.Request{Target: &target1wrong, UserId: &userId},
 			Checker: srvt.CheckStatus{http.StatusNotFound},
 		},
 		&srvt.T{
-			Name: "Private poll",
-			Update:  createPoll(&segment2, &target2, db.PollPublicityInvited),
-			Request: srvt.Request{ Target: &target2, UserId: &userId },
-			Checker: srvt.CheckStatus{http.StatusNotFound},
-		},
-		&srvt.T{
-			Name: "Late public poll",
-			Update:  func(t *testing.T) {
-				createPoll(&segment3, &target3, db.PollPublicityPublic)(t)
-				env.NextRound(segment3.Id)
-				env.Must(t)
-			},
-			Request: srvt.Request{ Target: &target3, UserId: &userId },
-			Checker: srvt.CheckStatus{http.StatusNotFound},
-		},
-		&srvt.T{
-			Name: "Ok Hidden Registered",
-			Request: srvt.Request{ Target: &target1, UserId: &userId },
+			Name:    "Ok Hidden Registered",
+			Request: srvt.Request{Target: &target1, UserId: &userId},
 			Checker: srvt.CheckJSON{
 				Body: &partialPollAnswer{
-					Title: "Test",
-					Admin: " Test ",
-					Ballot: BallotTypeUninominal,
-					Information: InformationTypeNoneYet,
-				},
-				Partial: true,
-			},
-		},
-		&srvt.T{
-			Name: "Ok Invited",
-			Update: func(t *testing.T) {
-				_, err := db.DB.Exec(qParticipate, segment2.Id, userId)
-				if err != nil {
-					t.Fatal(err)
-				}
-			},
-			Request: srvt.Request{ Target: &target2, UserId: &userId },
-			Checker: srvt.CheckJSON{
-				Body: &partialPollAnswer{
-					Title: "Test",
-					Admin: " Test ",
-					Ballot: BallotTypeUninominal,
+					Title:       "Test",
+					Admin:       " Test ",
+					Ballot:      BallotTypeUninominal,
 					Information: InformationTypeNoneYet,
 				},
 				Partial: true,
@@ -183,14 +146,14 @@ func TestPollHandler(t *testing.T) {
 				env.NextRound(segment1.Id)
 				env.Must(t)
 			},
-			Request: srvt.Request{ Target: &target1, UserId: &userId },
+			Request: srvt.Request{Target: &target1, UserId: &userId},
 			Checker: srvt.CheckJSON{
 				Body: &partialPollAnswer{
-					Title: "Test",
-					Admin: " Test ",
+					Title:        "Test",
+					Admin:        " Test ",
 					CurrentRound: 1,
-					Ballot: BallotTypeUninominal,
-					Information: InformationTypeCounts,
+					Ballot:       BallotTypeUninominal,
+					Information:  InformationTypeCounts,
 				},
 				Partial: true,
 			},
@@ -203,22 +166,292 @@ func TestPollHandler(t *testing.T) {
 					t.Fatal(err)
 				}
 			},
-			Request: srvt.Request{ Target: &target1, UserId: &userId },
+			Request: srvt.Request{Target: &target1, UserId: &userId},
 			Checker: srvt.CheckJSON{
 				Body: &partialPollAnswer{
-					Title: "Test",
-					Admin: " Test ",
+					Title:        "Test",
+					Admin:        " Test ",
 					CurrentRound: 1,
-					Ballot: BallotTypeClosed,
-					Information: InformationTypeCounts,
+					Ballot:       BallotTypeClosed,
+					Information:  InformationTypeCounts,
 				},
 				Partial: true,
 			},
 		},
+
+		// Independent tests //
+
+		&pollTest{
+			Name:      "No user access to public",
+			Publicity: db.PollPublicityPublic,
+			UserType:  pollTestUserTypeNone,
+			Checker:   pollHandlerCheckerFactory,
+		},
+		&pollTest{
+			Name:      "No user access to public hidden",
+			Publicity: db.PollPublicityHidden,
+			UserType:  pollTestUserTypeNone,
+			Checker:   pollHandlerCheckerFactory,
+		},
+		&pollTest{
+			Name:      "Unlogged access to public",
+			Publicity: db.PollPublicityPublic,
+			UserType:  pollTestUserTypeUnlogged,
+			Checker:   pollHandlerCheckerFactory,
+		},
+		&pollTest{
+			Name:      "Unlogged access to public hidden",
+			Publicity: db.PollPublicityHidden,
+			UserType:  pollTestUserTypeUnlogged,
+			Checker:   pollHandlerCheckerFactory,
+		},
+
+		&pollTest{
+			Name:      "No user no access to registered",
+			Publicity: db.PollPublicityPublicRegistered,
+			UserType:  pollTestUserTypeNone,
+			Checker:   srvt.CheckStatus{http.StatusNotFound},
+		},
+		&pollTest{
+			Name:      "No user no access to hidden registered",
+			Publicity: db.PollPublicityHiddenRegistered,
+			UserType:  pollTestUserTypeNone,
+			Checker:   srvt.CheckStatus{http.StatusNotFound},
+		},
+		&pollTest{
+			Name:      "Unlogged no access to registered",
+			Publicity: db.PollPublicityPublicRegistered,
+			UserType:  pollTestUserTypeUnlogged,
+			Checker:   srvt.CheckStatus{http.StatusNotFound},
+		},
+		&pollTest{
+			Name:      "Unlogged no access to hidden registered",
+			Publicity: db.PollPublicityHiddenRegistered,
+			UserType:  pollTestUserTypeUnlogged,
+			Checker:   srvt.CheckStatus{http.StatusNotFound},
+		},
+
+		&pollTest{
+			Name:      "No user access any round",
+			Publicity: db.PollPublicityPublic,
+			Round:     2,
+			UserType:  pollTestUserTypeNone,
+			Checker:   pollHandlerCheckerFactory,
+		},
+		&pollTest{
+			Name:      "Logged access any round",
+			Publicity: db.PollPublicityPublic,
+			Round:     2,
+			UserType:  pollTestUserTypeLogged,
+			Checker:   pollHandlerCheckerFactory,
+		},
+		&pollTest{
+			Name:      "Logged no access any round",
+			Publicity: db.PollPublicityPublicRegistered,
+			Round:     2,
+			UserType:  pollTestUserTypeLogged,
+			Checker:   srvt.CheckStatus{http.StatusNotFound},
+		},
 	}
 	srvt.RunFunc(t, tests, PollHandler)
 
-	tests = []srvt.Test{
-	}
+	tests = []srvt.Test{}
 	srvt.RunFunc(t, tests, PollHandler)
+}
+
+func pollHandlerCheckerFactory(param PollTestCheckerFactoryParam) srvt.Checker {
+	body := &partialPollAnswer{
+		Title:        param.PollTitle,
+		Admin:        param.AdminName,
+		CurrentRound: param.Round,
+		Ballot:       BallotTypeUninominal,
+		Information:  InformationTypeCounts,
+	}
+	if param.Round == 0 {
+		body.Information = InformationTypeNoneYet
+	}
+	return srvt.CheckJSON{
+		Body:    body,
+		Partial: true,
+	}
+}
+
+// What follows is generic and used for other handler.
+// TODO move that in its own place.
+
+type pollTestUserType uint8
+
+const (
+	pollTestUserTypeNone pollTestUserType = iota
+	pollTestUserTypeAdmin
+	pollTestUserTypeLogged
+	pollTestUserTypeUnlogged
+)
+
+type pollTestParticipate struct {
+	User  uint8 // 0 is admin, 1 is request user, n > 1 are additional users.
+	Round uint8
+}
+
+type pollTestVote struct {
+	User  uint8 // 0 is admin, 1 is request user, n > 1 are additional users.
+	Round uint8
+	Alt   uint8
+}
+
+type pollTest struct {
+	Name         string // Required.
+	Sequential   bool   // If the test cannot be run in parallel.
+	Publicity    uint8  // Required.
+	Alternatives []string
+	Round        uint8
+	Participate  []pollTestParticipate // No need to add an entry for each vote.
+	Vote         []pollTestVote
+
+	UserType pollTestUserType // Required.
+	Request  srvt.Request     // Just a squeleton that will be completed by the test.
+	Checker  interface{}      // Required. Either an srvt.Checker or a pollTestCheckerFactoryParam.
+
+	dbEnv  dbt.Env
+	pollId uint32
+	userId []uint32
+}
+
+// pollTestCheckerFactoryParam contains the parameter to construct a default Checker.
+// We use a struct type instead of a list of arguments to ease the addition of parameters.
+// TODO consider moving that to a _test package.
+type PollTestCheckerFactoryParam struct {
+	PollTitle string
+	PollId    uint32
+	AdminName string
+	UserId    uint32
+	Round     uint8
+}
+
+type pollTestCheckerFactory = func(param PollTestCheckerFactoryParam) srvt.Checker
+
+var pollHanlerTestUnloggedHash uint32 = 42
+
+func (self *pollTest) GetName() string {
+	return self.Name
+}
+
+func (self *pollTest) Prepare(t *testing.T) {
+	if !self.Sequential {
+		t.Parallel()
+	}
+
+	self.userId = make([]uint32, 2)
+	self.userId[0] = self.dbEnv.CreateUserWith(t.Name())
+	if len(self.Alternatives) < 2 {
+		self.pollId = self.dbEnv.CreatePoll("Title", self.userId[0], self.Publicity)
+	} else {
+		self.pollId = self.dbEnv.CreatePollWith("Title", self.userId[0], self.Publicity,
+			self.Alternatives)
+	}
+
+	// Users
+	switch self.UserType {
+	case pollTestUserTypeAdmin:
+		self.userId[1] = self.userId[0]
+
+	case pollTestUserTypeLogged:
+		self.userId[1] = self.dbEnv.CreateUserWith(t.Name() + "Logged")
+
+	case pollTestUserTypeUnlogged:
+		self.dbEnv.Must(t)
+		user, err := UnloggedFromHash(context.Background(), 42)
+		mustt(t, err)
+		self.userId[1] = user.Id
+
+	case pollTestUserTypeNone:
+		if self.Request.RemoteAddr != nil {
+			self.dbEnv.Must(t)
+			user, err := UnloggedFromAddr(context.Background(), *self.Request.RemoteAddr)
+			mustt(t, err)
+			self.userId[1] = user.Id
+			break
+		}
+		fallthrough // There must be a break at the end of the previous if
+
+	default:
+		self.userId[1] = self.userId[0]
+	}
+
+	// Round
+	const qRound = `UPDATE Polls SET CurrentRound = ? WHERE Id = ?`
+	if self.Round > 0 {
+		self.dbEnv.QuietExec(qRound, self.Round, self.pollId)
+	}
+
+	// Participate
+	const qParticipate = `INSERT INTO Participants (User, Poll, Round) VALUE (?,?,?)`
+	for _, participate := range self.Participate {
+		for len(self.userId) <= int(participate.User) {
+			self.userId = append(self.userId, self.dbEnv.CreateUserWith(t.Name()+strconv.Itoa(len(self.userId))))
+		}
+		self.dbEnv.QuietExec(qParticipate, self.userId[participate.User], self.pollId, participate.Round)
+	}
+
+	// Vote
+	const qVote = `INSERT INTO Ballots (User, Poll, Alternative, Round) VALUE (?,?,?,?)`
+	for _, vote := range self.Vote {
+		for len(self.userId) <= int(vote.User) {
+			self.userId = append(self.userId, self.dbEnv.CreateUserWith(t.Name()+strconv.Itoa(len(self.userId))))
+		}
+		// We don't care about errors when adding to Participants
+		db.DB.Exec(qParticipate, self.userId[vote.User], self.pollId, vote.Round)
+		self.dbEnv.QuietExec(qVote, self.userId[vote.User], self.pollId, vote.Alt, vote.Round)
+	}
+
+	// Checker
+	if factory, ok := self.Checker.(pollTestCheckerFactory); ok {
+		self.Checker = factory(PollTestCheckerFactoryParam{
+			PollTitle: "Title",
+			PollId:    self.pollId,
+			AdminName: " Test" + t.Name() + " ",
+			UserId:    self.userId[1],
+			Round:     self.Round,
+		})
+	}
+
+	self.dbEnv.Must(t)
+	if withBefore, ok := self.Checker.(srvt.CheckerWithBefore); ok {
+		withBefore.Before(t)
+	}
+}
+
+func (self *pollTest) GetRequest(t *testing.T) *srvt.Request {
+	segment, err := PollSegment{Id: self.pollId, Salt: 42}.Encode()
+	if err != nil {
+		t.Errorf("Error encoding poll segment: %v.", err)
+	}
+	target := "/a/test/" + segment
+	self.Request.Target = &target
+
+	switch self.UserType {
+	case pollTestUserTypeAdmin:
+		self.Request.UserId = &self.userId[0]
+
+	case pollTestUserTypeLogged:
+		self.Request.UserId = &self.userId[1]
+
+	case pollTestUserTypeUnlogged:
+		self.Request.UserId = &self.userId[1]
+		self.Request.Hash = &pollHanlerTestUnloggedHash
+	}
+
+	return &self.Request
+}
+
+func (self *pollTest) Check(t *testing.T, response *http.Response, request *server.Request) {
+	if checker, ok := self.Checker.(srvt.Checker); ok {
+		checker.Check(t, response, request)
+	} else {
+		t.Errorf("Checker is not an srvt.Checker")
+	}
+}
+
+func (self *pollTest) Close() {
+	self.dbEnv.Close()
 }

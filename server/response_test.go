@@ -218,14 +218,33 @@ func TestResponse_SendLoginAccepted(t *testing.T) {
 		}
 
 		// Read the cookie
-		cookie := findCookie(result.Cookies(), sessionName)
+		cookie := findCookie(result.Cookies(), SessionName)
 		if cookie == nil {
-			t.Fatalf("No cookie named %s", sessionName)
+			t.Fatalf("No cookie named %s", SessionName)
 		}
 		codecs := securecookie.CodecsFromPairs(cfg.SessionKeys...)
 		var values map[interface{}]interface{}
-		if err := securecookie.DecodeMulti(sessionName, cookie.Value, &values, codecs...); err != nil {
+		if err := securecookie.DecodeMulti(SessionName, cookie.Value, &values, codecs...); err != nil {
 			t.Fatalf("Decode cookie: %s", err)
+		}
+
+		// Check cookie attributes
+		if cookie.Expires.IsZero() && cookie.MaxAge == 0 {
+			t.Errorf("Missing Expire or MaxAge attribute in %v.", cookie)
+		} else {
+			if (cookie.Expires.IsZero() || cookie.Expires.Sub(time.Now()) >= time.Hour) &&
+				(cookie.MaxAge == 0 || cookie.MaxAge > 3600) {
+				t.Errorf("Cookie expires too late: %v.", cookie)
+			}
+		}
+		if !cookie.Secure {
+			t.Errorf("Cookie is not secure")
+		}
+		if cookie.HttpOnly {
+			t.Errorf("Session cookie is HttpOnly")
+		}
+		if cookie.SameSite == http.SameSiteNoneMode {
+			t.Errorf("Cookie SameSite is None")
 		}
 
 		// Check expire and deadline
@@ -300,16 +319,25 @@ func TestResponse_SendLoginAccepted(t *testing.T) {
 			name: "Success",
 			args: args{
 				ctx:  context.Background(),
-				user: User{Name: "Foo", Id: 42},
+				user: User{Name: "Foo", Id: 42, Logged: true},
 				req:  &Request{original: &http.Request{}},
 			},
 			check: checkSuccess,
 		},
 		{
-			name: "Failure",
+			name: "Canceled",
 			args: args{
 				ctx:  canceledContext(),
 				user: User{Name: "Foo", Id: 42},
+				req:  &Request{original: &http.Request{}},
+			},
+			check: checkFail,
+		},
+		{
+			name: "Unlogged",
+			args: args{
+				ctx:  context.Background(),
+				user: User{Id: 27, Hash: 42},
 				req:  &Request{original: &http.Request{}},
 			},
 			check: checkFail,
@@ -323,6 +351,108 @@ func TestResponse_SendLoginAccepted(t *testing.T) {
 			}
 			self.SendLoginAccepted(tt.args.ctx, tt.args.user, tt.args.req)
 			tt.check(t, mock, &tt.args)
+		})
+	}
+}
+
+func TestResponse_SendUnloggedId(t *testing.T) {
+	precheck(t)
+
+	type args struct {
+		ctx  context.Context
+		user User
+	}
+
+	checkSuccess := func(t *testing.T, mock *httptest.ResponseRecorder, args *args) {
+		result := mock.Result()
+
+		// Read the cookie
+		cookie := findCookie(result.Cookies(), SessionUnlogged)
+		if cookie == nil {
+			t.Fatalf("No cookie named %s", SessionUnlogged)
+		}
+		codecs := securecookie.CodecsFromPairs(cfg.SessionKeys...)
+		var values map[interface{}]interface{}
+		if err := securecookie.DecodeMulti(SessionUnlogged, cookie.Value, &values, codecs...); err != nil {
+			t.Fatalf("Decode cookie: %s", err)
+		}
+
+		// Check cookie attributes
+		if (!cookie.Expires.IsZero() && cookie.Expires.Sub(time.Now()) < 24*time.Hour) ||
+			(cookie.MaxAge != 0 && cookie.MaxAge < 24*3600) {
+			t.Errorf("Cookie expires too early: %v.", cookie)
+		}
+		if !cookie.Secure {
+			t.Errorf("Cookie is not secure")
+		}
+		if cookie.SameSite != http.SameSiteLaxMode {
+			t.Errorf("Cookie SameSite is not Lax: %v.", cookie)
+		}
+
+		getUInt32 := func(key string) (value uint32) {
+			untyped, ok := values[key]
+			if !ok {
+				t.Fatalf("Not found key %s in cookie", key)
+			}
+			value, ok = untyped.(uint32)
+			if !ok {
+				t.Fatalf("Wrong type for key %s in cookie", key)
+			}
+			return
+		}
+
+		// Check keys
+		if userId := getUInt32(sessionKeyUserId); userId != args.user.Id {
+			t.Errorf("Wrong user Id. Got %d. Expect %d", userId, args.user.Id)
+		}
+		if hash := getUInt32(sessionKeyHash); hash != args.user.Hash {
+			t.Errorf("Wrong hash. Got %d. Expect %d", hash, args.user.Hash)
+		}
+	}
+
+	tests := []struct {
+		name string
+		args args
+		err  bool
+	}{
+		{
+			name: "Success",
+			args: args{
+				user: User{Id: 27, Hash: 42},
+			},
+		},
+		{
+			name: "Logged",
+			args: args{
+				user: User{Name: "John", Id: 42, Logged: true},
+			},
+			err: true,
+		},
+		{
+			name: "Canceled",
+			args: args{
+				ctx:  canceledContext(),
+				user: User{Id: 27, Hash: 42},
+			},
+			err: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.args.ctx == nil {
+				tt.args.ctx = context.Background()
+			}
+			mock := httptest.NewRecorder()
+			self := response{writer: mock}
+			err := self.SendUnloggedId(tt.args.ctx, tt.args.user, &Request{original: &http.Request{}})
+			if tt.err {
+				if err == nil {
+					t.Errorf("Expecting error")
+				}
+			} else {
+				checkSuccess(t, mock, &tt.args)
+			}
 		})
 	}
 }

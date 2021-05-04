@@ -41,6 +41,9 @@ type Response interface {
 
 	// SendLoginAccepted create new credential for the user and send it as response.
 	SendLoginAccepted(context.Context, User, *Request)
+
+	// SendUnloggedId adds a cookie for unlogged users.
+	SendUnloggedId(ctx context.Context, user User, req *Request) error
 }
 
 type response struct {
@@ -92,9 +95,16 @@ func (self response) SendLoginAccepted(ctx context.Context, user User, req *Requ
 		return
 	}
 
+	if !user.Logged {
+		self.SendError(ctx, NewHttpError(http.StatusInternalServerError, "Unlogged user",
+			"wrong user argument"))
+		return
+	}
+
 	sessionId, err := MakeSessionId()
 	if err != nil {
 		self.SendError(ctx, err)
+		return
 	}
 	answer := SessionAnswer{SessionId: sessionId}
 	session := NewSession(sessionStore, sessionStore.Options, &answer, user)
@@ -103,6 +113,21 @@ func (self response) SendLoginAccepted(ctx context.Context, user User, req *Requ
 	}
 
 	self.SendJSON(ctx, answer)
+}
+
+func (self response) SendUnloggedId(ctx context.Context, user User, req *Request) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if user.Logged {
+		return errors.New("Wrong argument to SendUnloggedId")
+	}
+
+	session := NewUnloggedUser(sessionStore, sessionStore.Options, user)
+	if err := session.Save(req.original, self.writer); err != nil {
+		logger.Printf(ctx, "Error saving session: %v", err)
+	}
+	return nil
 }
 
 // MakeSessionId create a new session id.
@@ -116,7 +141,7 @@ func MakeSessionId() (string, error) {
 //
 // This is a low level function, made available for tests. Use SendLoginAccepted instead.
 func NewSession(st gs.Store, opts *gs.Options, answer *SessionAnswer, user User) (session *gs.Session) {
-	session = gs.NewSession(st, sessionName)
+	session = gs.NewSession(st, SessionName)
 	sessionOptions := *opts
 	session.Options = &sessionOptions
 	session.IsNew = true
@@ -127,6 +152,22 @@ func NewSession(st gs.Store, opts *gs.Options, answer *SessionAnswer, user User)
 	session.Values[sessionKeyUserName] = user.Name
 	session.Values[sessionKeyUserId] = user.Id
 	session.Values[sessionKeyDeadline] = answer.Expires.Unix() + sessionGraceTime
+
+	return
+}
+
+// NewUnloggedUser creates a new session for the given user.
+//
+// This is a low level function, made available for tests. Use SendLoginAccepted instead.
+func NewUnloggedUser(st gs.Store, opts *gs.Options, user User) (session *gs.Session) {
+	session = gs.NewSession(st, SessionUnlogged)
+	sessionOptions := *opts
+	sessionOptions.MaxAge = 30*24*3600
+	session.Options = &sessionOptions
+	session.IsNew = true
+
+	session.Values[sessionKeyUserId] = user.Id
+	session.Values[sessionKeyHash] = user.Hash
 
 	return
 }

@@ -41,8 +41,14 @@ func TestCountInfoHandler(t *testing.T) {
 		users[i] = env.CreateUserWith(strconv.FormatInt(int64(i), 10))
 	}
 
-	pollId := env.CreatePollWith("Test", users[0], db.PollPublicityPublic,
-		[]string{"Ham", "Stram", "Gram"})
+	alt := []string{"Ham", "Stram", "Gram"}
+	altAns := [3]PollAlternative{
+		{Id: 0, Name: "Ham", Cost: 1},
+		{Id: 1, Name: "Stram", Cost: 1},
+		{Id: 2, Name: "Gram", Cost: 1},
+	}
+
+	pollId := env.CreatePollWith("Test", users[0], db.PollPublicityPublic, alt)
 	env.Vote(pollId, 0, users[0], 2)
 	env.Vote(pollId, 0, users[1], 2)
 	env.Vote(pollId, 0, users[2], 0)
@@ -58,26 +64,23 @@ func TestCountInfoHandler(t *testing.T) {
 		return srvt.Request{Target: &target, UserId: &users[0]}
 	}
 
-	alt := [3]PollAlternative{
-		{Id: 0, Name: "Ham", Cost: 1},
-		{Id: 1, Name: "Stram", Cost: 1},
-		{Id: 2, Name: "Gram", Cost: 1},
-	}
-
 	// In each pair of the parameter,
 	// the first value is the alternative index,
 	// the second value is the number of votes.
 	makeChecker := func(result [][2]uint32) srvt.CheckerWithBefore {
 		entries := make([]CountInfoEntry, len(result))
 		for i, val := range result {
-			entries[i].Alternative = alt[val[0]]
+			entries[i].Alternative = altAns[val[0]]
 			entries[i].Count = val[1]
 		}
 		return srvt.CheckJSON{Body: CountInfoAnswer{Result: entries}}
 	}
 
 	tests := []srvt.Test{
-		// WARNING: Tests are sequential!
+
+		// Sequential tests first //
+		// TODO make them all independent
+
 		&srvt.T{
 			Name:    "Round Zero",
 			Request: request,
@@ -156,6 +159,82 @@ func TestCountInfoHandler(t *testing.T) {
 			},
 			Request: request,
 			Checker: makeChecker([][2]uint32{{0, 1}, {2, 1}, {1, 0}}),
+		},
+
+		// Independent tests //
+
+		&pollTest{
+			Name:         "No user public",
+			Publicity:    db.PollPublicityPublic,
+			Alternatives: alt,
+			UserType:     pollTestUserTypeNone,
+			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
+			Round:        1,
+			Checker:      makeChecker([][2]uint32{{0, 2}, {2, 1}, {1, 0}}),
+		},
+		&pollTest{
+			Name:         "No user hidden",
+			Publicity:    db.PollPublicityHidden,
+			Alternatives: alt,
+			UserType:     pollTestUserTypeNone,
+			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
+			Round:        1,
+			Checker:      makeChecker([][2]uint32{{0, 2}, {2, 1}, {1, 0}}),
+		},
+		&pollTest{
+			Name:         "Unlogged public",
+			Publicity:    db.PollPublicityPublic,
+			Alternatives: alt,
+			UserType:     pollTestUserTypeUnlogged,
+			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
+			Round:        1,
+			Checker:      makeChecker([][2]uint32{{0, 2}, {2, 1}, {1, 0}}),
+		},
+		&pollTest{
+			Name:         "Unlogged hidden",
+			Publicity:    db.PollPublicityHidden,
+			Alternatives: alt,
+			UserType:     pollTestUserTypeUnlogged,
+			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
+			Round:        1,
+			Checker:      makeChecker([][2]uint32{{0, 2}, {2, 1}, {1, 0}}),
+		},
+
+		&pollTest{
+			Name:         "No user public registered",
+			Publicity:    db.PollPublicityPublicRegistered,
+			Alternatives: alt,
+			UserType:     pollTestUserTypeNone,
+			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
+			Round:        1,
+			Checker:   srvt.CheckStatus{http.StatusNotFound},
+		},
+		&pollTest{
+			Name:         "No user hidden registered",
+			Publicity:    db.PollPublicityHiddenRegistered,
+			Alternatives: alt,
+			UserType:     pollTestUserTypeNone,
+			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
+			Round:        1,
+			Checker:   srvt.CheckStatus{http.StatusNotFound},
+		},
+		&pollTest{
+			Name:         "Unlogged public registered",
+			Publicity:    db.PollPublicityPublicRegistered,
+			Alternatives: alt,
+			UserType:     pollTestUserTypeUnlogged,
+			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
+			Round:        1,
+			Checker:   srvt.CheckStatus{http.StatusNotFound},
+		},
+		&pollTest{
+			Name:         "Unlogged hidden registered",
+			Publicity:    db.PollPublicityHiddenRegistered,
+			Alternatives: alt,
+			UserType:     pollTestUserTypeUnlogged,
+			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
+			Round:        1,
+			Checker:   srvt.CheckStatus{http.StatusNotFound},
 		},
 	}
 	srvt.RunFunc(t, tests, CountInfoHandler)
