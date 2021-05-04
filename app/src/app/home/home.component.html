@@ -25,7 +25,10 @@
     in iterative votes.
     Polls in <span class="itero-name">Itero</span> are divided in rounds.
     At each round, all participants in a poll vote for an alternative.
-    The winning atlernative is the one that received most vote on the last round of the poll.
+    The winning alternative is the one that received most vote on the last round of the poll.
+    <ng-container *ngIf="(demoIsActive$ | async)">
+      Let's try the <a [routerLink]="(demoPath$ | async)">demo poll</a>.
+    </ng-container>
   </p>
   <p>
     <span class="itero-name">Itero</span> has been developed at

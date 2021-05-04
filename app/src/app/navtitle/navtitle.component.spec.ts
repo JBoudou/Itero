@@ -41,6 +41,7 @@ describe('NavtitleComponent', () => {
 
     await TestBed.configureTestingModule({
       declarations: [ NavtitleComponent ],
+      imports: [MatMenuModule],
       providers: [
         { provide: SessionService, useValue: sessionSpy },
         { provide: Router, useValue: routerSpy },

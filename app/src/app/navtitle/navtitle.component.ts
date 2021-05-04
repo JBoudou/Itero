@@ -17,8 +17,12 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
+
 import { SessionService } from '../session/session.service';
 import { NotifyService } from '../notify.service';
+import { ConfigService } from '../config.service';
 
 /**
  * The navigation bar.
@@ -30,8 +34,16 @@ import { NotifyService } from '../notify.service';
 })
 export class NavtitleComponent implements OnInit {
 
+  get demoIsActive$(): Observable<boolean> {
+    return this.config.demoPollSegment$.pipe(map((v: string) => v !== ''));
+  }
+  get demoPath$(): Observable<string> {
+    return this.config.demoPollSegment$.pipe(map((v: string) => '/r/poll/' + v));
+  }
+
   constructor(public session: SessionService,
               public notify: NotifyService,
+              private config: ConfigService,
               private router: Router,
              ) { }
 

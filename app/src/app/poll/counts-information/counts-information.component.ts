@@ -108,7 +108,7 @@ export class CountsInformationComponent implements OnInit, OnDestroy, PollSubCom
     this.service.information(this.pollSegment, this.round).then(
       (answer: CountInfoAnswer) => {
         // Check answer, mostly for tests
-        if (answer === null || typeof answer?.Result[Symbol.iterator] !== 'function') {
+        if (answer === null || answer.Result === undefined || typeof answer.Result[Symbol.iterator] !== 'function') {
           // TODO send error
           return
         }

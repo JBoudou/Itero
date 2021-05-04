@@ -20,7 +20,7 @@ import { Router } from '@angular/router';
 import { NotifyService } from './notify.service';
 
 import { RouterStub } from '../testing/router.stub';
-import {PollNotifService} from './poll-notif.service';
+import { PollNotifService } from './poll-notif.service';
 
 describe('NotifyService', () => {
   let service: NotifyService;

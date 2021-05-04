@@ -2,6 +2,9 @@
   <h1 i18n><a routerLink="/">Itero</a></h1>
   <h2 i18n>Online iterative vote application</h2>
   <nav>
+    <a *ngIf="(demoIsActive$ | async)" [routerLink]="(demoPath$ | async)" routerLinkActive="active">
+      <span class="navitem" i18n>Try it</span>
+    </a>
     <a *ngIf="(session.state$ | async).logged" routerLink="/r/list" routerLinkActive="active">
       <span class="navitem" i18n>Polls</span>
     </a>
