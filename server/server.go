@@ -36,17 +36,18 @@ import (
 )
 
 const (
-	// Max age of the cookies in seconds, and to compute the deadline.
-	sessionMaxAge = 30 * 60
-
-	// Additional delay accorded after deadline is reached.
-	sessionGraceTime = 20
-
 	// Name of the cookie for sessions.
-	SessionName     = "s"
+	SessionName = "s"
 
 	// Name of the cookie for unlogged users.
 	SessionUnlogged = "u"
+
+	// Max age of the session cookies in seconds. Also used to compute deadlines.
+	sessionMaxAge         = 30 * 60
+	sessionUnloggedMaxAge = 30 * 24 * 3600
+
+	// Additional delay accorded after deadline is reached.
+	sessionGraceTime = 20
 
 	sessionKeySessionId = "sid"
 	sessionKeyUserName  = "usr"
@@ -61,8 +62,9 @@ const (
 )
 
 var (
-	cfg          myConfig
-	sessionStore *gs.CookieStore
+	cfg           myConfig
+	sessionStore  *gs.CookieStore
+	unloggedStore *gs.CookieStore
 )
 
 // Whether the package is usable. May be false if there is no configuration for the package.
@@ -97,7 +99,13 @@ func init() {
 	sessionStore.Options.Domain = HostOnly(cfg.Address)
 	sessionStore.Options.SameSite = http.SameSiteLaxMode
 	sessionStore.Options.Secure = true
+
 	SessionOptions = *sessionStore.Options
+
+	// Unlogged
+	unloggedStore = gs.NewCookieStore(cfg.SessionKeys...)
+	*unloggedStore.Options = SessionOptions
+	unloggedStore.MaxAge(sessionUnloggedMaxAge)
 }
 
 // HostOnly returns the host part of an address, without the port.

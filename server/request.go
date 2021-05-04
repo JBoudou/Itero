@@ -62,7 +62,7 @@ func newRequest(basePattern string, original *http.Request) (req *Request) {
 	if req.SessionError == nil && !session.IsNew {
 		req.addSession(session)
 	} else {
-		session, req.SessionError = sessionStore.Get(original, SessionUnlogged)
+		session, req.SessionError = unloggedStore.Get(original, SessionUnlogged)
 		if req.SessionError == nil && !session.IsNew {
 			req.addUnlogged(session)
 		}

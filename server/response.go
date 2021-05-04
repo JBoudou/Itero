@@ -123,7 +123,7 @@ func (self response) SendUnloggedId(ctx context.Context, user User, req *Request
 		return errors.New("Wrong argument to SendUnloggedId")
 	}
 
-	session := NewUnloggedUser(sessionStore, sessionStore.Options, user)
+	session := NewUnloggedUser(unloggedStore, unloggedStore.Options, user)
 	if err := session.Save(req.original, self.writer); err != nil {
 		logger.Printf(ctx, "Error saving session: %v", err)
 	}
@@ -162,7 +162,6 @@ func NewSession(st gs.Store, opts *gs.Options, answer *SessionAnswer, user User)
 func NewUnloggedUser(st gs.Store, opts *gs.Options, user User) (session *gs.Session) {
 	session = gs.NewSession(st, SessionUnlogged)
 	sessionOptions := *opts
-	sessionOptions.MaxAge = 30*24*3600
 	session.Options = &sessionOptions
 	session.IsNew = true
 
