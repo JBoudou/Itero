@@ -310,14 +310,14 @@ type pollTest struct {
 
 	UserType pollTestUserType // Required.
 	Request  srvt.Request     // Just a squeleton that will be completed by the test.
-	Checker  interface{}      // Required. Either an srvt.Checker or a pollTestCheckerFactoryParam.
+	Checker  interface{}      // Required. Either an srvt.Checker or a PollTestCheckerFactoryParam.
 
 	dbEnv  dbt.Env
 	pollId uint32
 	userId []uint32
 }
 
-// pollTestCheckerFactoryParam contains the parameter to construct a default Checker.
+// PollTestCheckerFactoryParam contains the parameter to construct a default Checker.
 // We use a struct type instead of a list of arguments to ease the addition of parameters.
 // TODO consider moving that to a _test package.
 type PollTestCheckerFactoryParam struct {

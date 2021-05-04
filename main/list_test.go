@@ -103,6 +103,34 @@ func listCheckList(t *testing.T, got []listAnswerEntry,
 	}
 }
 
+type listCheckFactoryKind uint8
+
+const (
+	listCheckFactoryKindPublic listCheckFactoryKind = iota
+	listCheckFactoryKindOwn
+	listCheckFactoryKindNone
+)
+
+func listCheckFactory(kind listCheckFactoryKind, action uint8, deletable bool) pollTestCheckerFactory {
+	return func(param PollTestCheckerFactoryParam) srvt.Checker {
+		entry := []listCheckerEntry{{
+			title:     param.PollTitle,
+			id:        &param.PollId,
+			action:    action,
+			deletable: deletable,
+		}}
+		switch kind {
+		case listCheckFactoryKindPublic:
+			return &listChecker{publicInc: entry, ownExc: entry}
+		case listCheckFactoryKindOwn:
+			return &listChecker{publicExc: entry, ownInc: entry}
+		case listCheckFactoryKindNone:
+			return &listChecker{publicExc: entry, ownExc: entry}
+		}
+		return nil
+	}
+}
+
 func TestListHandler(t *testing.T) {
 	// BEWARE! This test is sequential!
 	precheck(t)
@@ -134,7 +162,10 @@ func TestListHandler(t *testing.T) {
 	)
 
 	tests := []srvt.Test{
-		// BEWARE! This test is sequential!
+
+		// Sequential tests first //
+		// TODO make them all independent
+
 		&srvt.T{
 			Name: "No session",
 			// TODO fix this test once implemented
@@ -251,6 +282,22 @@ func TestListHandler(t *testing.T) {
 			Checker: listChecker{
 				publicExc: []listCheckerEntry{{title: poll3Title, id: &poll3Id, action: PollActionWait}},
 			},
+		},
+
+		// Independent tests //
+
+		&pollTest{
+			Name:      "public",
+			Publicity: db.PollPublicityPublic,
+			UserType:  pollTestUserTypeLogged,
+			Checker: listCheckFactory(listCheckFactoryKindPublic, PollActionPart, false),
+		},
+		&pollTest{
+			Name:      "hidden participate",
+			Publicity: db.PollPublicityHidden,
+			Participate: []pollTestParticipate{{1, 0}},
+			UserType:  pollTestUserTypeLogged,
+			Checker: listCheckFactory(listCheckFactoryKindPublic, PollActionModif, false),
 		},
 	}
 

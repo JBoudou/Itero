@@ -17,6 +17,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"net/http"
@@ -171,6 +172,9 @@ func TestCreateHandler(t *testing.T) {
 	userId := env.CreateUser()
 	env.Must(t)
 
+	unlogged, err := UnloggedFromHash(context.Background(), 42)
+	mustt(t, err)
+
 	makeRequest := func(user *uint32, innerBody string, alternatives []string) srvt.Request {
 		pollAlternatives := make([]SimpleAlternative, len(alternatives))
 		for id, name := range alternatives {
@@ -258,6 +262,19 @@ func TestCreateHandler(t *testing.T) {
 				}`,
 			},
 			Checker: &createPollChecker{user: userId},
+		},
+		&srvt.T{
+			Name: "Unlogged",
+			Request: srvt.Request{
+				UserId: &unlogged.Id,
+				Hash: &unlogged.Hash,
+				Method: "POST",
+				Body: `{
+					"Title": "Test",
+					"Alternatives": [{"Name":"First", "Cost":1}, {"Name":"Second", "Cost":1}]
+				}`,
+			},
+			Checker: srvt.CheckStatus{http.StatusForbidden},
 		},
 	}
 

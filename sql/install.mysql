@@ -306,8 +306,18 @@ BEGIN
   IF NEW.CurrentRound != 0 THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'CurrentRound must be zero on INSERT';
   END IF;
+
+  SELECT Name
+    INTO @Name
+    FROM Users
+   WHERE Id = NEW.Admin;
+  IF @Name IS NULL THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Admin must correspond to a named user';
+  END IF;
+
   SET NEW.Created           = CURRENT_TIMESTAMP();
   SET NEW.CurrentRoundStart = CURRENT_TIMESTAMP();
+
   CALL Polls_checker_before(NEW.Title, NEW.State, NEW.Start, NEW.Salt, NEW.Publicity, NEW.NbChoices,
                             NEW.MinNbRounds, NEW.MaxNbRounds, NEW.Deadline, NEW.MaxRoundDuration,
                             NEW.RoundThreshold, NEW.CurrentRound, NEW.CurrentRoundStart);
@@ -320,6 +330,10 @@ BEGIN
   IF NEW.Created != OLD.Created THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Created cannot be changed';
   END IF;
+  IF NEW.Admin != OLD.Admin THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Admin cannot be changed';
+  END IF;
+
   IF NEW.CurrentRound > OLD.CurrentRound THEN
     SET NEW.CurrentRoundStart = CURRENT_TIMESTAMP();
   END IF;
@@ -327,6 +341,7 @@ BEGIN
     SET NEW.CurrentRound = 0;
     SET NEW.CurrentRoundStart = CURRENT_TIMESTAMP();
   END IF;
+
   CALL Polls_checker_before(NEW.Title, NEW.State, NEW.Start, NEW.Salt, NEW.Publicity, NEW.NbChoices,
                             NEW.MinNbRounds, NEW.MaxNbRounds, NEW.Deadline, NEW.MaxRoundDuration,
                             NEW.RoundThreshold, NEW.CurrentRound, NEW.CurrentRoundStart);

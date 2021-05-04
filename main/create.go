@@ -69,12 +69,9 @@ type CreatePollEvent struct {
 }
 
 func CreateHandler(ctx context.Context, response server.Response, request *server.Request) {
-	if request.User == nil {
-		if request.SessionError != nil {
-			must(request.SessionError)
-		} else {
-			panic(server.UnauthorizedHttpError("Unlogged user"))
-		}
+	if request.User == nil || !request.User.Logged {
+		must(request.SessionError)
+		panic(server.UnauthorizedHttpError("Unlogged user"))
 	}
 	must(request.CheckPOST(ctx))
 

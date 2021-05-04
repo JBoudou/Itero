@@ -174,7 +174,6 @@ func RepeatDeadlocked(ctx context.Context, opts *sql.TxOptions, fct func(tx *sql
 					repeat = false
 					return
 				}
-				log.Printf("RepeatDeadlocked recover %v.", exc)
 				err, ok := exc.(error)
 				var mySqlError *mysql.MySQLError
 				if !ok || !errors.As(err, &mySqlError) || mySqlError.Number != 1213 {

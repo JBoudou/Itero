@@ -26,22 +26,20 @@ import (
 )
 
 func TestHashAddr(t *testing.T) {
-	tests := []struct {
-		name  string
-		input string
-	}{
-		{name: "Simple", input: "192.168.26.0:7080"},
+	const input1 = "192.168.26.0:1234"
+	got1 := HashAddr(input1)
+	if got1&0xFF000000 != 0 {
+		t.Errorf("Hash is not 24 bits long for %s.", input1)
 	}
 
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			var got uint32 = HashAddr(tt.input)
-			if got&0xFF000000 != 0 {
-				t.Errorf("Hash is not 24 bits long for %s.", tt.input)
-			}
-		})
+	const input2 = "192.168.26.0:3456"
+	got2 := HashAddr(input2)
+	if got2&0xFF000000 != 0 {
+		t.Errorf("Hash is not 24 bits long for %s.", input2)
+	}
+
+	if got1 != got2 {
+		t.Errorf("Different hash for the same IP.")
 	}
 }
 
