@@ -45,6 +45,7 @@ func main() {
 	server.HandleFunc("/a/create", CreateHandler)
 	server.HandleFunc("/a/delete/", DeleteHandler)
 	server.HandleFunc("/a/pollnotif", PollNotifHandler, server.Compress)
+	server.HandleFunc("/a/config", ConfigHandler)
 
 	log.Println("Server starting")
 	if err := server.Start(); err != nil {

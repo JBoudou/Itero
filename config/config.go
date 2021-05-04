@@ -27,11 +27,15 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sync"
 )
 
 const configFileName = "config.json"
 
-var values map[string]json.RawMessage
+var (
+	values map[string]json.RawMessage
+	valLock sync.RWMutex
+)
 
 // Ok is true iff the configuration file has successfully been read.
 // It may be false after init() has been called if no configuration file has been found.
@@ -45,29 +49,42 @@ func (self KeyNotFound) Error() string {
 }
 
 func init() {
+	Ok = readConfigFile()
+}
+
+func readConfigFile() bool {
+	log.Println("Loading configuration")
+
 	in, err := os.Open(configFileName)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			log.Printf("WARNING: no configuration file ./%s found! You must create it.", configFileName)
 			log.Printf("To enable tests, there must be a configuration file (or link) in each package folder.")
-			Ok = false
-			return
+			return false
 		}
-		log.Fatalf("Unable to open config file %s: %v", configFileName, err)
+		panic(err)
 	}
 
 	decoder := json.NewDecoder(in)
-	err = decoder.Decode(&values)
+	var tmp map[string]json.RawMessage
+	err = decoder.Decode(&tmp)
 	if err != nil {
-		log.Fatalf("Unable to parse JSON file %s: %v", configFileName, err)
+		panic(err)
 	}
-	Ok = true
+
+	valLock.Lock()
+	values = tmp
+	valLock.Unlock()
+	return true
 }
 
 // Retrieve the value associated to the given key.
 // Same rules than with json.Unmarshal applies to ret.
 func Value(key string, ret interface{}) (err error) {
+	valLock.RLock()
 	raw, ok := values[key]
+	valLock.RUnlock()
+
 	if !ok {
 		err = KeyNotFound(key)
 		return
@@ -81,6 +98,8 @@ func Value(key string, ret interface{}) (err error) {
 // is stored as the new value for that key, and returned.
 // Same rules than with json.Marshal applies to byDefault.
 func ValueOr(key string, ret interface{}, byDefault interface{}) (err error) {
+	valLock.Lock()
+	defer valLock.Unlock()
 	raw, ok := values[key]
 	if !ok {
 		raw, err = json.Marshal(byDefault)
