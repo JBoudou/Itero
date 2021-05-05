@@ -23,6 +23,12 @@
   </nav>
 </div>
 <mat-menu #profileMenu="matMenu" class="nav-menu" xPosition="before">
-  <button mat-menu-item (click)="notify.askAUthorization()"><mat-icon>notifications</mat-icon> Notifications</button>
+  <button mat-menu-item (click)="notify.askAUthorization()" [disabled]="(notify.permission$ | async) != 'default'">
+    <ng-container [ngSwitch]="notify.permission$ | async">
+      <mat-icon *ngSwitchCase="'default'">notifications</mat-icon>
+      <mat-icon *ngSwitchCase="'denied'">notifications_off</mat-icon>
+      <mat-icon *ngSwitchCase="'granted'">notifications_active</mat-icon>
+    </ng-container> Notifications
+  </button>
   <button mat-menu-item (click)="logoff()"><mat-icon>logout</mat-icon> Log off</button>
 </mat-menu>
