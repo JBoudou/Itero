@@ -1,5 +1,7 @@
 github.com/JBoudou/mysql v1.6.1-0.20210506082232-68c904a97952 h1:YbNHrFeZ7szEDU2KXegZaQxjgv5uMYtYv1m4JfVyoD8=
 github.com/JBoudou/mysql v1.6.1-0.20210506082232-68c904a97952/go.mod h1:DCzpHaOWr8IXmIStZouvnhqoel9Qv2LBy8hT2VhHyBg=
+github.com/JBoudou/mysql v1.6.1-0.20210506121713-d7b9ad05c40f h1:AGV9oC5SlsqA3E//b5ZP+EmtVkahYn3NJUFX4/s1Rec=
+github.com/JBoudou/mysql v1.6.1-0.20210506121713-d7b9ad05c40f/go.mod h1:DCzpHaOWr8IXmIStZouvnhqoel9Qv2LBy8hT2VhHyBg=
 github.com/felixge/httpsnoop v1.0.1 h1:lvB5Jl89CsZtGIWuTcDM1E/vkVs49/Ml7JJe07l8SPQ=
 github.com/felixge/httpsnoop v1.0.1/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
 github.com/go-sql-driver/mysql v1.5.0 h1:ozyZYNQW3x3HtqT1jira07DN2PArx2v7/mN66gGcHOs=

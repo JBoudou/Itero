@@ -14,4 +14,4 @@ require (
 	golang.org/x/term v0.0.0-20210503060354-a79de5458b56 // indirect
 )
 
-replace github.com/go-sql-driver/mysql v1.6.0 => github.com/JBoudou/mysql v1.6.1-0.20210506082232-68c904a97952
+replace github.com/go-sql-driver/mysql v1.6.0 => github.com/JBoudou/mysql v1.6.1-0.20210506121713-d7b9ad05c40f
