@@ -18,8 +18,8 @@ Download and install the following open source softwares:
 
 # Fetch the sources
 
- - Create a [GitHub account](https://github.com/join) if you don't have already
-   one.
+ - Create a [GitHub account](https://github.com/join) if you don't have
+   one already.
 
  - Create an SSH key and add it to your GitHub account by following
    [this guide](https://docs.github.com/en/github/authenticating-to-github/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent).
@@ -34,7 +34,7 @@ Download and install the following open source softwares:
 
 Launch "Windows PowerShell" then type the following:
 
-```
+```PowerShell
 cd ~\Itero\app
 npm install -g @angular/cli@10
 npm update
@@ -43,15 +43,16 @@ cp .\karma.conf.js.stub .\karma.conf.js
 
 # Create the database
 
-Launch the programmed whose name looks like "Command Prompt (MariaDB 10.6 (x64))".
+Launch the program whose name looks like "Command Prompt (MariaDB 10.6 (x64))".
 Then type
-```
+```Batchfile
 mysql -u root -p
 ```
-Then enter the password you have chosen during the install of MariaDB for the
-root user. Then type the following, replacing `passwd` with the password of your
-choice (not one that you use for something else, though).
-```
+Enter now the password for the root user you have chosen during the
+installation of MariaDB. Then type the following commands, replacing `passwd`
+with the password of your choice (not one that you use for something else,
+though).
+```SQL
 CREATE USER itero IDENTIFIED BY 'passwd';
 CREATE DATABASE iterodb;
 GRANT ALL PRIVILEGES ON iterodb.* TO itero WITH GRANT OPTION;
@@ -60,14 +61,14 @@ EXIT
 
 Now the MariaDB user and database for Itero have been created. Let us populate
 the database by typing what follows in the Command Prompt:
-```
+```Batchfile
 cd C:\Users\Me\Itero
 mysql -u itero -p iterodb
 ```
 Of course, you'll have to replace `Me` in `C:\Users\Me\Itero` with your Windows
 username. Then you have to give the password you have chosen for Itero.
 Finally enter the following commands:
-```
+```MySQL
 SOURCE sql\install.mysql
 EXIT
 ```
@@ -76,7 +77,7 @@ EXIT
 
 You first need to create some cryptographic keys. For that, launch "Git Bash"
 and type the following commands.
-```
+```Shell
 cd ~/Itero
 openssl req -newkey rsa:4096 -x509 -sha256 -days 700 -nodes -out ssl.crt -keyout ssl.key
 go build -o srvtool ./tools
@@ -105,7 +106,7 @@ the previous step.
 Now you need to copy this configuration file to many directory, for the tests
 to work. For that, launch "Git Bash" gain (or use a previously open one) and
 type:
-```
+```Shell
 cd ~/Itero
 for d in db/ server/ main/ service/ ; do cp config.json $d; done
 ```
@@ -113,7 +114,7 @@ for d in db/ server/ main/ service/ ; do cp config.json $d; done
 # Tests
 
 Launch "Windows PowerShell" and type the following.
-```
+```PowerShell
 cd ~\Itero
 go test -cover ./...
 cd app
@@ -124,7 +125,7 @@ Of course, all the tests must pass successfully.
 # Build and Try
 
 Launch "Windows PowerShell" and type the following.
-```
+```PowerShell
 cd ~\Itero\app
 ng build
 cd ..
