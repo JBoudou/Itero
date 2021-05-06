@@ -74,8 +74,8 @@ EXIT
 
 # Config files
 
-You first need to create some cryptographic keys. Launch "Git Bash" and type
-the following commands.
+You first need to create some cryptographic keys. For that, launch "Git Bash"
+and type the following commands.
 ```
 cd ~/Itero
 openssl req -newkey rsa:4096 -x509 -sha256 -days 700 -nodes -out ssl.crt -keyout ssl.key
@@ -103,7 +103,7 @@ the previous step.
 ```
 
 Now you need to copy this configuration file to many directory, for the tests
-to work. For that, launch the "Git Bash" gain (or use a previously open one) and
+to work. For that, launch "Git Bash" gain (or use a previously open one) and
 type:
 ```
 cd ~/Itero
@@ -119,6 +119,7 @@ go test -cover ./...
 cd app
 ng test --watch=false
 ```
+Of course, all the tests must pass successfully.
 
 # Build and Try
 
@@ -136,6 +137,6 @@ To try it, open any web browser at the address https://localhost:8443/. You will
 usually see an alert page saying that the page you want to access is not secure
 or even dangerous. This is only because we use self-signed SSL certificate. In
 fact, there is absolutly no risk at all, because it's your own site, on your
-own computer. To escape that warning and access Itero, you will have to first
-click on a button called "Advance setting" or something similar, and then to
-click on another button saying something like "Continue at your own risk".
+own computer. To escape that warning and access Itero, first click on a button
+called "Advance setting" or something similar, and then click on another button
+saying something like "Continue at your own risk".
