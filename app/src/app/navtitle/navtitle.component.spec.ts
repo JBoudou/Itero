@@ -24,12 +24,14 @@ import { NavtitleComponent } from './navtitle.component';
 
 import { SessionService } from '../session/session.service';
 import { PollNotification, PollNotifService } from '../poll-notif.service';
+import { ConfigService } from '../config.service';
 
 describe('NavtitleComponent', () => {
   let component: NavtitleComponent;
   let fixture: ComponentFixture<NavtitleComponent>;
   let sessionSpy : jasmine.SpyObj<SessionService>;
   let pollNotifEvents: Subject<PollNotification>;
+  let configSpy: jasmine.SpyObj<ConfigService>;
 
   beforeEach(async () => {
     sessionSpy = jasmine.createSpyObj('SessionService', ['checkSession', 'login'], {
@@ -38,6 +40,7 @@ describe('NavtitleComponent', () => {
     const routerSpy  = jasmine.createSpyObj('Router', ['navigateByUrl']);
     pollNotifEvents = new Subject<PollNotification>();
     const notifSpy = jasmine.createSpyObj('PollNotifService', [], {event$: pollNotifEvents});
+    configSpy = jasmine.createSpyObj('ConfigService', {}, {demoPollSegment$: of('123456789')})
 
     await TestBed.configureTestingModule({
       declarations: [ NavtitleComponent ],
@@ -46,6 +49,7 @@ describe('NavtitleComponent', () => {
         { provide: SessionService, useValue: sessionSpy },
         { provide: Router, useValue: routerSpy },
         { provide: PollNotifService, useValue: notifSpy },
+        { provide: ConfigService, useValue: configSpy },
       ]
     })
     .compileComponents();

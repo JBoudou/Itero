@@ -53,7 +53,7 @@ describe('ConfigService', () => {
     jasmine.clock().tick(1);
 
     expect(recorder.record.length).toBeGreaterThan(0);
-    expect(recorder.record[0]).toBe('abc');
+    expect(recorder.record[recorder.record.length - 1]).toBe('abc');
   });
 
   it('sends empty string as DemoPollSegment if missing', () => {
