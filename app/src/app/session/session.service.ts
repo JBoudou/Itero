@@ -156,6 +156,7 @@ export class SessionService {
     localStorage.removeItem("SessionId");
     localStorage.removeItem("User");
     document.cookie = "s=; Path=/; Max-Age=0; Secure";
+    document.cookie = "s=; Path=/; Max-Age=0; Secure; Domain=." + location.host;
     this._state.next(new SessionInfo(SessionState.Unlogged));
   }
 
