@@ -80,6 +80,10 @@ and type the following commands.
 ```Shell
 cd ~/Itero
 openssl req -newkey rsa:4096 -x509 -sha256 -days 700 -nodes -out ssl.crt -keyout ssl.key
+```
+At that point you will be asked some questions. Please answer them all until you reach the command
+prompt again. You can then continue with these commands:
+```Shell
 go build -o srvtool ./tools
 ./srvtools genskey
 ```
