@@ -17,155 +17,11 @@
 package config
 
 import (
+	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 )
-
-func TestString(t *testing.T) {
-	t.Run("found", func(t *testing.T) {
-		const key = "string.foo"
-		const expected = "foo"
-
-		got, err := String(key)
-
-		if err != nil {
-			t.Fatalf("Error: %v", err)
-		}
-		if got != expected {
-			t.Errorf("Got: %s. Expect: %s", got, expected)
-		}
-	})
-
-	t.Run("not found", func(t *testing.T) {
-		const key = "foobar"
-
-		_, err := String(key)
-
-		if err == nil {
-			t.Fatalf("Key %s found", key)
-		}
-		knf, ok := err.(KeyNotFound)
-		if !ok {
-			t.Fatalf("Wrong type for error")
-		}
-		if string(knf) != key {
-			t.Fatalf("Wrong key not found. Got: %s. Expect: %s.", string(knf), key)
-		}
-	})
-
-	t.Run("or found", func(t *testing.T) {
-		const key = "string.foo"
-		const expected = "foo"
-
-		got, err := StringOr(key, "other")
-
-		if err != nil {
-			t.Fatalf("Error: %v", err)
-		}
-		if got != expected {
-			t.Errorf("Got: %s. Expect: %s", got, expected)
-		}
-	})
-
-	t.Run("or not found", func(t *testing.T) {
-		const key = "string.bar"
-		const expected = "bar"
-
-		_, err := String(key)
-		if err == nil {
-			t.Fatalf("Key %s found", key)
-		}
-
-		got, err := StringOr(key, expected)
-
-		if err != nil {
-			t.Fatalf("Error: %v", err)
-		}
-		if got != expected {
-			t.Errorf("Got: %s. Expect: %s", got, expected)
-		}
-		got, err = String(key)
-		if err != nil {
-			t.Fatalf("Error: %v", err)
-		}
-		if got != expected {
-			t.Errorf("Got: %s. Expect: %s", got, expected)
-		}
-	})
-}
-
-func TestInt(t *testing.T) {
-	t.Run("found", func(t *testing.T) {
-		const key = "int.42"
-		const expected = 42
-
-		got, err := Int(key)
-
-		if err != nil {
-			t.Fatalf("Error: %v", err)
-		}
-		if got != expected {
-			t.Errorf("Got: %d. Expect: %d", got, expected)
-		}
-	})
-
-	t.Run("not found", func(t *testing.T) {
-		const key = "foobar"
-
-		_, err := Int(key)
-
-		if err == nil {
-			t.Fatalf("Key %s found", key)
-		}
-		knf, ok := err.(KeyNotFound)
-		if !ok {
-			t.Fatalf("Wrong type for error")
-		}
-		if string(knf) != key {
-			t.Fatalf("Wrong key not found. Got: %s. Expect: %s.", string(knf), key)
-		}
-	})
-
-	t.Run("or found", func(t *testing.T) {
-		const key = "int.42"
-		const expected = 42
-		const other = 27
-
-		got, err := IntOr(key, other)
-
-		if err != nil {
-			t.Fatalf("Error: %v", err)
-		}
-		if got != expected {
-			t.Errorf("Got: %d. Expect: %d", got, expected)
-		}
-	})
-
-	t.Run("or not found", func(t *testing.T) {
-		const key = "int.27"
-		const expected = 27
-
-		_, err := Int(key)
-		if err == nil {
-			t.Fatalf("Key %s found", key)
-		}
-
-		got, err := IntOr(key, expected)
-
-		if err != nil {
-			t.Fatalf("Error: %v", err)
-		}
-		if got != expected {
-			t.Errorf("Got: %d. Expect: %d", got, expected)
-		}
-		got, err = Int(key)
-		if err != nil {
-			t.Fatalf("Error: %v", err)
-		}
-		if got != expected {
-			t.Errorf("Got: %d. Expect: %d", got, expected)
-		}
-	})
-}
 
 type myCompoundStruct struct {
 	IntValue    int
@@ -263,4 +119,81 @@ func TestValue(t *testing.T) {
 			t.Errorf("Got: %v. Expect: %v", got, expected)
 		}
 	})
+}
+
+func TestFindFileInParent(t *testing.T) {
+	tests := []struct {
+		name   string
+		pwd    string // from testdata
+		file   string
+		depth  int
+		expect string // from testdata
+		err    error
+	}{
+		{
+			name:  "Not found",
+			pwd:   "a/b/c/d",
+			file:  "notfound.txt",
+			depth: 3,
+			err:   os.ErrNotExist,
+		},
+		{
+			name:  "Direct",
+			pwd:   "a/b/c/d",
+			file:  "foo.txt",
+			depth: 3,
+			expect: "a/b/c/d/foo.txt",
+		},
+		{
+			name:  "Last",
+			pwd:   "a/b/c/d",
+			file:  "foo.cfg",
+			depth: 3,
+			expect: "a/foo.cfg",
+		},
+		{
+			name:  "Too deep",
+			pwd:   "a/b/c/d",
+			file:  "foo.ini",
+			depth: 3,
+			err:   os.ErrNotExist,
+		},
+	}
+
+	for _, tt := range tests {
+		// Not parallel because CWD is per thread and thread != goroutines.
+		t.Run(tt.name, func(t *testing.T) {
+			tt.pwd = filepath.FromSlash(tt.pwd)
+			tt.expect = filepath.FromSlash(tt.expect)
+
+			expectabs, _ := filepath.Abs(filepath.Join("testdata", tt.expect))
+			origin, _ := os.Getwd()
+			os.Chdir(filepath.Join("testdata", tt.pwd))
+			defer os.Chdir(origin)
+
+			got, err := FindFileInParent(tt.file, tt.depth)
+
+			if tt.err == nil {
+				if err != nil {
+					t.Errorf("Got unexpected error %v.", err)
+				} else {
+					if got != tt.expect {
+						gotabs, _ := filepath.Abs(got)
+						if gotabs != expectabs {
+							gotstat, _ := os.Stat(gotabs)
+							expectstat, _ := os.Stat(expectabs)
+							if !os.SameFile(gotstat, expectstat) {
+								t.Errorf("Wrong result. Got %s. Expect %s.", got, tt.expect)
+								t.Errorf("expectabs %s.", expectabs)
+							}
+						}
+					}
+				}
+			} else {
+				if !errors.Is(err, tt.err) {
+					t.Errorf("Wrong error. Got %v. Expect %v.", err, tt.err)
+				}
+			}
+		})
+	}
 }

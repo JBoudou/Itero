@@ -103,14 +103,6 @@ the previous step.
 }
 ```
 
-Now you need to copy this configuration file to many directory, for the tests
-to work. For that, launch "Git Bash" gain (or use a previously open one) and
-type:
-```Shell
-cd ~/Itero
-for d in db/ server/ main/ service/ ; do cp config.json $d; done
-```
-
 # Tests
 
 Launch "Windows PowerShell" and type the following.

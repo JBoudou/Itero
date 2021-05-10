@@ -27,13 +27,17 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"sync"
 )
 
-const configFileName = "config.json"
+const (
+	configFileName = "config.json"
+	maxDepth       = 2
+)
 
 var (
-	values map[string]json.RawMessage
+	values  map[string]json.RawMessage
 	valLock sync.RWMutex
 )
 
@@ -55,13 +59,14 @@ func init() {
 func readConfigFile() bool {
 	log.Println("Loading configuration")
 
-	in, err := os.Open(configFileName)
+	foundfile, err := FindFileInParent(configFileName, maxDepth)
+	if err != nil && errors.Is(err, os.ErrNotExist) {
+		log.Printf("WARNING: no configuration file ./%s found! You must create it.", configFileName)
+		log.Printf("To enable tests, there must be a configuration file (or link) in each package folder.")
+		return false
+	}
+	in, err := os.Open(foundfile)
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			log.Printf("WARNING: no configuration file ./%s found! You must create it.", configFileName)
-			log.Printf("To enable tests, there must be a configuration file (or link) in each package folder.")
-			return false
-		}
 		panic(err)
 	}
 
@@ -78,7 +83,7 @@ func readConfigFile() bool {
 	return true
 }
 
-// Retrieve the value associated to the given key.
+// Value retrieves the value associated with the given key.
 // Same rules than with json.Unmarshal applies to ret.
 func Value(key string, ret interface{}) (err error) {
 	valLock.RLock()
@@ -94,7 +99,7 @@ func Value(key string, ret interface{}) (err error) {
 	return
 }
 
-// Same as Value except that if the key is not found then byDefault
+// ValueOr is similar to Value except that if the key is not found then byDefault
 // is stored as the new value for that key, and returned.
 // Same rules than with json.Marshal applies to byDefault.
 func ValueOr(key string, ret interface{}, byDefault interface{}) (err error) {
@@ -113,26 +118,20 @@ func ValueOr(key string, ret interface{}, byDefault interface{}) (err error) {
 	return
 }
 
-// Wrapper around Value to simplify retrieval of strings.
-func String(key string) (ret string, err error) {
-	err = Value(key, &ret)
-	return
-}
+func FindFileInParent(filename string, maxdepth int) (path string, err error) {
+	var cur string
+	cur, err = os.Getwd()
+	if err != nil {
+		return
+	}
 
-// Wrapper around ValueOr to simplify retrieval of strings.
-func StringOr(key string, byDefault string) (ret string, err error) {
-	err = ValueOr(key, &ret, &byDefault)
-	return
-}
-
-// Wrapper around Value to simplify retrieval of ints.
-func Int(key string) (ret int, err error) {
-	err = Value(key, &ret)
-	return
-}
-
-// Wrapper around ValueOr to simplify retrieval of ints.
-func IntOr(key string, byDefault int) (ret int, err error) {
-	err = ValueOr(key, &ret, &byDefault)
-	return
+	for i := 0; i <= maxdepth; i++ {
+		path = filepath.Join(cur, filename)
+		var stat os.FileInfo
+		if stat, err = os.Stat(path); err == nil && !stat.IsDir() {
+			return
+		}
+		cur = filepath.Dir(cur)
+	}
+	return "", os.ErrNotExist
 }
