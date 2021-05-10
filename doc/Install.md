@@ -112,7 +112,14 @@ go test -cover ./...
 cd app
 ng test --watch=false
 ```
-Of course, all the tests must pass successfully.
+Of course, all the tests must pass successfully. You may still have errors
+reading `Error 1615: Prepared statement needs to be re-prepared`. These errors
+are caused by a bug in MariaDB. To workaround this bug, you need to add
+`&autoReprepare=1` to the `DSN` parameter in config.json, such that the line
+looks like:
+```JSON
+    "DSN": "itero:passwd@tcp(localhost)/iterodb?loc=Local&autoReprepare=1"
+```
 
 # Build and Try
 
