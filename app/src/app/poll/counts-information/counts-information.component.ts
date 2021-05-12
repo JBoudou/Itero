@@ -91,6 +91,9 @@ export class CountsInformationComponent implements OnInit, OnDestroy, PollSubCom
         }
 
         this.createGraph(answer.Result);
+        
+        const winner = answer.Result[d3.maxIndex(answer.Result, (d: CountInfoEntry) => d.Count)]
+        this.winner.emit(winner.Alternative.Name)
       },
       (err: any) =>
        this.errors.emit(err as ServerError)
@@ -103,9 +106,9 @@ export class CountsInformationComponent implements OnInit, OnDestroy, PollSubCom
   }
 
   private createGraph(data: Array<CountInfoEntry>): void {
-    const bar = { height: 24, sep: 2 }
+    const bar = { height: 22, sep: 3 }
     const size = { width: 400, height: (data.length + 1) * (bar.height + bar.sep) }
-    const padding = { left: 10, right: 10, top: 0, bottom: bar.height + (2 * bar.sep) }
+    const padding = { left: 10, right: 10, top: 0, bottom: bar.height + bar.sep }
     const labelPadding = { left: 4, bottom: 6 }
     const anim = { duration: 1200, ease: d3.easeCubicInOut }
 
@@ -127,6 +130,21 @@ export class CountsInformationComponent implements OnInit, OnDestroy, PollSubCom
 
     const svg = d3.select(this.hostElement).select('svg')
       .attr('viewBox', '0 0 ' + size.width + ' ' + size.height)
+
+    const tickSize = size.height - (padding.top + (padding.bottom / 2))
+    const xAxis = svg.append('g')
+      .attr('transform', 'translate(0,' + padding.top + ')')
+      .call(
+        d3.axisBottom(x)
+          .tickValues(x.ticks().filter(Number.isInteger))
+          .tickFormat(d3.format('d'))
+          .tickSize(tickSize)
+      )
+      .call(g => g.select('.domain').remove())
+      .call(g => g.selectAll('.tick line')
+        .attr('stroke-opacity', 0.2)
+        .attr('stroke-width', '1.5')
+      )
 
     const labelBack = svg.append('g')
       .selectAll('text')
@@ -157,7 +175,7 @@ export class CountsInformationComponent implements OnInit, OnDestroy, PollSubCom
       .selectAll('clipPath')
       .data(data)
       .join('clipPath')
-        .attr('id', (d: any, i: number) => uniqId + '-lc' + i)
+        .attr('id', (_: any, i: number) => uniqId + '-lc' + i)
         .append('rect')
           .attr('x', x(0))
           .attr('y', (d: CountInfoEntry) => y(d.Alternative.Name))
@@ -167,7 +185,6 @@ export class CountsInformationComponent implements OnInit, OnDestroy, PollSubCom
             .duration(anim.duration)
             .ease(anim.ease)
             .attr('width', (d: CountInfoEntry) => x(d.Count) - x(0))
-
     labelFront
       .selectAll('text')
       .data(data)
@@ -178,14 +195,6 @@ export class CountsInformationComponent implements OnInit, OnDestroy, PollSubCom
         .attr('fill', (_: any, i: number) => d3.lab(palette(i)).l < 60 ? 'white' : 'black')
         .attr('clip-path', (_:any, i: number) => 'url(#' + uniqId + '-lc' + i + ')')
         .text((d: CountInfoEntry) => d.Alternative.Name)
-
-    const xAxis = svg.append('g')
-      .attr('transform', 'translate(0,' + (size.height - padding.bottom) + ')')
-      .call(
-        d3.axisBottom(x)
-          .tickValues(x.ticks().filter(Number.isInteger))
-          .tickFormat(d3.format('d'))
-      )
   }
 
 }
