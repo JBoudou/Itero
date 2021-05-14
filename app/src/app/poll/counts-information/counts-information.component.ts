@@ -22,32 +22,6 @@ import { PollSubComponent, ServerError } from '../common';
 import { CountInfoAnswer, CountInfoEntry } from '../../api';
 import { CountsInformationService } from './counts-information.service';
 
-const MaxAlternativeNameLength = 20;
-
-/** Extract the first element of a comma separated list, removing one level of enclosing " or '. */
-function extractFontFamily(css: string): string {
-  var first = css.split(",", 1)[0].trim();
-  if (first[0] == '"' || first[0] == "'") {
-    first = first.split(first[0])[1];
-  }
-  return first;
-}
-
-/**
- * Extract a font size in px.
- * An approximation is done if the size is in pt.
- * A default value of 12 is returned is the size cannot be extracted.
- */
-function extractFontSize(css: string): number {
-  if (css.endsWith("px")) {
-    return Number(css.slice(0, -2));
-  }
-  if (css.endsWith("pt")) {
-    return Number(css.slice(0, -2)) * 1.2;
-  }
-  return 12;
-}
-
 function randomString(length: number): string {
   const alphabet = '0123456789abcdefghijklmnopqrstuvwxyz'
   const len = alphabet.length
@@ -55,6 +29,31 @@ function randomString(length: number): string {
   for (let i = 0; i < length; i++) {
     ret += alphabet.charAt(Math.floor(Math.random() * len))
   }
+  return ret
+}
+
+function ticks1235interval(scale: { domain(): number[] }): number {
+  let max = d3.max(scale.domain())
+  if (max < 3) {
+    return 1
+  }
+  let pow = 0
+  while (max > 30) {
+    max /= 10
+    pow += 1
+  }
+  const base = max <  7 ? 1 :
+               max < 13 ? 2 :
+               max < 19 ? 3 :
+                          5 ;
+  return base * (10 ** pow)
+}
+
+export function ticks1235(scale: { domain(): number[] }): number[] {
+  const max = d3.max(scale.domain())
+  const interval = ticks1235interval(scale)
+  const ret = Array<number>(Math.floor(max/interval) + 1)
+  for (let i = 0; i <= max; i += interval) ret[i / interval] = i;
   return ret
 }
 
@@ -109,7 +108,7 @@ export class CountsInformationComponent implements OnInit, OnDestroy, PollSubCom
   private createGraph(data: Array<CountInfoEntry>): void {
     const bar = { height: 22, sep: 3 }
     const size = { width: 400, height: (data.length + 1) * (bar.height + bar.sep) }
-    const padding = { left: 3, right: 30, top: bar.height + bar.sep, bottom: 0 }
+    const padding = { left: 3, right: 34, top: bar.height + bar.sep, bottom: 0 }
     const labelPadding = { left: 3, right: 3, bottom: 6 }
     const anim = { duration: 1200, ease: d3.easeCubicInOut }
 
@@ -143,7 +142,7 @@ export class CountsInformationComponent implements OnInit, OnDestroy, PollSubCom
       .attr('transform', 'translate(0,' + (size.height - padding.bottom) + ')')
       .call(
         d3.axisTop(x)
-          .tickValues(x.ticks().filter(Number.isInteger))
+          .tickValues(ticks1235(x))
           .tickFormat(d3.format('d'))
           .tickSize(tickSize)
       )
@@ -227,7 +226,7 @@ export class CountsInformationComponent implements OnInit, OnDestroy, PollSubCom
           .duration(anim.duration)
           .ease(anim.ease)
           .textTween((d: CountInfoEntry) => {
-            const num = d3.interpolateRound(0, Math.floor(d.Count * 100 / total))
+            const num = d3.interpolateRound(0, Math.round(d.Count * 100 / total))
             return (t: number) => num(t) + '%'
           })
           
