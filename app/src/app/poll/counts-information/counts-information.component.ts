@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, ElementRef } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, ElementRef, ViewEncapsulation } from '@angular/core';
 
 import * as d3 from 'd3';
 
@@ -62,7 +62,8 @@ function randomString(length: number): string {
 @Component({
   selector: 'app-counts-information',
   templateUrl: './counts-information.component.html',
-  styleUrls: ['./counts-information.component.sass']
+  styleUrls: ['./counts-information.component.sass'],
+  encapsulation: ViewEncapsulation.None,
 })
 export class CountsInformationComponent implements OnInit, OnDestroy, PollSubComponent {
 
@@ -108,8 +109,8 @@ export class CountsInformationComponent implements OnInit, OnDestroy, PollSubCom
   private createGraph(data: Array<CountInfoEntry>): void {
     const bar = { height: 22, sep: 3 }
     const size = { width: 400, height: (data.length + 1) * (bar.height + bar.sep) }
-    const padding = { left: 10, right: 10, top: 0, bottom: bar.height + bar.sep }
-    const labelPadding = { left: 4, bottom: 6 }
+    const padding = { left: 3, right: 30, top: bar.height + bar.sep, bottom: 0 }
+    const labelPadding = { left: 3, right: 0, bottom: 6 }
     const anim = { duration: 1200, ease: d3.easeCubicInOut }
 
     const palette = (i: number) => {
@@ -131,11 +132,11 @@ export class CountsInformationComponent implements OnInit, OnDestroy, PollSubCom
     const svg = d3.select(this.hostElement).select('svg')
       .attr('viewBox', '0 0 ' + size.width + ' ' + size.height)
 
-    const tickSize = size.height - (padding.top + (padding.bottom / 2))
+    const tickSize = size.height - ((padding.top * 0.7) + padding.bottom)
     const xAxis = svg.append('g')
-      .attr('transform', 'translate(0,' + padding.top + ')')
+      .attr('transform', 'translate(0,' + (size.height - padding.bottom) + ')')
       .call(
-        d3.axisBottom(x)
+        d3.axisTop(x)
           .tickValues(x.ticks().filter(Number.isInteger))
           .tickFormat(d3.format('d'))
           .tickSize(tickSize)
@@ -195,6 +196,25 @@ export class CountsInformationComponent implements OnInit, OnDestroy, PollSubCom
         .attr('fill', (_: any, i: number) => d3.lab(palette(i)).l < 60 ? 'white' : 'black')
         .attr('clip-path', (_:any, i: number) => 'url(#' + uniqId + '-lc' + i + ')')
         .text((d: CountInfoEntry) => d.Alternative.Name)
+
+    const total = d3.sum(data, (d: CountInfoEntry) => d.Count)
+    const percents = svg.append('g')
+      .attr('class','percent-label')
+      .selectAll('text')
+      .data(data)
+      .join('text')
+        .attr('x', size.width - labelPadding.right)
+        .attr('y', (d: CountInfoEntry) => y(d.Alternative.Name))
+        .attr('dy', y.bandwidth() - labelPadding.bottom)
+        .attr('text-anchor', 'end')
+        .transition()
+          .duration(anim.duration)
+          .ease(anim.ease)
+          .textTween((d: CountInfoEntry) => {
+            const num = d3.interpolateRound(0, Math.floor(d.Count * 100 / total))
+            return (t: number) => num(t) + '%'
+          })
+          
   }
 
 }
