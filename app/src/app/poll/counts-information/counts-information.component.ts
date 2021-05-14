@@ -110,7 +110,7 @@ export class CountsInformationComponent implements OnInit, OnDestroy, PollSubCom
     const bar = { height: 22, sep: 3 }
     const size = { width: 400, height: (data.length + 1) * (bar.height + bar.sep) }
     const padding = { left: 3, right: 30, top: bar.height + bar.sep, bottom: 0 }
-    const labelPadding = { left: 3, right: 0, bottom: 6 }
+    const labelPadding = { left: 3, right: 3, bottom: 6 }
     const anim = { duration: 1200, ease: d3.easeCubicInOut }
 
     const palette = (i: number) => {
@@ -120,9 +120,15 @@ export class CountsInformationComponent implements OnInit, OnDestroy, PollSubCom
 
     const uniqId = randomString(7)
 
+    const max = d3.max(data, (d: CountInfoEntry) => d.Count)
     const x = d3.scaleLinear()
-      .domain([0, d3.max(data, (d: CountInfoEntry) => d.Count)])
+      .domain([0, max])
       .range([padding.left, size.width - padding.right])
+
+    const maxLabelRight = size.width - (padding.right + labelPadding.right)
+    const xClip = d3.scaleLinear()
+      .domain([0, x.invert(maxLabelRight), max])
+      .range([padding.left, maxLabelRight, maxLabelRight])
 
     const y = d3.scaleBand()
       .domain(data.map((d: CountInfoEntry) => d.Alternative.Name))
@@ -148,6 +154,15 @@ export class CountsInformationComponent implements OnInit, OnDestroy, PollSubCom
       )
 
     const labelBack = svg.append('g')
+    labelBack
+      .append('clipPath')
+        .attr('id', uniqId + '-lbc')
+        .append('rect')
+          .attr('x', xClip(0))
+          .attr('y', 0)
+          .attr('height', size.height)
+          .attr('width', xClip(max) - xClip(0))
+    labelBack
       .selectAll('text')
       .data(data)
       .join('text')
@@ -155,6 +170,7 @@ export class CountsInformationComponent implements OnInit, OnDestroy, PollSubCom
         .attr('y', (d: CountInfoEntry) => y(d.Alternative.Name))
         .attr('dy', y.bandwidth() - labelPadding.bottom)
         .attr('fill', '#111')
+        .attr('clip-path', 'url(#' + uniqId + '-lbc)')
         .text((d: CountInfoEntry) => d.Alternative.Name)
 
     const bars = svg.append('g')
@@ -176,16 +192,16 @@ export class CountsInformationComponent implements OnInit, OnDestroy, PollSubCom
       .selectAll('clipPath')
       .data(data)
       .join('clipPath')
-        .attr('id', (_: any, i: number) => uniqId + '-lc' + i)
+        .attr('id', (_: any, i: number) => uniqId + '-lfc' + i)
         .append('rect')
-          .attr('x', x(0))
+          .attr('x', xClip(0))
           .attr('y', (d: CountInfoEntry) => y(d.Alternative.Name))
           .attr('height', y.bandwidth())
           .attr('width', 0)
           .transition()
             .duration(anim.duration)
             .ease(anim.ease)
-            .attr('width', (d: CountInfoEntry) => x(d.Count) - x(0))
+            .attr('width', (d: CountInfoEntry) => xClip(d.Count) - xClip(0))
     labelFront
       .selectAll('text')
       .data(data)
@@ -194,7 +210,7 @@ export class CountsInformationComponent implements OnInit, OnDestroy, PollSubCom
         .attr('y', (d: CountInfoEntry) => y(d.Alternative.Name))
         .attr('dy', y.bandwidth() - labelPadding.bottom)
         .attr('fill', (_: any, i: number) => d3.lab(palette(i)).l < 60 ? 'white' : 'black')
-        .attr('clip-path', (_:any, i: number) => 'url(#' + uniqId + '-lc' + i + ')')
+        .attr('clip-path', (_:any, i: number) => 'url(#' + uniqId + '-lfc' + i + ')')
         .text((d: CountInfoEntry) => d.Alternative.Name)
 
     const total = d3.sum(data, (d: CountInfoEntry) => d.Count)
@@ -203,7 +219,7 @@ export class CountsInformationComponent implements OnInit, OnDestroy, PollSubCom
       .selectAll('text')
       .data(data)
       .join('text')
-        .attr('x', size.width - labelPadding.right)
+        .attr('x', size.width)
         .attr('y', (d: CountInfoEntry) => y(d.Alternative.Name))
         .attr('dy', y.bandwidth() - labelPadding.bottom)
         .attr('text-anchor', 'end')
