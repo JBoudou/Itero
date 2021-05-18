@@ -242,16 +242,9 @@ export class PollComponent implements OnInit, OnDestroy {
 
   /** Ask the type of the poll to the middleware and creates the sub-components accordingly. */
   private retrieveTypes(): void {
-    this.http.get<PollAnswer>('/a/poll/' + this.segment).pipe(take(1)).subscribe({
-      next: (answer: PollAnswer) => {
-        this.answer = answer;
-        if (!!this.answer.Start) {
-          this.answer.Start = new Date(this.answer.Start);
-        }
-        this.answer.CreationTime  = new Date(this.answer.CreationTime );
-        this.answer.RoundDeadline = new Date(this.answer.RoundDeadline);
-        this.answer.PollDeadline  = new Date(this.answer.PollDeadline );
-        this.title.setTitle(this.answer.Title);
+    this.http.get('/a/poll/' + this.segment, {responseType: 'text'}).pipe(take(1)).subscribe({
+      next: (body: string) => {
+        this.answer = PollAnswer.fromJSON(body)
         // When need the ViewChilds to appear before inserting components in them.
         setTimeout(() => this.synchronizeSubComponents(), 0);
       },

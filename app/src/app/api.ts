@@ -17,20 +17,25 @@
 /* This file lists classes used in the communication between the front end and
  * the middleware. */
 
-export class LoginQuery {
-  User: string;
-  Passwd: string;
-}
-
-export class SignupQuery {
-  Name: string;
-  Email: string;
-  Passwd: string;
-}
-
 export class SessionAnswer {
   SessionId: string;
   Expires: Date;
+
+  static fromObject(obj: any): SessionAnswer {
+    const ret = {} as SessionAnswer;
+    if (typeof obj.SessionId === 'string') {
+      ret.SessionId = obj.SessionId
+    }
+    if ('Expires' in obj) {
+      if (typeof obj.Expires === 'string') {
+        ret.Expires = new Date(obj.Expires)
+      }
+      if (obj.Expires instanceof Date) {
+        ret.Expires = obj.Expires
+      }
+    }
+    return ret
+  }
 }
 
 export enum PollAction {
@@ -110,9 +115,23 @@ export class PollAnswer {
   MaxNbRounds:      number;
   Ballot:           BallotType;
   Information:      InformationType;
+
+  static fromJSON(raw: string): PollAnswer {
+    return JSON.parse(raw, function(key: string, value: any): any{
+      if ((typeof value === 'string' || typeof value === 'number') &&
+          (key === 'CreationTime' ||
+           key === 'Start' ||
+           key === 'RoundDeadline' ||
+           key === 'PollDeadline') )
+      {
+        return new Date(value)
+      }
+      return value
+    })
+  }
 }
 
-export class PollAlternative {
+export interface PollAlternative {
   Id:   number;
   Name: string;
   Cost: number;
@@ -126,18 +145,18 @@ export interface UninominalBallotAnswer {
   Alternatives: Array<PollAlternative>;
 }
 
-export class UninominalVoteQuery {
+export interface UninominalVoteQuery {
   Blank?:       boolean;
   Alternative?: number;
   Round:        number;
 }
 
-export class CountInfoEntry {
+export interface CountInfoEntry {
   Alternative: PollAlternative;
   Count: number;
 }
 
-export class CountInfoAnswer {
+export interface CountInfoAnswer {
   Result: Array<CountInfoEntry>;
 }
 
@@ -145,12 +164,12 @@ export enum PollUserType {
   Simple,
 }
 
-export class SimpleAlternative {
+export interface SimpleAlternative {
   Name: string;
   Cost: number;
 }
 
-export class CreateQuery {
+export interface CreateQuery {
   UserType:         PollUserType;
   Title:            string;
   Description:      string;
