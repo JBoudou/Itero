@@ -210,6 +210,9 @@ export class PollComponent implements OnInit, OnDestroy {
         this.answer.RoundDeadline.getTime() < this.answer.PollDeadline.getTime()) {
       return 'current';
     }
+    if (this.answer.MinNbRounds === this.answer.MaxNbRounds) {
+      return 'deadlinePassed'
+    }
     return this.answer.CurrentRound >= this.answer.MinNbRounds ? 'minExceeded' : 'full';
   }
 
