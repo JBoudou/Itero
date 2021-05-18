@@ -16,8 +16,6 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { GoogleChartsModule } from 'angular-google-charts';
-
 import { CountsInformationComponent, ticks1235 } from './counts-information.component';
 import { CountsInformationService } from './counts-information.service';
 
@@ -31,7 +29,6 @@ describe('CountsInformationComponent', () => {
 
     await TestBed.configureTestingModule({
       declarations: [ CountsInformationComponent ],
-      imports: [ GoogleChartsModule ],
       providers: [
         { provide: CountsInformationService, useValue: serviceSpy },
       ],

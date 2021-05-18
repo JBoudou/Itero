@@ -310,8 +310,11 @@ export class PollComponent implements OnInit, OnDestroy {
         subscription.unsubscribe();
       }
     }
-    this.components[componentIndex] = undefined;
     this.viewContainerRef(componentIndex)?.clear();
+    if (this.components[componentIndex] !== undefined) {
+      this.components[componentIndex].destroy();
+      this.components[componentIndex] = undefined;
+    }
   }
 
   /**
