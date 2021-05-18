@@ -14,13 +14,24 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, ElementRef, ViewEncapsulation } from '@angular/core';
+import {
+  Component,
+  DoCheck,
+  ElementRef,
+  EventEmitter,
+  Input,
+  OnDestroy,
+  Output,
+  SimpleChanges,
+  ViewEncapsulation,
+} from '@angular/core';
 
 import * as d3 from 'd3';
 
 import { PollSubComponent, ServerError } from '../common';
 import { CountInfoAnswer, CountInfoEntry } from '../../api';
 import { CountsInformationService } from './counts-information.service';
+import { DynOnChanges, DynChanges, ChangeStore } from 'src/app/shared/changes-store';
 
 function randomString(length: number): string {
   const alphabet = '0123456789abcdefghijklmnopqrstuvwxyz'
@@ -64,14 +75,15 @@ export function ticks1235(scale: { domain(): number[] }): number[] {
   styleUrls: ['./counts-information.component.sass'],
   encapsulation: ViewEncapsulation.None,
 })
-export class CountsInformationComponent implements OnInit, OnDestroy, PollSubComponent {
+export class CountsInformationComponent implements DoCheck, DynOnChanges, OnDestroy, PollSubComponent {
 
-  @Input() pollSegment: string;
-  @Input() round: number|undefined;
+  @Input() @DynChanges('_changeStore') pollSegment: string;
+  @Input() @DynChanges('_changeStore') round: number|undefined;
   @Output() winner = new EventEmitter<string>();
   @Output() errors = new EventEmitter<ServerError>();
 
   private hostElement: Element;
+  private _changeStore = new ChangeStore();
 
   constructor(
     eltRef: ElementRef<Element>,
@@ -81,11 +93,32 @@ export class CountsInformationComponent implements OnInit, OnDestroy, PollSubCom
   }
 
 
-  ngOnInit(): void {
+  ngDoCheck(): void {
+    this._changeStore.check(this)
+  }
+
+  dynOnChanges(changes: SimpleChanges): void {
+    if ( changes.pollSegment !== undefined && changes.pollSegment.currentValue !== undefined &&
+         changes.round       !== undefined && changes.round      .currentValue !== undefined &&
+         ( changes.pollSegment.currentValue !== changes.pollSegment.previousValue ||
+           changes.round      .currentValue !== changes.round      .previousValue ))
+    {
+      this.retrieveData()
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.winner.complete();
+    this.errors.complete();
+  }
+
+  private retrieveData(): void {
     this.service.information(this.pollSegment, this.round).then(
       (answer: CountInfoAnswer) => {
         // Check answer, mostly for tests
-        if (answer === null || answer.Result === undefined || typeof answer.Result[Symbol.iterator] !== 'function') {
+        if (answer === null || answer.Result === undefined ||
+            typeof answer.Result[Symbol.iterator] !== 'function')
+        {
           // TODO send error
           return
         }
@@ -98,11 +131,6 @@ export class CountsInformationComponent implements OnInit, OnDestroy, PollSubCom
       (err: any) =>
        this.errors.emit(err as ServerError)
     );
-  }
-
-  ngOnDestroy(): void {
-    this.winner.complete();
-    this.errors.complete();
   }
 
   private createGraph(data: Array<CountInfoEntry>): void {
@@ -140,8 +168,9 @@ export class CountsInformationComponent implements OnInit, OnDestroy, PollSubCom
 
     // SVG //
 
-    const svg = d3.select(this.hostElement).select('svg')
-      .attr('viewBox', '0 0 ' + size.width + ' ' + size.height)
+    const svg = d3.select(this.hostElement).select('svg');
+    svg.selectAll('g').remove()
+    svg.attr('viewBox', '0 0 ' + size.width + ' ' + size.height)
 
     const tickSize = size.height - ((padding.top * 0.7) + padding.bottom)
     const xAxis = svg.append('g')

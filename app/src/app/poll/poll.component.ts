@@ -17,6 +17,7 @@
 
 import {
   Component,
+  ComponentRef,
   Directive,
   OnDestroy,
   OnInit,
@@ -128,6 +129,9 @@ export class PollComponent implements OnInit, OnDestroy {
   /** Other subscriptions, not corresponding to any subcomponent. */
   private subscriptions: Subscription[] = [];
 
+  /** Currently loaded components, indexed by SubComponentId. **/
+  private components: ComponentRef<PollSubComponent>[] = [];
+
   constructor(
     private route: ActivatedRoute,
     private http: HttpClient,
@@ -211,18 +215,19 @@ export class PollComponent implements OnInit, OnDestroy {
 
   onPreviousResult(): void {
     const round = this.previousForm.value.round;
-    this.displayedResult = undefined;
     if (!PollComponent.informationMap.has(this.answer.Information)) {
+      this.displayedResult = undefined;
       console.warn('Wrong inforamtion type');
       return;
     }
     if (!Number.isInteger(round)) {
+      this.displayedResult = undefined;
       console.warn('No value selected');
       return;
     }
 
     const type = PollComponent.informationMap.get(this.answer.Information);
-    const comp = this.loadSubComponent(SubComponentId.Previous, type) as PollInformationComponent;
+    const {comp} = this.loadSubComponent(SubComponentId.Previous, type);
     comp.round = round - 1;
     this.displayedResult = round;
   }
@@ -264,32 +269,35 @@ export class PollComponent implements OnInit, OnDestroy {
     // Update Ballot component
     if (this.answer.Active && PollComponent.ballotMap.has(this.answer.Ballot)) {
       const type = PollComponent.ballotMap.get(this.answer.Ballot);
-      const comp = this.loadSubComponent(SubComponentId.Ballot, type) as PollBallotComponent;
+      const load = this.loadSubComponent(SubComponentId.Ballot, type)
+      const comp = load.comp as PollBallotComponent;
       comp.round = this.answer.CurrentRound;
 
-      this.subsubscriptions[SubComponentId.Ballot].push(
-        comp.previousRoundBallot.subscribe({
-          next: (ballot: PollBallot) => this.previousRoundBallot = ballot,
-        }),
-        comp.currentRoundBallot.subscribe({
-          next: (ballot: PollBallot) => this.currentRoundBallot = ballot,
-        }),
-        comp.justVoteBallot.subscribe({
-          next: (ballot: PollBallot) => {
-            this.justVoteBallot = ballot;
-            this.nextRoundError = false;
-            this.clearSubComponent(SubComponentId.Ballot);
-            this.refresh.suspend(5000);
-          }
-        }),
-      )
+      if (!load.alreadyThere) {
+        this.subsubscriptions[SubComponentId.Ballot].push(
+          comp.previousRoundBallot.subscribe({
+            next: (ballot: PollBallot) => this.previousRoundBallot = ballot,
+          }),
+          comp.currentRoundBallot.subscribe({
+            next: (ballot: PollBallot) => this.currentRoundBallot = ballot,
+          }),
+          comp.justVoteBallot.subscribe({
+            next: (ballot: PollBallot) => {
+              this.justVoteBallot = ballot;
+              this.nextRoundError = false;
+              this.clearSubComponent(SubComponentId.Ballot);
+              this.refresh.suspend(5000);
+            }
+          }),
+        )
+      }
     }
 
     // Update Information component
     if (PollComponent.informationMap.has(this.answer.Information)) {
       const type = PollComponent.informationMap.get(this.answer.Information);
       const comp =
-        this.loadSubComponent(SubComponentId.Information, type) as PollInformationComponent;
+        this.loadSubComponent(SubComponentId.Information, type).comp as PollInformationComponent;
       comp.round = this.answer.CurrentRound - 1;
       this.winner$ = comp.winner;
     }
@@ -302,21 +310,30 @@ export class PollComponent implements OnInit, OnDestroy {
         subscription.unsubscribe();
       }
     }
+    this.components[componentIndex] = undefined;
     this.viewContainerRef(componentIndex)?.clear();
   }
 
   /**
-   * Create, connect and insert a sub-component.
-   * The returned value is guaranteed to be of type type.
+   * Ensures that the given component has the given type.
+   * If it is already the case, the current component is returned and `alreadyThere` is set to true.
+   * Otherwise, the previous component is detached and destroyed, a new one is created, inserted,
+   * and returned, and `alreadyThere` is set to false.
    */
   private loadSubComponent(componentIndex: number,
-                           type: Type<PollSubComponent>): PollSubComponent {
+                           type: Type<PollSubComponent>): {comp: PollSubComponent, alreadyThere: boolean} {
+
+    if (this.components[componentIndex] !== undefined &&
+        this.components[componentIndex].componentType === type) {
+      return {comp: this.components[componentIndex].instance, alreadyThere: true}
+    }
 
     this.clearSubComponent(componentIndex);
 
     const viewContainerRef = this.viewContainerRef(componentIndex);
-    const instance =
+    this.components[componentIndex] =
       this.dynamicComponentFactory.createComponent<PollSubComponent>(viewContainerRef, type);
+    const instance = this.components[componentIndex].instance
     instance.pollSegment = this.segment;
 
     this.subsubscriptions[componentIndex] = [instance.errors.subscribe({
@@ -325,7 +342,7 @@ export class PollComponent implements OnInit, OnDestroy {
       }
     })];
 
-    return instance;
+    return {comp: instance, alreadyThere: false}
   }
 
   private viewContainerRef(componentIndex: number): ViewContainerRef {
