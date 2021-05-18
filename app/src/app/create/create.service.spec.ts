@@ -25,8 +25,8 @@ import { CreateQuery, SimpleAlternative } from '../api';
 import { FinalNavTreeNode, LinearNavTreeNode, } from './navtree/navtree.node';
 import { NavStepStatus } from './navtree/navstep.status';
 
-import { Recorder, justRecordedFrom } from '../../testing/recorder';
-import { RouterStub } from '../../testing/router.stub';
+import { Recorder, justRecordedFrom } from 'src/testing/recorder';
+import { RouterStub } from 'src/testing/router.stub';
 
 describe('CreateService', () => {
 

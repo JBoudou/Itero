@@ -21,7 +21,7 @@ import { Router } from '@angular/router';
 
 import { take } from 'rxjs/operators';
 
-import { SignupQuery } from '../../api';
+import { SignupQuery } from 'src/app/api';
 import { SessionService } from '../session.service';
 
 function notInclude(substring: string): ValidatorFn {

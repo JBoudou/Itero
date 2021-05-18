@@ -17,6 +17,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule, FormBuilder, FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
+import { By } from '@angular/platform-browser';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 import { MatButtonModule }  from '@angular/material/button';
@@ -24,21 +25,20 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 
+import { Subject } from 'rxjs';
+
 import { HarnessLoader, TestKey } from '@angular/cdk/testing';
 import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
 import { MatButtonHarness }  from '@angular/material/button/testing';
 import { MatInputHarness } from '@angular/material/input/testing';
-
-import { Subject } from 'rxjs';
 
 import { SimpleAlternativesComponent } from './simple-alternatives.component';
 
 import { CreateService } from '../create.service';
 import { CreateQuery, SimpleAlternative } from 'src/app/api';
 
-import { ActivatedRouteStub } from '../../../testing/activated-route-stub'
+import { ActivatedRouteStub } from 'src/testing/activated-route-stub'
 import { justRecordedFrom, Recorder } from 'src/testing/recorder';
-import {By} from '@angular/platform-browser';
 
 describe('SimpleAlternativesComponent', () => {
   let component: SimpleAlternativesComponent;

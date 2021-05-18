@@ -23,7 +23,7 @@ import { CreateGuard } from './create.guard';
 
 import { CreateService } from './create.service';
 
-import { RouterStub } from '../../testing/router.stub';
+import { RouterStub } from 'src/testing/router.stub';
 
 describe('CreateGuard', () => {
   let guard: CreateGuard;

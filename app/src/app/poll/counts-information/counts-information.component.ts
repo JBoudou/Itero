@@ -29,7 +29,7 @@ import {
 import * as d3 from 'd3';
 
 import { PollSubComponent } from '../common';
-import { CountInfoAnswer, CountInfoEntry } from '../../api';
+import { CountInfoAnswer, CountInfoEntry } from 'src/app/api';
 import { CountsInformationService } from './counts-information.service';
 import { DynOnChanges, DynChanges, ChangeStore } from 'src/app/shared/changes-store';
 import { ServerError } from 'src/app/shared/server-error';

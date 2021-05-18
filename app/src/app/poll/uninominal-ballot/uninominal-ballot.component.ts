@@ -26,7 +26,7 @@ import {
   PollBallotComponent,
 } from '../common';
 
-import { PollAlternative, UninominalBallotAnswer, UninominalVoteQuery, BallotType } from '../../api';
+import { PollAlternative, UninominalBallotAnswer, UninominalVoteQuery, BallotType } from 'src/app/api';
 import { ServerError } from 'src/app/shared/server-error';
 
 
