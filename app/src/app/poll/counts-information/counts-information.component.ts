@@ -28,10 +28,11 @@ import {
 
 import * as d3 from 'd3';
 
-import { PollSubComponent, ServerError } from '../common';
+import { PollSubComponent } from '../common';
 import { CountInfoAnswer, CountInfoEntry } from '../../api';
 import { CountsInformationService } from './counts-information.service';
 import { DynOnChanges, DynChanges, ChangeStore } from 'src/app/shared/changes-store';
+import { ServerError } from 'src/app/shared/server-error';
 
 function randomString(length: number): string {
   const alphabet = '0123456789abcdefghijklmnopqrstuvwxyz'
@@ -129,7 +130,7 @@ export class CountsInformationComponent implements DoCheck, DynOnChanges, OnDest
         this.winner.emit(winner.Alternative.Name)
       },
       (err: any) =>
-       this.errors.emit(err as ServerError)
+       this.errors.emit(new ServerError(err, 'retrieving CountInformations'))
     );
   }
 

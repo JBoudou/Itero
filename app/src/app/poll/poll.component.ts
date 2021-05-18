@@ -40,7 +40,6 @@ import {
   PollBallotComponent,
   PollInformationComponent,
   PollSubComponent,
-  ServerError
 } from './common';
 
 import { PollAnswer, BallotType, InformationType, PollNotifAnswerEntry } from '../api';
@@ -49,6 +48,7 @@ import { SessionService } from '../session/session.service';
 import { AppTitleService } from '../app-title.service';
 import { PollNotifService } from '../poll-notif.service';
 import { Suspendable } from '../shared/suspender';
+import { ServerError } from '../shared/server-error';
 
 import { UninominalBallotComponent } from './uninominal-ballot/uninominal-ballot.component';
 import { CountsInformationComponent } from './counts-information/counts-information.component';
@@ -259,7 +259,7 @@ export class PollComponent implements OnInit, OnDestroy {
         if (err.status == 403 && !this.session.logged) {
           this.session.logNow();
         } else {
-          this.registerError({status: err.status, message: err.error.trim()});
+          this.registerError(new ServerError(err, 'retrieving poll information'));
         }
       }
     });
