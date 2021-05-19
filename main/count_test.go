@@ -67,7 +67,7 @@ func TestCountInfoHandler(t *testing.T) {
 	// In each pair of the parameter,
 	// the first value is the alternative index,
 	// the second value is the number of votes.
-	makeChecker := func(result [][2]uint32) srvt.CheckerWithBefore {
+	makeChecker := func(result [][2]uint32) srvt.Checker {
 		entries := make([]CountInfoEntry, len(result))
 		for i, val := range result {
 			entries[i].Alternative = altAns[val[0]]

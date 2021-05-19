@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Injectable, ComponentFactoryResolver, ViewContainerRef, Type } from '@angular/core';
+import { Injectable, ComponentFactoryResolver, ComponentRef, ViewContainerRef, Type } from '@angular/core';
 
 /**
  * A thin wrapper around ComponentFactoryResolver.
@@ -32,10 +32,10 @@ export class DynamicComponentFactoryService {
     private componentFactoryResolver: ComponentFactoryResolver,
   ) { }
 
-  createComponent<T>(viewContainerRef: ViewContainerRef, type: Type<T>): T {
+  createComponent<T>(viewContainerRef: ViewContainerRef, type: Type<T>): ComponentRef<T> {
     const componentFactory = this.componentFactoryResolver.resolveComponentFactory(type);
     const componentRef = viewContainerRef.createComponent<T>(componentFactory);
-    return componentRef.instance;
+    return componentRef;
   }
     
 }

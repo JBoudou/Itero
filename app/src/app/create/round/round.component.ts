@@ -22,7 +22,7 @@ import { clone } from 'lodash';
 
 import { CreateService } from '../create.service';
 import { CreateSubComponentBase } from '../create-sub-component-base';
-import { CreateQuery } from '../../api';
+import { CreateQuery } from 'src/app/api';
 
 function customValidator(grp: FormGroup): ValidationErrors | null {
   let ret: ValidationErrors | null = null;

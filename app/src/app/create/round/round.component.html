@@ -53,7 +53,9 @@
 <ng-template #stepInfo let-query="query$">
   <ng-container *ngIf="query | async as q">
     <p i18n>
-      The poll is divided in {{ q.MinNbRounds }} to {{ q.MaxNbRounds }} rounds.
+      The poll is divided in {{ q.MinNbRounds }}
+      <ng-container *ngIf="q.MinNbRounds != q.MaxNbRounds"> to {{ q.MaxNbRounds }}</ng-container>
+      rounds.
       At each round, the participants will have to choose one of the alternatives.
       A round ends when all the participants have voted, or after {{ q.MaxRoundDuration | duration }}.
       Participants that did not vote during a round
@@ -76,9 +78,9 @@
           {{ q.Start | nearDate:'inside' }}.
         </ng-container>
       </ng-container>
-      It will end after the {{ q.MaxNbRounds | ordinal }} round,
+      It will end after the {{ q.MaxNbRounds | ordinal }} round<ng-container *ngIf="q.MinNbRounds != q.MaxNbRounds">,
       or {{ q.Deadline | nearDate:'inside' }} if at least {{ q.MinNbRounds }} rounds have already been done,
-      whichever happens first.
+      whichever happens first</ng-container>.
     </p>
   </ng-container>
 </ng-template>

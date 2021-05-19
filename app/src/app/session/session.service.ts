@@ -126,7 +126,8 @@ export class SessionService {
    */
   httpOperator(user: string): UnaryFunction<Observable<SessionAnswer>, Observable<boolean>> {
     return pipe(
-      map((data: SessionAnswer) => {
+      map((obj: any) => {
+        const data = SessionAnswer.fromObject(obj);
 
         this.register(data.SessionId, user);
         localStorage.setItem("SessionId", this.sessionId);

@@ -416,8 +416,8 @@ func (self *pollTest) Prepare(t *testing.T) {
 	}
 
 	self.dbEnv.Must(t)
-	if withBefore, ok := self.Checker.(srvt.CheckerWithBefore); ok {
-		withBefore.Before(t)
+	if checker, ok := self.Checker.(interface { Before(*testing.T) }); ok {
+		checker.Before(t)
 	}
 }
 
