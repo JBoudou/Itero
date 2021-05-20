@@ -112,7 +112,11 @@ the previous step. You must edit that file with a text editor.
 Both the middleware and the frontend have to be tested.
 Of course, all the tests must pass successfully.
 <<<<<<< HEAD
+<<<<<<< HEAD
 For the frontend, launch "Windows PowerShell" and type the following.
+=======
+For the middleware, launch "Windows PowerShell" and type the following.
+>>>>>>> origin/main
 =======
 For the middleware, launch "Windows PowerShell" and type the following.
 >>>>>>> origin/main
@@ -134,13 +138,19 @@ cd ~\Itero\app
 ng test --watch=false
 ```
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> origin/main
 You may have a PowerSheel error saying that script execution is desactivated
 for security reason. Script execution is needed for Angular to work. To
 re-activate it, type the following command:
 ```PowerSheel
 Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
+<<<<<<< HEAD
+>>>>>>> origin/main
+=======
 >>>>>>> origin/main
 
 # Build and Try
