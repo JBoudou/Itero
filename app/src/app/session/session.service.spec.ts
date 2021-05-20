@@ -23,8 +23,8 @@ import { throwError, of } from 'rxjs';
 
 import { SessionInfo, SessionService } from './session.service';
 
-import { Recorder } from '../../testing/recorder';
-import { RouterStub } from '../../testing/router.stub';
+import { Recorder } from 'src/testing/recorder';
+import { RouterStub } from 'src/testing/router.stub';
 
 describe('SessionService', () => {
   let service: SessionService;

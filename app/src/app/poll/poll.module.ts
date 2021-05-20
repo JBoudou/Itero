@@ -18,7 +18,6 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 
-import { GoogleChartsModule } from 'angular-google-charts';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule }    from '@angular/material/icon'; 
@@ -50,7 +49,6 @@ import { CountsInformationService } from './counts-information/counts-informatio
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
-    GoogleChartsModule,
     PollRoutingModule,
     ReactiveFormsModule,
     SharedModule,

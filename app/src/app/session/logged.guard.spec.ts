@@ -20,8 +20,8 @@ import { ActivatedRouteSnapshot, RouterStateSnapshot, Router } from '@angular/ro
 import { LoggedGuard } from './logged.guard';
 
 import { SessionService } from './session.service';
-import { setSpyProperty } from '../../testing/misc';
-import { RouterStub }     from '../../testing/router.stub';
+import { setSpyProperty } from 'src/testing/misc';
+import { RouterStub }     from 'src/testing/router.stub';
 
 describe('LoggedGuard', () => {
   let guard: LoggedGuard;

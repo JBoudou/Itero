@@ -16,9 +16,7 @@
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { GoogleChartsModule } from 'angular-google-charts';
-
-import { CountsInformationComponent } from './counts-information.component';
+import { CountsInformationComponent, ticks1235 } from './counts-information.component';
 import { CountsInformationService } from './counts-information.service';
 
 describe('CountsInformationComponent', () => {
@@ -31,7 +29,6 @@ describe('CountsInformationComponent', () => {
 
     await TestBed.configureTestingModule({
       declarations: [ CountsInformationComponent ],
-      imports: [ GoogleChartsModule ],
       providers: [
         { provide: CountsInformationService, useValue: serviceSpy },
       ],
@@ -49,3 +46,18 @@ describe('CountsInformationComponent', () => {
     expect(component).toBeTruthy();
   });
 });
+
+describe('ticks1235', () => {
+
+  const tests = [
+    { input:     2, expect: [0, 1, 2] },
+    { input:     6, expect: [0, 1, 2, 3, 4, 5, 6] },
+    { input:    11, expect: [0, 2, 4, 6, 8, 10] },
+    { input: 13579, expect: [0, 3000, 6000, 9000, 12000] },
+  ]
+  for (let t of tests) {
+    it('compute the ticks for ' + t.input, () => {
+      expect(ticks1235({ domain(): number[] { return [0, t.input] }})).toEqual(t.expect)
+    })
+  }
+})

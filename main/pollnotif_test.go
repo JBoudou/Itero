@@ -37,7 +37,7 @@ import (
 
 // TestPollNotifList_Global tests all PollNotifList's methods but in only one scenario.
 func TestPollNotifList_Global(t *testing.T) {
-	const delay = 70 * time.Millisecond
+	const delay = 210 * time.Millisecond
 
 	tests := []struct {
 		read  [2]uint32 // {min, max+1}
@@ -47,22 +47,22 @@ func TestPollNotifList_Global(t *testing.T) {
 		{
 			read:  [2]uint32{0, 0},
 			write: [2]uint32{1, 4},
-			sleep: 60,
+			sleep: 180,
 		},
 		{
 			read:  [2]uint32{1, 4},
 			write: [2]uint32{4, 6},
-			sleep: 20,
+			sleep: 60,
 		},
 		{
 			read:  [2]uint32{4, 6},
 			write: [2]uint32{6, 20},
-			sleep: 10,
+			sleep: 30,
 		},
 		{
 			read:  [2]uint32{4, 20},
 			write: [2]uint32{0, 0},
-			sleep: 70,
+			sleep: 210,
 		},
 		{
 			read:  [2]uint32{0, 0},

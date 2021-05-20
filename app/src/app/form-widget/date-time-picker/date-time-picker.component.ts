@@ -14,7 +14,17 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Component, OnInit, OnDestroy, Input, Self, Optional, HostBinding, ElementRef } from '@angular/core';
+import { 
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  HostBinding,
+  Input,
+  OnDestroy,
+  OnInit,
+  Optional,
+  Self,
+} from '@angular/core';
 import { ControlValueAccessor, NgControl, FormBuilder } from '@angular/forms';
 
 import { Observable, Subject, Subscription } from 'rxjs';
@@ -26,6 +36,7 @@ import { FocusMonitor, FocusOrigin } from '@angular/cdk/a11y';
   templateUrl: './date-time-picker.component.html',
   styleUrls: ['./date-time-picker.component.sass'],
   providers: [{provide: MatFormFieldControl, useExisting: DateTimePickerComponent}],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DateTimePickerComponent
        implements OnInit, OnDestroy, ControlValueAccessor, MatFormFieldControl<Date> {

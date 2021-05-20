@@ -56,9 +56,6 @@ func (self *listCheckerEntry) toListEntry(t *testing.T) *listAnswerEntry {
 	}
 }
 
-func (self listChecker) Before(t *testing.T) {
-}
-
 func (self listChecker) Check(t *testing.T, response *http.Response, request *server.Request) {
 	srvt.CheckStatus{http.StatusOK}.Check(t, response, request)
 

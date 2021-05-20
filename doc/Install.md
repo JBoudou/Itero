@@ -11,7 +11,7 @@ Download and install the following open source softwares:
 
  - [Go](https://golang.org/dl/) version at least 1.15.2.
 
- - Any recent version of [Node.js](https://nodejs.org/en/download/).
+ - The last LTS version of [Node.js](https://nodejs.org/en/download/).
 
  - Any recent version of [Git](https://git-scm.com/downloads).
    Agreeing to all the default configuration should work.
@@ -111,7 +111,11 @@ the previous step. You must edit that file with a text editor.
 
 Both the middleware and the frontend have to be tested.
 Of course, all the tests must pass successfully.
+<<<<<<< HEAD
 For the frontend, launch "Windows PowerShell" and type the following.
+=======
+For the middleware, launch "Windows PowerShell" and type the following.
+>>>>>>> origin/main
 ```PowerShell
 cd ~\Itero
 go test -cover ./...
@@ -129,6 +133,15 @@ To test the frontend, type the following commands in a PowerShell session.
 cd ~\Itero\app
 ng test --watch=false
 ```
+<<<<<<< HEAD
+=======
+You may have a PowerSheel error saying that script execution is desactivated
+for security reason. Script execution is needed for Angular to work. To
+re-activate it, type the following command:
+```PowerSheel
+Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+>>>>>>> origin/main
 
 # Build and Try
 

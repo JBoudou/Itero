@@ -17,12 +17,7 @@
 import { Observable } from 'rxjs';
 
 import { BallotType } from '../api';
-
-/** Error transfered to the parent component. */
-export class ServerError {
-  status: number;
-  message: string;
-}
+import { ServerError } from '../shared/server-error';
 
 /** 
  * Base interface for all ballots.
