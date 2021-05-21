@@ -29,6 +29,24 @@ input
 .formactions
   padding: $small-space 0
   display: flex
+  justify-content: flex-end
+  button
+    @include userbox
+    background-color: $userbuttonbgcolor
+    font-size: $fontsize
+    margin-left: $medium-space
+    padding: 0.4em 1em
+    &:hover
+      background-color: color.adjust($maincolor, $lightness: 20%)
+      color: $fgOnMaincolor
+    &[disabled], &[disabled]:hover
+      border-color: tame($maincolor)
+      background-color: tame($userbuttonbgcolor)
+      color: tame($useboxfgcolor)
+
+.formactionscenter
+  padding: $small-space 0
+  display: flex
   justify-content: center
   button
     @include userbox
