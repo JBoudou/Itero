@@ -44,23 +44,12 @@ input
       background-color: tame($userbuttonbgcolor)
       color: tame($useboxfgcolor)
 
-.formactionscenter
-  padding: $small-space 0
-  display: flex
+.formactions.login
   justify-content: center
-  button
-    @include userbox
-    background-color: $userbuttonbgcolor
-    font-size: $fontsize
-    margin-left: $medium-space
-    padding: 0.4em 1em
-    &:hover
-      background-color: color.adjust($maincolor, $lightness: 20%)
-      color: $fgOnMaincolor
-    &[disabled], &[disabled]:hover
-      border-color: tame($maincolor)
-      background-color: tame($userbuttonbgcolor)
-      color: tame($useboxfgcolor)
+  height: 52px
+  padding-top: 14.5px
+  padding-bottom: 14.5px
+  
 
 .merged-userbox-grow
   @include userbox
