@@ -15,7 +15,7 @@
     <p *ngSwitchCase="'Local'" i18n>Internal error: {{errorMsg}}</p>
     <p *ngSwitchCase="'Server'" i18n>Server error: {{errorMsg}}</p>
   </div>
-  <div class="formactions">
+  <div class="formactions login-action">
     <button type="submit" [disabled]="!form.valid" i18n>Log in</button>
-  </div>
+  </div>  
 </form>

@@ -11,7 +11,7 @@ Download and install the following open source softwares:
 
  - [Go](https://golang.org/dl/) version at least 1.15.2.
 
- - Any recent version of [Node.js](https://nodejs.org/en/download/).
+ - The last LTS version of [Node.js](https://nodejs.org/en/download/).
 
  - Any recent version of [Git](https://git-scm.com/downloads).
    Agreeing to all the default configuration should work.
@@ -80,15 +80,19 @@ and type the following commands.
 ```Shell
 cd ~/Itero
 openssl req -newkey rsa:4096 -x509 -sha256 -days 700 -nodes -out ssl.crt -keyout ssl.key
+```
+At that point you will be asked some questions. Please answer them all until you reach the command
+prompt again. You can then continue with these commands:
+```Shell
 go build -o srvtool ./tools
-./srvtools genskey
+./srvtool genskey
 ```
 The last command should display a character string starting and ending with
 square brackets. You will need this string.
 
 Create the file config.json in the Itero directory, with a content like the
 following, except that on the line with "SessionKeys" you copy the string from
-the previous step.
+the previous step. You must edit that file with a text editor.
 ```JSON
 {
   "database": {
@@ -105,20 +109,31 @@ the previous step.
 
 # Tests
 
-Launch "Windows PowerShell" and type the following.
+Both the middleware and the frontend have to be tested.
+Of course, all the tests must pass successfully.
+For the middleware, launch "Windows PowerShell" and type the following.
 ```PowerShell
 cd ~\Itero
 go test -cover ./...
-cd app
-ng test --watch=false
 ```
-Of course, all the tests must pass successfully. You may still have errors
-reading `Error 1615: Prepared statement needs to be re-prepared`. These errors
-are caused by a bug in MariaDB. To workaround this bug, you need to add
-`&autoReprepare=1` to the `DSN` parameter in config.json, such that the line
-looks like:
+You may have errors reading `Error 1615: Prepared statement needs to be
+re-prepared`. These errors are caused by a bug in MariaDB. To workaround this
+bug, you need to add `&autoReprepare=1` to the `DSN` parameter in config.json,
+such that the line looks like:
 ```JSON
     "DSN": "itero:passwd@tcp(localhost)/iterodb?loc=Local&autoReprepare=1"
+```
+
+To test the frontend, type the following commands in a PowerShell session.
+```PowerShell
+cd ~\Itero\app
+ng test --watch=false
+```
+You may have a PowerSheel error saying that script execution is desactivated
+for security reason. Script execution is needed for Angular to work. To
+re-activate it, type the following command:
+```PowerSheel
+Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
 # Build and Try

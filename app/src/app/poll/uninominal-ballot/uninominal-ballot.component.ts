@@ -24,10 +24,10 @@ import {
   NONE_BALLOT,
   PollBallot,
   PollBallotComponent,
-  ServerError,
 } from '../common';
 
-import { PollAlternative, UninominalBallotAnswer, UninominalVoteQuery, BallotType } from '../../api';
+import { PollAlternative, UninominalBallotAnswer, UninominalVoteQuery, BallotType } from 'src/app/api';
+import { ServerError } from 'src/app/shared/server-error';
 
 
 export class UninominalBallot implements PollBallot {
@@ -70,7 +70,7 @@ export class UninominalBallotComponent implements OnInit, OnDestroy, PollBallotC
         this.currentRoundBallot .emit(this.ballotFromId(answer, 'Current' ));
       },
       error: (err: HttpErrorResponse) => {
-        this.errors.emit({status: err.status, message: err.error.trim()});
+        this.errors.emit(new ServerError(err, 'retrieving uninominal ballot'));
       }
     });
   }
@@ -107,7 +107,7 @@ export class UninominalBallotComponent implements OnInit, OnDestroy, PollBallotC
       .pipe(take(1)).subscribe({
         next: _ => this.justVoteBallot.emit(this.ballotFromQuery(vote)),
         error: (err: HttpErrorResponse) => {
-          this.errors.emit({status: err.status, message: err.error.trim()});
+          this.errors.emit(new ServerError(err, 'sending vote'));
         }
       });
   }

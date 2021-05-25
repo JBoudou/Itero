@@ -25,7 +25,7 @@ import { GeneralComponent } from './general.component';
 
 import { CreateService } from '../create.service';
 
-import { ActivatedRouteStub } from '../../../testing/activated-route-stub'
+import { ActivatedRouteStub } from 'src/testing/activated-route-stub'
 
 @Component({ selector: 'mat-form-field', template: '' })
 class MatFormFieldStub { }

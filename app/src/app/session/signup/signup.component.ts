@@ -21,7 +21,6 @@ import { Router } from '@angular/router';
 
 import { take } from 'rxjs/operators';
 
-import { SignupQuery } from '../../api';
 import { SessionService } from '../session.service';
 
 function notInclude(substring: string): ValidatorFn {
@@ -82,7 +81,7 @@ export class SignupComponent implements OnInit {
     let toSend = this.form.value;
     delete toSend.pwdconfirm;
     toSend.Name = toSend.Name.trim()
-    this.http.post('/a/signup', toSend as SignupQuery)
+    this.http.post('/a/signup', toSend)
       .pipe(this.session.httpOperator(toSend.Name), take(1))
       .subscribe({
       next: () => {

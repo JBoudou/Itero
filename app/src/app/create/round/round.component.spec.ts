@@ -29,9 +29,9 @@ import { RoundComponent } from './round.component';
 
 import { CreateService } from '../create.service';
 import { CreateQuery } from 'src/app/api';
-import { FormWidgetModule } from '../../form-widget/form-widget.module';
+import { FormWidgetModule } from 'src/app/form-widget/form-widget.module';
 
-import { ActivatedRouteStub } from '../../../testing/activated-route-stub'
+import { ActivatedRouteStub } from 'src/testing/activated-route-stub'
 
 describe('RoundComponent', () => {
   let component: RoundComponent;

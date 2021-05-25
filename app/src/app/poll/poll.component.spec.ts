@@ -20,18 +20,18 @@ import { HttpClientTestingModule, HttpTestingController } from '@angular/common/
 import { ReactiveFormsModule, FormBuilder, FormsModule } from '@angular/forms';
 import { EMPTY, Subject } from 'rxjs';
 
-import { ActivatedRouteStub } from '../../testing/activated-route-stub'
-import { DynamicComponentFactoryStub } from '../../testing/dynamic-component-factory-stub'
+import { ActivatedRouteStub } from 'src/testing/activated-route-stub'
+import { DynamicComponentFactoryStub } from 'src/testing/dynamic-component-factory-stub'
 
 import { PollBallotDirective, PollInformationDirective, PollPreviousDirective, PollComponent } from './poll.component';
 
 import { UninominalBallotComponent } from './uninominal-ballot/uninominal-ballot.component';
 import { CountsInformationComponent } from './counts-information/counts-information.component';
-import { DynamicComponentFactoryService } from '../dynamic-component-factory.service';
-import { BallotType, InformationType } from '../api';
-import { SessionService } from '../session/session.service';
-import { AppTitleService } from '../app-title.service';
-import { PollNotification, PollNotifService } from '../poll-notif.service';
+import { DynamicComponentFactoryService } from 'src/app/dynamic-component-factory.service';
+import { BallotType, InformationType } from 'src/app/api';
+import { SessionService } from 'src/app/session/session.service';
+import { AppTitleService } from 'src/app/app-title.service';
+import { PollNotification, PollNotifService } from 'src/app/poll-notif.service';
 
 describe('PollComponent', () => {
   let component: PollComponent;

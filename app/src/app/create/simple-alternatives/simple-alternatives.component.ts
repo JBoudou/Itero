@@ -16,7 +16,6 @@
 
 import {
   ChangeDetectionStrategy,
-  ChangeDetectorRef,
   Component,
   OnDestroy,
   OnInit,
@@ -44,7 +43,7 @@ import { filter, map, startWith, take } from 'rxjs/operators';
 import { ErrorStateMatcher } from '@angular/material/core';
 
 import { CreateService } from '../create.service';
-import { SimpleAlternative, CreateQuery } from '../../api';
+import { SimpleAlternative, CreateQuery } from 'src/app/api';
 
 class ErrorStateNotRequired implements ErrorStateMatcher {
   isErrorState(control: FormControl|null, form: FormGroupDirective|NgForm|null): boolean {
