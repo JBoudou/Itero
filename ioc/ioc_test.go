@@ -21,39 +21,39 @@ import (
 	"testing"
 )
 
-func TestInjector_New(t *testing.T) {
-	injector := New()
-	if injector == nil {
+func TestLocator_New(t *testing.T) {
+	locator := New()
+	if locator == nil {
 		t.Errorf("New returned nil")
 	}
 
-	var same *Injector
-	err := injector.Get(&same)
+	var same *Locator
+	err := locator.Get(&same)
 	if err != nil {
 		t.Errorf("Get returned error %v.", err)
 	}
-	if same != injector {
-		t.Errorf("Get returned another injector")
+	if same != locator {
+		t.Errorf("Get returned another locator")
 	}
 }
 
-func TestInjector_Sub_New(t *testing.T) {
-	injector := New()
-	sub := injector.Sub()
-	if sub == injector {
+func TestLocator_Sub_New(t *testing.T) {
+	locator := New()
+	sub := locator.Sub()
+	if sub == locator {
 		t.Errorf("Sub returned the parent")
 	}
 
-	var same *Injector
+	var same *Locator
 	err := sub.Get(&same)
 	if err != nil {
 		t.Errorf("Get returned error %v.", err)
 	}
-	if same == injector {
+	if same == locator {
 		t.Errorf("Get returned the parent")
 	}
 	if same != sub {
-		t.Errorf("Get returned another injector")
+		t.Errorf("Get returned another locator")
 	}
 }
 
@@ -76,16 +76,16 @@ func (self testToken) Is(other testToken) bool {
 	return self.id == other.id
 }
 
-func TestInjector_Set(t *testing.T) {
-	injector := New()
+func TestLocator_Set(t *testing.T) {
+	locator := New()
 
-	err := injector.Set(newPairToken(1))
+	err := locator.Set(newPairToken(1))
 	if err != nil {
 		t.Errorf("Set returned %v.", err)
 	}
 
 	var first testToken
-	err = injector.Get(&first)
+	err = locator.Get(&first)
 	if err != nil {
 		t.Errorf("Get returned %v.", err)
 	}
@@ -94,7 +94,7 @@ func TestInjector_Set(t *testing.T) {
 	}
 
 	var second testToken
-	err = injector.Get(&second)
+	err = locator.Get(&second)
 	if err != nil {
 		t.Errorf("Get returned %v.", err)
 	}
@@ -102,13 +102,13 @@ func TestInjector_Set(t *testing.T) {
 		t.Errorf("First and second are not the same")
 	}
 
-	err = injector.Set(func() (testToken, error) { return newPairToken(2)(), nil })
+	err = locator.Set(func() (testToken, error) { return newPairToken(2)(), nil })
 	if err != nil {
 		t.Errorf("Set returned %v.", err)
 	}
 
 	var third testToken
-	err = injector.Get(&third)
+	err = locator.Get(&third)
 	if err != nil {
 		t.Errorf("Get returned %v.", err)
 	}
@@ -120,7 +120,7 @@ func TestInjector_Set(t *testing.T) {
 	}
 }
 
-func TestInjector_Set_Errors(t *testing.T) {
+func TestLocator_Set_Errors(t *testing.T) {
 	tests := []struct {
 		name    string
 		factory interface{}
@@ -152,8 +152,8 @@ func TestInjector_Set_Errors(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			injector := New()
-			err := injector.Set(tt.factory)
+			locator := New()
+			err := locator.Set(tt.factory)
 			if err == nil {
 				t.Error("No error.")
 			}
@@ -164,7 +164,7 @@ func TestInjector_Set_Errors(t *testing.T) {
 	}
 }
 
-func TestInjector_Set_Sub(t *testing.T) {
+func TestLocator_Set_Sub(t *testing.T) {
 	parent := New()
 	parent.Set(newPairToken(1))
 
@@ -203,18 +203,18 @@ func TestInjector_Set_Sub(t *testing.T) {
 	}
 }
 
-func TestInjector_Get(t *testing.T) {
-	injector := New()
-	injector.Set(newPairToken(1))
+func TestLocator_Get(t *testing.T) {
+	locator := New()
+	locator.Set(newPairToken(1))
 
 	var direct testToken
-	err := injector.Get(&direct)
+	err := locator.Get(&direct)
 	if err != nil {
 		t.Errorf("Get value returned %v.", err)
 	}
 
 	var byfun testToken
-	err = injector.Get(func(tok testToken) { byfun = tok })
+	err = locator.Get(func(tok testToken) { byfun = tok })
 	if err != nil {
 		t.Errorf("Get function returned %v.", err)
 	}
@@ -222,9 +222,9 @@ func TestInjector_Get(t *testing.T) {
 		t.Errorf("Direct and by-function are not the same.")
 	}
 
-	err = injector.Get(func(inj *Injector, tok testToken) {
-		if inj != injector {
-			t.Errorf("Wrong injector.")
+	err = locator.Get(func(loc *Locator, tok testToken) {
+		if loc != locator {
+			t.Errorf("Wrong locator.")
 		}
 		byfun = tok
 	})
@@ -233,46 +233,46 @@ func TestInjector_Get(t *testing.T) {
 	}
 }
 
-func TestInjector_Get_Error(t *testing.T) {
+func TestLocator_Get_Error(t *testing.T) {
 	var vInt int
 	customError := errors.New("Custom")
 
 	tests := []struct {
-		name string
-		factory interface{}
+		name     string
+		factory  interface{}
 		receptor interface{}
-		expect error
+		expect   error
 	}{
 		{
-			name: "NotFound value",
+			name:     "NotFound value",
 			receptor: &vInt,
-			expect: NotFound,
+			expect:   NotFound,
 		},
 		{
-			name: "NotFound function",
+			name:     "NotFound function",
 			receptor: func(v int) error { return nil },
-			expect: NotFound,
+			expect:   NotFound,
 		},
 		{
-			name: "NotReceptor value",
+			name:     "NotReceptor value",
 			receptor: 42,
-			expect: NotReceptor,
+			expect:   NotReceptor,
 		},
 		{
-			name: "NotReceptor function",
+			name:     "NotReceptor function",
 			receptor: func(tok testToken) testToken { return tok },
-			expect: NotReceptor,
+			expect:   NotReceptor,
 		},
 		{
-			name: "Error from receptor",
+			name:     "Error from receptor",
 			receptor: func(tok testToken) error { return customError },
-			expect: customError,
+			expect:   customError,
 		},
 		{
-			name: "Error from factory",
-			factory: func() (int, error) { return 0, customError },
+			name:     "Error from factory",
+			factory:  func() (int, error) { return 0, customError },
 			receptor: &vInt,
-			expect: customError,
+			expect:   customError,
 		},
 	}
 
@@ -281,17 +281,17 @@ func TestInjector_Get_Error(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			injector := New()
-			injector.Set(newPairToken(1))
-			
+			locator := New()
+			locator.Set(newPairToken(1))
+
 			if tt.factory != nil {
-				err := injector.Set(tt.factory)
+				err := locator.Set(tt.factory)
 				if err != nil {
 					t.Errorf("Error in set: %v.", err)
 				}
 			}
 
-			err := injector.Get(tt.receptor)
+			err := locator.Get(tt.receptor)
 			if !errors.Is(err, tt.expect) {
 				t.Errorf("Wrong error. Got %v. Expect %v.", err, tt.expect)
 			}
@@ -299,18 +299,18 @@ func TestInjector_Get_Error(t *testing.T) {
 	}
 }
 
-func TestInjector_GetFresh(t *testing.T) {
-	injector := New()
-	injector.Set(newPairToken(1))
+func TestLocator_GetFresh(t *testing.T) {
+	locator := New()
+	locator.Set(newPairToken(1))
 
 	var first testToken
-	err := injector.GetFresh(&first)
+	err := locator.GetFresh(&first)
 	if err != nil {
 		t.Errorf("GetFresh returned %v.", err)
 	}
 
 	var singleton testToken
-	err = injector.Get(&singleton)
+	err = locator.Get(&singleton)
 	if err != nil {
 		t.Errorf("Get returned %v.", err)
 	}
@@ -319,7 +319,7 @@ func TestInjector_GetFresh(t *testing.T) {
 	}
 
 	var second testToken
-	err = injector.GetFresh(&second)
+	err = locator.GetFresh(&second)
 	if err != nil {
 		t.Errorf("GetFresh returned %v.", err)
 	}
@@ -330,46 +330,46 @@ func TestInjector_GetFresh(t *testing.T) {
 		t.Errorf("The second fresh is the same as the first fresh.")
 	}
 
-	var sub *Injector
-	err = injector.GetFresh(&sub)
+	var sub *Locator
+	err = locator.GetFresh(&sub)
 	if err != nil {
 		t.Errorf("GetFresh returned %v.", err)
 	}
-	if sub == injector {
+	if sub == locator {
 		t.Errorf("Sub is same as parent")
 	}
 }
 
-func TestInjector_GetFresh_Error(t *testing.T) {
+func TestLocator_GetFresh_Error(t *testing.T) {
 	var vInt int
 	customError := errors.New("Custom")
 
-	tests := []struct{
-		name string
-		factory interface{}
+	tests := []struct {
+		name     string
+		factory  interface{}
 		receptor interface{}
-		expect error
+		expect   error
 	}{
 		{
-			name: "NotFound value",
+			name:     "NotFound value",
 			receptor: &vInt,
-			expect: NotFound,
+			expect:   NotFound,
 		},
 		{
-			name: "NotReceptor value",
+			name:     "NotReceptor value",
 			receptor: 42,
-			expect: NotReceptor,
+			expect:   NotReceptor,
 		},
 		{
-			name: "NotReceptor function",
+			name:     "NotReceptor function",
 			receptor: func(tok testToken) {},
-			expect: NotReceptor,
+			expect:   NotReceptor,
 		},
 		{
-			name: "Error from factory",
-			factory: func() (int, error) { return 0, customError },
+			name:     "Error from factory",
+			factory:  func() (int, error) { return 0, customError },
 			receptor: &vInt,
-			expect: customError,
+			expect:   customError,
 		},
 	}
 
@@ -378,17 +378,119 @@ func TestInjector_GetFresh_Error(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			injector := New()
-			injector.Set(newPairToken(1))
-			
+			locator := New()
+			locator.Set(newPairToken(1))
+
 			if tt.factory != nil {
-				err := injector.Set(tt.factory)
+				err := locator.Set(tt.factory)
 				if err != nil {
 					t.Errorf("Error in set: %v.", err)
 				}
 			}
 
-			err := injector.GetFresh(tt.receptor)
+			err := locator.GetFresh(tt.receptor)
+			if !errors.Is(err, tt.expect) {
+				t.Errorf("Wrong error. Got %v. Expect %v.", err, tt.expect)
+			}
+		})
+	}
+}
+
+func TestLocator_Inject(t *testing.T) {
+	locator := New()
+	locator.Set(newPairToken(1))
+
+	var result uint32
+	err := locator.Inject(func(loc *Locator, tok testToken) uint32 {
+		if loc != locator {
+			t.Errorf("Wrong locator")
+		}
+		return tok.grp
+	}, &result)
+	if err != nil {
+		t.Errorf("Inject error %v.", err)
+	}
+	if result != 1 {
+		t.Errorf("Wrong result value. Got %d. Expect 1.", result)
+	}
+}
+
+func TestLocator_Inject_Error(t *testing.T) {
+	var vInt int
+	var vToken testToken
+	customError := errors.New("Custom")
+
+	tests := []struct {
+		name     string
+		factory  interface{}
+		receptor interface{}
+		expect   error
+	}{
+		{
+			name:     "Not a function",
+			factory:  testToken{},
+			receptor: &vToken,
+			expect:   NotFactory,
+		},
+		{
+			name:    "No returned value",
+			factory: func() {},
+			expect:  NotFactory,
+		},
+		{
+			name:     "Two returned values",
+			factory:  func() (int, uint16) { return 1, 2 },
+			receptor: &vInt,
+			expect:   NotFactory,
+		},
+		{
+			name:     "Three returned values",
+			factory:  func() (int, error, uint32) { return 1, nil, 4 },
+			receptor: &vInt,
+			expect:   NotFactory,
+		},
+		{
+			name:     "Not a pointer",
+			factory:  func() int { return 42 },
+			receptor: vInt,
+			expect:   NotReceptor,
+		},
+		{
+			name:     "Function as receptor",
+			factory:  func() int { return 42 },
+			receptor: func(v int) {},
+			expect:   NotReceptor,
+		},
+		{
+			name:     "Types mismatch",
+			factory:  func() int { return 42 },
+			receptor: &vToken,
+			expect:   NotReceptor,
+		},
+		{
+			name:     "Not found",
+			factory:  func(z uint32) int { return int(z) },
+			receptor: &vInt,
+			expect:   NotFound,
+		},
+		{
+			name:     "Error from factory",
+			factory:  func() (int, error) { return 0, customError },
+			receptor: &vInt,
+			expect:   customError,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			locator := New()
+			locator.Set(newPairToken(1))
+			locator.Set(func() int { return 27 })
+
+			err := locator.Inject(tt.factory, tt.receptor)
 			if !errors.Is(err, tt.expect) {
 				t.Errorf("Wrong error. Got %v. Expect %v.", err, tt.expect)
 			}

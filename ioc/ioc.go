@@ -14,6 +14,35 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+// Package ioc provides simple inversion of control, based on service locator.
+// Its main purpose is to provide singleton services to other singleton services, during initial
+// objects construction.
+//
+// The principle is that locators register factories to provide values to receptors. A factory is a
+// constructor function for its output type. This function is called to construct a singleton
+// service. It may have arguments that are dependencies, i.e., services to be provided by the
+// locator. A receptor is either a pointer on a service to be located, or a function whose arguments
+// are all services to be located.
+//
+// By default, service are considered to be singletons and factories are called at most once, when
+// first needed. Method GetFresh allows to force a factory to be called.
+//
+// Service location is considered to be a singleton service, therefore any Locator provides itself
+// to receptors for type *Locator. This allows receptor functions to call Get() for some services
+// and GetFresh() for some others.
+//
+// Beware that cyclic dependencies are currently not detected by the package, resulting silently in
+// infinite loops.
+//
+// Performance
+//
+// The package uses reflection, hence it is not lightning fast. You shoudl use it when the
+// application starts to initialise long lasting objects.
+//
+// Parallelism
+//
+// Calls to Set() must all be done from the same goroutine, for instance in init() functions. All
+// other methods can be called from any goroutine.
 package ioc
 
 import (
@@ -23,10 +52,14 @@ import (
 )
 
 var (
-	NotFactory  = errors.New("Wrong type for a factory")
-	NotReceptor = errors.New("Wrong type for a receptor")
-	NotFound    = errors.New("No binding")
+	NotFactory  = errors.New("Wrong type for a factory")  // Factory's type is not handled.
+	NotReceptor = errors.New("Wrong type for a receptor") // Receptor's type is not handled.
+	NotFound    = errors.New("No binding")                // No factory for the requested type.
 )
+
+// Root is the base Locator.
+// It may be used by packages to register default factories for the services they provide.
+var Root *Locator = New()
 
 type binding struct {
 	factory  reflect.Value
@@ -34,41 +67,61 @@ type binding struct {
 	mutex    sync.Mutex // on instance
 }
 
-type Injector struct {
+type Locator struct {
 	bindings map[reflect.Type]*binding
-	parent   *Injector
+	parent   *Locator
 }
 
-func New() *Injector {
-	return (&Injector{bindings: map[reflect.Type]*binding{}}).addMyself()
+// New constructs a brand new Locator.
+// The new Locator has bindings only of type *Locator, providing itself for singleton values, and
+// calling Sub() for fresh values.
+//
+// Since packages may have registered factories on Root, you should probably use Root.Sub() instead.
+func New() *Locator {
+	return (&Locator{bindings: map[reflect.Type]*binding{}}).addMyself()
+}
+
+// Sub constructs a sub-locator of the current one.
+// The sublocator initially has the same bindings as its parent, except for type *Locator for which
+// the singleton value is the sublocator itself, and fresh value are sublocator of the sublocator.
+// Calls to Set on the sublocator does not change the bindings on the parent.
+func (self *Locator) Sub() *Locator {
+	return (&Locator{bindings: map[reflect.Type]*binding{}, parent: self}).addMyself()
 }
 
 var errorType = reflect.TypeOf(errors.New).Out(0)
 
-func (self *Injector) Set(factory interface{}) error {
-	factType := reflect.TypeOf(factory)
-
-	// Check type of factory
-	if factType.Kind() != reflect.Func {
-		return NotFactory
+// Set registers a factory for a type.
+// The factory must be a function, and the type of its first returned value is the type it is
+// associated to. If the factory has a second returned value, it must be of type error. The factory
+// cannot have a third returned value.
+//
+// The factory is called at most once to construct a singleton, when a call to Set() or Inject()
+// depends on the associated type. The Locator provides singletons for all the arguments of the
+// factory. This often results in other registered factories to be called. Cyclic dependencies are
+// currently not detected and result in infinite loops.
+func (self *Locator) Set(factory interface{}) error {
+	outType, err := self.checkFactory(factory)
+	if err != nil {
+		return err
 	}
-	nbOut := factType.NumOut()
-	if nbOut != 1 && (nbOut != 2 || !factType.Out(1).Implements(errorType)) {
-		return NotFactory
-	}
 
-	// Record
-	self.bindings[factType.Out(0)] = &binding{
+	self.bindings[outType] = &binding{
 		factory:  reflect.ValueOf(factory),
 		instance: reflect.Value{},
 	}
 	return nil
 }
 
-func (self *Injector) Get(receptor interface{}) error {
-	// TODO handle functions as receptor
+// Get provides singleton values to a receptor.
+// The receptor must be either a pointer to store one singleton into, or a function, in which case
+// it is called with all its arguments set to singletons provided by the Locator. If the receptor is
+// a function, it must return nothing or an error.
+//
+// The call returns a NotFound error if there is no binding on the Locator for the requested type.
+// It also returns an error if a called factory or the receptor returns an error.
+func (self *Locator) Get(receptor interface{}) error {
 	rcpType := reflect.TypeOf(receptor)
-	
 	switch rcpType.Kind() {
 
 	case reflect.Func:
@@ -99,7 +152,14 @@ func (self *Injector) Get(receptor interface{}) error {
 	return NotReceptor
 }
 
-func (self *Injector) GetFresh(receptor interface{}) error {
+// GetFresh constructs a new value using a registered factory.
+// The receptor must be a pointer the new value is assigned to. The receptor of this method cannot
+// be a function.
+//
+// Beware that the arguments given to the factory are still singleton values. If you want the
+// factory to use fresh values, make it depend on *Locator and call GetFresh() directly from the
+// factory.
+func (self *Locator) GetFresh(receptor interface{}) error {
 	ptrType := reflect.TypeOf(receptor)
 	if ptrType.Kind() != reflect.Ptr {
 		return NotReceptor
@@ -111,7 +171,7 @@ func (self *Injector) GetFresh(receptor interface{}) error {
 	}
 
 	var instance reflect.Value
-	instance, err = self.instanciate(bind)
+	instance, err = self.instanciate(bind.factory)
 	if err != nil {
 		return err
 	}
@@ -120,21 +180,64 @@ func (self *Injector) GetFresh(receptor interface{}) error {
 	return nil
 }
 
-func (self *Injector) Sub() *Injector {
-	return (&Injector{bindings: map[reflect.Type]*binding{}, parent: self}).addMyself()
+// Injects calls the given factory to produce a value for the given receptor.
+// The constraints on the type of the factory are the same as for Set(). The receptor must be a
+// pointer on the type of the first returned value of the factory. Functions are not allowed as
+// receptor for this method.
+// 
+// The expression locator.Inject(factory, receptor) is roughly equivalent to
+//
+//     locator.Get(func(a A, b B, c C) { *receptor = factory(a,b,c) })
+//
+// differing only in the handling of errors and in the fact that the caller of Inject() does not
+// have to bother about the types and number of the arguments of the factory.
+func (self *Locator) Inject(factory interface{}, receptor interface{}) error {
+	// Check types
+	outType, err := self.checkFactory(factory)
+	if err != nil {
+		return err
+	}
+	rcpType := reflect.TypeOf(receptor)
+	if rcpType.Kind() != reflect.Ptr || rcpType.Elem() != outType {
+		return NotReceptor
+	}
+
+	// Call
+	instance, err := self.instanciate(reflect.ValueOf(factory))
+	if err != nil {
+		return err
+	}
+	reflect.ValueOf(receptor).Elem().Set(instance)
+	return nil
 }
 
 // Implementation //
 
-func (self *Injector) addMyself() *Injector {
+func (self *Locator) addMyself() *Locator {
 	self.bindings[reflect.TypeOf(self)] = &binding{
-		factory:  reflect.ValueOf(func() *Injector { return self.Sub() }),
+		factory:  reflect.ValueOf(func() *Locator { return self.Sub() }),
 		instance: reflect.ValueOf(self),
 	}
 	return self
 }
 
-func (self *Injector) getInstance(bindType reflect.Type) (reflect.Value, error) {
+// checkFactory check that its argument is a factory and returns the type it produces.
+func (self *Locator) checkFactory(factory interface{}) (reflect.Type, error) {
+	factType := reflect.TypeOf(factory)
+
+	// Check type of factory
+	if factType.Kind() != reflect.Func {
+		return nil, NotFactory
+	}
+	nbOut := factType.NumOut()
+	if nbOut != 1 && (nbOut != 2 || !factType.Out(1).Implements(errorType)) {
+		return nil, NotFactory
+	}
+
+	return factType.Out(0), nil
+}
+
+func (self *Locator) getInstance(bindType reflect.Type) (reflect.Value, error) {
 	bind, err := self.findBinding(bindType)
 	if err != nil {
 		return reflect.Value{}, err
@@ -144,12 +247,12 @@ func (self *Injector) getInstance(bindType reflect.Type) (reflect.Value, error) 
 	defer bind.mutex.Unlock()
 
 	if !bind.instance.IsValid() {
-		bind.instance, err = self.instanciate(bind)
+		bind.instance, err = self.instanciate(bind.factory)
 	}
 	return bind.instance, err
 }
 
-func (self *Injector) findBinding(bindType reflect.Type) (*binding, error) {
+func (self *Locator) findBinding(bindType reflect.Type) (*binding, error) {
 	if ret, found := self.bindings[bindType]; found {
 		return ret, nil
 	}
@@ -159,8 +262,8 @@ func (self *Injector) findBinding(bindType reflect.Type) (*binding, error) {
 	return self.parent.findBinding(bindType)
 }
 
-func (self *Injector) instanciate(bind *binding) (reflect.Value, error) {
-	result, err := self.call(bind.factory)
+func (self *Locator) instanciate(factory reflect.Value) (reflect.Value, error) {
+	result, err := self.call(factory)
 	if err != nil {
 		return reflect.Value{}, err
 	}
@@ -177,7 +280,9 @@ func (self *Injector) instanciate(bind *binding) (reflect.Value, error) {
 	return result[0], err
 }
 
-func (self *Injector) call(fct reflect.Value) ([]reflect.Value, error) {
+// call calls the given fonction with all its argument provided by the Locator.
+// The method panic if its argument is not a function.
+func (self *Locator) call(fct reflect.Value) ([]reflect.Value, error) {
 	fctType := fct.Type()
 	argLen := fctType.NumIn()
 	arguments := make([]reflect.Value, argLen)
