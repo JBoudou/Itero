@@ -3,6 +3,8 @@
 @import '../../sizes'
 @import '../../typo'
 
+$breakpoint-tablet: 500px
+
 :host
   background-color: $maincolor
   color: $fgOnMaincolor
@@ -34,6 +36,11 @@ h2
   align-self: center
   position: relative
   top: 3px
+
+  @media (max-width: $breakpoint-tablet)
+    top: -3px
+    font-size: small
+    font-weight: bold
 
 nav
   display: flex
