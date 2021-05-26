@@ -125,12 +125,8 @@
       }
     }
   },
-<<<<<<< HEAD
   "defaultProject": "app",
   "cli": {
-    "analytics": "11cf4b79-814b-457a-852b-2532d16c30fc"
+    "analytics": "c2cb4e94-0a52-4573-9dcc-929a6d1470ce"
   }
-=======
-  "defaultProject": "app"
->>>>>>> origin/main
 }
