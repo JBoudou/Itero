@@ -18,7 +18,9 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"runtime"
 	"strconv"
 	"testing"
 
@@ -336,7 +338,15 @@ func (self *pollTest) GetName() string {
 	return self.Name
 }
 
+func stats(ctx string) {
+	stats := db.DB.Stats()
+	fmt.Printf("%s -- open %d, use %d, idle %d, goroutines %d\n", ctx,
+		stats.OpenConnections, stats.InUse, stats.Idle, runtime.NumGoroutine())
+}
+
 func (self *pollTest) Prepare(t *testing.T) {
+	stats("Before Prepare")
+
 	if !self.Sequential {
 		t.Parallel()
 	}
@@ -419,6 +429,7 @@ func (self *pollTest) Prepare(t *testing.T) {
 	if checker, ok := self.Checker.(interface { Before(*testing.T) }); ok {
 		checker.Before(t)
 	}
+	stats("After Prepare")
 }
 
 func (self *pollTest) GetRequest(t *testing.T) *srvt.Request {
@@ -450,6 +461,7 @@ func (self *pollTest) Check(t *testing.T, response *http.Response, request *serv
 	} else {
 		t.Errorf("Checker is not an srvt.Checker")
 	}
+	stats("After Check")
 }
 
 func (self *pollTest) Close() {

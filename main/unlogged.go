@@ -64,6 +64,7 @@ func UnloggedFromHash(ctx context.Context, hash uint32) (user server.User, err e
 	if err != nil {
 		return
 	}
+	rows.Close()
 
 	user.Hash = hash
 	user.Logged = false
