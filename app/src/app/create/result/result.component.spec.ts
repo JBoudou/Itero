@@ -21,7 +21,7 @@ import { ActivatedRoute } from '@angular/router';
 import { ClipboardModule } from '@angular/cdk/clipboard';
 import { MatIconModule } from '@angular/material/icon';
 
-import { ActivatedRouteStub } from '../../../testing/activated-route-stub'
+import { ActivatedRouteStub } from 'src/testing/activated-route-stub'
 
 import { ResultComponent } from './result.component';
 

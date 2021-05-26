@@ -14,7 +14,17 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Component, OnInit, Input, Self, Optional, OnDestroy, HostBinding, ElementRef } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  HostBinding,
+  Input,
+  OnDestroy,
+  OnInit,
+  Optional,
+  Self,
+} from '@angular/core';
 import { ControlValueAccessor, NgControl, FormBuilder } from '@angular/forms';
 
 import { Observable, Subject, Subscription } from 'rxjs';
@@ -28,6 +38,7 @@ import { DetailedDuration } from '../duration.pipe';
   templateUrl: './day-hour-min-duration.component.html',
   styleUrls: ['./day-hour-min-duration.component.sass'],
   providers: [{provide: MatFormFieldControl, useExisting: DayHourMinDurationComponent}],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DayHourMinDurationComponent
           implements OnInit, OnDestroy, ControlValueAccessor, MatFormFieldControl<number> {

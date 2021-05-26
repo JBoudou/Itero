@@ -17,7 +17,7 @@
 
 import { Component, Input, OnInit } from '@angular/core';
 
-import { ListAnswerEntry, PollAction } from '../../api';
+import { ListAnswerEntry, PollAction } from 'src/app/api';
 import { ListService } from '../list.service';
 
 @Component({

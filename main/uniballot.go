@@ -21,6 +21,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"strconv"
 
 	"github.com/JBoudou/Itero/db"
 	"github.com/JBoudou/Itero/server"
@@ -63,8 +65,15 @@ func (self *uninominalBallot) Scan(src interface{}) error {
 		self.State = uninominalBallotStateValid
 	case nil:
 		self.State = uninominalBallotStateBlank
+	case []byte:
+		conv, err := strconv.Atoi(string(v))
+		if err != nil {
+			return err
+		}
+		self.Value = uint8(conv)
+		self.State = uninominalBallotStateValid
 	default:
-		return errors.New("Type incompatible with uninominalBallot")
+		return errors.New(fmt.Sprintf("Type of %v incompatible with uninominalBallot", src))
 	}
 	return nil
 }

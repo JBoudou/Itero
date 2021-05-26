@@ -20,8 +20,8 @@ import { Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { Subject, of } from 'rxjs';
 
-import { RouterStub } from '../../testing/router.stub';
-import { Recorder } from '../../testing/recorder';
+import { RouterStub } from 'src/testing/router.stub';
+import { Recorder } from 'src/testing/recorder';
 
 import { ListService } from './list.service';
 

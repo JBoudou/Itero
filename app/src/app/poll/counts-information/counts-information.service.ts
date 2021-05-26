@@ -19,7 +19,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 
 import { take } from 'rxjs/operators';
 
-import { CountInfoAnswer } from '../../api';
+import { CountInfoAnswer } from 'src/app/api';
 
 @Injectable()
 export class CountsInformationService {

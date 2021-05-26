@@ -107,6 +107,7 @@ type Test interface {
 	Close()
 }
 
+// T is a simple implementation of Test.
 type T struct {
 	Name    string
 	Request Request
@@ -114,7 +115,7 @@ type T struct {
 	// Update is called before the test, if not nil.
 	Update func(t *testing.T)
 
-	Checker CheckerWithBefore
+	Checker Checker
 }
 
 func (self *T) GetName() string {
@@ -125,11 +126,16 @@ func (self *T) GetRequest(t *testing.T) *Request {
 	return &self.Request
 }
 
+// Prepare runs before the handler is executed.
+// If Update is not nil, it is called first.
+// If Checker implements a method Before(*testing.T) then it is called next.
 func (self *T) Prepare(t *testing.T) {
 	if self.Update != nil {
 		self.Update(t)
 	}
-	self.Checker.Before(t)
+	if checker, ok := self.Checker.(interface { Before(t *testing.T) }); ok {
+		checker.Before(t)
+	}
 }
 
 func (self *T) Close() {

@@ -14,7 +14,15 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Type, ViewContainerRef } from '@angular/core';
+import { ComponentRef, Type, ViewContainerRef } from '@angular/core';
+
+function simpleComponentRef<T>(instance: T, type: Type<T>): ComponentRef<T> {
+  return {
+    instance: instance,
+    componentType: type,
+    destroy(): void {}
+  } as ComponentRef<T>;
+}
 
 /** A stub for DynamicComponentFactoryService. */
 export class DynamicComponentFactoryStub {
@@ -42,14 +50,14 @@ export class DynamicComponentFactoryStub {
     this.returnMap.get(type).push(component);
   }
 
-  createComponent<T>(_: ViewContainerRef, type: Type<T>): T {
+  createComponent<T>(_: ViewContainerRef, type: Type<T>): ComponentRef<T> {
     if (this.callsMap.has(type)) {
       this.callsMap.set(type, this.callsMap.get(type) + 1);
     } else {
       this.callsMap.set(type, 1);
     }
     if (this.returnMap.has(type)) {
-      return this.returnMap.get(type).shift();
+      return simpleComponentRef(this.returnMap.get(type).shift(), type);
     }
     return undefined;
   }
