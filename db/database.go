@@ -179,6 +179,7 @@ func RepeatDeadlocked(ctx context.Context, opts *sql.TxOptions, fct func(tx *sql
 				if !ok || !errors.As(err, &mySqlError) || mySqlError.Number != 1213 {
 					panic(exc)
 				}
+				log.Println("SQL error 1213. Restarting transaction.")
 			}()
 
 			fct(tx)
