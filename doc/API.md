@@ -38,7 +38,7 @@ ones.
 Queries' parameters must never be transmitted in the query part of the URL.
 
 POST queries must have an `Origin` header (or at least a `Referer` one). See method
-`server.Request.CheckPOST` in file [server/request.go](../server/request.go).
+`server.Request.CheckPOST` in file [mid/server/request.go](../mid/server/request.go).
 
 
 Response
@@ -77,7 +77,7 @@ For all subsequent request, the front end includes the session cookie and the se
 each request. The session identifier is send in the HTTP header `X-CSRF`.
 
 Sessions are created by the method server.Response.SendLoginAccepted in file
-[server/response.go](../server/response.go). They are decoded by the method
-server.Request.addSession in file [server/request.go](../server/request.go). On the front end,
+[mid/server/response.go](../mid/server/response.go). They are decoded by the method
+server.Request.addSession in file [mid/server/request.go](../mid/server/request.go). On the front end,
 sessions are handled by the classes [SessionService](../app/src/app/session/session.service.ts) and
 [SessionInterceptor](../app/src/app/session/session.interceptor.ts).
