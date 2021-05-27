@@ -79,7 +79,7 @@ func metaTestClosePoll(t *testing.T, checker func(*testing.T, *closePollTestInst
 		t.Run(fmt.Sprint(tt), func(t *testing.T) {
 			env := new(dbt.Env)
 			defer env.Close()
-			userId := env.CreateUser()
+			userId := env.CreateUserWith(t.Name())
 			pollId := env.CreatePoll("TestRoundCheckAllPolls_Close", userId, db.PollPublicityPublic)
 			env.Must(t)
 
