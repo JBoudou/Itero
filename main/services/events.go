@@ -18,16 +18,16 @@ package services
 
 import ()
 
-type VoteEvent struct {
-	Poll uint32
-}
-
 type CreatePollEvent struct {
 	Poll uint32
 }
 
-// ClosePollEvent is type of events send when a poll is closed.
-type ClosePollEvent struct {
+// StartPollEvent is send when a poll is started.
+type StartPollEvent struct {
+	Poll uint32
+}
+
+type VoteEvent struct {
 	Poll uint32
 }
 
@@ -37,7 +37,13 @@ type NextRoundEvent struct {
 	Round uint8
 }
 
-// StartPollEvent is send when a poll is started.
-type StartPollEvent struct {
+// ClosePollEvent is type of events send when a poll is closed.
+type ClosePollEvent struct {
 	Poll uint32
+}
+
+type DeletePollEvent struct {
+	Poll         uint32
+	Title        string
+	Participants map[uint32]bool
 }

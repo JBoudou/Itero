@@ -20,16 +20,11 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/JBoudou/Itero/main/services"
 	"github.com/JBoudou/Itero/mid/db"
-	"github.com/JBoudou/Itero/pkg/events"
 	"github.com/JBoudou/Itero/mid/server"
+	"github.com/JBoudou/Itero/pkg/events"
 )
-
-type DeletePollEvent struct {
-	Poll         uint32
-	Title        string
-	Participants map[uint32]bool
-}
 
 func DeleteHandler(ctx context.Context, response server.Response, request *server.Request) {
 	const (
@@ -43,7 +38,7 @@ func DeleteHandler(ctx context.Context, response server.Response, request *serve
 
 	segment, err := pollSegmentFromRequest(request)
 	must(err)
-	event := DeletePollEvent{Poll: segment.Id, Participants: make(map[uint32]bool, 2)}
+	event := services.DeletePollEvent{Poll: segment.Id, Participants: make(map[uint32]bool, 2)}
 
 	const (
 		qTitle = `
