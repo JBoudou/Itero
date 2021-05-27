@@ -140,6 +140,7 @@ func (self *createPollChecker) Check(t *testing.T, response *http.Response, requ
 
 	// Check Alternatives
 	rows, err := db.DB.Query(qCheckAlternative, pollSegment.Id)
+	defer rows.Close()
 	mustt(t, err)
 	for id, alt := range query.Alternatives {
 		if !rows.Next() {

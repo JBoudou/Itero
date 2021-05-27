@@ -57,6 +57,7 @@ func DeleteHandler(ctx context.Context, response server.Response, request *serve
 	)
 
 	rows, err := db.DB.QueryContext(ctx, qTitle, segment.Id, request.User.Id)
+	defer rows.Close()
 	must(err)
 	if !rows.Next() {
 		panic(server.NewHttpError(ImpossibleStatus, ImpossibleMessage, ""))
@@ -66,9 +67,9 @@ func DeleteHandler(ctx context.Context, response server.Response, request *serve
 		panic(server.NewHttpError(http.StatusInternalServerError, server.InternalHttpErrorMsg,
 			"Two polls witht the same Id"))
 	}
-	rows.Close()
 
 	rows, err = db.DB.QueryContext(ctx, qParticipants, segment.Id)
+	defer rows.Close()
 	must(err)
 	for rows.Next() {
 		var uid uint32
