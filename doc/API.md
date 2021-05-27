@@ -14,7 +14,7 @@ URLs are partitioned as follows, based on the one-letter first segment.
    these requests are redirected to `/index.html`.
 
 Details on the partition can be read in the function `server.Start` in file
-[server/server.go](../server/server.go).
+[mid/server/server.go](../mid/server/server.go).
 
 ## Poll segment
 
