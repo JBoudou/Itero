@@ -1,6 +1,6 @@
 <div class="navtitle-inner">
   <h1 i18n><a routerLink="/">Itero</a></h1>
-  <h2 i18n>Online iterative vote application</h2>
+  <h2 i18n>Online iterative vote <span class="appterme">application</span></h2>
   <nav>
     <a *ngIf="(demoIsActive$ | async) && !(session.state$ | async).logged"
       [routerLink]="(demoPath$ | async)" routerLinkActive="active">
