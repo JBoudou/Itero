@@ -16,7 +16,14 @@
 
 package emailsender
 
-import "text/template"
+import (
+	"errors"
+	"text/template"
+)
+
+var (
+	WrongEmailValue = errors.New("Wrong email value (missing recipient or nil template)")
+)
 
 type Email struct {
 	To   []string
