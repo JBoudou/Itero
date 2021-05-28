@@ -142,14 +142,14 @@ func TestFindFileInParent(t *testing.T) {
 			pwd:   "a/b/c/d",
 			file:  "foo.txt",
 			depth: 3,
-			expect: "a/b/c/d/foo.txt",
+			expect: "a/b/c/d",
 		},
 		{
 			name:  "Last",
 			pwd:   "a/b/c/d",
 			file:  "foo.cfg",
 			depth: 3,
-			expect: "a/foo.cfg",
+			expect: "a",
 		},
 		{
 			name:  "Too deep",

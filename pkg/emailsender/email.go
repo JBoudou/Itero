@@ -14,48 +14,17 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-package services
+package emailsender
 
-import ()
+import "text/template"
 
-//
-// Users
-//
-
-type CreateUserEvent struct {
-	User uint32
+type Email struct {
+	To   []string
+	Tmpl *template.Template
+	Data interface{}
 }
 
-//
-// Polls
-//
-
-type CreatePollEvent struct {
-	Poll uint32
-}
-
-// StartPollEvent is send when a poll is started.
-type StartPollEvent struct {
-	Poll uint32
-}
-
-type VoteEvent struct {
-	Poll uint32
-}
-
-// NextRoundEvent is the type of events send when a new round starts.
-type NextRoundEvent struct {
-	Poll  uint32
-	Round uint8
-}
-
-// ClosePollEvent is type of events send when a poll is closed.
-type ClosePollEvent struct {
-	Poll uint32
-}
-
-type DeletePollEvent struct {
-	Poll         uint32
-	Title        string
-	Participants map[uint32]bool
+type Sender interface {
+	Send(email Email) error
+	Close() error
 }

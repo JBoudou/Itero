@@ -18,7 +18,13 @@ package service
 
 import (
 	"log"
+
+	"github.com/JBoudou/Itero/pkg/ioc"
 )
+
+func init() {
+	ioc.Root.Set(func () LevelLogger { return EasyLogger{} })
+}
 
 // LevelLogger is a temporary interface before the new logger facility is implemented.
 type LevelLogger interface {

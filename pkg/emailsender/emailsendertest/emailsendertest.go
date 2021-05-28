@@ -14,48 +14,32 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-package services
+package emailsendertest
 
-import ()
+import (
+	"testing"
 
-//
-// Users
-//
+	"github.com/JBoudou/Itero/pkg/emailsender"
+)
 
-type CreateUserEvent struct {
-	User uint32
+type SenderMock struct {
+	T *testing.T
+	Send_ func(emailsender.Email) error
+	Close_ func() error
 }
 
-//
-// Polls
-//
-
-type CreatePollEvent struct {
-	Poll uint32
+func (self SenderMock) Send(email emailsender.Email) error {
+	if self.Send_ == nil {
+		self.T.Error("Send unexpectedly called")
+		return nil
+	}
+	return self.Send_(email)
 }
 
-// StartPollEvent is send when a poll is started.
-type StartPollEvent struct {
-	Poll uint32
-}
-
-type VoteEvent struct {
-	Poll uint32
-}
-
-// NextRoundEvent is the type of events send when a new round starts.
-type NextRoundEvent struct {
-	Poll  uint32
-	Round uint8
-}
-
-// ClosePollEvent is type of events send when a poll is closed.
-type ClosePollEvent struct {
-	Poll uint32
-}
-
-type DeletePollEvent struct {
-	Poll         uint32
-	Title        string
-	Participants map[uint32]bool
+func (self SenderMock) Close() error {
+	if self.Close_ == nil {
+		self.T.Error("Close unexpectedly called")
+		return nil
+	}
+	return self.Close_()
 }

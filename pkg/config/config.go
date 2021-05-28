@@ -45,6 +45,9 @@ var (
 // It may be false after init() has been called if no configuration file has been found.
 var Ok bool
 
+// BaseDir is the path in which the configuration file has been found.
+var BaseDir string
+
 // Error returned when the key is not found in the configuration.
 type KeyNotFound string
 
@@ -59,13 +62,14 @@ func init() {
 func readConfigFile() bool {
 	log.Println("Loading configuration")
 
-	foundfile, err := FindFileInParent(configFileName, maxDepth)
+	var err error
+	BaseDir, err = FindFileInParent(configFileName, maxDepth)
 	if err != nil && errors.Is(err, os.ErrNotExist) {
 		log.Printf("WARNING: no configuration file ./%s found! You must create it.", configFileName)
 		log.Printf("To enable tests, there must be a configuration file (or link) in each package folder.")
 		return false
 	}
-	in, err := os.Open(foundfile)
+	in, err := os.Open(filepath.Join(BaseDir, configFileName))
 	if err != nil {
 		panic(err)
 	}
@@ -119,19 +123,17 @@ func ValueOr(key string, ret interface{}, byDefault interface{}) (err error) {
 }
 
 func FindFileInParent(filename string, maxdepth int) (path string, err error) {
-	var cur string
-	cur, err = os.Getwd()
+	path, err = os.Getwd()
 	if err != nil {
 		return
 	}
 
 	for i := 0; i <= maxdepth; i++ {
-		path = filepath.Join(cur, filename)
 		var stat os.FileInfo
-		if stat, err = os.Stat(path); err == nil && !stat.IsDir() {
+		if stat, err = os.Stat(filepath.Join(path, filename)); err == nil && !stat.IsDir() {
 			return
 		}
-		cur = filepath.Dir(cur)
+		path = filepath.Dir(path)
 	}
 	return "", os.ErrNotExist
 }
