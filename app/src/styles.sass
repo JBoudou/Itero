@@ -3,6 +3,8 @@
 @import 'typo'
 @import 'sizes'
 @import 'mixins'
+@import 'responsive'
+
 
 body
   font-family: "Asap", sans-serif
@@ -42,7 +44,9 @@ input
     &[disabled], &[disabled]:hover
       border-color: tame($maincolor)
       background-color: tame($userbuttonbgcolor)
-      color: tame($useboxfgcolor)
+      color: tame($useboxfgcolor)   
+
+
 
 .formactions.login-action
   justify-content: center
@@ -116,7 +120,10 @@ input
   color: $errorcolor
 
 .dialog-message
-  margin-bottom: $medium-space
+  margin-bottom: $big-space
+
+  @media (max-width: $breakpoint-tablet)
+    margin-bottom: $medium-space
 
 .information-container
   display: grid
@@ -139,6 +146,7 @@ $itero-mat-accent: mat-palette($itero-mat-maincolor, A400, A200, A700)
 $itero-mat-theme: mat-light-theme(( color: ( primary: $itero-mat-primary, accent: $itero-mat-accent )))
 @include angular-material-theme($itero-mat-theme)
 @include angular-material-typography($itero-mat-typography)
+
 
 .basicform mat-select
   @include userinput
@@ -187,34 +195,45 @@ div.mat-menu-panel.nav-menu
     background-color: $nav-hover-bg
     color: white
 
-.mat-dialog-container
-    display: block
-    padding: 10px
-    border-radius: 4px
-    box-sizing: border-box
-    overflow: auto
-    outline: 0
-    width: 100%
-    height: 100%
-    min-height: inherit
-    max-height: inherit
-    box-shadow: 0px 11px 15px -7px rgb(0 0 0 / 20%), 0px 24px 38px 3px rgb(0 0 0 / 14%), 0px 9px 46px 8px rgb(0 0 0 / 12%)
-    background: white
-    color: rgba(0, 0, 0, 0.87)
+    
 
-.dialog 
-    padding: 45px 0
+ 
+.dialog-buttons
+  @media (max-width: $breakpoint-tablet) 
+    display: flex
+    justify-content: center
+    flex-direction: column
+    align-items: center
+    button
+      @include userbox
+      background-color: $userbuttonbgcolor
+      font-size: $fontsize
+      padding: 0.4em 1em
+      margin-bottom: $medium-space
+      &:hover
+        background-color: color.adjust($maincolor, $lightness: 20%)
+        color: $fgOnMaincolor
+      &[disabled], &[disabled]:hover
+        border-color: tame($maincolor)
+        background-color: tame($userbuttonbgcolor)
+        color: tame($useboxfgcolor) 
+
+  @media (min-width: $breakpoint-tablet)
+    padding: $small-space 0
     display: flex
     justify-content: flex-end
-    flex-direction: column
+    flex-direction: row
     button
-      border: solid 1px #602c57
-      border-radius: 3px
-      padding: 4px
-      color: #381a33
-      font-family: "Asap"
-      font-size: 12pt
-      background-color: #d5b6d0
-      font-size: 13pt
+      @include userbox
+      background-color: $userbuttonbgcolor
+      font-size: $fontsize
       padding: 0.4em 1em
-      margin-left: 8px
+      margin-bottom: 0
+      margin-left: $medium-space
+      &:hover
+        background-color: color.adjust($maincolor, $lightness: 20%)
+        color: $fgOnMaincolor
+      &[disabled], &[disabled]:hover
+        border-color: tame($maincolor)
+        background-color: tame($userbuttonbgcolor)
+        color: tame($useboxfgcolor)
