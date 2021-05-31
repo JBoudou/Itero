@@ -26,9 +26,11 @@ import (
 
 	"github.com/go-sql-driver/mysql"
 
+	"github.com/JBoudou/Itero/main/services"
 	"github.com/JBoudou/Itero/mid/db"
 	"github.com/JBoudou/Itero/mid/server"
 	"github.com/JBoudou/Itero/mid/server/logger"
+	"github.com/JBoudou/Itero/pkg/events"
 )
 
 func SignupHandler(ctx context.Context, response server.Response, request *server.Request) {
@@ -114,6 +116,8 @@ func SignupHandler(ctx context.Context, response server.Response, request *serve
 		response.SendError(ctx, err)
 		return
 	}
+
+	events.Send(services.CreateUserEvent{User: uint32(rawId)})
 
 	// Start session //
 

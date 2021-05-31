@@ -25,6 +25,7 @@ import (
 	"github.com/JBoudou/Itero/pkg/config"
 	"github.com/JBoudou/Itero/pkg/emailsender"
 	"github.com/JBoudou/Itero/pkg/events"
+	"github.com/JBoudou/Itero/pkg/ioc"
 )
 
 // TmplBaseDir is the directory to find email templates into.
@@ -62,6 +63,31 @@ func StartEmailService(evtManager events.Manager,
 // Implementation
 //
 
+var emailConfig struct {
+	Sender string
+}
+
+func init() {
+	// IoC
+	ioc.Root.Set(func() (emailsender.Sender, error) {
+		options := emailsender.BatchSenderOptions{
+			MinBatchLen: 2,
+			MaxDelay:    "1m",
+			SMTP:        "localhost:25",
+		}
+
+		err := config.Value("emails", &options)
+		if err != nil {
+			return nil, err
+		}
+
+		return emailsender.StartBatchSender(options)
+	})
+
+	// Config
+	config.Value("emails", &emailConfig)
+}
+
 type emailService struct {
 	sender  emailsender.Sender
 	evtChan <-chan events.Event
@@ -96,9 +122,11 @@ func (self emailService) createUser(userId uint32) {
 		return
 	}
 	var data struct {
+		Sender  string
 		Name    string
 		Address string
 	}
+	data.Sender = emailConfig.Sender
 	err = rows.Scan(&data.Name, &data.Address)
 	if err != nil {
 		self.log.Errorf("Error retrieving user %d: %v", userId, err)

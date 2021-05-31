@@ -23,13 +23,22 @@ import (
 	"github.com/JBoudou/Itero/mid/service"
 	. "github.com/JBoudou/Itero/main/handlers"
 	. "github.com/JBoudou/Itero/main/services"
+	"github.com/JBoudou/Itero/pkg/ioc"
+	"github.com/JBoudou/Itero/pkg/events"
 )
+
+func init() {
+	// Events
+	// TODO: do not have events.DefaultManager
+	ioc.Root.Set(func () events.Manager { return events.DefaultManager })
+}
 
 func main() {
 	// Services
 	service.Run(StartPollService)
 	service.Run(NextRoundService)
 	service.Run(ClosePollService)
+	ioc.Root.Get(StartEmailService)
 
 	// Misc
 	RunPollNotif(PollNotifDelay)
