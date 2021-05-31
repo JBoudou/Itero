@@ -5,7 +5,6 @@
 @import 'mixins'
 @import 'responsive'
 
-
 body
   font-family: "Asap", sans-serif
   font-size: $fontsize
@@ -44,10 +43,19 @@ input
     &[disabled], &[disabled]:hover
       border-color: tame($maincolor)
       background-color: tame($userbuttonbgcolor)
-      color: tame($useboxfgcolor)   
+      color: tame($useboxfgcolor) 
 
-
-
+@media screen and (max-width: $breakpoint-tablet)
+  .dialog-box .formactions
+    padding: 0
+    display: flex
+    justify-content: center
+    flex-direction: column
+    align-items: center
+    button
+      @include userbox
+      margin-bottom: $medium-space
+  
 .formactions.login-action
   justify-content: center
   margin-top: 1em
@@ -120,10 +128,7 @@ input
   color: $errorcolor
 
 .dialog-message
-  margin-bottom: $big-space
-
-  @media (max-width: $breakpoint-tablet)
-    margin-bottom: $medium-space
+  margin-bottom: 4ex
 
 .information-container
   display: grid
@@ -194,46 +199,3 @@ div.mat-menu-panel.nav-menu
   button.mat-menu-item:hover
     background-color: $nav-hover-bg
     color: white
-
-    
-
- 
-.dialog-buttons
-  @media (max-width: $breakpoint-tablet) 
-    display: flex
-    justify-content: center
-    flex-direction: column
-    align-items: center
-    button
-      @include userbox
-      background-color: $userbuttonbgcolor
-      font-size: $fontsize
-      padding: 0.4em 1em
-      margin-bottom: $medium-space
-      &:hover
-        background-color: color.adjust($maincolor, $lightness: 20%)
-        color: $fgOnMaincolor
-      &[disabled], &[disabled]:hover
-        border-color: tame($maincolor)
-        background-color: tame($userbuttonbgcolor)
-        color: tame($useboxfgcolor) 
-
-  @media (min-width: $breakpoint-tablet)
-    padding: $small-space 0
-    display: flex
-    justify-content: flex-end
-    flex-direction: row
-    button
-      @include userbox
-      background-color: $userbuttonbgcolor
-      font-size: $fontsize
-      padding: 0.4em 1em
-      margin-bottom: 0
-      margin-left: $medium-space
-      &:hover
-        background-color: color.adjust($maincolor, $lightness: 20%)
-        color: $fgOnMaincolor
-      &[disabled], &[disabled]:hover
-        border-color: tame($maincolor)
-        background-color: tame($userbuttonbgcolor)
-        color: tame($useboxfgcolor)
