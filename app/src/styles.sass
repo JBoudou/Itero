@@ -11,6 +11,31 @@ body
   margin: #{$navbarheight + 16} $medium-space $medium-space
   color: color.adjust($maincolor, $lightness: -25%)
 
+// other styles classes for the screen size
+//styles for the screen size 320px to 480px
+@media only screen and (min-width : 320px) and (max-width : 480px)
+    body
+        font-size: 11pt
+
+//for the screen size 481px to 540px
+@media only screen and (min-width : 481px) and (max-width : 540px)
+    body
+        font-size: 11.5pt
+
+//styles for the screen size 541px to 767px
+@media only screen and (min-width : 541px) and (max-width : 767px)
+    body
+        font-size: 12pt
+
+//styles for the screen size 768px to 959px
+
+@media only screen and (min-width : 768px) and (max-width : 959px) {
+    body {
+        font-size: 12.5pt
+    }
+
+
+
 .main-container
   max-width: $contmaxwidth
   margin: 6em auto 0
@@ -43,7 +68,7 @@ input
     &[disabled], &[disabled]:hover
       border-color: tame($maincolor)
       background-color: tame($userbuttonbgcolor)
-      color: tame($useboxfgcolor) 
+      color: tame($useboxfgcolor)
 
 @media screen and (max-width: $breakpoint-tablet)
   .dialog-box .formactions
@@ -53,7 +78,7 @@ input
     button
       margin-left: 0
       margin-bottom: $medium-space
-  
+
 .formactions.login-action
   justify-content: center
   margin-top: 1em
@@ -100,13 +125,13 @@ input
     color: currentColor
   input[type="number"]
     text-align: center
-  
+
 .formerrors
   color: $errorcolor
   font-size: 10pt
   p
     margin: 0
-    
+
 .form-alone
   width: 260px
   margin: 0 auto
