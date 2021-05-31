@@ -27,9 +27,18 @@ type BatchSenderOptions struct {
 	SMTP        string // host:port
 }
 
-func NewBatchSender(options BatchSenderOptions) (Sender, error) {
-	// TODO
-	return nil, nil
+func StartBatchSender(options BatchSenderOptions) (sender *BatchSender, err error) {
+	var maxWait time.Duration
+	maxWait, err = time.ParseDuration(options.MaxDelay)
+	if err != nil {
+		return
+	}
+
+	sender = newBatchSender(maxWait, options.MinBatchLen)
+	sender.back = &DirectSender{ Sender: options.Sender, SMTP: options.SMTP }
+
+	go sender.run()
+	return
 }
 
 //
@@ -94,10 +103,10 @@ func (self *expiringStore) Overdue() bool {
 }
 
 //
-// batchSender
+// BatchSender
 //
 
-type batchSender struct {
+type BatchSender struct {
 	emailChan chan Email
 	ticker    *time.Ticker
 	store     *expiringStore
@@ -107,9 +116,9 @@ type batchSender struct {
 	closed    bool
 }
 
-// newBatchSender set a new batchSender, except field back
-func newBatchSender(maxWait time.Duration, minLen int) *batchSender {
-	return &batchSender{
+// newBatchSender set a new BatchSender, except field back
+func newBatchSender(maxWait time.Duration, minLen int) *BatchSender {
+	return &BatchSender{
 		emailChan: make(chan Email, minLen * 2),
 		ticker: time.NewTicker(maxWait / 10),
 		store: newExpiringStore(maxWait),
@@ -117,7 +126,7 @@ func newBatchSender(maxWait time.Duration, minLen int) *batchSender {
 	}
 }
 
-func (self *batchSender) Send(email Email) error {
+func (self *BatchSender) Send(email Email) error {
 	if len(email.To) < 1 || email.Tmpl == nil {
 		return WrongEmailValue
 	}
@@ -125,12 +134,12 @@ func (self *batchSender) Send(email Email) error {
 	return nil
 }
 
-func (self *batchSender) Close() error {
+func (self *BatchSender) Close() error {
 	close(self.emailChan)
 	return nil
 }
 
-func (self *batchSender) run() {
+func (self *BatchSender) run() {
 	for !self.closed {
 		if self.open {
 			self.nonblocking()
@@ -140,7 +149,7 @@ func (self *batchSender) run() {
 	}
 }
 
-func (self *batchSender) blocking() {
+func (self *BatchSender) blocking() {
 	select {
 	case email, ok := <-self.emailChan:
 		self.handleEmail(email, ok)
@@ -150,7 +159,7 @@ func (self *batchSender) blocking() {
 	}
 }
 
-func (self *batchSender) nonblocking() {
+func (self *BatchSender) nonblocking() {
 	self.back.Send(self.store.Pop())
 
 	select {
@@ -167,7 +176,7 @@ func (self *batchSender) nonblocking() {
 	}
 }
 
-func (self *batchSender) handleEmail(email Email, ok bool) {
+func (self *BatchSender) handleEmail(email Email, ok bool) {
 	if !ok {
 		self.ticker.Stop()
 		self.back.Close()
