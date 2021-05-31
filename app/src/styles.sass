@@ -48,10 +48,9 @@ input
 @media screen and (max-width: $breakpoint-tablet)
   .dialog-box .formactions
     padding: 0
-    display: flex
-    justify-content: center
     flex-direction: column
-    align-items: center
+    align-items: stretch
+    margin-left: 0
     button
       @include userbox
       margin-bottom: $medium-space
@@ -151,7 +150,6 @@ $itero-mat-accent: mat-palette($itero-mat-maincolor, A400, A200, A700)
 $itero-mat-theme: mat-light-theme(( color: ( primary: $itero-mat-primary, accent: $itero-mat-accent )))
 @include angular-material-theme($itero-mat-theme)
 @include angular-material-typography($itero-mat-typography)
-
 
 .basicform mat-select
   @include userinput
