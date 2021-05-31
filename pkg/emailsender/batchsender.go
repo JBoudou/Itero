@@ -20,6 +20,9 @@ import (
 	"time"
 )
 
+// BatchSenderOptions records the options for the batch sender. A email is sent by the batch sender
+// either if there are at least (MinBatchLen - 1) other emails waiting for being sent, or if the
+// email has beeen asked to be sent at least MaxDelay ago.
 type BatchSenderOptions struct {
 	MinBatchLen int
 	MaxDelay    string // string representation of a duration
@@ -27,6 +30,7 @@ type BatchSenderOptions struct {
 	SMTP        string // host:port
 }
 
+// StartBatchSender creates, starts and returns a new BatchSender.
 func StartBatchSender(options BatchSenderOptions) (sender *BatchSender, err error) {
 	var maxWait time.Duration
 	maxWait, err = time.ParseDuration(options.MaxDelay)
@@ -106,6 +110,10 @@ func (self *expiringStore) Overdue() bool {
 // BatchSender
 //
 
+// BatchSender is a sender that stores emails in a queue to send them asynchronously in batch.
+// Emails from the queue are sent while the connections is opened. The connection is opened once the
+// number of waiting emails reach a threshold or when an email is in the queue for at least a
+// given duration. The connection is closed as soon as there is no waiting email in the queue.
 type BatchSender struct {
 	emailChan chan Email
 	ticker    *time.Ticker
@@ -116,7 +124,7 @@ type BatchSender struct {
 	closed    bool
 }
 
-// newBatchSender set a new BatchSender, except field back
+// newBatchSender set a new BatchSender, except field back.
 func newBatchSender(maxWait time.Duration, minLen int) *BatchSender {
 	return &BatchSender{
 		emailChan: make(chan Email, minLen * 2),
@@ -126,6 +134,7 @@ func newBatchSender(maxWait time.Duration, minLen int) *BatchSender {
 	}
 }
 
+// Send adds an email to the queue.
 func (self *BatchSender) Send(email Email) error {
 	if len(email.To) < 1 || email.Tmpl == nil {
 		return WrongEmailValue
@@ -134,6 +143,8 @@ func (self *BatchSender) Send(email Email) error {
 	return nil
 }
 
+// Close asks the sender to send all the emails in the queue and then to stop the background
+// goroutine.
 func (self *BatchSender) Close() error {
 	close(self.emailChan)
 	return nil
@@ -147,6 +158,12 @@ func (self *BatchSender) run() {
 			self.blocking()
 		}
 	}
+
+	// Send all remaining emails
+	for !self.store.Empty() {
+		self.back.Send(self.store.Pop())
+	}
+	self.back.Close()
 }
 
 func (self *BatchSender) blocking() {
