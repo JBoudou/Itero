@@ -7,172 +7,194 @@
   Your vote has not been taken into account because the next round started while you were voting.
 </p>
 
-<mat-sidenav-container class="main-bar-container">
-  <mat-sidenav opened mode="side" position="end">
-    <mat-icon>help</mat-icon>
-  </mat-sidenav>
+<div class="information-container" *ngIf="!error">
+  <div class="poll-main" *ngIf="!!answer else loadingTmpl">
 
-  <mat-sidenav-content>
-    <div class="information-container" *ngIf="!error">
-      <div class="poll-main" *ngIf="!!answer else loadingTmpl">
-
-        <div class="poll-information">
-          <h3 class="poll-title">{{answer.Title}}</h3>
-          <div class="poll-details">
-            <p class="poll-description">{{answer.Description}}</p>
-            <p class="poll-creation" i18n>Poll created by {{answer.Admin}} on {{answer.CreationTime | date}}.</p>
-          </div>
-        </div>
-
-        <div class="poll-ballot" *ngIf="answer.Active">
-          <h3 class="poll-round" i18n>
-            {{ answer.CurrentRound + 1 | ordinal:true }} Round
-          </h3>
-          <p class="previous-vote" *ngIf="hasCurrentRoundBallot()" i18n>
-            On the current round, you've already
-            <ng-container [ngSwitch]="currentRoundBallot.type != BallotType['Blank']">
-              <ng-container *ngSwitchCase="true">
-                voted <span class="vote">{{currentRoundBallot.asString}}</span>.
-              </ng-container>
-              <ng-container *ngSwitchCase="false">
-                abstained.
-              </ng-container>
-            </ng-container>
-            You may now change this vote.
-          </p>
-          <p class="just-vote" *ngIf="hasJustVoteBallot()" i18n>
-            Your
-            <ng-container *ngIf="justVoteBallot.type == BallotType['Blank']">blank</ng-container>
-            vote
-            <ng-container *ngIf="justVoteBallot.type != BallotType['Blank']">
-              for <span class="vote">{{justVoteBallot.asString}}</span>
-            </ng-container>
-            has been taken into account.
-          </p>
-          <ng-template PollBallot></ng-template>
-        </div>
-          
-        <div class="poll-result" *ngIf="answer.CurrentRound >= 1">
-          <ng-template #finalTmpl>
-            <h3 i18n>Final result</h3>
-          </ng-template>
-          <h3 class="poll-round" *ngIf="answer.Active else finalTmpl" i18n>
-            {{ answer.CurrentRound | ordinal:true }} Round
-          </h3>
-          <p class="previous-vote" *ngIf="hasPreviousRoundBallot()" i18n>
-            On the previous round, you
-            <ng-container [ngSwitch]="previousRoundBallot.type != BallotType['Blank']">
-              <ng-container *ngSwitchCase="true">
-                voted <span class="vote">{{previousRoundBallot.asString}}</span>.
-              </ng-container>
-              <ng-container *ngSwitchCase="false">
-                abstained.
-              </ng-container>
-            </ng-container>
-          </p>
-          <ng-template #winnerTmpl>
-            <p class="final-result" i18n>The winner is <span class="vote">{{winner$ | async}}</span>.</p>
-          </ng-template>
-          <h4 *ngIf="answer.Active else winnerTmpl" i18n>Results of the previous round</h4>
-          <ng-template PollInformation></ng-template>
-        </div>
-
-        <div class="poll-previous-results" *ngIf="displayPreviousResults()">
-          <h3 i18n>Previous rounds</h3>
-          <form (submit)="onPreviousResult()" [formGroup]="previousForm" i18n>
-            Display results of round&nbsp;
-            <mat-form-field appearance="standard">
-              <input matInput type="number" size="2" min="1" [max]="lastDisplayRound()" formControlName="round" />
-              <button mat-icon-button matSuffix type="submit"><mat-icon>addchart</mat-icon></button>
-            </mat-form-field>
-          </form>
-          <h4 *ngIf="displayedResult !== undefined" i18n>Results of round {{ displayedResult }}</h4>
-          <ng-template PollPrevious></ng-template>
-        </div>
-
-      </div>
-
-      <div class="information" *ngIf="!!answer">
-        
-        <ng-template #firstRoundTmpl>
-          <p i18n>
-            This is the first round of the poll.
-            <ng-container *ngIf="!hasCurrentRoundBallot()">
-              You can submit a first ballot, in which case you will become a participant of the poll.
-            </ng-container>
-            In the next rounds, you will be able to change your vote, based on the results of the previous round.
-            The first round will end
-            <ng-container [ngSwitch]="roundDeadlinePassed()">
-              <ng-container *ngSwitchCase="true">
-                as soon as three participants have voted.
-              </ng-container>
-              <ng-container *ngSwitchCase="false">
-                {{ answer.RoundDeadline | nearDate:'inside' }}.
-              </ng-container>
-            </ng-container>
-            <ng-container *ngIf="!hasCurrentRoundBallot()">
-              It will not be possible to join the poll once the first round has ended.
-            </ng-container>
-            Then, each round will last {{ answer.MaxRoundDuration | duration }}, or until all participants have voted,
-            whichever comes first.
-          </p>
-        </ng-template>
-
-        <ng-container [ngSwitch]="answer.State">
-          <ng-container *ngSwitchCase="'Waiting'">
-            <p i18n>
-              The poll will start {{ answer.Start | nearDate:'inside' }}.
-              You won't be able to vote until that date.
-            </p>
-          </ng-container>
-          <ng-container *ngSwitchCase="'Terminated'">
-            <p i18n>
-              Votes are now closed for this poll.
-              The displayed result is the final one.
-            </p>
-          </ng-container>
-          <ng-container *ngSwitchCase="'Active'">
-            <p *ngIf="answer.CurrentRound > 0 else firstRoundTmpl" i18n>
-              This is the {{ answer.CurrentRound + 1 | ordinal }} round of the poll.
-              You can now change your vote, based on the result of the previous round.
-              If you do not vote before the end of the round,
-              <ng-container [ngSwitch]="answer.CarryForward">
-                <ng-container *ngSwitchCase="false">
-                  you will be declared abstentionist.
-                </ng-container>
-                <ng-container *ngSwitchCase="true">
-                  your previous vote will be carried forward.
-                </ng-container>
-              </ng-container>
-              The round will end {{ answer.RoundDeadline | nearDate:'inside' }} or when all participants have voted,
-              whichever comes first.
-            </p>
-
-            <p i18n>
-              The poll will end after
-              <ng-container [ngSwitch]="pollEndCase()">
-                <ng-container *ngSwitchCase="'current'">
-                  the current round.
-                </ng-container>
-                <ng-container *ngSwitchCase="'deadlinePassed'">
-                  the {{ answer.MinNbRounds | ordinal }} round.
-                </ng-container>
-                <ng-container *ngSwitchCase="'minExceeded'">
-                  the {{ answer.MaxNbRounds | ordinal }} round, or
-                  {{ answer.PollDeadline | nearDate:'inside' }}, wichever comes first.
-                </ng-container>
-                <ng-container *ngSwitchCase="'full'">
-                  the {{ answer.MaxNbRounds | ordinal }} round, or
-                  after the {{ answer.MinNbRounds | ordinal }} round
-                  if that happens after {{ answer.PollDeadline | nearDate:'noPrep' }}.
-                </ng-container>
-              </ng-container>
-            </p>
-          </ng-container>
-        </ng-container>
-
+    <div class="poll-information">
+      <h3 class="poll-title">{{answer.Title}}</h3>
+      <div class="poll-details">
+        <p class="poll-description">{{answer.Description}}</p>
+        <p class="poll-creation" i18n>Poll created by {{answer.Admin}} on {{answer.CreationTime | date}}.</p>
       </div>
     </div>
-  </mat-sidenav-content>
-</mat-sidenav-container>
 
+    <div class="poll-ballot" *ngIf="answer.Active">
+      <h3 class="poll-round" i18n>
+        {{ answer.CurrentRound + 1 | ordinal:true }} Round
+      </h3>
+      <p class="previous-vote" *ngIf="hasCurrentRoundBallot()" i18n>
+        On the current round, you've already
+        <ng-container [ngSwitch]="currentRoundBallot.type != BallotType['Blank']">
+          <ng-container *ngSwitchCase="true">
+            voted <span class="vote">{{currentRoundBallot.asString}}</span>.
+          </ng-container>
+          <ng-container *ngSwitchCase="false">
+            abstained.
+          </ng-container>
+        </ng-container>
+        You may now change this vote.
+      </p>
+      <p class="just-vote" *ngIf="hasJustVoteBallot()" i18n>
+        Your
+        <ng-container *ngIf="justVoteBallot.type == BallotType['Blank']">blank</ng-container>
+        vote
+        <ng-container *ngIf="justVoteBallot.type != BallotType['Blank']">
+          for <span class="vote">{{justVoteBallot.asString}}</span>
+        </ng-container>
+        has been taken into account.
+      </p>
+      <ng-template PollBallot></ng-template>
+    </div>
+      
+    <div class="poll-result" *ngIf="answer.CurrentRound >= 1">
+      <ng-template #finalTmpl>
+        <h3 i18n>Final result</h3>
+      </ng-template>
+      <h3 class="poll-round" *ngIf="answer.Active else finalTmpl" i18n>
+        {{ answer.CurrentRound | ordinal:true }} Round
+      </h3>
+      <p class="previous-vote" *ngIf="hasPreviousRoundBallot()" i18n>
+        On the previous round, you
+        <ng-container [ngSwitch]="previousRoundBallot.type != BallotType['Blank']">
+          <ng-container *ngSwitchCase="true">
+            voted <span class="vote">{{previousRoundBallot.asString}}</span>.
+          </ng-container>
+          <ng-container *ngSwitchCase="false">
+            abstained.
+          </ng-container>
+        </ng-container>
+      </p>
+      <ng-template #winnerTmpl>
+        <p class="final-result" i18n>The winner is <span class="vote">{{winner$ | async}}</span>.</p>
+      </ng-template>
+      <h4 *ngIf="answer.Active else winnerTmpl" i18n>Results of the previous round</h4>
+      <ng-template PollInformation></ng-template>
+    </div>
+
+    <div class="poll-previous-results" *ngIf="displayPreviousResults()">
+      <h3 i18n>Previous rounds</h3>
+      <form (submit)="onPreviousResult()" [formGroup]="previousForm" i18n>
+        Display results of round&nbsp;
+        <mat-form-field appearance="standard">
+          <input matInput type="number" size="2" min="1" [max]="lastDisplayRound()" formControlName="round" />
+          <button mat-icon-button matSuffix type="submit"><mat-icon>addchart</mat-icon></button>
+        </mat-form-field>
+      </form>
+      <h4 *ngIf="displayedResult !== undefined" i18n>Results of round {{ displayedResult }}</h4>
+      <ng-template PollPrevious></ng-template>
+    </div>
+
+  </div>
+
+  <div class="information" *ngIf="!!answer">
+    
+    <ng-template #firstRoundTmpl>
+      <p i18n>
+        This is the first round of the poll.
+        <ng-container *ngIf="!hasCurrentRoundBallot()">
+          You can submit a first ballot, in which case you will become a participant of the poll.
+        </ng-container>
+        In the next rounds, you will be able to change your vote, based on the results of the previous round.
+        The first round will end
+        <ng-container [ngSwitch]="roundDeadlinePassed()">
+          <ng-container *ngSwitchCase="true">
+            as soon as three participants have voted.
+          </ng-container>
+          <ng-container *ngSwitchCase="false">
+            {{ answer.RoundDeadline | nearDate:'inside' }}.
+          </ng-container>
+        </ng-container>
+        <ng-container *ngIf="!hasCurrentRoundBallot()">
+          It will not be possible to join the poll once the first round has ended.
+        </ng-container>
+        Then, each round will last {{ answer.MaxRoundDuration | duration }}, or until all participants have voted,
+        whichever comes first.
+      </p>
+    </ng-template>
+
+    <ng-container [ngSwitch]="answer.State">
+      <ng-container *ngSwitchCase="'Waiting'">
+        <p i18n>
+          The poll will start {{ answer.Start | nearDate:'inside' }}.
+          You won't be able to vote until that date.
+        </p>
+      </ng-container>
+      <ng-container *ngSwitchCase="'Terminated'">
+        <p i18n>
+          Votes are now closed for this poll.
+          The displayed result is the final one.
+        </p>
+      </ng-container>
+      <ng-container *ngSwitchCase="'Active'">
+        <p *ngIf="answer.CurrentRound > 0 else firstRoundTmpl" i18n>
+          This is the {{ answer.CurrentRound + 1 | ordinal }} round of the poll.
+          You can now change your vote, based on the result of the previous round.
+          If you do not vote before the end of the round,
+          <ng-container [ngSwitch]="answer.CarryForward">
+            <ng-container *ngSwitchCase="false">
+              you will be declared abstentionist.
+            </ng-container>
+            <ng-container *ngSwitchCase="true">
+              your previous vote will be carried forward.
+            </ng-container>
+          </ng-container>
+          The round will end {{ answer.RoundDeadline | nearDate:'inside' }} or when all participants have voted,
+          whichever comes first.
+        </p>
+
+        <p i18n>
+          The poll will end after
+          <ng-container [ngSwitch]="pollEndCase()">
+            <ng-container *ngSwitchCase="'current'">
+              the current round.
+            </ng-container>
+            <ng-container *ngSwitchCase="'deadlinePassed'">
+              the {{ answer.MinNbRounds | ordinal }} round.
+            </ng-container>
+            <ng-container *ngSwitchCase="'minExceeded'">
+              the {{ answer.MaxNbRounds | ordinal }} round, or
+              {{ answer.PollDeadline | nearDate:'inside' }}, wichever comes first.
+            </ng-container>
+            <ng-container *ngSwitchCase="'full'">
+              the {{ answer.MaxNbRounds | ordinal }} round, or
+              after the {{ answer.MinNbRounds | ordinal }} round
+              if that happens after {{ answer.PollDeadline | nearDate:'noPrep' }}.
+            </ng-container>
+          </ng-container>
+        </p>
+      </ng-container>
+    </ng-container>
+
+  </div>
+
+  <div class="sidemenu" id="sidemenu">
+    <div class="simplemenu" id="simplemenu">
+      <mat-icon class="helpbutton" id="helpbutton" onclick="show()">help</mat-icon>
+    </div>
+    <div class="menuinfo">
+    information
+    </div>
+  </div>
+  
+</div>
+
+<script type="text/javascript">
+  function show(){
+    var info=document.getElementById('menuinfo');
+    if (info.style.display === 'none'){
+      info.style.display = 'block';
+    }
+  }
+    
+  window.onload.function()
+  {
+    var hidediv=document.getElementById('menuinfo');
+    document.onclick=fuction(div)
+    {
+      if(div.target.id !== 'simplemenu')
+      {
+        hidediv.style.display='none';
+      }
+    };
+  };
+</script>

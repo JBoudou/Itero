@@ -22,7 +22,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule }    from '@angular/material/icon'; 
 import { MatInputModule } from '@angular/material/input';
-import { MatSidenavModule } from '@angular/material/sidenav';
 
 import { PollRoutingModule } from './poll-routing.module';
 import { FormWidgetModule } from '../form-widget/form-widget.module';
@@ -50,7 +49,6 @@ import { CountsInformationService } from './counts-information/counts-informatio
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
-    MatSidenavModule,
     PollRoutingModule,
     ReactiveFormsModule,
     SharedModule,
