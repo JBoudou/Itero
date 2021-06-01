@@ -7,7 +7,7 @@ CREATE TABLE Confirmations (
   Expires datetime        NOT NULL,
 
   CONSTRAINT Confirmations_pk PRIMARY KEY (Id),
-  CONSTRAINT Confirmations_User_fk FOREIGN KEY (User) REFERENCES Users (Id),
+  CONSTRAINT Confirmations_User_fk FOREIGN KEY (User) REFERENCES Users (Id) ON DELETE CASCADE,
   CONSTRAINT Confirmations_UserType_unique UNIQUE (User, Type)
 
 ) ENGINE = InnoDB;

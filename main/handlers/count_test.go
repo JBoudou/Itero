@@ -23,6 +23,7 @@ import (
 
 	"github.com/JBoudou/Itero/mid/db"
 	dbt "github.com/JBoudou/Itero/mid/db/dbtest"
+	"github.com/JBoudou/Itero/mid/salted"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
 )
 
@@ -57,7 +58,7 @@ func TestCountInfoHandler(t *testing.T) {
 	request := *makePollRequest(t, pollId, &users[0])
 
 	previousRoundRequest := func(t *testing.T, round uint8) srvt.Request {
-		pollSegment := PollSegment{Salt: 42, Id: pollId}
+		pollSegment := salted.Segment{Salt: 42, Id: pollId}
 		encoded, err := pollSegment.Encode()
 		mustt(t, err)
 		target := "/a/test/" + strconv.FormatUint(uint64(round), 10) + "/" + encoded
@@ -207,7 +208,7 @@ func TestCountInfoHandler(t *testing.T) {
 			UserType:     pollTestUserTypeNone,
 			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
 			Round:        1,
-			Checker:   srvt.CheckStatus{http.StatusNotFound},
+			Checker:      srvt.CheckStatus{http.StatusNotFound},
 		},
 		&pollTest{
 			Name:         "No user hidden registered",
@@ -216,7 +217,7 @@ func TestCountInfoHandler(t *testing.T) {
 			UserType:     pollTestUserTypeNone,
 			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
 			Round:        1,
-			Checker:   srvt.CheckStatus{http.StatusNotFound},
+			Checker:      srvt.CheckStatus{http.StatusNotFound},
 		},
 		&pollTest{
 			Name:         "Unlogged public registered",
@@ -225,7 +226,7 @@ func TestCountInfoHandler(t *testing.T) {
 			UserType:     pollTestUserTypeUnlogged,
 			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
 			Round:        1,
-			Checker:   srvt.CheckStatus{http.StatusNotFound},
+			Checker:      srvt.CheckStatus{http.StatusNotFound},
 		},
 		&pollTest{
 			Name:         "Unlogged hidden registered",
@@ -234,7 +235,7 @@ func TestCountInfoHandler(t *testing.T) {
 			UserType:     pollTestUserTypeUnlogged,
 			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
 			Round:        1,
-			Checker:   srvt.CheckStatus{http.StatusNotFound},
+			Checker:      srvt.CheckStatus{http.StatusNotFound},
 		},
 	}
 	srvt.RunFunc(t, tests, CountInfoHandler)

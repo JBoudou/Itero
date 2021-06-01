@@ -22,6 +22,7 @@ import (
 	"net/http"
 
 	"github.com/JBoudou/Itero/mid/db"
+	"github.com/JBoudou/Itero/mid/salted"
 	"github.com/JBoudou/Itero/mid/server"
 )
 
@@ -141,7 +142,7 @@ func makeListEntriesList(rows *sql.Rows) (list []listAnswerEntry, err error) {
 
 	for rows.Next() {
 		var listAnswerEntry listAnswerEntry
-		var segment PollSegment
+		var segment salted.Segment
 		var deadline sql.NullTime
 
 		err = rows.Scan(&segment.Id, &segment.Salt, &listAnswerEntry.Title,

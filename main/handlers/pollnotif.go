@@ -22,9 +22,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/JBoudou/Itero/mid/db"
-	"github.com/JBoudou/Itero/mid/server"
 	"github.com/JBoudou/Itero/main/services"
+	"github.com/JBoudou/Itero/mid/db"
+	"github.com/JBoudou/Itero/mid/salted"
+	"github.com/JBoudou/Itero/mid/server"
 )
 
 //
@@ -98,7 +99,7 @@ func PollNotifHandler(ctx context.Context, response server.Response, request *se
 			if !rows.Next() {
 				continue
 			}
-			segment := PollSegment{Id: notif.Id}
+			segment := salted.Segment{Id: notif.Id}
 			err = rows.Scan(&entry.Title, &segment.Salt)
 			rows.Close()
 			must(err)

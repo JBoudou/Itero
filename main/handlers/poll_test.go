@@ -26,36 +26,10 @@ import (
 
 	"github.com/JBoudou/Itero/mid/db"
 	dbt "github.com/JBoudou/Itero/mid/db/dbtest"
+	"github.com/JBoudou/Itero/mid/salted"
 	"github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
 )
-
-func TestPollSegment(t *testing.T) {
-	tests := []struct {
-		name    string
-		segment PollSegment
-	}{
-		{
-			name:    "Simple",
-			segment: PollSegment{Id: 0xF1234567, Salt: 0x312345},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			encoded, err := tt.segment.Encode()
-			if err != nil {
-				t.Fatalf("Encode error: %s", err)
-			}
-			got, err := PollSegmentDecode(encoded)
-			if err != nil {
-				t.Fatalf("Decode error: %s", err)
-			}
-			if got != tt.segment {
-				t.Errorf("Got %v. Expect %v", got, tt.segment)
-			}
-		})
-	}
-}
 
 type partialPollAnswer struct {
 	Title        string
@@ -81,14 +55,14 @@ func TestPollHandler(t *testing.T) {
 	)
 
 	var (
-		segment1 PollSegment
+		segment1 salted.Segment
 
 		target1 string
 
 		target1wrong string
 	)
 
-	createPoll := func(segment *PollSegment, target *string, publicity uint8) func(t *testing.T) {
+	createPoll := func(segment *salted.Segment, target *string, publicity uint8) func(t *testing.T) {
 		segment.Salt = 42
 		return func(t *testing.T) {
 			segment.Id = env.CreatePoll("Test", userId, publicity)
@@ -115,7 +89,7 @@ func TestPollHandler(t *testing.T) {
 			Name: "Wrong salt",
 			Update: func(t *testing.T) {
 				createPoll(&segment1, &target1, db.PollPublicityHiddenRegistered)(t)
-				segment := PollSegment{Id: segment1.Id, Salt: 9999}
+				segment := salted.Segment{Id: segment1.Id, Salt: 9999}
 				encoded, err := segment.Encode()
 				if err != nil {
 					t.Fatal(err)
@@ -426,14 +400,14 @@ func (self *pollTest) Prepare(t *testing.T) {
 	}
 
 	self.dbEnv.Must(t)
-	if checker, ok := self.Checker.(interface { Before(*testing.T) }); ok {
+	if checker, ok := self.Checker.(interface{ Before(*testing.T) }); ok {
 		checker.Before(t)
 	}
 	stats("After Prepare")
 }
 
 func (self *pollTest) GetRequest(t *testing.T) *srvt.Request {
-	segment, err := PollSegment{Id: self.pollId, Salt: 42}.Encode()
+	segment, err := salted.Segment{Id: self.pollId, Salt: 42}.Encode()
 	if err != nil {
 		t.Errorf("Error encoding poll segment: %v.", err)
 	}

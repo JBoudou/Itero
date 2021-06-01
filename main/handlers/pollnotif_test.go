@@ -27,6 +27,7 @@ import (
 	"github.com/JBoudou/Itero/main/services"
 	"github.com/JBoudou/Itero/mid/db"
 	dbt "github.com/JBoudou/Itero/mid/db/dbtest"
+	"github.com/JBoudou/Itero/mid/salted"
 	"github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
 	"github.com/JBoudou/Itero/pkg/events"
@@ -114,7 +115,7 @@ func (self *pollNotifHandlerTest) Check(t *testing.T, response *http.Response, r
 		}
 	}
 
-	segment, err := PollSegment{Id: self.pollId, Salt: 42}.Encode()
+	segment, err := salted.Segment{Id: self.pollId, Salt: 42}.Encode()
 	mustt(t, err)
 	for i := 0; i < glen; i++ {
 

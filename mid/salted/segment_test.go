@@ -14,21 +14,46 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-package handlers
+package salted
 
 import (
-	"context"
-
-	"github.com/JBoudou/Itero/mid/server"
-	"github.com/JBoudou/Itero/pkg/config"
+	"testing"
 )
 
-type ConfigAnswer struct {
-	DemoPollSegment string
+func TestSegment(t *testing.T) {
+	tests := []struct {
+		name    string
+		segment Segment
+	}{
+		{
+			name:    "Simple",
+			segment: Segment{Id: 0xF1234567, Salt: 0x312345},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			encoded, err := tt.segment.Encode()
+			if err != nil {
+				t.Fatalf("Encode error: %s", err)
+			}
+			got, err := Decode(encoded)
+			if err != nil {
+				t.Fatalf("Decode error: %s", err)
+			}
+			if got != tt.segment {
+				t.Errorf("Got %v. Expect %v", got, tt.segment)
+			}
+		})
+	}
 }
 
-func ConfigHandler(ctx context.Context, response server.Response, request *server.Request) {
-	var answer ConfigAnswer
-	config.Value("frontend", &answer)
-	response.SendJSON(ctx, answer)
+func TestNew(t *testing.T) {
+	const id = 42
+	segment, err := New(id)
+	if err != nil {
+		t.Errorf("New returned %v.", err)
+	}
+	if segment.Id != id {
+		t.Errorf("Wrong id. Got %d. Expect %d.", segment.Id, id)
+	}
 }

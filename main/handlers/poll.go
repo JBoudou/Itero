@@ -22,43 +22,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/JBoudou/Itero/pkg/b64buff"
 	"github.com/JBoudou/Itero/mid/db"
 	"github.com/JBoudou/Itero/mid/server"
+	"github.com/JBoudou/Itero/mid/salted"
 )
-
-/** PollSegment **/
-
-const saltNbBits = 22
-
-type PollSegment struct {
-	Id   uint32
-	Salt uint32
-}
-
-func PollSegmentDecode(str string) (ret PollSegment, err error) {
-	buff := b64buff.Buffer{}
-	err = buff.WriteB64(str)
-	if err == nil {
-		ret.Salt, err = buff.ReadUInt32(saltNbBits)
-	}
-	if err == nil {
-		ret.Id, err = buff.ReadUInt32(32)
-	}
-	return
-}
-
-func (self PollSegment) Encode() (str string, err error) {
-	buff := b64buff.Buffer{}
-	err = buff.WriteUInt32(self.Salt, saltNbBits)
-	if err == nil {
-		err = buff.WriteUInt32(self.Id, 32)
-	}
-	if err == nil {
-		str, err = buff.ReadAllB64()
-	}
-	return
-}
 
 /** PollInfo **/
 
@@ -78,13 +45,13 @@ func noPollError(reason string) server.HttpError {
 }
 
 // pollSegmentFromRequest retrieves the poll id from the last segment of the URL.
-func pollSegmentFromRequest(request *server.Request) (segment PollSegment, err error) {
+func pollSegmentFromRequest(request *server.Request) (segment salted.Segment, err error) {
 	remainingLength := len(request.RemainingPath)
 	if remainingLength == 0 {
 		err = server.NewHttpError(http.StatusBadRequest, "No poll segment", "No poll segment")
 		return
 	}
-	return PollSegmentDecode(request.RemainingPath[remainingLength-1])
+	return salted.Decode(request.RemainingPath[remainingLength-1])
 }
 
 // checkPollAccess ensure that the user can access the poll.
@@ -100,7 +67,7 @@ func checkPollAccess(ctx context.Context, request *server.Request) (poll PollInf
 	poll.Logged = request.User != nil && request.User.Logged
 
 	// Check segment
-	var segment PollSegment
+	var segment salted.Segment
 	segment, err = pollSegmentFromRequest(request)
 	if err != nil {
 		return

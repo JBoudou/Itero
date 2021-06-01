@@ -21,6 +21,8 @@ import (
 	"text/template"
 
 	"github.com/JBoudou/Itero/mid/db"
+	"github.com/JBoudou/Itero/mid/salted"
+	"github.com/JBoudou/Itero/mid/server"
 	"github.com/JBoudou/Itero/mid/service"
 	"github.com/JBoudou/Itero/pkg/config"
 	"github.com/JBoudou/Itero/pkg/emailsender"
@@ -108,7 +110,25 @@ func (self emailService) handleEvent(evt events.Event) {
 }
 
 func (self emailService) createUser(userId uint32) {
-	// Retrieve the data
+	var data struct {
+		Sender       string
+		Name         string
+		Address      string
+		BaseURL      string
+		Confirmation string
+	}
+	data.Sender = emailConfig.Sender
+	data.BaseURL = server.BaseURL()
+
+	// Find the template
+	var tmpl *template.Template
+	tmpl, err := template.ParseFiles(filepath.Join(config.BaseDir, TmplBaseDir, "en", "greeting.txt"))
+	if err != nil {
+		self.log.Errorf("Error retrieving template: %v", err)
+		return
+	}
+
+	// Retrieve user data
 	const qSelect = `
 	  SELECT Name, Email FROM Users WHERE Id = ? AND Name IS NOT NULL AND Email IS NOT NULL`
 	rows, err := db.DB.Query(qSelect, userId)
@@ -121,27 +141,39 @@ func (self emailService) createUser(userId uint32) {
 		self.log.Errorf("User %d not found", userId)
 		return
 	}
-	var data struct {
-		Sender  string
-		Name    string
-		Address string
-	}
-	data.Sender = emailConfig.Sender
 	err = rows.Scan(&data.Name, &data.Address)
 	if err != nil {
 		self.log.Errorf("Error retrieving user %d: %v", userId, err)
 		return
 	}
 
-	// Find the template
-	var tmpl *template.Template
-	tmpl, err = template.ParseFiles(filepath.Join(config.BaseDir, TmplBaseDir, "en", "greeting.txt"))
+	// Create the confirmation
+	const qConfirm = `
+	  INSERT INTO Confirmations (User, Salt, Type, Expires)
+	  VALUE (?, ?, 'verify', ADDTIME(CURRENT_TIMESTAMP, '48:00:00'))`
+	segment, err := salted.New(0)
 	if err != nil {
-		self.log.Errorf("Error retrieving template: %v", err)
+		self.log.Errorf("Error created segment %v.", err)
+		return
+	}
+	results, err := db.DB.Exec(qConfirm, userId, segment.Salt)
+	if err != nil {
+		self.log.Errorf("Error creating confirmation %v.", err)
+		return
+	}
+	rawId, err := results.LastInsertId()
+	if err != nil {
+		self.log.Errorf("Error creating confirmation %v.", err)
+		return
+	}
+	segment.Id = uint32(rawId)
+	data.Confirmation, err = segment.Encode()
+	if err != nil {
+		self.log.Errorf("Error encoding confirmation %v.", err)
 		return
 	}
 
-	// Send the mail
+	// Send the email
 	err = self.sender.Send(emailsender.Email{
 		To:   []string{data.Address},
 		Tmpl: tmpl,

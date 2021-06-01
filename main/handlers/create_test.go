@@ -28,6 +28,7 @@ import (
 	"github.com/JBoudou/Itero/main/services"
 	"github.com/JBoudou/Itero/mid/db"
 	dbt "github.com/JBoudou/Itero/mid/db/dbtest"
+	"github.com/JBoudou/Itero/mid/salted"
 	"github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
 	"github.com/JBoudou/Itero/pkg/events"
@@ -75,7 +76,7 @@ func (self *createPollChecker) Check(t *testing.T, response *http.Response, requ
 
 	var answer string
 	mustt(t, json.NewDecoder(response.Body).Decode(&answer))
-	pollSegment, err := PollSegmentDecode(answer)
+	pollSegment, err := salted.Decode(answer)
 	mustt(t, err)
 	defer func() {
 		db.DB.Exec(qCleanUp, pollSegment.Id)

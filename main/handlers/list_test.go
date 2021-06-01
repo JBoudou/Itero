@@ -25,6 +25,7 @@ import (
 
 	"github.com/JBoudou/Itero/mid/db"
 	dbt "github.com/JBoudou/Itero/mid/db/dbtest"
+	"github.com/JBoudou/Itero/mid/salted"
 	"github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
 )
@@ -44,7 +45,7 @@ type listCheckerEntry struct {
 }
 
 func (self *listCheckerEntry) toListEntry(t *testing.T) *listAnswerEntry {
-	segment, err := PollSegment{Id: *self.id, Salt: 42}.Encode()
+	segment, err := salted.Segment{Id: *self.id, Salt: 42}.Encode()
 	mustt(t, err)
 	return &listAnswerEntry{
 		Title:        self.title,
@@ -287,14 +288,14 @@ func TestListHandler(t *testing.T) {
 			Name:      "public",
 			Publicity: db.PollPublicityPublic,
 			UserType:  pollTestUserTypeLogged,
-			Checker: listCheckFactory(listCheckFactoryKindPublic, PollActionPart, false),
+			Checker:   listCheckFactory(listCheckFactoryKindPublic, PollActionPart, false),
 		},
 		&pollTest{
-			Name:      "hidden participate",
-			Publicity: db.PollPublicityHidden,
+			Name:        "hidden participate",
+			Publicity:   db.PollPublicityHidden,
 			Participate: []pollTestParticipate{{1, 0}},
-			UserType:  pollTestUserTypeLogged,
-			Checker: listCheckFactory(listCheckFactoryKindPublic, PollActionModif, false),
+			UserType:    pollTestUserTypeLogged,
+			Checker:     listCheckFactory(listCheckFactoryKindPublic, PollActionModif, false),
 		},
 	}
 

@@ -20,6 +20,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/JBoudou/Itero/mid/db"
 	"github.com/JBoudou/Itero/mid/db/dbtest"
 	"github.com/JBoudou/Itero/pkg/emailsender"
 	estest "github.com/JBoudou/Itero/pkg/emailsender/emailsendertest"
@@ -83,5 +84,13 @@ testLoop:
 	}
 	if !emailSent {
 		t.Errorf("No email sent")
+	}
+
+	const qSelect = `SELECT 1 FROM Confirmations WHERE User = ? AND Type = 'verify'`
+	rows, err := db.DB.Query(qSelect, uid)
+	mustt(t, err)
+	defer rows.Close()
+	if !rows.Next() {
+		t.Errorf("No confirmation created.")
 	}
 }

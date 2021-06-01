@@ -22,11 +22,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/JBoudou/Itero/pkg/b64buff"
-	"github.com/JBoudou/Itero/mid/db"
-	"github.com/JBoudou/Itero/pkg/events"
-	"github.com/JBoudou/Itero/mid/server"
 	"github.com/JBoudou/Itero/main/services"
+	"github.com/JBoudou/Itero/mid/db"
+	"github.com/JBoudou/Itero/mid/salted"
+	"github.com/JBoudou/Itero/mid/server"
+	"github.com/JBoudou/Itero/pkg/events"
 )
 
 const (
@@ -95,9 +95,7 @@ func CreateHandler(ctx context.Context, response server.Response, request *serve
 		state = "Active"
 	}
 
-	var err error
-	pollSegment := PollSegment{}
-	pollSegment.Salt, err = b64buff.RandomUInt32(saltNbBits)
+	pollSegment, err := salted.New(0)
 	must(err)
 	publicity := db.PollPublicityPublicRegistered
 	if query.Hidden {

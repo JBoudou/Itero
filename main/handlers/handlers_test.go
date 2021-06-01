@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/JBoudou/Itero/mid/db"
+	"github.com/JBoudou/Itero/mid/salted"
 	"github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
 	"github.com/JBoudou/Itero/pkg/config"
@@ -41,7 +42,7 @@ func precheck(t *testing.T) {
 }
 
 func makePollRequest(t *testing.T, pollId uint32, userId *uint32) *srvt.Request {
-	pollSegment := PollSegment{Salt: 42, Id: pollId}
+	pollSegment := salted.Segment{Salt: 42, Id: pollId}
 	encoded, err := pollSegment.Encode()
 	mustt(t, err)
 	target := "/a/test/" + encoded
