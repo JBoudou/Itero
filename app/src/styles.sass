@@ -120,7 +120,7 @@ input
 
 .information-container
   display: grid
-  grid-template-columns: 1fr minmax(min-content, 15%)
+  grid-template-columns: 1fr minmax(min-content, 5%)
 
 .information
   margin-left: $medium-space
@@ -141,31 +141,20 @@ $itero-mat-theme: mat-light-theme(( color: ( primary: $itero-mat-primary, accent
 @include angular-material-theme($itero-mat-theme)
 @include angular-material-typography($itero-mat-typography)
 
+
 .sidemenu
-  margin-left: 20px
-  .simplemenu
-    border-left:1px solid #704f6a
-    border-top: 1px solid #704f6a
-    border-bottom: 1px solid #704f6a
-    background-color: #d5b6d0
-    float: right
-    height: 100%
-    width: 100%
-    margin-right: -16px
-    padding: 5%
-    .helpbutton
-      position: absolute
-      top: 200px
-  .menuinfo
-    border-left:1px solid #e1e2e2
-    background-color: #d5b6d0
-    right: 15%
-    width: 200px
-    z-index:1
-    position: absolute
-    margin-right: -8px
-    height: max-content
-    display: none
+  border-left:1px solid #704f6a
+  border-top: 1px solid #704f6a
+  border-bottom: 1px solid #704f6a
+  background-color: #d5b6d0
+  float: right
+  height: 100%
+  margin-right: -16px
+  margin-left: 3px
+  box-shadow: -2px 0px 2px 0 rgba(255, 204, 244, 0.9)
+  .helpbutton
+    text-align: center
+ 
 
 .basicform mat-select
   @include userinput
