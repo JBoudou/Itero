@@ -17,9 +17,11 @@
 package salted
 
 import (
+	"net/http"
+
+	"github.com/JBoudou/Itero/mid/server"
 	"github.com/JBoudou/Itero/pkg/b64buff"
 )
-
 
 const SaltLength = 22
 
@@ -30,14 +32,24 @@ type Segment struct {
 	Salt uint32
 }
 
-// New creates a segement with the given id and a random salt.
+// New creates a Segment with the given id and a random salt.
 func New(id uint32) (ret Segment, err error) {
 	ret.Id = id
 	ret.Salt, err = b64buff.RandomUInt32(SaltLength)
 	return
 }
 
-// Decode creates a segment from its URI representation.
+// FromRequest creates a Segment from the last segment of the URL of a request.
+func FromRequest(request *server.Request) (segment Segment, err error) {
+	remainingLength := len(request.RemainingPath)
+	if remainingLength == 0 {
+		err = server.NewHttpError(http.StatusBadRequest, "No salted segment", "No salted segment")
+		return
+	}
+	return Decode(request.RemainingPath[remainingLength-1])
+}
+
+// Decode creates a Segment from its URI representation.
 func Decode(str string) (ret Segment, err error) {
 	buff := b64buff.Buffer{}
 	err = buff.WriteB64(str)
@@ -50,7 +62,7 @@ func Decode(str string) (ret Segment, err error) {
 	return
 }
 
-// Encode returns the URI representation of the segment.
+// Encode returns the URI representation of the Segment.
 func (self Segment) Encode() (str string, err error) {
 	buff := b64buff.Buffer{}
 	err = buff.WriteUInt32(self.Salt, SaltLength)

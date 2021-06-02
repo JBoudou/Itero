@@ -230,9 +230,6 @@ func TestPollHandler(t *testing.T) {
 		},
 	}
 	srvt.RunFunc(t, tests, PollHandler)
-
-	tests = []srvt.Test{}
-	srvt.RunFunc(t, tests, PollHandler)
 }
 
 func pollHandlerCheckerFactory(param PollTestCheckerFactoryParam) srvt.Checker {

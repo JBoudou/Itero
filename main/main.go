@@ -33,6 +33,15 @@ func init() {
 	ioc.Root.Set(func () events.Manager { return events.DefaultManager })
 }
 
+func StartHandler(url string, constructor interface{}, interceptors ...server.Interceptor) {
+	var handler server.Handler
+	err := ioc.Root.Inject(constructor, &handler)
+	if err != nil {
+		panic(err)
+	}
+	server.Handle(url, handler, interceptors...)
+}
+
 func main() {
 	// Services
 	service.Run(StartPollService)
@@ -56,6 +65,7 @@ func main() {
 	server.HandleFunc("/a/delete/", DeleteHandler)
 	server.HandleFunc("/a/pollnotif", PollNotifHandler, server.Compress)
 	server.HandleFunc("/a/config", ConfigHandler)
+	StartHandler("/a/confirm/", ConfirmHandler)
 
 	log.Println("Server starting")
 	if err := server.Start(); err != nil {

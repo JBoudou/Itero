@@ -21,6 +21,13 @@ import (
 	"testing"
 )
 
+func mustt(t *testing.T, err error) {
+	t.Helper()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestAddURLQuery(t *testing.T) {
 	tests := []struct {
 		name   string

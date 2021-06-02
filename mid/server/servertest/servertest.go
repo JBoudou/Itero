@@ -101,8 +101,8 @@ func (self *Request) Make() (req *http.Request, err error) {
 // A simple implementation is given by T.
 type Test interface {
 	GetName() string
-	GetRequest(t *testing.T) *Request
 	Prepare(t *testing.T)
+	GetRequest(t *testing.T) *Request
 	Checker
 	Close()
 }

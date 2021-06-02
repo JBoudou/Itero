@@ -51,6 +51,10 @@ var (
 	RoundTypeFreelyAsynchronous uint8
 )
 
+var (
+	NotFound = errors.New("Not found")
+)
+
 const dsnOptions = `parseTime=true&` +
 	`sql_mode=%27TRADITIONAL%2CNO_ENGINE_SUBSTITUTION%2CONLY_FULL_GROUP_BY%27`
 
@@ -154,17 +158,26 @@ func MillisecondsToTime(milli uint64) string {
 	)
 }
 
+func IdFromResult(result sql.Result) (uint32, error) {
+	id, err := result.LastInsertId()
+	return uint32(id), err
+}
+
 // RepeatDeadlocked repeats a transaction as long as it produce mySQL deadlocks.
 // MySQL deadlocks are detected by a panic of a mysql.MySQLError with Number 1213.
 func RepeatDeadlocked(ctx context.Context, opts *sql.TxOptions, fct func(tx *sql.Tx)) {
-	must := func (err error) { if err != nil { panic(err) } }
+	must := func(err error) {
+		if err != nil {
+			panic(err)
+		}
+	}
 	repeat := true
 	for repeat {
 		func() {
 			tx, err := DB.BeginTx(ctx, opts)
 			must(err)
 			commited := false
-			
+
 			defer func() {
 				if !commited {
 					tx.Rollback()

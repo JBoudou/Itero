@@ -22,6 +22,7 @@ import (
 
 	"github.com/JBoudou/Itero/main/services"
 	"github.com/JBoudou/Itero/mid/db"
+	"github.com/JBoudou/Itero/mid/salted"
 	"github.com/JBoudou/Itero/mid/server"
 	"github.com/JBoudou/Itero/pkg/events"
 )
@@ -36,7 +37,7 @@ func DeleteHandler(ctx context.Context, response server.Response, request *serve
 		panic(server.UnauthorizedHttpError("No session"))
 	}
 
-	segment, err := pollSegmentFromRequest(request)
+	segment, err := salted.FromRequest(request)
 	must(err)
 	event := services.DeletePollEvent{Poll: segment.Id, Participants: make(map[uint32]bool, 2)}
 

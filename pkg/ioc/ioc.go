@@ -182,8 +182,8 @@ func (self *Locator) GetFresh(receptor interface{}) error {
 
 // Injects calls the given factory to produce a value for the given receptor.
 // The constraints on the type of the factory are the same as for Set(). The receptor must be a
-// pointer on the type of the first returned value of the factory. Functions are not allowed as
-// receptor for this method.
+// pointer on a variable that can hold the first returned value of the factory. Functions are not
+// allowed as receptor for this method.
 // 
 // The expression locator.Inject(factory, receptor) is roughly equivalent to
 //
@@ -198,7 +198,7 @@ func (self *Locator) Inject(factory interface{}, receptor interface{}) error {
 		return err
 	}
 	rcpType := reflect.TypeOf(receptor)
-	if rcpType.Kind() != reflect.Ptr || rcpType.Elem() != outType {
+	if rcpType.Kind() != reflect.Ptr || !outType.AssignableTo(rcpType.Elem()) {
 		return NotReceptor
 	}
 

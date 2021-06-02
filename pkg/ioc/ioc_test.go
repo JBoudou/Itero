@@ -413,6 +413,12 @@ func TestLocator_Inject(t *testing.T) {
 	if result != 1 {
 		t.Errorf("Wrong result value. Got %d. Expect 1.", result)
 	}
+
+	var generic interface{ Is(testToken) bool }
+	err = locator.Inject(func(tok testToken) testToken { return tok }, &generic)
+	if err != nil {
+		t.Errorf("Inject error %v.", err)
+	}
 }
 
 func TestLocator_Inject_Error(t *testing.T) {

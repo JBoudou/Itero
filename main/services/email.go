@@ -17,11 +17,12 @@
 package services
 
 import (
+	"context"
 	"path/filepath"
 	"text/template"
+	"time"
 
 	"github.com/JBoudou/Itero/mid/db"
-	"github.com/JBoudou/Itero/mid/salted"
 	"github.com/JBoudou/Itero/mid/server"
 	"github.com/JBoudou/Itero/mid/service"
 	"github.com/JBoudou/Itero/pkg/config"
@@ -148,25 +149,11 @@ func (self emailService) createUser(userId uint32) {
 	}
 
 	// Create the confirmation
-	const qConfirm = `
-	  INSERT INTO Confirmations (User, Salt, Type, Expires)
-	  VALUE (?, ?, 'verify', ADDTIME(CURRENT_TIMESTAMP, '48:00:00'))`
-	segment, err := salted.New(0)
-	if err != nil {
-		self.log.Errorf("Error created segment %v.", err)
-		return
-	}
-	results, err := db.DB.Exec(qConfirm, userId, segment.Salt)
+	segment, err := db.CreateConfirmation(context.Background(), userId, db.ConfirmationTypeVerify, 48 * time.Hour)
 	if err != nil {
 		self.log.Errorf("Error creating confirmation %v.", err)
 		return
 	}
-	rawId, err := results.LastInsertId()
-	if err != nil {
-		self.log.Errorf("Error creating confirmation %v.", err)
-		return
-	}
-	segment.Id = uint32(rawId)
 	data.Confirmation, err = segment.Encode()
 	if err != nil {
 		self.log.Errorf("Error encoding confirmation %v.", err)
