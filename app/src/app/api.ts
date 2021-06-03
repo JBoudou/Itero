@@ -205,3 +205,7 @@ export class PollNotifAnswerEntry {
     });
   }
 }
+
+export interface ConfirmAnswer {
+  Type: string
+}

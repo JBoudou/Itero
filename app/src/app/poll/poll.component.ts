@@ -133,13 +133,13 @@ export class PollComponent implements OnInit, OnDestroy {
   private components: ComponentRef<PollSubComponent>[] = [];
 
   constructor(
-    private route: ActivatedRoute,
-    private http: HttpClient,
     private dynamicComponentFactory: DynamicComponentFactoryService,
-    private session: SessionService,
     private formBuilder: FormBuilder,
-    private title: AppTitleService,
+    private http: HttpClient,
     private notif: PollNotifService,
+    private route: ActivatedRoute,
+    private session: SessionService,
+    private title: AppTitleService,
   ) { }
 
   ngOnInit(): void {

@@ -24,26 +24,31 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 
+import { SharedModule } from '../shared/shared.module';
+
 import { SessionRoutingModule } from './session-routing.module';
 import { SessionInterceptor } from './session.interceptor';
 
 import { LoginComponent } from './login/login.component';
 import { SignupComponent } from './signup/signup.component';
+import { ConfirmationComponent } from './confirmation/confirmation.component';
 
 @NgModule({
   declarations: [
     LoginComponent,
     SignupComponent,
+    ConfirmationComponent,
   ],
   imports: [
     CommonModule,
+    FormsModule,
     MatButtonModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
-    SessionRoutingModule,
     ReactiveFormsModule,
-    FormsModule,
+    SessionRoutingModule,
+    SharedModule,
   ],
   providers: [
     { provide: HTTP_INTERCEPTORS, useClass: SessionInterceptor, multi: true },
