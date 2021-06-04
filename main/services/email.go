@@ -147,6 +147,7 @@ func (self emailService) createUser(userId uint32) {
 		self.log.Errorf("Error retrieving user %d: %v", userId, err)
 		return
 	}
+	rows.Close()
 
 	// Create the confirmation
 	segment, err := db.CreateConfirmation(context.Background(), userId, db.ConfirmationTypeVerify, 48 * time.Hour)

@@ -20,15 +20,21 @@ import (
 	"time"
 
 	"github.com/JBoudou/Itero/mid/db"
-	"github.com/JBoudou/Itero/pkg/events"
 	"github.com/JBoudou/Itero/mid/service"
+	"github.com/JBoudou/Itero/pkg/events"
 )
 
 type closePollService struct {
-	logger service.LevelLogger
+	logger     service.LevelLogger
+	evtManager events.Manager
 }
 
-var ClosePollService = &closePollService{logger: service.NewPrefixLogger("ClosePoll")}
+func ClosePollService(evtManager events.Manager) *closePollService {
+	return &closePollService{
+		logger:     service.NewPrefixLogger("ClosePoll"),
+		evtManager: evtManager,
+	}
+}
 
 func (self *closePollService) ProcessOne(id uint32) error {
 	const qUpdate = `
@@ -37,7 +43,10 @@ func (self *closePollService) ProcessOne(id uint32) error {
 	     AND ( CurrentRound >= MaxNbRounds
 	           OR (CurrentRound >= MinNbRounds AND Deadline <= CURRENT_TIMESTAMP) )`
 
-	return service.SQLProcessOne(qUpdate, id, ClosePollEvent{id})
+	if err := service.SQLProcessOne(qUpdate, id); err != nil {
+		return err
+	}
+	return self.evtManager.Send(ClosePollEvent{id})
 }
 
 func (self *closePollService) CheckAll() service.Iterator {

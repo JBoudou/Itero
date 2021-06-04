@@ -25,9 +25,10 @@ import (
 
 	"github.com/JBoudou/Itero/mid/db"
 	dbt "github.com/JBoudou/Itero/mid/db/dbtest"
+	"github.com/JBoudou/Itero/mid/service"
 	"github.com/JBoudou/Itero/pkg/events"
 	"github.com/JBoudou/Itero/pkg/events/eventstest"
-	"github.com/JBoudou/Itero/mid/service"
+	"github.com/JBoudou/Itero/pkg/ioc"
 )
 
 type nextRoundTestInstance struct {
@@ -51,6 +52,7 @@ const (
 )
 
 func metaTestNextRound(t *testing.T, checker func(*testing.T, *nextRoundTestInstance, uint32)) {
+	t.Parallel()
 
 	const (
 		nbParticipants = 3
@@ -72,50 +74,50 @@ func metaTestNextRound(t *testing.T, checker func(*testing.T, *nextRoundTestInst
 	// Tests are independent.
 	tests := []nextRoundTestInstance{
 		{
-			name:       "Default",
-			expectList: true,
+			name:        "Default",
+			expectList:  true,
 			expectCheck: testCheckOneResultFuture,
 		},
 		{
-			name:       "Round zero - 2 participants",
-			nowFact:    1.,
-			nbVoter:    2,
-			expectNext: false,
-			expectList: true,
+			name:        "Round zero - 2 participants",
+			nowFact:     1.,
+			nbVoter:     2,
+			expectNext:  false,
+			expectList:  true,
 			expectCheck: testCheckOneResultNever,
 		},
 		{
-			name:       "Round zero - 3 participants",
-			nowFact:    1.,
-			nbVoter:    3,
-			expectNext: true,
-			expectList: true,
+			name:        "Round zero - 3 participants",
+			nowFact:     1.,
+			nbVoter:     3,
+			expectNext:  true,
+			expectList:  true,
 			expectCheck: testCheckOneResultPast,
 		},
 		{
-			name:       "Expired",
-			round:      1,
-			nowFact:    1.,
-			expectNext: true,
-			expectList: true,
+			name:        "Expired",
+			round:       1,
+			nowFact:     1.,
+			expectNext:  true,
+			expectList:  true,
 			expectCheck: testCheckOneResultPast,
 		},
 		{
-			name:       "Threshold zero",
-			round:      1,
-			threshold:  0,
-			nbVoter:    1,
-			expectNext: true,
-			expectList: true,
+			name:        "Threshold zero",
+			round:       1,
+			threshold:   0,
+			nbVoter:     1,
+			expectNext:  true,
+			expectList:  true,
 			expectCheck: testCheckOneResultPast,
 		},
 		{
-			name:       "Threshold one",
-			round:      1,
-			threshold:  1,
-			nbVoter:    3,
-			expectNext: true,
-			expectList: true,
+			name:        "Threshold one",
+			round:       1,
+			threshold:   1,
+			nbVoter:     3,
+			expectNext:  true,
+			expectList:  true,
 			expectCheck: testCheckOneResultPast,
 		},
 		{
@@ -127,7 +129,7 @@ func metaTestNextRound(t *testing.T, checker func(*testing.T, *nextRoundTestInst
 			nbVoter:      1,
 			expectNext:   false,
 			expectList:   true,
-			expectCheck: testCheckOneResultFuture,
+			expectCheck:  testCheckOneResultFuture,
 		},
 		{
 			name:         "Last round vote",
@@ -138,7 +140,7 @@ func metaTestNextRound(t *testing.T, checker func(*testing.T, *nextRoundTestInst
 			nbVoter:      3,
 			expectNext:   false,
 			expectList:   true,
-			expectCheck: testCheckOneResultFuture,
+			expectCheck:  testCheckOneResultFuture,
 		},
 		{
 			name:         "Missing rounds time",
@@ -150,7 +152,7 @@ func metaTestNextRound(t *testing.T, checker func(*testing.T, *nextRoundTestInst
 			nbVoter:      1,
 			expectNext:   true,
 			expectList:   true,
-			expectCheck: testCheckOneResultPast,
+			expectCheck:  testCheckOneResultPast,
 		},
 		{
 			name:         "Missing rounds vote",
@@ -162,16 +164,19 @@ func metaTestNextRound(t *testing.T, checker func(*testing.T, *nextRoundTestInst
 			nbVoter:      3,
 			expectNext:   true,
 			expectList:   true,
-			expectCheck: testCheckOneResultPast,
+			expectCheck:  testCheckOneResultPast,
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			env := new(dbt.Env)
 			defer env.Close()
 			var user [nbParticipants]uint32
 			for i := range user {
-				user[i] = env.CreateUserWith(strconv.FormatInt(int64(i), 10))
+				user[i] = env.CreateUserWith(t.Name() + strconv.FormatInt(int64(i), 10))
 			}
 			pollId := env.CreatePoll("TestRoundCheckAllPolls_Next", user[0], db.PollPublicityPublic)
 			env.Must(t)
@@ -184,7 +189,10 @@ func metaTestNextRound(t *testing.T, checker func(*testing.T, *nextRoundTestInst
 				mustt(t, err)
 				for _, id := range user {
 					_, err = stmt.Exec(pollId, id, 0)
-					mustt(t, err)
+					if err != nil {
+						stmt.Close()
+						mustt(t, err)
+					}
 				}
 				mustt(t, stmt.Close())
 			}
@@ -207,7 +215,10 @@ func metaTestNextRound(t *testing.T, checker func(*testing.T, *nextRoundTestInst
 				mustt(t, err)
 				for i := 0; i < tt.nbVoter; i++ {
 					_, err = stmt.Exec(pollId, user[i], tt.round)
-					mustt(t, err)
+					if err != nil {
+						stmt.Close()
+						mustt(t, err)
+					}
 				}
 				err = stmt.Close()
 			}
@@ -223,21 +234,23 @@ func metaTestNextRound(t *testing.T, checker func(*testing.T, *nextRoundTestInst
 func nextRound_processOne_checker(t *testing.T, tt *nextRoundTestInstance, pollId uint32) {
 	const qGetRound = `SELECT CurrentRound FROM Polls WHERE Id = ?`
 
-	originalManager := events.DefaultManager
+	locator := ioc.Root.Sub()
 	incremented := false
-	events.DefaultManager = &eventstest.ManagerMock{
-		T: t,
-		Send_: func(evt events.Event) error {
-			if nextEvent, ok := evt.(NextRoundEvent); ok && nextEvent.Poll == pollId {
-				incremented = true
-			}
-			return nil
-		},
-	}
+	locator.Set(func() events.Manager {
+		return &eventstest.ManagerMock{
+			T: t,
+			Send_: func(evt events.Event) error {
+				if nextEvent, ok := evt.(NextRoundEvent); ok && nextEvent.Poll == pollId {
+					incremented = true
+				}
+				return nil
+			},
+		}
+	})
 
-	err := NextRoundService.ProcessOne(pollId)
-
-	events.DefaultManager = originalManager
+	var svc service.Service
+	mustt(t, locator.Inject(NextRoundService, &svc))
+	err := svc.ProcessOne(pollId)
 
 	nothingToDoYet := false
 	if errors.Is(err, service.NothingToDoYet) {
@@ -292,7 +305,11 @@ func idDateIteratorHasId(t *testing.T, iterator service.Iterator, id uint32) boo
 }
 
 func nextRound_checkAll_checker(t *testing.T, tt *nextRoundTestInstance, pollId uint32) {
-	iterator := NextRoundService.CheckAll()
+	var svc service.Service
+	mustt(t, ioc.Root.Inject(NextRoundService, &svc))
+
+	iterator := svc.CheckAll()
+	defer iterator.Close()
 
 	listed := idDateIteratorHasId(t, iterator, pollId)
 	if listed != tt.expectList {
@@ -311,7 +328,10 @@ func TestNextRoundService_CheckAll(t *testing.T) {
 // CheckOne //
 
 func nextRound_checkOne_checker(t *testing.T, tt *nextRoundTestInstance, pollId uint32) {
-	got := NextRoundService.CheckOne(pollId)
+	var svc service.Service
+	mustt(t, ioc.Root.Inject(NextRoundService, &svc))
+
+	got := svc.CheckOne(pollId)
 	diff := time.Until(got)
 	isZero := got.IsZero()
 
@@ -322,7 +342,7 @@ func nextRound_checkOne_checker(t *testing.T, tt *nextRoundTestInstance, pollId 
 			t.Errorf("Got zero time. Expect time in the past.")
 			break
 		}
-		if diff > 2 * time.Millisecond {
+		if diff > 2*time.Millisecond {
 			t.Errorf("Got time in the future. Expect time in the past.")
 		}
 
@@ -331,12 +351,12 @@ func nextRound_checkOne_checker(t *testing.T, tt *nextRoundTestInstance, pollId 
 			t.Errorf("Got zero time. Expect time in the future.")
 			break
 		}
-		if diff < 2 * time.Millisecond {
+		if diff < 2*time.Millisecond {
 			t.Errorf("Got time in the past. Expect time in the future.")
 		}
 
 	case testCheckOneResultNever:
-		if !isZero{
+		if !isZero {
 			t.Errorf("Got %v. Expect zero time.", got)
 		}
 

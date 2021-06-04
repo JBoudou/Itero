@@ -257,7 +257,7 @@ func (self *Locator) findBinding(bindType reflect.Type) (*binding, error) {
 		return ret, nil
 	}
 	if self.parent == nil {
-		return nil, NotFound
+		return nil, bindingError{bindType}
 	}
 	return self.parent.findBinding(bindType)
 }

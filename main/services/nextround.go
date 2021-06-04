@@ -20,18 +20,24 @@ import (
 	"time"
 
 	"github.com/JBoudou/Itero/mid/db"
-	"github.com/JBoudou/Itero/pkg/events"
 	"github.com/JBoudou/Itero/mid/service"
+	"github.com/JBoudou/Itero/pkg/events"
 )
 
 // The time to wait when there seems to be no forthcoming deadline.
 const nextRoundDefaultWaitDuration = time.Hour
 
 type nextRoundService struct {
-	logger service.LevelLogger
+	logger     service.LevelLogger
+	evtManager events.Manager
 }
 
-var NextRoundService = &nextRoundService{logger: service.NewPrefixLogger("NextRound")}
+func NextRoundService(evtManager events.Manager) *nextRoundService {
+	return &nextRoundService{
+		logger:     service.NewPrefixLogger("NextRound"),
+		evtManager: evtManager,
+	}
+}
 
 func (self *nextRoundService) ProcessOne(id uint32) error {
 	const (
@@ -72,13 +78,14 @@ func (self *nextRoundService) ProcessOne(id uint32) error {
 	if err != nil {
 		return err
 	}
+	rows.Close()
 
 	_, err = db.DB.Exec(qUpdate, id)
 	if err != nil {
 		return err
 	}
 
-	return events.Send(NextRoundEvent{Poll: id, Round: round + 1})
+	return self.evtManager.Send(NextRoundEvent{Poll: id, Round: round + 1})
 }
 
 func (self *nextRoundService) CheckAll() service.Iterator {

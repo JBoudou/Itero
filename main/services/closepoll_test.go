@@ -23,9 +23,10 @@ import (
 
 	"github.com/JBoudou/Itero/mid/db"
 	dbt "github.com/JBoudou/Itero/mid/db/dbtest"
+	"github.com/JBoudou/Itero/mid/service"
 	"github.com/JBoudou/Itero/pkg/events"
 	"github.com/JBoudou/Itero/pkg/events/eventstest"
-	"github.com/JBoudou/Itero/mid/service"
+	"github.com/JBoudou/Itero/pkg/ioc"
 )
 
 type closePollTestInstance struct {
@@ -35,6 +36,8 @@ type closePollTestInstance struct {
 }
 
 func metaTestClosePoll(t *testing.T, checker func(*testing.T, *closePollTestInstance, uint32)) {
+	t.Parallel()
+
 	const (
 		qSetMinMax      = `UPDATE Polls SET MinNbRounds = 1, MaxNbRounds = 2 WHERE Id = ?`
 		qSetRound       = `UPDATE Polls SET CurrentRound = ? WHERE Id = ?`
@@ -102,21 +105,23 @@ func metaTestClosePoll(t *testing.T, checker func(*testing.T, *closePollTestInst
 func closePoll_processOne_checker(t *testing.T, tt *closePollTestInstance, pollId uint32) {
 	const qIsActive = `SELECT State = 'Active' FROM Polls WHERE Id = ?`
 
-	originalManager := events.DefaultManager
+	locator := ioc.Root.Sub()
 	closed := false
-	events.DefaultManager = &eventstest.ManagerMock{
-		T: t,
-		Send_: func(evt events.Event) error {
-			if closeEvent, ok := evt.(ClosePollEvent); ok && closeEvent.Poll == pollId {
-				closed = true
-			}
-			return nil
-		},
-	}
+	locator.Set(func() events.Manager {
+		return &eventstest.ManagerMock{
+			T: t,
+			Send_: func(evt events.Event) error {
+				if closeEvent, ok := evt.(ClosePollEvent); ok && closeEvent.Poll == pollId {
+					closed = true
+				}
+				return nil
+			},
+		}
+	})
 
-	err := ClosePollService.ProcessOne(pollId)
-
-	events.DefaultManager = originalManager
+	var svc service.Service
+	mustt(t, locator.Inject(ClosePollService, &svc))
+	err := svc.ProcessOne(pollId)
 
 	nothingToDoYet := false
 	if errors.Is(err, service.NothingToDoYet) {
@@ -160,7 +165,11 @@ func TestClosePollService_ProcessOne(t *testing.T) {
 // CheckAll //
 
 func closePoll_CheckAll_checker(t *testing.T, tt *closePollTestInstance, poll uint32) {
-	iterator := ClosePollService.CheckAll()
+	var svc service.Service
+	mustt(t, ioc.Root.Inject(ClosePollService, &svc))
+
+	iterator := svc.CheckAll()
+	defer iterator.Close()
 
 	listed := idDateIteratorHasId(t, iterator, poll)
 	if listed != tt.expectClosed {
@@ -179,7 +188,9 @@ func TestClosePollService_CheckAll(t *testing.T) {
 // CheckOne //
 
 func closePoll_CheckOne_checker(t *testing.T, tt *closePollTestInstance, poll uint32) {
-	got := ClosePollService.CheckOne(poll)
+	var svc service.Service
+	mustt(t, ioc.Root.Inject(ClosePollService, &svc))
+	got := svc.CheckOne(poll)
 
 	isZero := got.IsZero()
 	if isZero == tt.expectClosed {

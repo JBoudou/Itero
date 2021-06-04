@@ -88,8 +88,8 @@ testLoop:
 
 	const qSelect = `SELECT 1 FROM Confirmations WHERE User = ? AND Type = 'verify'`
 	rows, err := db.DB.Query(qSelect, uid)
-	mustt(t, err)
 	defer rows.Close()
+	mustt(t, err)
 	if !rows.Next() {
 		t.Errorf("No confirmation created.")
 	}

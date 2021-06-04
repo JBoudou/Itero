@@ -19,19 +19,12 @@ package main
 import (
 	"log"
 
-	"github.com/JBoudou/Itero/mid/server"
-	"github.com/JBoudou/Itero/mid/service"
 	. "github.com/JBoudou/Itero/main/handlers"
 	. "github.com/JBoudou/Itero/main/services"
+	"github.com/JBoudou/Itero/mid/server"
+	"github.com/JBoudou/Itero/mid/service"
 	"github.com/JBoudou/Itero/pkg/ioc"
-	"github.com/JBoudou/Itero/pkg/events"
 )
-
-func init() {
-	// Events
-	// TODO: do not have events.DefaultManager
-	ioc.Root.Set(func () events.Manager { return events.DefaultManager })
-}
 
 func StartHandler(url string, constructor interface{}, interceptors ...server.Interceptor) {
 	var handler server.Handler
@@ -44,9 +37,9 @@ func StartHandler(url string, constructor interface{}, interceptors ...server.In
 
 func main() {
 	// Services
-	service.Run(StartPollService)
-	service.Run(NextRoundService)
-	service.Run(ClosePollService)
+	service.Run(StartPollService, ioc.Root)
+	service.Run(NextRoundService, ioc.Root)
+	service.Run(ClosePollService, ioc.Root)
 	ioc.Root.Get(StartEmailService)
 
 	// Misc

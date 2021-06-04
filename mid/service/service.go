@@ -22,6 +22,7 @@ import (
 
 	"github.com/JBoudou/Itero/pkg/alarm"
 	"github.com/JBoudou/Itero/pkg/events"
+	"github.com/JBoudou/Itero/pkg/ioc"
 )
 
 // AlarmInjector is the injector of an alarm into services.
@@ -97,12 +98,18 @@ type StopFunction func()
 // events.DefaultManager and calls EventReceiver.ReceiveEvent for each received event.
 // The returned function must be called to stop the service and free the resources associated with
 // the runner.
-func Run(service Service) StopFunction {
-	runner := &serviceRunner{service: service}
+func Run(service interface{}, loc *ioc.Locator) StopFunction {
+	runner := &serviceRunner{}
+	err := loc.Inject(service, &runner.service)
+	if err != nil {
+		panic(err)
+	}
 
 	if eventReceiver, ok := service.(EventReceiver); ok {
 		evtChan := make(chan events.Event, 64)
-		events.AddReceiver(events.AsyncForwarder{
+		var evtManager events.Manager
+		loc.Get(&evtManager)
+		evtManager.AddReceiver(events.AsyncForwarder{
 			Filter: eventReceiver.FilterEvent,
 			Chan:   evtChan,
 		})
