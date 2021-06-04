@@ -390,7 +390,7 @@ func (self *pollTest) Prepare(t *testing.T) {
 		self.Checker = factory(PollTestCheckerFactoryParam{
 			PollTitle: "Title",
 			PollId:    self.pollId,
-			AdminName: " Test" + t.Name() + " ",
+			AdminName: self.dbEnv.UserNameWith(t.Name()),
 			UserId:    self.userId[1],
 			Round:     self.Round,
 		})

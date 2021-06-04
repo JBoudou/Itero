@@ -16,14 +16,3 @@
 
 // Package main/services contains the concrete services used by Itero middleware server.
 package services
-
-import (
-	"github.com/JBoudou/Itero/pkg/events"
-	"github.com/JBoudou/Itero/pkg/ioc"
-)
-
-func init() {
-	// Events
-	// TODO: do not have events.DefaultManager
-	ioc.Root.Set(func() events.Manager { return events.DefaultManager })
-}

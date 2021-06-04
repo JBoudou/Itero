@@ -41,7 +41,7 @@ func CreateConfirmation(ctx context.Context,
 	  VALUE (?, ?, ?, ADDTIME(CURRENT_TIMESTAMP, ?))`
 	var result sql.Result
 	result, err = DB.ExecContext(ctx, qCreate,
-		user, ret.Salt, type_, MillisecondsToTime(uint64(duration.Milliseconds())))
+		user, ret.Salt, type_, DurationToTime(duration))
 	if err != nil {
 		return
 	}

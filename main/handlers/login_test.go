@@ -25,6 +25,41 @@ import (
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
 )
 
+type loginTest struct {
+	Name    string
+	Body    func(env *dbt.Env, t *testing.T) string
+	Checker srvt.Checker
+
+	dbEnv dbt.Env
+}
+
+func (self *loginTest) GetName() string {
+	return self.Name
+}
+
+func (self *loginTest) Prepare(t *testing.T) {
+	t.Parallel()
+	self.dbEnv.CreateUserWith(t.Name())
+	if checker, ok := self.Checker.(interface{ Before(*testing.T) }); ok {
+		checker.Before(t)
+	}
+}
+
+func (self *loginTest) GetRequest(t *testing.T) *srvt.Request {
+	return &srvt.Request{
+		Method: "POST",
+		Body:   self.Body(&self.dbEnv, t),
+	}
+}
+
+func (self *loginTest) Check(t *testing.T, response *http.Response, request *server.Request) {
+	self.Checker.Check(t, response, request)
+}
+
+func (self *loginTest) Close() {
+	self.dbEnv.Close()
+}
+
 func TestLoginHandler(t *testing.T) {
 	precheck(t)
 
@@ -37,42 +72,38 @@ func TestLoginHandler(t *testing.T) {
 	}
 
 	tests := []srvt.Test{
-		&srvt.T{
+		&loginTest{
 			Name: "no body",
-			Request: srvt.Request{
-				Method: "POST",
+			Body: func(env *dbt.Env, t *testing.T) string {
+				return ""
 			},
 			Checker: srvt.CheckStatus{http.StatusBadRequest},
 		},
-		&srvt.T{
+		&loginTest{
 			Name: "empty user",
-			Request: srvt.Request{
-				Method: "POST",
-				Body:   `{"Passwd":"XYZ"}`,
+			Body: func(env *dbt.Env, t *testing.T) string {
+				return `{"Passwd":"XYZ"}`
 			},
 			Checker: srvt.CheckStatus{http.StatusForbidden},
 		},
-		&srvt.T{
+		&loginTest{
 			Name: "empty passwd",
-			Request: srvt.Request{
-				Method: "POST",
-				Body:   `{"User":" Test "}`,
+			Body: func(env *dbt.Env, t *testing.T) string {
+				return `{"User":"` + env.UserNameWith(t.Name()) + `"}`
 			},
 			Checker: srvt.CheckStatus{http.StatusForbidden},
 		},
-		&srvt.T{
+		&loginTest{
 			Name: "success user",
-			Request: srvt.Request{
-				Method: "POST",
-				Body:   `{"User":" Test ","Passwd":"XYZ"}`,
+			Body: func(env *dbt.Env, t *testing.T) string {
+				return `{"User":"` + env.UserNameWith(t.Name()) + `","Passwd":"XYZ"}`
 			},
 			Checker: srvt.CheckStatus{http.StatusOK},
 		},
-		&srvt.T{
+		&loginTest{
 			Name: "success email",
-			Request: srvt.Request{
-				Method: "POST",
-				Body:   `{"User":"test@example.test","Passwd":"XYZ"}`,
+			Body: func(env *dbt.Env, t *testing.T) string {
+				return `{"User":"` + env.UserEmailWith(t.Name()) + `","Passwd":"XYZ"}`
 			},
 			Checker: srvt.CheckStatus{http.StatusOK},
 		},

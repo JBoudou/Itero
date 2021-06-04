@@ -34,32 +34,13 @@ import (
 // TmplBaseDir is the directory to find email templates into.
 const TmplBaseDir = "email"
 
-// StartEmailService starts the email service.
+// EmailService constructs the email service.
 // This service listen to events and send emails to users.
-func StartEmailService(evtManager events.Manager,
-	sender emailsender.Sender, logger service.LevelLogger) error {
-
-	evtChan := make(chan events.Event, 128)
-	err := evtManager.AddReceiver(events.AsyncForwarder{
-		Filter: func(evt events.Event) bool {
-			switch evt.(type) {
-			case CreateUserEvent:
-				return true
-			}
-			return false
-		},
-		Chan: evtChan,
-	})
-	if err != nil {
-		return err
-	}
-
-	go emailService{
+func EmailService(sender emailsender.Sender) emailService {
+	return emailService{
 		sender:  sender,
-		evtChan: evtChan,
-		log:     logger,
-	}.run()
-	return nil
+		log:     service.NewPrefixLogger("Email"),
+	}
 }
 
 //
@@ -93,24 +74,56 @@ func init() {
 
 type emailService struct {
 	sender  emailsender.Sender
-	evtChan <-chan events.Event
 	log     service.LevelLogger
 }
 
-func (self emailService) run() {
-	for evt := range self.evtChan {
-		self.handleEvent(evt)
-	}
+func (self emailService) ProcessOne(id uint32) error {
+	const qDelete = `DELETE FROM Confirmations WHERE Id = ? AND Expires < CURRENT_TIMESTAMP`
+	return service.SQLProcessOne(qDelete, id)
 }
 
-func (self emailService) handleEvent(evt events.Event) {
+func (self emailService) CheckAll() service.Iterator {
+	const qList = `SELECT Id, Expires FROM Confirmations`
+	return service.SQLCheckAll(qList)
+}
+
+func (self emailService) CheckOne(id uint32) (ret time.Time) {
+	const qCheck = `SELECT Expires FROM Confirmations WHERE Id = ?`
+	rows, err := db.DB.Query(qCheck, id)
+	defer rows.Close()
+	if err == nil && rows.Next() {
+		err = rows.Scan(&ret)
+	}
+	if err != nil {
+		self.log.Errorf("Error in CheckOne: %v", err)
+	}
+	return
+}
+
+func (self emailService) Interval() time.Duration {
+	return 24 * time.Hour
+}
+
+func (self emailService) Logger() service.LevelLogger {
+	return self.log
+}
+
+func (self emailService) FilterEvent(evt events.Event) bool {
+	switch evt.(type) {
+	case CreateUserEvent:
+		return true
+	}
+	return false
+}
+
+func (self emailService) ReceiveEvent(evt events.Event, ctrl service.RunnerControler) {
 	switch converted := evt.(type) {
 	case CreateUserEvent:
-		self.createUser(converted.User)
+		self.createUser(converted.User, ctrl)
 	}
 }
 
-func (self emailService) createUser(userId uint32) {
+func (self emailService) createUser(userId uint32, ctrl service.RunnerControler) {
 	var data struct {
 		Sender       string
 		Name         string
@@ -150,11 +163,12 @@ func (self emailService) createUser(userId uint32) {
 	rows.Close()
 
 	// Create the confirmation
-	segment, err := db.CreateConfirmation(context.Background(), userId, db.ConfirmationTypeVerify, 48 * time.Hour)
+	segment, err := db.CreateConfirmation(context.Background(), userId, db.ConfirmationTypeVerify, 48*time.Hour)
 	if err != nil {
 		self.log.Errorf("Error creating confirmation %v.", err)
 		return
 	}
+	ctrl.Schedule(segment.Id)
 	data.Confirmation, err = segment.Encode()
 	if err != nil {
 		self.log.Errorf("Error encoding confirmation %v.", err)

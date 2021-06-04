@@ -26,7 +26,7 @@ import (
 )
 
 // AlarmInjector is the injector of an alarm into services.
-var AlarmInjector = alarm.New
+type AlarmInjector = func(int, ...alarm.Option) alarm.Alarm
 
 var (
 	NothingToDoYet = errors.New("Nothing to do yet")
@@ -99,16 +99,24 @@ type StopFunction func()
 // The returned function must be called to stop the service and free the resources associated with
 // the runner.
 func Run(service interface{}, loc *ioc.Locator) StopFunction {
-	runner := &serviceRunner{}
-	err := loc.Inject(service, &runner.service)
+	var alarmInjector AlarmInjector
+	err := loc.Get(&alarmInjector)
+	if err != nil {
+		panic(err)
+	}
+	runner := &serviceRunner{alarm: alarmInjector(maxHandledIds, alarm.DiscardLateDuplicates)}
+	err = loc.Inject(service, &runner.service)
 	if err != nil {
 		panic(err)
 	}
 
-	if eventReceiver, ok := service.(EventReceiver); ok {
+	if eventReceiver, ok := runner.service.(EventReceiver); ok {
 		evtChan := make(chan events.Event, 64)
 		var evtManager events.Manager
-		loc.Get(&evtManager)
+		err = loc.Get(&evtManager)
+		if err != nil {
+			panic(err)
+		}
 		evtManager.AddReceiver(events.AsyncForwarder{
 			Filter: eventReceiver.FilterEvent,
 			Chan:   evtChan,
@@ -134,6 +142,11 @@ const (
 	// Maximal number of ids that are considered at each full check.
 	maxHandledIds = 1024
 )
+
+func init() {
+	ioc.Root.Set(func() AlarmInjector { return alarm.New })
+	ioc.Root.Set(func() events.Manager { return events.DefaultManager })
+}
 
 type runner interface {
 	run()
@@ -191,7 +204,6 @@ mainLoop:
 }
 
 func (self *serviceRunner) init() {
-	self.alarm = AlarmInjector(maxHandledIds, alarm.DiscardLateDuplicates)
 	self.stopped = make(chan struct{})
 	self.fullCheck()
 }

@@ -40,7 +40,7 @@ func main() {
 	service.Run(StartPollService, ioc.Root)
 	service.Run(NextRoundService, ioc.Root)
 	service.Run(ClosePollService, ioc.Root)
-	ioc.Root.Get(StartEmailService)
+	service.Run(EmailService, ioc.Root)
 
 	// Misc
 	RunPollNotif(PollNotifDelay)

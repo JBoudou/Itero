@@ -80,23 +80,18 @@ func (self *Env) CreateUser() uint32 {
 	return self.CreateUserWith("Test")
 }
 
-// CreateUser adds a user to the database. The user has name ' <salt> ' (mind the spaces), email
-// address 'test<salt>@example.test', and password 'XYZ'. It is deleted by Close.
+// CreateUser adds a user to the database. The user has name as returned by UserNameWith, email
+// address as returned by UserEmailWith, and password is 'XYZ'. It is deleted by Close.
 func (self *Env) CreateUserWith(salt string) (userId uint32) {
 	if self.Error != nil {
 		return
-	}
-
-	const maxNameLen = 62
-	if len(salt) > maxNameLen {
-		salt = salt[len(salt)-maxNameLen:]
 	}
 
 	const query = `
 	   INSERT INTO Users(Name, Email, Passwd)
 	   VALUES(?, ?, X'2e43477a2da06cb4aba764381086cbc9323945eb1bffb232f221e374af44f803')`
 	var result sql.Result
-	result, self.Error = db.DB.Exec(query, " "+salt+" ", "test"+salt+"@example.test")
+	result, self.Error = db.DB.Exec(query, self.UserNameWith(salt), self.UserEmailWith(salt))
 	userId = self.extractId(result)
 
 	self.Defer(func() {
@@ -105,6 +100,28 @@ func (self *Env) CreateUserWith(salt string) (userId uint32) {
 		self.logExec(`ALTER TABLE Users AUTO_INCREMENT = 1`)
 	})
 	return
+}
+
+// UserNameWith returns the name of the user created by CreateUserWith with the same salt.
+func (self *Env) UserNameWith(salt string) string {
+	const maxNameLen = 62
+	if len(salt) > maxNameLen {
+		salt = salt[len(salt)-maxNameLen:]
+	}
+	return " " + salt + " "
+}
+
+// UserNameWith returns the email address of the user created by CreateUserWith with the same salt.
+func (self *Env) UserEmailWith(salt string) string {
+	const (
+		prefix     = "test"
+		suffix     = "@example.test"
+		maxNameLen = 128 - (len(prefix) + len(suffix))
+	)
+	if len(salt) > maxNameLen {
+		salt = salt[len(salt)-maxNameLen:]
+	}
+	return prefix + salt + suffix
 }
 
 // CreatePoll adds a poll to the database. The poll has Salt 42, MaxNbRounds 4, and 2 alternatives

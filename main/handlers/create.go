@@ -133,7 +133,7 @@ func CreateHandler(ctx context.Context, response server.Response, request *serve
 		query.MinNbRounds,
 		query.MaxNbRounds,
 		query.Deadline,
-		db.MillisecondsToTime(query.MaxRoundDuration),
+		db.DurationToTime(time.Duration(query.MaxRoundDuration) * time.Millisecond),
 		query.RoundThreshold,
 	)
 	must(err)

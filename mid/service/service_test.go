@@ -22,6 +22,7 @@ import (
 
 	"github.com/JBoudou/Itero/pkg/alarm"
 	"github.com/JBoudou/Itero/pkg/events"
+	"github.com/JBoudou/Itero/pkg/ioc"
 )
 
 type serviceToTest interface {
@@ -30,21 +31,23 @@ type serviceToTest interface {
 }
 
 func testRunService(t *testing.T, service serviceToTest, idle func()) {
+	loc := ioc.Root.Sub()
+
 	var alarmCtrl alarm.FakeAlarmController
-	oldAlarmInjector := func(chanSize int, opts ...alarm.Option) (ret alarm.Alarm) {
-		ret, alarmCtrl = alarm.NewFakeAlarm(chanSize, opts...)
-		return
-	}
-	oldAlarmInjector, AlarmInjector = AlarmInjector, oldAlarmInjector
+	loc.Set(func() AlarmInjector {
+		return func(chanSize int, opts ...alarm.Option) (ret alarm.Alarm) {
+			ret, alarmCtrl = alarm.NewFakeAlarm(chanSize, opts...)
+			return
+		}
+	})
 	ticker := time.NewTicker(time.Second / 5)
 
 	defer func() {
 		ticker.Stop()
-		AlarmInjector = oldAlarmInjector
 		alarmCtrl.Close()
 	}()
 
-	stopFunc := Run(service)
+	stopFunc := Run(func() Service { return service }, loc)
 	defer stopFunc()
 
 mainLoop:
@@ -80,7 +83,7 @@ const (
 //  3 -> does not have to be done once the previous ones have been done
 type testRunServiceService struct {
 	t        *testing.T
-	start time.Time
+	start    time.Time
 	state    uint32
 	checkCnt int
 	closeCh  chan struct{}
@@ -88,8 +91,8 @@ type testRunServiceService struct {
 
 func newTestRunServiceService(t *testing.T) *testRunServiceService {
 	return &testRunServiceService{
-		t: t,
-		start: time.Now(),
+		t:       t,
+		start:   time.Now(),
 		closeCh: make(chan struct{}),
 	}
 }
@@ -175,7 +178,7 @@ func (self *testRunServiceIterator) Next() bool {
 }
 
 func (self *testRunServiceIterator) IdAndDate() (uint32, time.Time) {
-	return self.pos - 1, self.start.Add(time.Duration(self.pos - 1) * testRunServiceTaskDelay)
+	return self.pos - 1, self.start.Add(time.Duration(self.pos-1) * testRunServiceTaskDelay)
 }
 
 func (self *testRunServiceIterator) Err() error {
@@ -187,7 +190,7 @@ func (self *testRunServiceIterator) Close() error {
 }
 
 func TestRunService_noEvents(t *testing.T) {
-	testRunService(t, newTestRunServiceService(t), func(){})
+	testRunService(t, newTestRunServiceService(t), func() {})
 }
 
 // Test with events, but no event received //
@@ -241,8 +244,8 @@ func (self *testRunServiceServiceEvent) CheckAll() Iterator {
 
 type testRunServiceEventSender struct {
 	wait uint32
-	pos uint32
-	end uint32
+	pos  uint32
+	end  uint32
 }
 
 func (self *testRunServiceEventSender) send() {
@@ -261,5 +264,5 @@ func TestRunService_events(t *testing.T) {
 	testRunService(t, &testRunServiceServiceEvent{
 		testRunServiceService: newTestRunServiceService(t),
 	},
-	(&testRunServiceEventSender{wait: 1, pos: 2, end: testRunServiceNbTasks}).send)
+		(&testRunServiceEventSender{wait: 1, pos: 2, end: testRunServiceNbTasks}).send)
 }
