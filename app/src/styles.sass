@@ -123,10 +123,6 @@ input
   grid-template-columns: 1fr minmax(min-content, 5%)
 
 .information
-  margin-left: $medium-space
-  border-left: solid 1px $maincolor
-  padding-left: $medium-space
-  display: none
   p
     font: $infofont
     margin-top: 0
@@ -142,18 +138,28 @@ $itero-mat-theme: mat-light-theme(( color: ( primary: $itero-mat-primary, accent
 @include angular-material-typography($itero-mat-typography)
 
 
-.sidemenu
+
+.simplemenu, .infomenu
   border-left:1px solid #704f6a
   border-top: 1px solid #704f6a
   border-bottom: 1px solid #704f6a
   background-color: #d5b6d0
   float: right
+  margin-left: 3px
+  box-shadow: -5px 0px 5px 0 rgba(255, 204, 244, 0.7)
+    
+.simplemenu
+  display: none
   height: 100%
   margin-right: -16px
-  margin-left: 3px
-  box-shadow: -2px 0px 2px 0 rgba(255, 204, 244, 0.9)
+.infomenu
+  width: 200px
+  margin-right: 0
+  position: absolute
+  right: 0
   .helpbutton
-    text-align: center
+    position: relative
+    top: -280px
  
 
 .basicform mat-select
