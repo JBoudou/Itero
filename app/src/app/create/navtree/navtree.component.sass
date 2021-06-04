@@ -11,21 +11,15 @@
     @include userinput
     transition-property: background-color, color, border-color
     transition-duration: 500ms
-    .index:after
-      content: " "
   .current-step
     background-color: $userbuttonbgcolor
     transition: background-color 300ms
   .jumpable-step
     cursor: pointer
-    span.stepName
-      display: none
   .disabled-step
     border-color: $disabled-frame-color
     color: $disabled-fg-color
     background-color: $disabled-bg-color
-    span.stepName
-      display: none
   .placeholder
     width: 50px
     margin: auto 0
@@ -33,3 +27,7 @@
   .placeholder.disabled-step
     border-bottom-style: dotted
     border-bottom-color: $disabled-frame-color
+  @media screen and (max-width: 414px)
+    .step
+      span.stepName:not(.current-step span.stepName)
+        display: none

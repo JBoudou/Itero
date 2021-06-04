@@ -30,9 +30,9 @@ import { NavStepStatus } from './navtree/navstep.status';
 export const CREATE_TREE = new InjectionToken<NavTreeNode>('create.tree');
 
 export const APP_CREATE_TREE: NavTreeNode =
-  new LinearNavTreeNode('general', 'Generalities',
-    new LinearNavTreeNode('simpleAlternatives', 'Alternatives',
-      new FinalNavTreeNode('round', 'Rounds')
+  new LinearNavTreeNode('general', '. Generalities',
+    new LinearNavTreeNode('simpleAlternatives', '. Alternatives',
+      new FinalNavTreeNode('round', '. Rounds')
     )
   );
 
@@ -153,7 +153,7 @@ export class CreateService {
       next.handledFields.delete(prop);
       next.query[prop] = cloneDeep(this._current.query[prop]);
     }
-    
+
     this.makeCurrent(next);
   }
 
@@ -162,7 +162,7 @@ export class CreateService {
 
   /**
    * Modifies some fields of the current query.
-   * 
+   *
    * This method is to be called by components editing the parameters of the poll to be created.
    * Beware that, since this method modifies the query, it usually sends an event on query$.
    * The query is marked as modified, unless defaultValues option is set to true.
@@ -180,7 +180,7 @@ export class CreateService {
     for (const prop in patch) {
       if (!isEqual(patch[prop], this._current.query[prop])) {
         if (!ret) {
-          console.warn(`Segment ${stepSegment} instead of ${this._current.segment} ` + 
+          console.warn(`Segment ${stepSegment} instead of ${this._current.segment} ` +
                        `to change ${prop} from ${this._current.query[prop]} to ${patch[prop]}`);
           continue;
         }
@@ -272,7 +272,7 @@ export class CreateService {
 
     this._stepStatus$.next(this._current.makeStatus());
   }
-  
+
   /**
    * Check whether the current route ends with the right segment, and navigate to it if it's not.
    * \returns Whether navigation occured.
