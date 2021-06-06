@@ -1,6 +1,6 @@
 @import '../../../colors'
 @import '../../../responsive'
-
+@import '../../../sizes'
 table
   border: solid 1px $maincolor
   border-collapse: collapse
@@ -47,22 +47,27 @@ table
         &:hover
           color: $maincolor
 
-@media screen and (max-width: $breakpoint-tablet) 
-  table 
+@media screen and (max-width: $breakpoint-tablet)
+  table
     border: 0
     thead
-      clip: rect(0 0 0 0)
-      height: 1px
-      margin: -1px
-      overflow: hidden
-      padding: 0
-      position: absolute
-    tr 
+      display: none
+    tr
       border: solid 1px $maincolor
       display: block
-      margin-bottom: 0.625em
-      padding: 0.35em
+      margin-bottom: $medium-space
+      padding: $small-space
       width: 15em
+      td
+        border: solid 1px #ddd
+        padding: $row-height
+        display: block
+        text-align: right
+        &:before
+          content: attr(data-label)
+          float: left
+          font-weight: bold
+          padding-right: 1.5em
     tr.poll
       td
         text-overflow: ellipsis
@@ -71,19 +76,9 @@ table
       td.round, td.deadline, td.terminated
         text-align: right
       td.action
-        display: flow-root
         span
-          float: right
+          display: inline-block
+          text-align: right
       td.manage
         padding: 0
-    td
-      border: 1px solid #ddd
-      padding: .625em
-      display: block     
-      text-align: right
-    td
-      &:before
-        content: attr(data-label)
-        float: left
-        font-weight: bold
-        padding-right: 3em
+        display: contents
