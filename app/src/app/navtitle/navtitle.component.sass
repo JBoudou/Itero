@@ -44,7 +44,7 @@ h2
   @media (max-width: $breakpoint-tablet)
     display: none
 
-mat-menu .nav-link
+#menubutton .nav-link
     @media (min-width: $breakpoint-tablet)
       display: none
   
@@ -79,3 +79,7 @@ nav
     background-color: color.adjust($maincolor, $lightness: 10%)
   a.active:hover
     background-color: $nav-hover-bg
+
+hr
+  @media (min-width: $breakpoint-tablet)
+    display: none

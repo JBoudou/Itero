@@ -27,39 +27,37 @@
   </nav>
 </div>
 <mat-menu #profileMenu="matMenu" class="nav-menu" xPosition="before">
-  <button *ngIf="(demoIsActive$ | async) && !(session.state$ | async).logged" mat-menu-item class="nav-link"><mat-icon>play_circle_outline</mat-icon>
-    <a [routerLink]="(demoPath$ | async)" routerLinkActive="active">
-      <span class="navitem" i18n>Try it</span>
-    </a>
-  </button>
-  <button *ngIf="!(session.state$ | async).logged" mat-menu-item class="nav-link"><mat-icon>person_add</mat-icon>
-    <a routerLink="/r/session/signup" routerLinkActive="active">
-      <span class="navitem" i18n>Sign up</span>
-    </a>
-  </button>
-  <button *ngIf="!(session.state$ | async).logged" mat-menu-item class="nav-link"><mat-icon>person_outline</mat-icon>
-    <a routerLink="/r/session/login" routerLinkActive="active">
-      <span class="navitem" i18n>Log in</span>
-    </a>
-  </button>
-  <button *ngIf="(session.state$ | async).logged" mat-menu-item class="nav-link"><mat-icon>poll</mat-icon>
-    <a routerLink="/r/list" routerLinkActive="active">
-      <span class="navitem" i18n> Polls</span>
-    </a>
-  </button>
-  <button *ngIf="(session.state$ | async).logged" mat-menu-item class="nav-link"><mat-icon>add_box</mat-icon>
-    <a routerLink="/r/create" routerLinkActive="active">
-      <span class="navitem"> Create</span>
-  </a></button>
-  <ng-container *ngIf="(session.state$ | async).logged">
-    <hr>
-    <button mat-menu-item (click)="notify.askAUthorization()" [disabled]="(notify.permission$ | async) != 'default'">
-      <ng-container [ngSwitch]="notify.permission$ | async">
-        <mat-icon *ngSwitchCase="'default'">notifications</mat-icon>
-        <mat-icon *ngSwitchCase="'denied'">notifications_off</mat-icon>
-        <mat-icon *ngSwitchCase="'granted'">notifications_active</mat-icon>
-      </ng-container> Notifications
+  <div id="menubutton">
+    <button *ngIf="(demoIsActive$ | async) && !(session.state$ | async).logged" mat-menu-item class="nav-link" [routerLink]="(demoPath$ | async)" routerLinkActive="active">
+      <mat-icon>play_circle_outline</mat-icon>
+      Try it
     </button>
-    <button mat-menu-item (click)="logoff()"><mat-icon>logout</mat-icon> Log off</button>
-  </ng-container>
+    <button *ngIf="!(session.state$ | async).logged" mat-menu-item class="nav-link" routerLink="/r/session/signup" routerLinkActive="active">
+      <mat-icon>person_add</mat-icon>
+      Sign up
+    </button>
+    <button *ngIf="!(session.state$ | async).logged" mat-menu-item class="nav-link" routerLink="/r/session/login" routerLinkActive="active">
+      <mat-icon>person_outline</mat-icon>
+      Log in
+    </button>
+    <button *ngIf="(session.state$ | async).logged" mat-menu-item class="nav-link" routerLink="/r/list" routerLinkActive="active">
+      <mat-icon>poll</mat-icon>
+      Polls
+    </button>
+    <button *ngIf="(session.state$ | async).logged" mat-menu-item class="nav-link" routerLink="/r/create" routerLinkActive="active">
+      <mat-icon>add_box</mat-icon>
+      Create
+    </button>
+    <ng-container *ngIf="(session.state$ | async).logged">
+      <hr>
+      <button mat-menu-item (click)="notify.askAUthorization()" [disabled]="(notify.permission$ | async) != 'default'">
+        <ng-container [ngSwitch]="notify.permission$ | async">
+          <mat-icon *ngSwitchCase="'default'">notifications</mat-icon>
+          <mat-icon *ngSwitchCase="'denied'">notifications_off</mat-icon>
+          <mat-icon *ngSwitchCase="'granted'">notifications_active</mat-icon>
+        </ng-container> Notifications
+      </button>
+      <button mat-menu-item (click)="logoff()"><mat-icon>logout</mat-icon> Log off</button>
+    </ng-container>
+  </div>
 </mat-menu>
