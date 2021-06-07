@@ -139,7 +139,7 @@ $itero-mat-theme: mat-light-theme(( color: ( primary: $itero-mat-primary, accent
 
 
 
-.simplemenu, .infomenu
+.infomenu
   border-left:1px solid #704f6a
   border-top: 1px solid #704f6a
   border-bottom: 1px solid #704f6a
@@ -147,19 +147,16 @@ $itero-mat-theme: mat-light-theme(( color: ( primary: $itero-mat-primary, accent
   float: right
   margin-left: 3px
   box-shadow: -5px 0px 5px 0 rgba(255, 204, 244, 0.7)
-    
-.simplemenu
-  display: none
-  height: 100%
-  margin-right: -16px
-.infomenu
-  width: 200px
+  width: 80%
   margin-right: 0
   position: absolute
   right: 0
-  .helpbutton
-    position: relative
-    top: -280px
+  display: flex
+  flex-flow: row nowrap
+  .infomenuicon
+    display: flex 
+    .helpbutton
+      align-self: flex-start
  
 
 .basicform mat-select
