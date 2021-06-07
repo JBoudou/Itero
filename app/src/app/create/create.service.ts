@@ -30,9 +30,9 @@ import { NavStepStatus } from './navtree/navstep.status';
 export const CREATE_TREE = new InjectionToken<NavTreeNode>('create.tree');
 
 export const APP_CREATE_TREE: NavTreeNode =
-  new LinearNavTreeNode('general', '. Generalities',
-    new LinearNavTreeNode('simpleAlternatives', '. Alternatives',
-      new FinalNavTreeNode('round', '. Rounds')
+  new LinearNavTreeNode('general', 'Generalities',
+    new LinearNavTreeNode('simpleAlternatives', 'Alternatives',
+      new FinalNavTreeNode('round', 'Rounds')
     )
   );
 
