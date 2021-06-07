@@ -37,11 +37,27 @@ h2
   top: 3px
 
   @media (max-width: $breakpoint-tablet)
-    top: -3px
     font-size: 9pt
     font-weight: 800
 
 .long-title
+  @media (max-width: $breakpoint-tablet)
+    display: none
+
+#nav-menu-content .nav-link
+    @media (min-width: $breakpoint-tablet)
+      display: none
+  
+nav .nav-link
+    @media (max-width: $breakpoint-tablet)
+      display: none
+
+#nav-menu
+  border-left: solid 1px
+  @media (min-width: $breakpoint-tablet)
+    display: none
+
+#nav-profil
   @media (max-width: $breakpoint-tablet)
     display: none
 
@@ -63,3 +79,7 @@ nav
     background-color: color.adjust($maincolor, $lightness: 10%)
   a.active:hover
     background-color: $nav-hover-bg
+
+#nav-menu-content hr
+  @media (min-width: $breakpoint-tablet)
+    display: none
