@@ -28,7 +28,6 @@
   .placeholder.disabled-step
     border-bottom-style: dotted
     border-bottom-color: $disabled-frame-color
-  @media screen and (max-width: $breakpoint-width)
-    div:not(.current-step)
-      span.stepName
-        display: none
+  @media screen and (max-width: $breakpoint-tablet)
+    .step:not(.current-step) .stepName
+      display: none
