@@ -9,42 +9,49 @@
     <a *ngIf="(session.state$ | async).logged" routerLink="/r/list" routerLinkActive="active" class="nav-link">
       <span class="navitem" i18n>Polls</span>
     </a>
-    <a *ngIf="!(session.state$ | async).logged" routerLink="/r/session/signup" routerLinkActive="active" class="nav-link">
+    <a *ngIf="!(session.state$ | async).logged" routerLink="/r/session/signup" 
+    routerLinkActive="active" class="nav-link">
       <span class="navitem" i18n>Sign up</span>
     </a>
-    <a *ngIf="!(session.state$ | async).logged" routerLink="/r/session/login" routerLinkActive="active" class="nav-link">
+    <a *ngIf="!(session.state$ | async).logged" routerLink="/r/session/login" 
+    routerLinkActive="active" class="nav-link">
       <span class="navitem" i18n>Log in</span>
     </a>
     <a *ngIf="(session.state$ | async).logged" routerLink="/r/create" routerLinkActive="active" class="nav-link">
       <span class="navitem">Create</span>
     </a>
-    <a [matMenuTriggerFor]="profileMenu" id="naviconmenu">
+    <a [matMenuTriggerFor]="profileMenu" id="nav-menu">
       <span class="navitem"><mat-icon>menu</mat-icon></span>
     </a>
-    <a *ngIf="(session.state$ | async).logged" [matMenuTriggerFor]="profileMenu" id="naviconperson">
+    <a *ngIf="(session.state$ | async).logged" [matMenuTriggerFor]="profileMenu" id="nav-profil">
       <span class="navitem"><mat-icon>person</mat-icon></span>
     </a>
   </nav>
 </div>
 <mat-menu #profileMenu="matMenu" class="nav-menu" xPosition="before">
-  <div id="menubutton">
-    <button *ngIf="(demoIsActive$ | async) && !(session.state$ | async).logged" mat-menu-item class="nav-link" [routerLink]="(demoPath$ | async)" routerLinkActive="active">
+  <div id="nav-menu-content">
+    <button *ngIf="(demoIsActive$ | async) && !(session.state$ | async).logged" mat-menu-item class="nav-link"
+    [routerLink]="(demoPath$ | async)" routerLinkActive="active">
       <mat-icon>play_circle_outline</mat-icon>
       Try it
     </button>
-    <button *ngIf="!(session.state$ | async).logged" mat-menu-item class="nav-link" routerLink="/r/session/signup" routerLinkActive="active">
+    <button *ngIf="!(session.state$ | async).logged" mat-menu-item class="nav-link" 
+    routerLink="/r/session/signup" routerLinkActive="active">
       <mat-icon>person_add</mat-icon>
       Sign up
     </button>
-    <button *ngIf="!(session.state$ | async).logged" mat-menu-item class="nav-link" routerLink="/r/session/login" routerLinkActive="active">
+    <button *ngIf="!(session.state$ | async).logged" mat-menu-item class="nav-link" 
+    routerLink="/r/session/login" routerLinkActive="active">
       <mat-icon>person_outline</mat-icon>
       Log in
     </button>
-    <button *ngIf="(session.state$ | async).logged" mat-menu-item class="nav-link" routerLink="/r/list" routerLinkActive="active">
+    <button *ngIf="(session.state$ | async).logged" mat-menu-item class="nav-link" 
+    routerLink="/r/list" routerLinkActive="active">
       <mat-icon>poll</mat-icon>
       Polls
     </button>
-    <button *ngIf="(session.state$ | async).logged" mat-menu-item class="nav-link" routerLink="/r/create" routerLinkActive="active">
+    <button *ngIf="(session.state$ | async).logged" mat-menu-item class="nav-link" 
+    routerLink="/r/create" routerLinkActive="active">
       <mat-icon>add_box</mat-icon>
       Create
     </button>
