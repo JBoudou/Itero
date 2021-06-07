@@ -203,3 +203,20 @@ func startPoll_CheckOne_checker(t *testing.T, tt *startPollTestInstance, poll ui
 func TestStartPollService_CheckOne(t *testing.T) {
 	metaTestStartPoll(t, startPoll_CheckOne_checker)
 }
+
+// events //
+
+func TestStartPollService_Events(t *testing.T) {
+	tests := []checkEventScheduleTest {
+		{
+			name: "CreatePollEvent",
+			event: CreatePollEvent{42},
+			schedule: []uint32{42},
+		},
+		{
+			name: "StartPollEvent",
+			event: StartPollEvent{42},
+		},
+	}
+	checkEventSchedule(t, tests, StartPollService)
+}

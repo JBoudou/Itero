@@ -366,3 +366,30 @@ func nextRound_checkOne_checker(t *testing.T, tt *nextRoundTestInstance, pollId 
 func TestNextRoundService_CheckOne(t *testing.T) {
 	metaTestNextRound(t, nextRound_checkOne_checker)
 }
+
+// events //
+
+func TestNextRoundService_Events(t *testing.T) {
+	tests := []checkEventScheduleTest {
+		{
+			name: "VoteEvent",
+			event: VoteEvent{1},
+			schedule: []uint32{1},
+		},
+		{
+			name: "CreatePollEvent",
+			event: CreatePollEvent{2},
+			schedule: []uint32{2},
+		},
+		{
+			name: "StartPollEvent",
+			event: StartPollEvent{3},
+			schedule: []uint32{3},
+		},
+		{
+			name: "ClosePollEvent",
+			event: ClosePollEvent{42},
+		},
+	}
+	checkEventSchedule(t, tests, NextRoundService)
+}

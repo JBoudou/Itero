@@ -205,3 +205,20 @@ func closePoll_CheckOne_checker(t *testing.T, tt *closePollTestInstance, poll ui
 func TestClosePollService_CheckOne(t *testing.T) {
 	metaTestClosePoll(t, closePoll_CheckOne_checker)
 }
+
+// events //
+
+func TestClosePollService_Events(t *testing.T) {
+	tests := []checkEventScheduleTest {
+		{
+			name: "NextRoundEvent",
+			event: NextRoundEvent{Poll: 1, Round: 2},
+			schedule: []uint32{1},
+		},
+		{
+			name: "ClosePollEvent",
+			event: ClosePollEvent{42},
+		},
+	}
+	checkEventSchedule(t, tests, ClosePollService)
+}
