@@ -1,29 +1,29 @@
 <table>
   <thead>
   <tr class="tableheader">
-    <th i18n>Title</th>
-    <th i18n>Round</th>
-    <th i18n>Deadline</th>
-    <th i18n>Action</th>
-    <th class="manage"></th>
+    <th scope="col" i18n>Title</th>
+    <th scope="col" i18n>Round</th>
+    <th scope="col" i18n>Deadline</th>
+    <th scope="col" i18n>Action</th>
+    <th scope="col" class="manage"></th>
   </tr>
   </thead>
   <tbody>
   <tr *ngFor="let poll of polls" class="poll">
-    <td class="title">{{poll.Title}}</td>
-    <td *ngIf=" terminated(poll)" class="terminated" colspan=2 i18n>Terminated</td>
-    <td *ngIf="!terminated(poll)" class="round">{{poll.CurrentRound + 1}}/{{poll.MaxRound}}</td>
-    <td *ngIf="!terminated(poll)" class="deadline" i18n>
+    <td data-label="Title" class="title">{{poll.Title}}</td>
+    <td data-label="Status" *ngIf=" terminated(poll)" class="terminated" colspan=2 i18n>Terminated</td>
+    <td data-label="Round" *ngIf="!terminated(poll)" class="round">{{poll.CurrentRound + 1}}/{{poll.MaxRound}}</td>
+    <td data-label="Deadline" *ngIf="!terminated(poll)" class="deadline" i18n>
       {{ poll.Deadline ? (poll.Deadline | nearDate:'alone') : 'None' }}
     </td>
-    <td class="action" [ngSwitch]="pollActionString(poll)" (click)="service.go(poll)">
+    <td data-label="Action" class="action" [ngSwitch]="pollActionString(poll)" (click)="service.go(poll)">
       <span class ="part" *ngSwitchCase="'Part'" i18n>Join</span>
       <span class ="vote" *ngSwitchCase="'Vote'" i18n>Vote</span>
       <span class ="modi" *ngSwitchCase="'Modi'" i18n>Change vote</span>
       <span class ="term" *ngSwitchCase="'Term'" i18n>See result</span>
       <span class ="wait" *ngSwitchCase="'Wait'" i18n>Watch</span>
     </td>
-    <td class="manage">
+    <td data-label=" " class="manage">
       <span *ngIf="poll.Deletable" (click)="service.delete(poll)"><mat-icon>delete</mat-icon></span>
     </td>
   </tr>
