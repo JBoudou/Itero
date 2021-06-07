@@ -11,7 +11,7 @@
   <tbody>
   <tr *ngFor="let poll of polls" class="poll">
     <td data-label="Title" class="title">{{poll.Title}}</td>
-    <td data-label="Round" *ngIf=" terminated(poll)" class="terminated" colspan=2 i18n>Terminated</td>
+    <td data-label="Status" *ngIf=" terminated(poll)" class="terminated" colspan=2 i18n>Terminated</td>
     <td data-label="Round" *ngIf="!terminated(poll)" class="round">{{poll.CurrentRound + 1}}/{{poll.MaxRound}}</td>
     <td data-label="Deadline" *ngIf="!terminated(poll)" class="deadline" i18n>
       {{ poll.Deadline ? (poll.Deadline | nearDate:'alone') : 'None' }}

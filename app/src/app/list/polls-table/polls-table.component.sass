@@ -49,31 +49,32 @@ table
 
 @media screen and (max-width: $breakpoint-tablet)
   table
+    width: 100%
+    display: block
     border: 0
     thead
       display: none
-    tr
+    tbody
+      display: block
+    tr.poll
       border: solid 1px $maincolor
       display: block
       margin-bottom: $medium-space
       padding: $small-space
-      width: 15em
       td
         border: solid 1px #ddd
-        padding: $row-height
+        padding: $tiny-space
         display: block
         text-align: right
+        text-overflow: ellipsis
+        overflow: hidden
+        white-space: nowrap
         &:before
           content: attr(data-label)
           float: left
           font-weight: bold
           padding-right: 1.5em
-    tr.poll
-      td
-        text-overflow: ellipsis
-        overflow: hidden
-        white-space: nowrap
-      td.round, td.deadline, td.terminated
+      td.round,  td.deadline,  td.terminated
         text-align: right
       td.action
         span
