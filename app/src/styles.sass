@@ -122,10 +122,9 @@ input
   display: grid
   grid-template-columns: 1fr minmax(min-content, 5%)
 
-.information
+.info-panel-content .information
   p
     font: $infofont
-    margin-top: 0
 
 th
   font-weight: 600
@@ -143,19 +142,15 @@ $itero-mat-theme: mat-light-theme(( color: ( primary: $itero-mat-primary, accent
   border: 1px solid #704f6a
   border-right: none
   background-color: #d5b6d0
-  float: right
-  margin-left: 3px
   box-shadow: -5px 0px 5px 0 rgba(255, 204, 244, 0.7)
   width: 80%
-  margin-right: 0
   position: absolute
   right: 0
   display: flex
   flex-flow: row nowrap
   z-index: 1
-  .info-panel-icon 
-    #help-button
-      margin: 17px 3px
+  .info-panel-icon #help-button
+    margin: 0.7em $small-space
  
 
 .basicform mat-select
