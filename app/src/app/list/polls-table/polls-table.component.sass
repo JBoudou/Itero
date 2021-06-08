@@ -1,6 +1,7 @@
 @import '../../../colors'
 @import '../../../responsive'
 @import '../../../sizes'
+
 table
   border: solid 1px $maincolor
   border-collapse: collapse
@@ -22,6 +23,7 @@ table
     .last-line
       display: contents
       td.action
+        cursor: pointer
         vertical-align: middle
         span
           display: block
@@ -81,7 +83,7 @@ table
         &:before
           content: attr(data-label)
           float: left
-          font-weight: bold
+          font-weight: 600
           padding-right: 1.5em
       .last-line
         display: flex
