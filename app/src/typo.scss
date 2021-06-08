@@ -1,5 +1,6 @@
 // We define the fonts in SCSS instead of SASS, because maps suck in SASS :(
 @import '~@angular/material/theming';
+@import '../../../responsive.sass'
 
 $mainfont: 'Asap';
 $fontsize: 13pt;
