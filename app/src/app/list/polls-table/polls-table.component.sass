@@ -19,33 +19,37 @@ table
       background-color: $softbgcolor
     td.round, td.deadline, td.terminated
       text-align: center
-    td.action
-      cursor: pointer
-      span
-        display: block
-        margin: auto
-        border-radius: 2px
-        font-size: smaller
-        padding: 3px .5em
-        text-align: center
-      .part
-        background-color: lightblue
-      .vote
-        background-color: lightgreen
-      .modi
-        background-color: orange
-      .term
-        background-color: $userbuttonbgcolor
-      .wait
-        background-color: $softbgcolor
-        border: solid 1px $userbuttonbgcolor
-    td.manage
-      padding: 2px 0
-      span
-        margin-right: 2px
-        cursor: pointer
-        &:hover
-          color: $maincolor
+    td.action-manage
+      display: flex
+      justify-content: space-between
+      align-items: center
+      span.action
+        span
+          cursor: pointer
+          display: block
+          margin: auto
+          border-radius: 2px
+          font-size: smaller
+          padding: 3px .5em
+          text-align: center
+        .part
+          background-color: lightblue
+        .vote
+          background-color: lightgreen
+        .modi
+          background-color: orange
+        .term
+          background-color: $userbuttonbgcolor
+        .wait
+          background-color: $softbgcolor
+          border: solid 1px $userbuttonbgcolor
+      span.manage
+        padding: 2px 0
+        span
+          margin-right: 2px
+          cursor: pointer
+          &:hover
+            color: $maincolor
 
 @media screen and (max-width: $breakpoint-tablet)
   table
@@ -62,24 +66,25 @@ table
       margin-bottom: $medium-space
       padding: $small-space
       td
-        border: solid 1px #ddd
         padding: $tiny-space
         display: block
         text-align: right
         text-overflow: ellipsis
         overflow: hidden
         white-space: nowrap
+      td.title
+        border-bottom: solid 2px #ddd
+        text-align: left
+        font-weight: bolder
+      td.round,  td.deadline,  td.terminated
+        font-size: smaller
+        text-align: right
         &:before
           content: attr(data-label)
           float: left
           font-weight: bold
           padding-right: 1.5em
-      td.round,  td.deadline,  td.terminated
-        text-align: right
-      td.action
+      td.action-manage
+        display: block
         span
           display: inline-block
-          text-align: right
-      td.manage
-        padding: 0
-        display: contents
