@@ -139,10 +139,9 @@ $itero-mat-theme: mat-light-theme(( color: ( primary: $itero-mat-primary, accent
 
 
 
-.infomenu
-  border-left:1px solid #704f6a
-  border-top: 1px solid #704f6a
-  border-bottom: 1px solid #704f6a
+.info-panel
+  border: 1px solid #704f6a
+  border-right: none
   background-color: #d5b6d0
   float: right
   margin-left: 3px
@@ -153,10 +152,10 @@ $itero-mat-theme: mat-light-theme(( color: ( primary: $itero-mat-primary, accent
   right: 0
   display: flex
   flex-flow: row nowrap
-  .infomenuicon
-    display: flex 
-    .helpbutton
-      align-self: flex-start
+  z-index: 1
+  .info-panel-icon 
+    #help-button
+      margin: 17px 3px
  
 
 .basicform mat-select
