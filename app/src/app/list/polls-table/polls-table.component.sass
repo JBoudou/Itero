@@ -1,4 +1,6 @@
 @import '../../../colors'
+@import '../../../responsive'
+@import '../../../sizes'
 table
   border: solid 1px $maincolor
   border-collapse: collapse
@@ -44,3 +46,40 @@ table
         cursor: pointer
         &:hover
           color: $maincolor
+
+@media screen and (max-width: $breakpoint-tablet)
+  table
+    width: 100%
+    display: block
+    border: 0
+    thead
+      display: none
+    tbody
+      display: block
+    tr.poll
+      border: solid 1px $maincolor
+      display: block
+      margin-bottom: $medium-space
+      padding: $small-space
+      td
+        border: solid 1px #ddd
+        padding: $tiny-space
+        display: block
+        text-align: right
+        text-overflow: ellipsis
+        overflow: hidden
+        white-space: nowrap
+        &:before
+          content: attr(data-label)
+          float: left
+          font-weight: bold
+          padding-right: 1.5em
+      td.round,  td.deadline,  td.terminated
+        text-align: right
+      td.action
+        span
+          display: inline-block
+          text-align: right
+      td.manage
+        padding: 0
+        display: contents

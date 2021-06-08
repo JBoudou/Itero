@@ -4,8 +4,8 @@
          [class.current-step]="index == stepStatus.current"
          [class.jumpable-step]="isNavigable(index)"
          [class.disabled-step]="!isEnabled(index)" >
-      <span class="index">{{ index + 1 }}</span> 
-      <span class="stepName" i18n>{{ step }}</span>
+      <span class="index">{{ index + 1 }}</span>
+      <span class="stepName" i18n>. {{ step }}</span>
     </div>
     <div *ngIf="!last" class="placeholder" [class.disabled-step]="!isEnabled(index + 1)"></div>
   </ng-container>

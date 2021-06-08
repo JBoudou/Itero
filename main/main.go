@@ -17,11 +17,12 @@
 package main
 
 import (
-	"errors"
 	"log"
 
-	"github.com/JBoudou/Itero/server"
-	"github.com/JBoudou/Itero/service"
+	"github.com/JBoudou/Itero/mid/server"
+	"github.com/JBoudou/Itero/mid/service"
+	. "github.com/JBoudou/Itero/main/handlers"
+	. "github.com/JBoudou/Itero/main/services"
 )
 
 func main() {
@@ -52,16 +53,4 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Println("Server terminated")
-}
-
-// must ensures that err is nil. If it's not, the error is sent by panic, after being wrapped in a
-// server.HttpError if it's not already one.
-func must(err error) {
-	if err != nil {
-		var httpError server.HttpError
-		if !errors.As(err, &httpError) {
-			err = server.InternalHttpError(err)
-		}
-		panic(err)
-	}
 }

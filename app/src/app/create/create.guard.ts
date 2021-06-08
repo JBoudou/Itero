@@ -84,5 +84,6 @@ export class CreateGuard implements CanActivate, CanDeactivate<CreateComponent> 
 @Component({
   selector: 'leave-create-dialog',
   templateUrl: 'leave-create.dialog.html',
+  host: {class: 'dialog-box'},
 })
 export class LeaveCreateDialog {}

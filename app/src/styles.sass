@@ -3,6 +3,7 @@
 @import 'typo'
 @import 'sizes'
 @import 'mixins'
+@import 'responsive'
 
 body
   font-family: "Asap", sans-serif
@@ -43,6 +44,15 @@ input
       border-color: tame($maincolor)
       background-color: tame($userbuttonbgcolor)
       color: tame($useboxfgcolor)
+
+@media screen and (max-width: $breakpoint-tablet)
+  .dialog-box .formactions
+    padding: 0
+    flex-direction: column
+    align-items: stretch
+    button
+      margin-left: 0
+      margin-bottom: $medium-space
 
 .formactions.login-action
   justify-content: center
@@ -90,13 +100,13 @@ input
     color: currentColor
   input[type="number"]
     text-align: center
-  
+
 .formerrors
   color: $errorcolor
   font-size: 10pt
   p
     margin: 0
-    
+
 .form-alone
   width: 260px
   margin: 0 auto
@@ -116,7 +126,7 @@ input
   color: $errorcolor
 
 .dialog-message
-  margin-bottom: $medium-space
+  margin-bottom: 4ex
 
 .information-container
   display: grid
@@ -199,3 +209,10 @@ div.mat-menu-panel.nav-menu
   button.mat-menu-item:hover
     background-color: $nav-hover-bg
     color: white
+
+.mat-menu-content hr
+  background-color: $maincolor
+  border: none
+  height: 1px
+  width: 78%
+  
