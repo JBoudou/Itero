@@ -19,14 +19,13 @@ table
       background-color: $softbgcolor
     td.round, td.deadline, td.terminated
       text-align: center
-    td.action-manage
-      display: flex
-      justify-content: space-between
-      align-items: center
-      span.action
+    .last-line
+      display: contents
+      td.action
+        vertical-align: middle
         span
-          cursor: pointer
           display: block
+          cursor: pointer
           margin: auto
           border-radius: 2px
           font-size: smaller
@@ -43,7 +42,8 @@ table
         .wait
           background-color: $softbgcolor
           border: solid 1px $userbuttonbgcolor
-      span.manage
+      td.manage
+        vertical-align: middle
         padding: 2px 0
         span
           margin-right: 2px
@@ -75,7 +75,6 @@ table
       td.title
         border-bottom: solid 2px #ddd
         text-align: left
-        font-weight: bolder
       td.round,  td.deadline,  td.terminated
         font-size: smaller
         text-align: right
@@ -84,7 +83,6 @@ table
           float: left
           font-weight: bold
           padding-right: 1.5em
-      td.action-manage
-        display: block
-        span
-          display: inline-block
+      .last-line
+        display: flex
+        justify-content: flex-end
