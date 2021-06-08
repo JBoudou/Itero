@@ -22,26 +22,26 @@ $itero-mat-typography: mat-typography-config(
 }
 
 // other styles classes for the screen size
-//phone-size:  320px and 480px
-@media only screen and (max-width : $phone-size){
+//phone-size:  480px <
+@media only screen and (max-width : $breakpoint-phone){
   :root{
     --font-size: 11pt;}
   }
 
 //tablet-size: 481px and 768px
-@media only screen and (min-width : $phone-size + 1px) and (max-width : $tablet-size){
+@media only screen and (min-width : $breakpoint-phone + 1px) and (max-width : $breakpoint-tablet){
     :root{
         --font-size: 11.5pt;}
       }
 
 //laptop-size: 769px and 1024px
-@media only screen and (min-width : $tablet-size + 1px) and (max-width : $laptop-size){
+@media only screen and (min-width : $breakpoint-tablet + 1px) and (max-width : $breakpoint-laptop){
     :root{
         --font-size: 12pt;}
       }
 
-//deskpot-size: 1025px and 1200px
-@media only screen and (min-width : $deskpot-size) {
+//deskpot-size: > 1025px
+@media only screen and (min-width : $breakpoint-laptop + 1px) {
     :root{
         --font-size: 13pt;}
       }
