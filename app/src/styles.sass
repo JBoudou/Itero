@@ -8,7 +8,7 @@
 
 body
   font-family: "Asap", sans-serif
-  font-size: $fontsize
+  font-size: var(--font-size)
   margin: #{$navbarheight + 16} $medium-space $medium-space
   color: color.adjust($maincolor, $lightness: -25%)
 
@@ -37,7 +37,7 @@ input
   button
     @include userbox
     background-color: $userbuttonbgcolor
-    font-size: $fontsize
+    font-size: var(--font-size)
     padding: 0.4em 1em
     margin-left: $medium-space
     &:hover
