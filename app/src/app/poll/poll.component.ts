@@ -248,7 +248,8 @@ export class PollComponent implements OnInit, OnDestroy {
     this.http.get('/a/poll/' + this.segment, {responseType: 'text'}).pipe(take(1)).subscribe({
       next: (body: string) => {
         this.answer = PollAnswer.fromJSON(body)
-        // When need the ViewChilds to appear before inserting components in them.
+        this.title.setTitle(this.answer.Title)
+        // We need the ViewChilds to appear before inserting components in them.
         setTimeout(() => this.synchronizeSubComponents(), 0);
       },
       error: (err: HttpErrorResponse) => {

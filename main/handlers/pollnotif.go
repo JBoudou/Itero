@@ -71,7 +71,6 @@ func (self *pollNotifHandler) Handle(ctx context.Context, response server.Respon
 	}
 
 	baseList := <-self.notifChannel
-	fmt.Printf("Handler received %v.\n", baseList)
 	if len(baseList) == 0 {
 		response.SendJSON(ctx, make([]PollNotifAnswerEntry, 0))
 		return
