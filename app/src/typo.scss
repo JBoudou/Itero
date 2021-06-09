@@ -24,7 +24,7 @@ $itero-mat-typography: mat-typography-config(
 }
 
 //laptop-size
-@media only screen and (min-width : $breakpoint-tablet + 1px) and (max-width : $breakpoint-laptop)
+@media only screen and (min-width : $breakpoint-laptop)
 {
   :root{
         --font-size: 12pt;
@@ -33,7 +33,7 @@ $itero-mat-typography: mat-typography-config(
 }
 
 //tablet-size
-@media only screen and (min-width : $breakpoint-phone + 1px) and (max-width : $breakpoint-tablet)
+@media only screen and (min-width : $breakpoint-tablet) and (max-width : $breakpoint-laptop - 1px)
 {
     :root{
         --font-size: 11.5pt;
@@ -42,7 +42,7 @@ $itero-mat-typography: mat-typography-config(
 }
 
 //phone-size
-@media only screen and (max-width : $breakpoint-phone)
+@media only screen and  (max-width: $breakpoint-tablet - 1px )
 {
     :root{
       --font-size: 11pt;
