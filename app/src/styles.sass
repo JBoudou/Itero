@@ -5,14 +5,11 @@
 @import 'mixins'
 @import 'responsive'
 
-
 body
   font-family: "Asap", sans-serif
   font-size: var(--font-size)
   margin: #{$navbarheight + 16} $medium-space $medium-space
   color: color.adjust($maincolor, $lightness: -25%)
-
-
 
 .main-container
   max-width: $contmaxwidth
@@ -25,7 +22,6 @@ h3:first-child
 input
   font-size: inherit
   font-family: inherit
-
 
 @function tame($color)
   @return color.adjust($color, $saturation: -20%, $lightness: +10%)
