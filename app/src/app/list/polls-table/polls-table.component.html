@@ -16,16 +16,18 @@
     <td data-label="Deadline" *ngIf="!terminated(poll)" class="deadline" i18n>
       {{ poll.Deadline ? (poll.Deadline | nearDate:'alone') : 'None' }}
     </td>
-    <td data-label="Action" class="action" [ngSwitch]="pollActionString(poll)" (click)="service.go(poll)">
-      <span class ="part" *ngSwitchCase="'Part'" i18n>Join</span>
-      <span class ="vote" *ngSwitchCase="'Vote'" i18n>Vote</span>
-      <span class ="modi" *ngSwitchCase="'Modi'" i18n>Change vote</span>
-      <span class ="term" *ngSwitchCase="'Term'" i18n>See result</span>
-      <span class ="wait" *ngSwitchCase="'Wait'" i18n>Watch</span>
-    </td>
-    <td data-label=" " class="manage">
-      <span *ngIf="poll.Deletable" (click)="service.delete(poll)"><mat-icon>delete</mat-icon></span>
-    </td>
+    <div class="last-line">
+      <td data-label="Action" class="action" [ngSwitch]="pollActionString(poll)" (click)="service.go(poll)">
+        <span class ="part" *ngSwitchCase="'Part'" i18n>Join</span>
+        <span class ="vote" *ngSwitchCase="'Vote'" i18n>Vote</span>
+        <span class ="modi" *ngSwitchCase="'Modi'" i18n>Change vote</span>
+        <span class ="term" *ngSwitchCase="'Term'" i18n>See result</span>
+        <span class ="wait" *ngSwitchCase="'Wait'" i18n>Watch</span>
+      </td>
+      <td data-label=" " class="manage">
+        <span *ngIf="poll.Deletable" (click)="service.delete(poll)"><mat-icon>delete</mat-icon></span>
+      </td>
+    </div>
   </tr>
   </tbody>
 </table>
