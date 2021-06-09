@@ -503,3 +503,120 @@ func TestLocator_Inject_Error(t *testing.T) {
 		})
 	}
 }
+
+func TestLocator_Refresh(t *testing.T) {
+	locator := New()
+	locator.Set(newPairToken(1))
+
+	var first testToken
+	err := locator.Get(&first)
+	if err != nil {
+		t.Errorf("Get returned %v.", err)
+	}
+
+	var fresh testToken
+	err = locator.Refresh(&fresh)
+	if err != nil {
+		t.Errorf("Refresh returned %v.", err)
+	}
+	if fresh.Is(first) {
+		t.Errorf("Refresh value is not fresh.")
+	}
+
+	var second testToken
+	err = locator.Get(&second)
+	if err != nil {
+		t.Errorf("Get returned %v.", err)
+	}
+	if second.Is(first) {
+		t.Errorf("Refresh did not change the singleton value.")
+	}
+	if !second.Is(fresh) {
+		t.Errorf("Singleton value is not the same as the fresh value.")
+	}
+}
+
+func TestLocator_Refresh_Sub(t *testing.T) {
+	parent := New()
+	parent.Set(newPairToken(1))
+	child := parent.Sub()
+
+	var fresh testToken
+	err := child.Refresh(&fresh)
+	if err != nil {
+		t.Errorf("Refresh returned %v.", err)
+	}
+
+	var first testToken
+	err = parent.Get(&first)
+	if err != nil {
+		t.Errorf("Get returned %v.", err)
+	}
+	var second testToken
+	err = child.Get(&second)
+	if err != nil {
+		t.Errorf("Get returned %v.", err)
+	}
+	if second.Is(first) {
+		t.Errorf("Refresh did not change the singleton value.")
+	}
+	if !second.Is(fresh) {
+		t.Errorf("Singleton value is not the same as the fresh value.")
+	}
+}
+
+func TestLocator_Refresh_Error(t *testing.T) {
+	var vInt int
+	customError := errors.New("Custom")
+
+	tests := []struct {
+		name     string
+		factory  interface{}
+		receptor interface{}
+		expect   error
+	}{
+		{
+			name:     "NotFound value",
+			receptor: &vInt,
+			expect:   NotFound,
+		},
+		{
+			name:     "NotReceptor value",
+			receptor: 42,
+			expect:   NotReceptor,
+		},
+		{
+			name:     "NotReceptor function",
+			receptor: func(tok testToken) {},
+			expect:   NotReceptor,
+		},
+		{
+			name:     "Error from factory",
+			factory:  func() (int, error) { return 0, customError },
+			receptor: &vInt,
+			expect:   customError,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			locator := New()
+			locator.Set(newPairToken(1))
+
+			if tt.factory != nil {
+				err := locator.Set(tt.factory)
+				if err != nil {
+					t.Errorf("Error in set: %v.", err)
+				}
+			}
+
+			err := locator.Refresh(tt.receptor)
+			if !errors.Is(err, tt.expect) {
+				t.Errorf("Wrong error. Got %v. Expect %v.", err, tt.expect)
+			}
+		})
+	}
+}

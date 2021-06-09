@@ -25,6 +25,7 @@ import (
 	"testing"
 
 	"github.com/JBoudou/Itero/mid/server"
+	"github.com/JBoudou/Itero/pkg/ioc"
 )
 
 var (
@@ -101,8 +102,13 @@ func (self *Request) Make() (req *http.Request, err error) {
 // A simple implementation is given by T.
 type Test interface {
 	GetName() string
-	Prepare(t *testing.T)
+
+	// Prepare is called before the handler is created.
+	Prepare(t *testing.T) *ioc.Locator
+
+	// GetRequest is called just after the handler is created.
 	GetRequest(t *testing.T) *Request
+
 	Checker
 	Close()
 }
@@ -129,13 +135,14 @@ func (self *T) GetRequest(t *testing.T) *Request {
 // Prepare runs before the handler is executed.
 // If Update is not nil, it is called first.
 // If Checker implements a method Before(*testing.T) then it is called next.
-func (self *T) Prepare(t *testing.T) {
+func (self *T) Prepare(t *testing.T) *ioc.Locator {
 	if self.Update != nil {
 		self.Update(t)
 	}
-	if checker, ok := self.Checker.(interface { Before(t *testing.T) }); ok {
+	if checker, ok := self.Checker.(interface{ Before(t *testing.T) }); ok {
 		checker.Before(t)
 	}
+	return ioc.Root
 }
 
 func (self *T) Close() {
@@ -147,28 +154,34 @@ func (self *T) Check(t *testing.T, response *http.Response, request *server.Requ
 
 // Run executes all the given tests on the given Handler.
 //
-// The same handler is used for all tests. The tests are executed in the given order.
-// The requests received by the handler are as if the handler had been registered for the pattern
-// "/a/test".
+// The tests are executed in the given order. For each test, the handler is created by calling
+// handlerFactory using the ioc.Locator returned by Prepare. The handler is registered for the
+// pattern "/a/test".
 //
 // Each test is executed inside testing.T.Run, hence calling t.Fatal in the checker abort only the
 // current test.
-func Run(t *testing.T, tests []Test, handler server.Handler) {
+func Run(t *testing.T, tests []Test, handlerFactory interface{}) {
 	t.Helper()
 	for _, tt := range tests {
 		tt := tt // Copy in case tests are run in parallel.
 		t.Run(tt.GetName(), func(t *testing.T) {
 			t.Helper()
 			defer tt.Close()
-			tt.Prepare(t)
+
+			locator := tt.Prepare(t)
+			var handler server.Handler
+			locator.Inject(handlerFactory, &handler)
+			
 			req, err := tt.GetRequest(t).Make()
 			if err != nil {
 				t.Fatalf("Error creating request: %s", err)
 			}
+
 			mock := httptest.NewRecorder()
 			wrapper := server.NewHandlerWrapper("/a/test", handler)
 			ctx, sResp, sReq := wrapper.MakeParams(mock, req)
 			wrapper.Exec(ctx, sResp, sReq)
+
 			tt.Check(t, mock.Result(), sReq)
 		})
 	}
@@ -177,7 +190,8 @@ func Run(t *testing.T, tests []Test, handler server.Handler) {
 // RunFunc is a convenient wrapper around Run for HandleFunction.
 func RunFunc(t *testing.T, tests []Test, handler server.HandleFunction) {
 	t.Helper()
-	Run(t, tests, server.HandlerFunc(handler))
+	Run(t, tests,
+		func() server.Handler { return server.HandlerFunc(handler) })
 }
 
 // FindCookie returns a cookie by name.

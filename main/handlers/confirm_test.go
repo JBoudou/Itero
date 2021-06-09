@@ -29,6 +29,7 @@ import (
 	"github.com/JBoudou/Itero/mid/salted"
 	"github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
+	"github.com/JBoudou/Itero/pkg/ioc"
 )
 
 type confirmTest struct {
@@ -55,7 +56,7 @@ func (self *confirmTest) GetName() string {
 	return self.Name
 }
 
-func (self *confirmTest) Prepare(t *testing.T) {
+func (self *confirmTest) Prepare(t *testing.T) *ioc.Locator {
 	t.Parallel()
 
 	const qDelete = `DELETE FROM Confirmations WHERE Id = ?`
@@ -77,6 +78,7 @@ func (self *confirmTest) Prepare(t *testing.T) {
 	if checker, ok := self.Checker.(interface{ Before(*testing.T) }); checker != nil && ok {
 		checker.Before(t)
 	}
+	return ioc.Root
 }
 
 func (self *confirmTest) GetRequest(t *testing.T) *srvt.Request {
@@ -184,5 +186,5 @@ func TestConfirmHandler(t *testing.T) {
 		},
 
 	}
-	srvt.Run(t, tests, ConfirmHandler())
+	srvt.Run(t, tests, ConfirmHandler)
 }

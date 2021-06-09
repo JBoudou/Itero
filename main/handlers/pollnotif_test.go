@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"reflect"
-	"sync"
 	"testing"
 	"time"
 
@@ -31,6 +30,7 @@ import (
 	"github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
 	"github.com/JBoudou/Itero/pkg/events"
+	"github.com/JBoudou/Itero/pkg/ioc"
 )
 
 const (
@@ -46,17 +46,18 @@ type pollNotifHandlerTest struct {
 	lastDelay time.Duration // Compute LastUpdate in query as Now - lastDelay. Default to one second.
 	expect    []PollNotifAnswerEntry
 
-	dbEnv  dbt.Env
-	admnId uint32
-	partId uint32
-	pollId uint32
+	dbEnv      dbt.Env
+	evtManager events.Manager
+	admnId     uint32
+	partId     uint32
+	pollId     uint32
 }
 
 func (self *pollNotifHandlerTest) GetName() string {
 	return self.name
 }
 
-func (self *pollNotifHandlerTest) Prepare(t *testing.T) {
+func (self *pollNotifHandlerTest) Prepare(t *testing.T) *ioc.Locator {
 	t.Parallel()
 
 	self.admnId = self.dbEnv.CreateUserWith("PollNotifHandler" + self.name + "Admin")
@@ -75,13 +76,25 @@ func (self *pollNotifHandlerTest) Prepare(t *testing.T) {
 
 	self.dbEnv.Must(t)
 
-	for _, fct := range self.events {
-		mustt(t, events.Send(fct(self.pollId)))
-		time.Sleep(time.Millisecond)
-	}
+	ret := ioc.Root.Sub()
+	// TODO: replace the two following lines with the commented line below.
+	ret.Set(func() events.Manager { return events.NewAsyncManager(events.DefaultManagerChannelSize) })
+	ret.Get(&self.evtManager)
+	//ret.Refresh(&self.evtManager)
+	ret.Set(func(evtManager events.Manager) (services.PollNotifChannel, error) {
+		return services.RunPollNotif(time.Second, evtManager)
+	})
+
+	return ret
 }
 
 func (self *pollNotifHandlerTest) GetRequest(t *testing.T) *srvt.Request {
+	// Send the events now that the handler is created
+	for _, fct := range self.events {
+		mustt(t, self.evtManager.Send(fct(self.pollId)))
+		time.Sleep(time.Millisecond)
+	}
+
 	userId := &self.partId
 	if self.userKind == pollNotifHandlerTestUserAdmin {
 		userId = &self.admnId
@@ -135,13 +148,12 @@ func (self *pollNotifHandlerTest) Check(t *testing.T, response *http.Response, r
 
 func (self *pollNotifHandlerTest) Close() {
 	self.dbEnv.Close()
+	if self.evtManager != nil {
+		self.evtManager.Close()
+	}
 }
 
-var testPollNotifHandlerRunPollNotif sync.Once
-
 func TestPollNotifHandler(t *testing.T) {
-	testPollNotifHandlerRunPollNotif.Do(func() { services.RunPollNotif(time.Second) })
-
 	create := func(id uint32) events.Event { return services.StartPollEvent{Poll: id} }
 	next := func(id uint32) events.Event { return services.NextRoundEvent{Poll: id} }
 	term := func(id uint32) events.Event { return services.ClosePollEvent{Poll: id} }
@@ -207,5 +219,5 @@ func TestPollNotifHandler(t *testing.T) {
 		},
 	}
 
-	srvt.RunFunc(t, tests, PollNotifHandler)
+	srvt.Run(t, tests, PollNotifHandler)
 }

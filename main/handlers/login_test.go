@@ -23,6 +23,7 @@ import (
 	dbt "github.com/JBoudou/Itero/mid/db/dbtest"
 	"github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
+	"github.com/JBoudou/Itero/pkg/ioc"
 )
 
 type loginTest struct {
@@ -37,12 +38,13 @@ func (self *loginTest) GetName() string {
 	return self.Name
 }
 
-func (self *loginTest) Prepare(t *testing.T) {
+func (self *loginTest) Prepare(t *testing.T) *ioc.Locator {
 	t.Parallel()
 	self.dbEnv.CreateUserWith(t.Name())
 	if checker, ok := self.Checker.(interface{ Before(*testing.T) }); ok {
 		checker.Before(t)
 	}
+	return ioc.Root
 }
 
 func (self *loginTest) GetRequest(t *testing.T) *srvt.Request {
@@ -108,5 +110,5 @@ func TestLoginHandler(t *testing.T) {
 			Checker: srvt.CheckStatus{http.StatusOK},
 		},
 	}
-	srvt.Run(t, tests, server.HandlerFunc(LoginHandler))
+	srvt.RunFunc(t, tests, LoginHandler)
 }

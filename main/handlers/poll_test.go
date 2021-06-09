@@ -29,6 +29,7 @@ import (
 	"github.com/JBoudou/Itero/mid/salted"
 	"github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
+	"github.com/JBoudou/Itero/pkg/ioc"
 )
 
 type partialPollAnswer struct {
@@ -315,7 +316,7 @@ func stats(ctx string) {
 		stats.OpenConnections, stats.InUse, stats.Idle, runtime.NumGoroutine())
 }
 
-func (self *pollTest) Prepare(t *testing.T) {
+func (self *pollTest) Prepare(t *testing.T) *ioc.Locator {
 	stats("Before Prepare")
 
 	if !self.Sequential {
@@ -401,6 +402,7 @@ func (self *pollTest) Prepare(t *testing.T) {
 		checker.Before(t)
 	}
 	stats("After Prepare")
+	return ioc.Root
 }
 
 func (self *pollTest) GetRequest(t *testing.T) *srvt.Request {

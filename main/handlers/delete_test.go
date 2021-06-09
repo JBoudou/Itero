@@ -26,6 +26,7 @@ import (
 	dbt "github.com/JBoudou/Itero/mid/db/dbtest"
 	"github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
+	"github.com/JBoudou/Itero/pkg/ioc"
 )
 
 type deleteHandlerTest struct {
@@ -45,7 +46,7 @@ func (self *deleteHandlerTest) GetName() string {
 	return self.name
 }
 
-func (self *deleteHandlerTest) Prepare(t *testing.T) {
+func (self *deleteHandlerTest) Prepare(t *testing.T) *ioc.Locator {
 	t.Parallel()
 
 	self.userId = self.dbEnv.CreateUserWith("DeleteHandle" + self.name)
@@ -71,6 +72,7 @@ func (self *deleteHandlerTest) Prepare(t *testing.T) {
 	}
 		
 	self.dbEnv.Must(t)
+	return ioc.Root
 }
 
 func (self *deleteHandlerTest) GetRequest(t *testing.T) *srvt.Request {
@@ -123,12 +125,13 @@ type deleteHandlerTestWithVote struct {
 	deleteHandlerTest
 }
 
-func (self *deleteHandlerTestWithVote) Prepare(t *testing.T) {
+func (self *deleteHandlerTestWithVote) Prepare(t *testing.T) *ioc.Locator {
 	self.deleteHandlerTest.Prepare(t)
 	for i := uint8(0); i <= self.round; i++ {
 		self.dbEnv.Vote(self.pollId, i, self.userId, 0)
 	}
 	self.dbEnv.Must(t)
+	return ioc.Root
 }
 
 func TestDeleteHandler(t *testing.T) {

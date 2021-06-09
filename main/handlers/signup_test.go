@@ -93,7 +93,7 @@ func TestSignupHandler_Error(t *testing.T) {
 			Checker: srvt.CheckError{http.StatusBadRequest, "Email invalid"},
 		},
 	}
-	srvt.Run(t, tests, server.HandlerFunc(SignupHandler))
+	srvt.RunFunc(t, tests, SignupHandler)
 }
 
 func TestSignupHandler_Success(t *testing.T) {
@@ -145,7 +145,7 @@ func TestSignupHandler_Success(t *testing.T) {
 			Checker: srvt.CheckError{http.StatusBadRequest, "Already exists"},
 		},
 	}
-	srvt.Run(t, tests, server.HandlerFunc(SignupHandler))
+	srvt.RunFunc(t, tests, SignupHandler)
 
 	const qDelete = `DELETE FROM Users WHERE Id = ?`
 	result, err := db.DB.Exec(qDelete, userId)

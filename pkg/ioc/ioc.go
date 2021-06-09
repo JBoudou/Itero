@@ -184,7 +184,7 @@ func (self *Locator) GetFresh(receptor interface{}) error {
 // The constraints on the type of the factory are the same as for Set(). The receptor must be a
 // pointer on a variable that can hold the first returned value of the factory. Functions are not
 // allowed as receptor for this method.
-// 
+//
 // The expression locator.Inject(factory, receptor) is roughly equivalent to
 //
 //     locator.Get(func(a A, b B, c C) { *receptor = factory(a,b,c) })
@@ -207,6 +207,35 @@ func (self *Locator) Inject(factory interface{}, receptor interface{}) error {
 	if err != nil {
 		return err
 	}
+	reflect.ValueOf(receptor).Elem().Set(instance)
+	return nil
+}
+
+// Refresh contructs a new value and use it as the new singleton value.
+// Same constraints applies as with GetFresh. Additionaly, this method cannot be called by multiple
+// goroutines on the same Locator. However, Refresh can be called concurrently on different Locators
+// with the same parent.
+func (self *Locator) Refresh(receptor interface{}) error {
+	ptrType := reflect.TypeOf(receptor)
+	if ptrType.Kind() != reflect.Ptr {
+		return NotReceptor
+	}
+
+	oldBind, err := self.findBinding(ptrType.Elem())
+	if err != nil {
+		return err
+	}
+
+	instance, err := self.instanciate(oldBind.factory)
+	if err != nil {
+		return err
+	}
+
+	self.bindings[ptrType.Elem()] = &binding{
+		factory:  oldBind.factory,
+		instance: instance,
+	}
+
 	reflect.ValueOf(receptor).Elem().Set(instance)
 	return nil
 }
