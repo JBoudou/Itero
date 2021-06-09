@@ -5,8 +5,6 @@
 @import 'mixins'
 @import 'responsive'
 
-$breakpoint-tablet: 500px
-$breakpoint-laptop: 1000px
 
 body
   font-family: "Asap", sans-serif
@@ -134,6 +132,9 @@ input
 .information-container
   display: grid
   grid-template-columns: 1fr minmax(min-content, 5%)
+  @media screen and (min-width: $breakpoint-laptop)
+    grid-template-columns: 1fr minmax(min-content, 31%)
+
 
 .information
   margin-left: $medium-space
@@ -161,19 +162,18 @@ $itero-mat-theme: mat-light-theme(( color: ( primary: $itero-mat-primary, accent
   box-shadow: -5px 0px 5px 0 rgba(255, 204, 244, 0.7)
   width: 80%
   position: absolute
+  z-index: 1
   right: 0
   display: flex
   flex-flow: row nowrap
-  @media (min-width: $breakpoint-tablet)
+  @media screen and (min-width: $breakpoint-tablet) and (max-width: $breakpoint-laptop)
     width: 50%
-  @media (min-width: $breakpoint-laptop)
-    width: 30%
+  @media screen and (min-width: $breakpoint-laptop)
+    display: none
   .info-panel-icon #help-button
     margin: 0.7em $small-space
   .info-panel-content .information
-    margin-left: 0
-    border-left: 0
-    padding-left: 0
+    display: contents
  
 
 .basicform mat-select
