@@ -62,7 +62,7 @@ func (self confirmHandler) Handle(ctx context.Context, response server.Response,
 	// Execute
 	switch answer.Type {
 	case db.ConfirmationTypeVerify:
-		err = self.verify(uid)
+		err = self.verify(ctx, uid)
 	}
 	must(err)
 
@@ -73,7 +73,8 @@ func (self confirmHandler) Handle(ctx context.Context, response server.Response,
 	response.SendJSON(ctx, answer)
 }
 
-func (self confirmHandler) verify(uid uint32) error {
-	// TODO: mark user as verified
-	return nil
+func (self confirmHandler) verify(ctx context.Context, uid uint32) error {
+	const qUpdate = `UPDATE Users SET Verified = TRUE WHERE Id = ?`
+	_, err := db.DB.ExecContext(ctx, qUpdate, uid)
+	return err
 }

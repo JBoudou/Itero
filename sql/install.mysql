@@ -47,12 +47,13 @@ DROP TABLE      IF EXISTS Users;
 CREATE TABLE Users (
 
   # Passwd stores only a hash signature.
-  Id      int unsigned  NOT NULL  AUTO_INCREMENT,
-  Email   varchar(128)  ,
-  Name    varchar(64)   ,
-  Passwd  binary(32)    ,
-  Hash    binary(3)     ,
-  Created timestamp     NOT NULL  DEFAULT CURRENT_TIMESTAMP,
+  Id        int unsigned  NOT NULL  AUTO_INCREMENT,
+  Email     varchar(128)  ,
+  Name      varchar(64)   ,
+  Passwd    binary(32)    ,
+  Hash      binary(3)     ,
+  Created   timestamp     NOT NULL  DEFAULT CURRENT_TIMESTAMP,
+  Verified  bool          NOT NULL  DEFAULT FALSE,
 
   CONSTRAINT Users_pk PRIMARY KEY (Id),
   CONSTRAINT Users_Email_unique UNIQUE (Email),

@@ -39,3 +39,7 @@ END;
 //
 
 DELIMITER ;
+
+ALTER TABLE Users
+  ADD COLUMN
+    Verified  bool          NOT NULL  DEFAULT FALSE;

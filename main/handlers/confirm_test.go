@@ -43,6 +43,7 @@ type confirmTest struct {
 	Checker srvt.Checker
 
 	dbEnv     dbt.Env
+	uid uint32
 	segments  []salted.Segment
 	requested salted.Segment
 }
@@ -64,9 +65,9 @@ func (self *confirmTest) Prepare(t *testing.T) *ioc.Locator {
 	var err error
 	ctx := context.Background()
 	for i, entry := range self.Create {
-		uid := self.dbEnv.CreateUserWith(t.Name() + strconv.Itoa(i))
+		self.uid = self.dbEnv.CreateUserWith(t.Name() + strconv.Itoa(i))
 		self.dbEnv.Must(t)
-		self.segments[i], err = db.CreateConfirmation(ctx, uid, entry.typ, entry.dur)
+		self.segments[i], err = db.CreateConfirmation(ctx, self.uid, entry.typ, entry.dur)
 		mustt(t, err)
 		self.dbEnv.Defer(func() { db.DB.Exec(qDelete, self.segments[i].Id) })
 	}
@@ -114,6 +115,16 @@ func (self *confirmTest) Check(t *testing.T, response *http.Response, request *s
 	mustt(t, err)
 	if rows.Next() {
 		t.Errorf("Confirmation with id %d has not been deleted", self.requested.Id)
+	}
+
+	switch expectType {
+	case db.ConfirmationTypeVerify:
+		const qCheckVerify = `SELECT Verified FROM Users WHERE Id = ?`
+		var verified bool
+		mustt(t, db.DB.QueryRow(qCheckVerify, self.uid).Scan(&verified))
+		if !verified {
+			t.Errorf("User %d not verified.", self.uid)
+		}
 	}
 }
 
