@@ -17,10 +17,10 @@
 package services
 
 import (
-	"errors"
 	"time"
 
 	"github.com/JBoudou/Itero/pkg/events"
+	"github.com/JBoudou/Itero/pkg/ioc"
 )
 
 //
@@ -75,33 +75,33 @@ func NewPollNotification(evt events.Event) (ret *PollNotification) {
 //
 
 // PollNotifChannel provides lists of recent notifications.
-var PollNotifChannel <-chan []*PollNotification
+type PollNotifChannel = <-chan []*PollNotification
 
-// PollNotifDelay is the time notifications are kept in the list.
+// PollNotifDelay is the default duration during which notifications are kept in the list.
 // This duration must be strictly greater than the period between pulls of the frontend.
 const PollNotifDelay = 20 * time.Second
 
-func RunPollNotif(delay time.Duration) error {
-	if PollNotifChannel != nil {
-		return errors.New("RunPollNotif already called")
-	}
+func init() {
+	ioc.Root.Set(func(evtManager events.Manager) (PollNotifChannel, error) {
+		return RunPollNotif(PollNotifDelay, evtManager)
+	})
+}
 
+func RunPollNotif(delay time.Duration, evtManager events.Manager) (PollNotifChannel, error) {
 	runner := newPollNotifRunner(delay)
 
 	eventChan := make(chan events.Event, 64)
-	err := events.AddReceiver(events.AsyncForwarder{
+	err := evtManager.AddReceiver(events.AsyncForwarder{
 		Filter: runner.filter,
 		Chan:   eventChan,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	notifChan := make(chan []*PollNotification)
-	PollNotifChannel = notifChan
-
 	go runner.run(eventChan, notifChan)
-	return nil
+	return notifChan, nil
 }
 
 type pollNotifRunner struct {

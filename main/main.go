@@ -42,9 +42,6 @@ func main() {
 	service.Run(ClosePollService, ioc.Root)
 	service.Run(EmailService, ioc.Root)
 
-	// Misc
-	RunPollNotif(PollNotifDelay)
-
 	// Handlers
 	server.HandleFunc("/a/login", LoginHandler)
 	server.HandleFunc("/a/signup", SignupHandler)
@@ -56,7 +53,7 @@ func main() {
 	server.HandleFunc("/a/info/count/", CountInfoHandler, server.Compress)
 	server.HandleFunc("/a/create", CreateHandler)
 	server.HandleFunc("/a/delete/", DeleteHandler)
-	server.HandleFunc("/a/pollnotif", PollNotifHandler, server.Compress)
+	StartHandler("/a/pollnotif", PollNotifHandler, server.Compress)
 	server.HandleFunc("/a/config", ConfigHandler)
 	StartHandler("/a/confirm/", ConfirmHandler)
 

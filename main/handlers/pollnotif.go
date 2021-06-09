@@ -44,7 +44,17 @@ type PollNotifAnswerEntry struct {
 	Action    uint8
 }
 
-func PollNotifHandler(ctx context.Context, response server.Response, request *server.Request) {
+type pollNotifHandler struct {
+	notifChannel services.PollNotifChannel
+}
+
+func PollNotifHandler(notifChannel services.PollNotifChannel) *pollNotifHandler {
+	return &pollNotifHandler{
+		notifChannel: notifChannel,
+	}
+}
+
+func (self *pollNotifHandler) Handle(ctx context.Context, response server.Response, request *server.Request) {
 	if request.User == nil {
 		if request.SessionError != nil {
 			must(request.SessionError)
@@ -60,7 +70,7 @@ func PollNotifHandler(ctx context.Context, response server.Response, request *se
 		panic(server.WrapError(http.StatusBadRequest, "Bad request", err))
 	}
 
-	baseList := <-services.PollNotifChannel
+	baseList := <-self.notifChannel
 	if len(baseList) == 0 {
 		response.SendJSON(ctx, make([]PollNotifAnswerEntry, 0))
 		return
