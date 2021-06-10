@@ -3,11 +3,15 @@
 @import '../../../sizes'
 
 table
-  width: 100%
+  display: grid
+  grid-template-columns: 1fr min-content min-content min-content min-content
   border: solid 1px $maincolor
   border-collapse: collapse
   thead
+    display: contents
     border: solid 1px $maincolor
+  tbody, tr
+    display: contents
   td, th
     padding: 2px 4px
   th.manage
@@ -17,11 +21,11 @@ table
   tr.poll
     td
       cursor: default
+    td[colspan="2"]
+      grid-column: span 2
     &:hover
       background-color: $softbgcolor
     td.title
-      display: block
-      width: 30em
       text-overflow: ellipsis
       overflow: hidden
       white-space: nowrap
@@ -84,7 +88,6 @@ table
         overflow: hidden
         white-space: nowrap
       td.title
-        width: auto
         border-bottom: solid 2px #ddd
         text-align: left
       td.round,  td.deadline,  td.terminated
