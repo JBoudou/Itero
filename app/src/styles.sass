@@ -130,13 +130,14 @@ input
 
 .information-container
   display: grid
-  grid-template-columns: 1fr minmax(min-content, 5%)
+  grid-template-columns: 1fr minmax(min-content, 31%)
+  @media screen and (max-width: $breakpoint-laptop)
+    grid-template-columns: 1fr minmax(min-content, 5%)
 
 .information
   margin-left: $medium-space
   border-left: solid 1px $maincolor
   padding-left: $medium-space
-  display: none
   p
     font: $infofont
     margin-top: 0
@@ -152,19 +153,28 @@ $itero-mat-theme: mat-light-theme(( color: ( primary: $itero-mat-primary, accent
 @include angular-material-typography($itero-mat-typography)
 
 
-.sidemenu
-  border-left:1px solid #704f6a
-  border-top: 1px solid #704f6a
-  border-bottom: 1px solid #704f6a
+
+.info-panel
+  border: 1px solid #704f6a
+  border-right: none
   background-color: #d5b6d0
-  float: right
-  height: 100%
-  margin-right: -16px
-  margin-left: 3px
-  box-shadow: -2px 0px 2px 0 rgba(255, 204, 244, 0.9)
-  .helpbutton
-    text-align: center
- 
+  box-shadow: -5px 0px 5px 0 rgba(255, 204, 244, 0.7)
+  position: absolute
+  z-index: 1
+  right: 0
+  display: flex
+  flex-flow: row nowrap
+  width: 80%
+  @media screen and (min-width: $breakpoint-tablet) and (max-width: $breakpoint-laptop)
+    width: 50%
+  @media screen and (min-width: $breakpoint-laptop)
+    display: none
+  .info-panel-icon #help-button
+    margin: 0.7em $small-space
+  .info-panel-content .information
+    display: contents
+    p
+      margin-top: 1em
 
 .basicform mat-select
   @include userinput
