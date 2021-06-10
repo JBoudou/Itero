@@ -5,7 +5,6 @@
 @import 'mixins'
 @import 'responsive'
 
-
 body
   font-family: "Asap", sans-serif
   font-size: $fontsize
@@ -131,10 +130,9 @@ input
 
 .information-container
   display: grid
-  grid-template-columns: 1fr minmax(min-content, 5%)
-  @media screen and (min-width: $breakpoint-laptop)
-    grid-template-columns: 1fr minmax(min-content, 31%)
-
+  grid-template-columns: 1fr minmax(min-content, 31%)
+  @media screen and (max-width: $breakpoint-laptop)
+    grid-template-columns: 1fr minmax(min-content, 5%)
 
 .information
   margin-left: $medium-space
@@ -142,6 +140,7 @@ input
   padding-left: $medium-space
   p
     font: $infofont
+    margin-top: 0
 
 th
   font-weight: 600
@@ -160,12 +159,12 @@ $itero-mat-theme: mat-light-theme(( color: ( primary: $itero-mat-primary, accent
   border-right: none
   background-color: #d5b6d0
   box-shadow: -5px 0px 5px 0 rgba(255, 204, 244, 0.7)
-  width: 80%
   position: absolute
   z-index: 1
   right: 0
   display: flex
   flex-flow: row nowrap
+  width: 80%
   @media screen and (min-width: $breakpoint-tablet) and (max-width: $breakpoint-laptop)
     width: 50%
   @media screen and (min-width: $breakpoint-laptop)
@@ -174,7 +173,8 @@ $itero-mat-theme: mat-light-theme(( color: ( primary: $itero-mat-primary, accent
     margin: 0.7em $small-space
   .info-panel-content .information
     display: contents
- 
+    p
+      margin-top: 1em
 
 .basicform mat-select
   @include userinput
