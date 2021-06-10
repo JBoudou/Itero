@@ -27,7 +27,7 @@ type MockResponse struct {
 	T           *testing.T
 	JsonFct     func(*testing.T, context.Context, interface{})
 	ErrorFct    func(*testing.T, context.Context, error)
-	LoginFct    func(*testing.T, context.Context, server.User, *server.Request)
+	LoginFct    func(*testing.T, context.Context, server.User, *server.Request, interface{})
 	UnloggedFct func(*testing.T, context.Context, server.User, *server.Request) error
 }
 
@@ -50,14 +50,14 @@ func (self MockResponse) SendError(ctx context.Context, err error) {
 }
 
 func (self MockResponse) SendLoginAccepted(ctx context.Context, user server.User,
-	request *server.Request) {
+	request *server.Request, profile interface{}) {
 
 	self.T.Helper()
 	if self.LoginFct == nil {
 		self.T.Errorf("SendLoginAccepted called with user %v", user)
 		return
 	}
-	self.LoginFct(self.T, ctx, user, request)
+	self.LoginFct(self.T, ctx, user, request, profile)
 }
 
 func (self MockResponse) SendUnloggedId(ctx context.Context, user server.User,

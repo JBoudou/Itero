@@ -349,7 +349,7 @@ func TestResponse_SendLoginAccepted(t *testing.T) {
 			self := response{
 				writer: mock,
 			}
-			self.SendLoginAccepted(tt.args.ctx, tt.args.user, tt.args.req)
+			self.SendLoginAccepted(tt.args.ctx, tt.args.user, tt.args.req, 0)
 			tt.check(t, mock, &tt.args)
 		})
 	}

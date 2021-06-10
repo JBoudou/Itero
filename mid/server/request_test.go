@@ -243,7 +243,7 @@ func TestLoginThenNewRequest(t *testing.T) {
 			mock := httptest.NewRecorder()
 
 			response := response{writer: mock}
-			response.SendLoginAccepted(context.Background(), user, &Request{original: &http.Request{}})
+			response.SendLoginAccepted(context.Background(), user, &Request{original: &http.Request{}}, 0)
 			result := mock.Result()
 
 			originalRequest := httptest.NewRequest("GET", fullPath, nil)

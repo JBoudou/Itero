@@ -125,6 +125,6 @@ func SignupHandler(ctx context.Context, response server.Response, request *serve
 		Name: signupQuery.Name,
 		Id: uint32(rawId),
 		Logged: true,
-	}, request)
+	}, request, ProfileInfo{})
 	return
 }

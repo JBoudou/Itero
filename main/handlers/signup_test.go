@@ -104,7 +104,7 @@ func TestSignupHandler_Success(t *testing.T) {
 	var userId uint32
 	response := srvt.MockResponse{
 		T: t,
-		LoginFct: func(t *testing.T, ctx context.Context, user server.User, request *server.Request) {
+		LoginFct: func(t *testing.T, ctx context.Context, user server.User, request *server.Request, _ interface{}) {
 			if user.Name != name {
 				t.Errorf("Wrong name. Got %s. Expect %s.", user.Name, name)
 			}
