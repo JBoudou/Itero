@@ -1,3 +1,12 @@
+@import '../../responsive'
+
 .poll-list
   margin-top: 3em
+
+#mat-tab-container
+    @media (min-width: $breakpoint-tablet)
+      display: none
   
+#poll-list-container
+    @media (max-width: $breakpoint-tablet)
+      display: none

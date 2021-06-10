@@ -1,5 +1,5 @@
 // Itero - Online iterative vote application
-// Copyright (C) 2021 Joseph Boudou
+// Copyright (C) 2021 Joseph Boudou, Milo Parra
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -28,6 +28,8 @@ import { ListComponent } from './list.component';
 import { PollsTableComponent } from './polls-table/polls-table.component';
 import { DeletePollDialog } from './list.service';
 
+import {MatTabsModule} from '@angular/material/tabs';
+
 
 @NgModule({
   declarations: [
@@ -41,6 +43,7 @@ import { DeletePollDialog } from './list.service';
     MatDialogModule,
     MatIconModule,
     SharedModule,
+    MatTabsModule,
   ],
   exports: [
     ListComponent,
