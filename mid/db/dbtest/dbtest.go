@@ -210,6 +210,22 @@ func (self *Env) Vote(pollId uint32, round uint8, userId uint32, alternative uin
 	self.execTx(tx, qVote, pollId, round, userId, alternative)
 }
 
+//
+// WithDB
+//
+
+type WithDB struct {
+	DB Env
+}
+
+func (self *WithDB) Close() {
+	self.DB.Close()
+}
+
+//
+// implementation
+//
+
 func (self *Env) execTx(tx *sql.Tx, query string, args ...interface{}) (ret sql.Result) {
 	if self.Error != nil {
 		return

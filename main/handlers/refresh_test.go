@@ -17,38 +17,79 @@
 package handlers
 
 import (
-	"testing"
 	"net/http"
-	
+	"testing"
+
+	dbt "github.com/JBoudou/Itero/mid/db/dbtest"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
+	"github.com/JBoudou/Itero/pkg/ioc"
 )
 
-func TestRefreshHandler(t *testing.T) {
-	var userId uint32 = 27
+type createUserTest struct {
+	srvt.WithName
+	srvt.WithChecker
+	dbt.WithDB
 
+	Request func(uid *uint32) *srvt.Request
+
+	uid uint32
+}
+
+func (self *createUserTest) Prepare(t *testing.T) *ioc.Locator {
+	self.uid = self.DB.CreateUserWith(t.Name())
+	self.DB.Must(t)
+
+	return self.WithChecker.Prepare(t)
+}
+
+func (self *createUserTest) GetRequest(t *testing.T) *srvt.Request {
+	return self.Request(&self.uid)
+}
+
+type createUserTest_ struct {
+	Name    string
+	Request func(uid *uint32) *srvt.Request
+	Checker srvt.Checker
+}
+
+func CreateUserTest(c createUserTest_) *createUserTest {
+	return &createUserTest{
+		WithName:    srvt.WithName{c.Name},
+		WithChecker: srvt.WithChecker{c.Checker},
+		Request:     c.Request,
+	}
+}
+
+func TestRefreshHandler(t *testing.T) {
 	tests := []srvt.Test{
-		&srvt.T{
+		CreateUserTest(createUserTest_{
 			Name: "No user",
-			Request: srvt.Request {
-				Method: "POST",
+			Request: func(_ *uint32) *srvt.Request {
+				return &srvt.Request{
+					Method: "POST",
+				}
 			},
 			Checker: srvt.CheckStatus{http.StatusForbidden},
-		},
-		&srvt.T{
+		}),
+		CreateUserTest(createUserTest_{
 			Name: "GET",
-			Request: srvt.Request {
-				UserId: &userId,
+			Request: func(uid *uint32) *srvt.Request {
+				return &srvt.Request{
+					UserId: uid,
+				}
 			},
 			Checker: srvt.CheckStatus{http.StatusForbidden},
-		},
-		&srvt.T{
+		}),
+		CreateUserTest(createUserTest_{
 			Name: "Success",
-			Request: srvt.Request {
-				UserId: &userId,
-				Method: "POST",
+			Request: func(uid *uint32) *srvt.Request {
+				return &srvt.Request{
+					UserId: uid,
+					Method: "POST",
+				}
 			},
 			Checker: srvt.CheckStatus{http.StatusOK},
-		},
+		}),
 	}
 
 	srvt.RunFunc(t, tests, RefreshHandler)
