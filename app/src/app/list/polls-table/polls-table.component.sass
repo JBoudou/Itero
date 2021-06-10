@@ -3,6 +3,7 @@
 @import '../../../sizes'
 
 table
+  width: 100%
   border: solid 1px $maincolor
   border-collapse: collapse
   thead
@@ -18,6 +19,12 @@ table
       cursor: default
     &:hover
       background-color: $softbgcolor
+    td.title
+      display: block
+      width: 30em
+      text-overflow: ellipsis
+      overflow: hidden
+      white-space: nowrap
     td.round, td.deadline, td.terminated
       text-align: center
       white-space: nowrap
@@ -77,6 +84,7 @@ table
         overflow: hidden
         white-space: nowrap
       td.title
+        width: auto
         border-bottom: solid 2px #ddd
         text-align: left
       td.round,  td.deadline,  td.terminated
