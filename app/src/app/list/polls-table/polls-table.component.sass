@@ -7,24 +7,28 @@ table
   grid-template-columns: 1fr min-content min-content min-content min-content
   border: solid 1px $maincolor
   border-collapse: collapse
+
+
+
   thead
     display: contents
     border: solid 1px $maincolor
-  tbody, tr
+  tbody,tr
     display: contents
-  td, th
+  tr:hover td
+    background-color: $softbgcolor
+  th
+    border-bottom: solid 1px $maincolor
+    background-color: $softbgcolor
     padding: 2px 4px
   th.manage
     padding: 2px 0
-  tr.tableheader
-    background-color: $softbgcolor
   tr.poll
     td
+      padding: 2px 4px
       cursor: default
     td[colspan="2"]
       grid-column: span 2
-    &:hover
-      background-color: $softbgcolor
     td.title
       text-overflow: ellipsis
       overflow: hidden
