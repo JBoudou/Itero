@@ -18,8 +18,6 @@ $itero-mat-typography: mat-typography-config(
   $input:     mat-typography-level($fontsize, 1.3),
 );
 
-
-
 //laptop-size (default size)
 @media only screen and (min-width : $breakpoint-laptop)
 {
@@ -33,8 +31,8 @@ $itero-mat-typography: mat-typography-config(
 @media only screen and (min-width : $breakpoint-tablet + 1) and (max-width : $breakpoint-laptop - 1px)
 {
     :root{
-        --font-size: 11.5pt;
-        --small-font-size: 10,5pt;
+        --font-size: 12pt;
+        --small-font-size: 11pt;
          }
 }
 
