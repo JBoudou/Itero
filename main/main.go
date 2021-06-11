@@ -56,6 +56,7 @@ func main() {
 	StartHandler("/a/pollnotif", PollNotifHandler, server.Compress)
 	server.HandleFunc("/a/config", ConfigHandler)
 	StartHandler("/a/confirm/", ConfirmHandler)
+	StartHandler("/a/reverify", ReverifyHandler)
 
 	log.Println("Server starting")
 	if err := server.Start(); err != nil {

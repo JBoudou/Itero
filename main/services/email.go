@@ -110,7 +110,7 @@ func (self emailService) Logger() service.LevelLogger {
 
 func (self emailService) FilterEvent(evt events.Event) bool {
 	switch evt.(type) {
-	case CreateUserEvent:
+	case CreateUserEvent, ReverifyEvent:
 		return true
 	}
 	return false
@@ -119,11 +119,13 @@ func (self emailService) FilterEvent(evt events.Event) bool {
 func (self emailService) ReceiveEvent(evt events.Event, ctrl service.RunnerControler) {
 	switch converted := evt.(type) {
 	case CreateUserEvent:
-		self.createUser(converted.User, ctrl)
+		self.verify(converted.User, ctrl, "greeting.txt")
+	case ReverifyEvent:
+		self.verify(converted.User, ctrl, "reverify.txt")
 	}
 }
 
-func (self emailService) createUser(userId uint32, ctrl service.RunnerControler) {
+func (self emailService) verify(userId uint32, ctrl service.RunnerControler, tmplFile string) {
 	var data struct {
 		Sender       string
 		Name         string
@@ -136,7 +138,7 @@ func (self emailService) createUser(userId uint32, ctrl service.RunnerControler)
 
 	// Find the template
 	var tmpl *template.Template
-	tmpl, err := template.ParseFiles(filepath.Join(config.BaseDir, TmplBaseDir, "en", "greeting.txt"))
+	tmpl, err := template.ParseFiles(filepath.Join(config.BaseDir, TmplBaseDir, "en", tmplFile))
 	if err != nil {
 		self.log.Errorf("Error retrieving template: %v", err)
 		return

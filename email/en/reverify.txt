@@ -1,0 +1,14 @@
+From: Itero <{{ .Sender }}>
+To: {{ .Name }} <{{ .Address }}>
+Subject: Verify your email address on Itero
+
+Dear {{ .Name }},
+
+To confirm your email address on Itero please visit the following link:
+
+  {{ .BaseURL }}r/confirm/{{ .Confirmation }}
+
+We remain at your disposal for any question or comment about the application.
+
+Best,
+The Itero team

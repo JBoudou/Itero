@@ -173,7 +173,7 @@ func TestVariables(t *testing.T) {
 		PollPublicityHiddenRegistered, PollPublicityInvited)
 }
 
-func TestMillisecondsToTime(t *testing.T) {
+func TestDurationToTime(t *testing.T) {
 	tests := []struct {
 		input  time.Duration
 		expect string
@@ -197,6 +197,10 @@ func TestMillisecondsToTime(t *testing.T) {
 		{
 			input:  (60*60*1000 - 1) * time.Millisecond,
 			expect: "0:59:59.999000",
+		},
+		{
+			input:  -1 * time.Second,
+			expect: "-0:00:01.000000",
 		},
 	}
 	for _, tt := range tests {

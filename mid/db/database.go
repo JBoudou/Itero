@@ -151,7 +151,12 @@ func fillVars(table string, assoc map[string]*uint8) {
 // DurationToTime convert a duration into a time understandable by the database.
 func DurationToTime(duration time.Duration) string {
 	milli := duration.Milliseconds()
-	return fmt.Sprintf("%d:%02d:%02d.%03d000",
+	prefix := ""
+	if milli < 0 {
+		milli = -milli
+		prefix = "-"
+	}
+	return prefix + fmt.Sprintf("%d:%02d:%02d.%03d000",
 		milli/(60*60*1000),
 		(milli/(60*1000))%60,
 		(milli/1000)%60,

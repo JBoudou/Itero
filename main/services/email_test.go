@@ -35,68 +35,89 @@ import (
 func TestEmailService_CreateUserEvent(t *testing.T) {
 	t.Parallel()
 
-	var err error
-	var rcv events.Receiver
-	emailSent := false
-	emailChan := make(chan bool)
-
-	dbenv := dbtest.Env{}
-	defer dbenv.Close()
-	uid := dbenv.CreateUserWith(t.Name())
-	dbenv.Must(t)
-
-	locator := ioc.Root.Sub()
-
-	err = locator.Set(func() events.Manager {
-		return &evtest.ManagerMock{
-			T: t,
-			AddReceiver_: func(r events.Receiver) error {
-				rcv = r
-				rcv.Receive(CreateUserEvent{User: uid})
-				return nil
-			},
-		}
-	})
-	mustt(t, err)
-
-	err = locator.Set(func() emailsender.Sender {
-		return estest.SenderMock{
-			T: t,
-			Send_: func(emailsender.Email) error {
-				emailChan <- true
-				return nil
-			},
-		}
-	})
-	mustt(t, err)
-
-	stop := service.Run(EmailService, locator)
-	defer stop()
-
-testLoop:
-	for i := 0; i < 20; i++ {
-		select {
-		case emailSent = <-emailChan:
-			break testLoop
-
-		default:
-			time.Sleep(10 * time.Millisecond)
-		}
+	tests := []struct {
+		name  string
+		event func(uid uint32) events.Event
+	}{
+		{
+			name:  "CreateUserEvent",
+			event: func(uid uint32) events.Event { return CreateUserEvent{User: uid} },
+		},
+		{
+			name:  "ReverifyEvent",
+			event: func(uid uint32) events.Event { return ReverifyEvent{User: uid} },
+		},
 	}
 
-	if rcv == nil {
-		t.Errorf("Receiver not registered")
-	}
-	if !emailSent {
-		t.Errorf("No email sent")
-	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	const qSelect = `SELECT 1 FROM Confirmations WHERE User = ? AND Type = 'verify'`
-	rows, err := db.DB.Query(qSelect, uid)
-	defer rows.Close()
-	mustt(t, err)
-	if !rows.Next() {
-		t.Errorf("No confirmation created.")
+			var err error
+			var rcv events.Receiver
+			emailSent := false
+			emailChan := make(chan bool)
+
+			dbenv := dbtest.Env{}
+			defer dbenv.Close()
+			uid := dbenv.CreateUserWith(t.Name())
+			dbenv.Must(t)
+
+			locator := ioc.Root.Sub()
+
+			err = locator.Set(func() events.Manager {
+				return &evtest.ManagerMock{
+					T: t,
+					AddReceiver_: func(r events.Receiver) error {
+						rcv = r
+						rcv.Receive(tt.event(uid))
+						return nil
+					},
+				}
+			})
+			mustt(t, err)
+
+			err = locator.Set(func() emailsender.Sender {
+				return estest.SenderMock{
+					T: t,
+					Send_: func(emailsender.Email) error {
+						emailChan <- true
+						return nil
+					},
+				}
+			})
+			mustt(t, err)
+
+			stop := service.Run(EmailService, locator)
+			defer stop()
+
+		testLoop:
+			for i := 0; i < 20; i++ {
+				select {
+				case emailSent = <-emailChan:
+					break testLoop
+
+				default:
+					time.Sleep(10 * time.Millisecond)
+				}
+			}
+
+			if rcv == nil {
+				t.Errorf("Receiver not registered")
+			}
+			if !emailSent {
+				t.Errorf("No email sent")
+			}
+
+			const qSelect = `SELECT 1 FROM Confirmations WHERE User = ? AND Type = 'verify'`
+			rows, err := db.DB.Query(qSelect, uid)
+			defer rows.Close()
+			mustt(t, err)
+			if !rows.Next() {
+				t.Errorf("No confirmation created.")
+			}
+		})
 	}
 }
 
@@ -110,14 +131,14 @@ type emailTestInstance struct {
 func metaTestEmail(t *testing.T, checker func(*testing.T, *emailTestInstance, uint32)) {
 	tests := []emailTestInstance{
 		{
-			name: "Past",
-			type_: db.ConfirmationTypeVerify,
+			name:     "Past",
+			type_:    db.ConfirmationTypeVerify,
 			duration: -1 * time.Hour,
 			expected: true,
 		},
 		{
-			name: "Future",
-			type_: db.ConfirmationTypeVerify,
+			name:     "Future",
+			type_:    db.ConfirmationTypeVerify,
 			duration: 1 * time.Hour,
 			expected: false,
 		},
@@ -206,7 +227,7 @@ func email_CheckOne_checker(t *testing.T, tt *emailTestInstance, id uint32) {
 	expires := svc.CheckOne(id)
 
 	diff := tt.duration - expires.Sub(time.Now())
-	if diff < -1 * time.Second || diff > time.Second {
+	if diff < -1*time.Second || diff > time.Second {
 		t.Errorf("Wrong expires. Got %v. Expect %v.", expires, time.Now().Add(tt.duration))
 	}
 }

@@ -28,22 +28,15 @@ import (
 type createUserTest struct {
 	srvt.WithName
 	srvt.WithChecker
+	srvt.WithRequestFct
 	dbt.WithDB
-
-	Request func(uid *uint32) *srvt.Request
-
-	uid uint32
 }
 
 func (self *createUserTest) Prepare(t *testing.T) *ioc.Locator {
-	self.uid = self.DB.CreateUserWith(t.Name())
+	self.Uid = self.DB.CreateUserWith(t.Name())
 	self.DB.Must(t)
 
 	return self.WithChecker.Prepare(t)
-}
-
-func (self *createUserTest) GetRequest(t *testing.T) *srvt.Request {
-	return self.Request(&self.uid)
 }
 
 type createUserTest_ struct {
@@ -56,7 +49,7 @@ func CreateUserTest(c createUserTest_) *createUserTest {
 	return &createUserTest{
 		WithName:    srvt.WithName{c.Name},
 		WithChecker: srvt.WithChecker{c.Checker},
-		Request:     c.Request,
+		WithRequestFct: srvt.WithRequestFct{RequestFct: c.Request},
 	}
 }
 
@@ -64,30 +57,17 @@ func TestRefreshHandler(t *testing.T) {
 	tests := []srvt.Test{
 		CreateUserTest(createUserTest_{
 			Name: "No user",
-			Request: func(_ *uint32) *srvt.Request {
-				return &srvt.Request{
-					Method: "POST",
-				}
-			},
+			Request: srvt.RFPostNoSession,
 			Checker: srvt.CheckStatus{http.StatusForbidden},
 		}),
 		CreateUserTest(createUserTest_{
 			Name: "GET",
-			Request: func(uid *uint32) *srvt.Request {
-				return &srvt.Request{
-					UserId: uid,
-				}
-			},
+			Request: srvt.RFGetLogged,
 			Checker: srvt.CheckStatus{http.StatusForbidden},
 		}),
 		CreateUserTest(createUserTest_{
 			Name: "Success",
-			Request: func(uid *uint32) *srvt.Request {
-				return &srvt.Request{
-					UserId: uid,
-					Method: "POST",
-				}
-			},
+			Request: srvt.RFPostLogged,
 			Checker: srvt.CheckStatus{http.StatusOK},
 		}),
 	}

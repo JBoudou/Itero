@@ -24,6 +24,8 @@ import (
 	"github.com/JBoudou/Itero/pkg/ioc"
 )
 
+// WithName //
+
 type WithName struct {
 	Name string
 }
@@ -31,6 +33,8 @@ type WithName struct {
 func (self WithName) GetName() string {
 	return self.Name
 }
+
+// WithChecker //
 
 type WithChecker struct {
 	Checker Checker
@@ -48,4 +52,40 @@ func (self WithChecker) Check(t *testing.T, response *http.Response, request *se
 		t.Fatalf("No Checker")
 	}
 	self.Checker.Check(t, response, request)
+}
+
+// WithRequestFct //
+
+type RequestFct = func (uid *uint32) *Request
+
+type WithRequestFct struct {
+	RequestFct RequestFct
+	Uid uint32
+}
+
+func (self WithRequestFct) GetRequest(t *testing.T) *Request {
+	return self.RequestFct(&self.Uid)
+}
+
+func RFGetNoSession(uid *uint32) *Request {
+	return &Request{}
+}
+
+func RFPostNoSession(uid *uint32) *Request {
+	return &Request{
+		Method: "POST",
+	}
+}
+
+func RFGetLogged(uid *uint32) *Request {
+	return &Request{
+		UserId: uid,
+	}
+}
+
+func RFPostLogged(uid *uint32) *Request {
+	return &Request{
+		Method: "POST",
+		UserId: uid,
+	}
 }
