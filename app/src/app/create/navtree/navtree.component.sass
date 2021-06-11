@@ -1,4 +1,5 @@
 @import '../../../mixins'
+@import '../../../responsive'
 
 :host
   display: flex
@@ -11,8 +12,6 @@
     @include userinput
     transition-property: background-color, color, border-color
     transition-duration: 500ms
-    .index:after
-      content: ". "
   .current-step
     background-color: $userbuttonbgcolor
     transition: background-color 300ms
@@ -29,3 +28,6 @@
   .placeholder.disabled-step
     border-bottom-style: dotted
     border-bottom-color: $disabled-frame-color
+  @media screen and (max-width: $breakpoint-tablet)
+    .step:not(.current-step) .stepName
+      display: none

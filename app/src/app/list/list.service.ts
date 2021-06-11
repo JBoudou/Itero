@@ -121,6 +121,7 @@ export class ListService {
 @Component({
   selector: 'delete-poll-dialog',
   templateUrl: 'delete-poll.dialog.html',
+  host: {class: 'dialog-box'},
 })
 export class DeletePollDialog {
   constructor(
