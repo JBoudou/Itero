@@ -15,25 +15,27 @@ table
   th.manage
     padding: 2px 0
   tr.poll
-    &:hover td
-      background-color: $softbgcolor
     td
       padding: 3px 4px
       cursor: default
+    &:hover td
+     background-color: $softbgcolor
     td[colspan="2"]
       grid-column: span 2
     td.title
+      align-self: center
       text-overflow: ellipsis
       overflow: hidden
       white-space: nowrap
     td.round, td.deadline, td.terminated
+      align-self: center
       text-align: center
       white-space: nowrap
     .last-line
+      align-self: center
       display: contents
       td.action
         cursor: pointer
-        vertical-align: middle
         white-space: nowrap
         span
           display: block
@@ -55,13 +57,12 @@ table
           background-color: $softbgcolor
           border: solid 1px $userbuttonbgcolor
       td.manage
-        vertical-align: middle
         padding: 0
         span
           margin-right: 2px
           cursor: pointer
-          &:hover
-            color: $maincolor
+        &:hover
+          color: $maincolor
 
 @media screen and (max-width: $breakpoint-tablet)
   table
