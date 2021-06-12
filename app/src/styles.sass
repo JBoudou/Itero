@@ -7,7 +7,7 @@
 
 body
   font-family: "Asap", sans-serif
-  font-size: $fontsize
+  font-size: var(--font-size)
   margin: #{$navbarheight + 16} $medium-space $medium-space
   color: color.adjust($maincolor, $lightness: -25%)
 
@@ -23,7 +23,6 @@ input
   font-size: inherit
   font-family: inherit
 
-
 @function tame($color)
   @return color.adjust($color, $saturation: -20%, $lightness: +10%)
 
@@ -34,7 +33,7 @@ input
   button
     @include userbox
     background-color: $userbuttonbgcolor
-    font-size: $fontsize
+    font-size: var(--font-size)
     padding: 0.4em 1em
     margin-left: $medium-space
     &:hover
@@ -202,4 +201,3 @@ div.mat-menu-panel.nav-menu
   border: none
   height: 1px
   width: 78%
-  
