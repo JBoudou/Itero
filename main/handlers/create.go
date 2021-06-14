@@ -29,8 +29,10 @@ import (
 	"github.com/JBoudou/Itero/pkg/events"
 )
 
+type PollUserType uint8
+
 const (
-	PollUserTypeSimple = iota
+	PollUserTypeSimple PollUserType = iota
 )
 
 type SimpleAlternative struct {
@@ -39,7 +41,7 @@ type SimpleAlternative struct {
 }
 
 type CreateQuery struct {
-	UserType         uint8
+	UserType         PollUserType
 	Title            string
 	Description      string
 	Hidden           bool
@@ -97,10 +99,6 @@ func CreateHandler(ctx context.Context, response server.Response, request *serve
 
 	pollSegment, err := salted.New(0)
 	must(err)
-	publicity := db.PollPublicityPublicRegistered
-	if query.Hidden {
-		publicity = db.PollPublicityHiddenRegistered
-	}
 
 	tx, err := db.DB.BeginTx(ctx, nil)
 	must(err)
@@ -113,7 +111,7 @@ func CreateHandler(ctx context.Context, response server.Response, request *serve
 
 	const (
 		qPoll = `
-			INSERT INTO Polls (Title, Description, Admin, State, Start, Salt, Publicity, NbChoices,
+			INSERT INTO Polls (Title, Description, Admin, State, Start, Salt, Hidden, NbChoices,
 												 ReportVote, MinNbRounds, MaxNbRounds, Deadline, MaxRoundDuration,
 												 RoundThreshold)
 				  	 VALUE (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
@@ -127,7 +125,7 @@ func CreateHandler(ctx context.Context, response server.Response, request *serve
 		state,
 		start,
 		pollSegment.Salt,
-		publicity,
+		query.Hidden,
 		len(query.Alternatives),
 		query.ReportVote,
 		query.MinNbRounds,

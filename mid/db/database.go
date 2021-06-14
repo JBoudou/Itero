@@ -40,15 +40,17 @@ var Ok bool
 var (
 	PollTypeAcceptanceSet uint8
 
-	PollPublicityPublic           uint8
-	PollPublicityPublicRegistered uint8
-	PollPublicityHidden           uint8
-	PollPublicityHiddenRegistered uint8
-	PollPublicityInvited          uint8
-
 	PollRulePlurality uint8
 
 	RoundTypeFreelyAsynchronous uint8
+)
+
+type Electorate string
+
+const (
+	ElectorateAll      Electorate = "All"
+	ElectorateLogged   Electorate = "Logged"
+	ElectorateVerified Electorate = "Verified"
 )
 
 var (
@@ -102,12 +104,6 @@ func init() {
 
 	// Fill variables
 	fillVars("PollType", map[string]*uint8{"Acceptance Set": &PollTypeAcceptanceSet})
-	fillVars("PollPublicity", map[string]*uint8{
-		"Public":            &PollPublicityPublic,
-		"Public Registered": &PollPublicityPublicRegistered,
-		"Hidden":            &PollPublicityHidden,
-		"Hidden Registered": &PollPublicityHiddenRegistered,
-		"Invited":           &PollPublicityInvited})
 	fillVars("PollRule", map[string]*uint8{"Plurality": &PollRulePlurality})
 	fillVars("RoundType", map[string]*uint8{"Freely Asynchronous": &RoundTypeFreelyAsynchronous})
 }

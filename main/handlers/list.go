@@ -92,7 +92,7 @@ func ListHandler(ctx context.Context, response server.Response, request *server.
 	               WHERE User = ?
 	               GROUP BY Poll
 	           ) AS a ON p.Id = a.Poll
-	     WHERE ( (p.State != 'Waiting' AND p.CurrentRound = 0 AND p.Publicity <= ?)
+	     WHERE ( (p.State != 'Waiting' AND p.CurrentRound = 0 AND NOT p.Hidden)
 	              OR a.Poll IS NOT NULL )
 	       AND p.Admin != ?
 	     ORDER BY Action ASC, Deadline ASC`
@@ -121,8 +121,7 @@ func ListHandler(ctx context.Context, response server.Response, request *server.
 	)
 
 	var publicList []listAnswerEntry
-	rows, err := db.DB.QueryContext(ctx, qPublic,
-		request.User.Id, db.PollPublicityPublicRegistered, request.User.Id)
+	rows, err := db.DB.QueryContext(ctx, qPublic, request.User.Id, request.User.Id)
 	must(err)
 	publicList, err = makeListEntriesList(rows)
 	must(err)

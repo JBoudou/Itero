@@ -37,7 +37,6 @@ type nextRoundTestInstance struct {
 	minNbRounds  uint8   // applied only if >2
 	nowFact      float32 // if  >0 set Now      = CurrentRoundStart + nowFact      * MaxRoundDuration
 	deadlineFact float32 // if !=0 set Deadline = CurrentRoundStart + deadlineFact * MaxRoundDuration
-	pubInvited   bool    // whether Publicity is Invited
 	threshold    float64 // RoundThreshold
 	nbVoter      int     // number of Participant with LastRound = Poll.CurrentRound
 	expectNext   bool
@@ -68,7 +67,6 @@ func metaTestNextRound(t *testing.T, checker func(*testing.T, *nextRoundTestInst
 		  UPDATE Polls
 			   SET Deadline = ADDTIME(CurrentRoundStart, ? * MaxRoundDuration)
 			 WHERE Id = ?`
-		qSetInvited = `UPDATE Polls SET Publicity = ? WHERE Id = ?`
 	)
 
 	// Tests are independent.
@@ -178,7 +176,7 @@ func metaTestNextRound(t *testing.T, checker func(*testing.T, *nextRoundTestInst
 			for i := range user {
 				user[i] = env.CreateUserWith(t.Name() + strconv.FormatInt(int64(i), 10))
 			}
-			pollId := env.CreatePoll("TestRoundCheckAllPolls_Next", user[0], db.PollPublicityPublic)
+			pollId := env.CreatePoll("TestRoundCheckAllPolls_Next", user[0], db.ElectorateAll)
 			env.Must(t)
 
 			var err error
@@ -206,9 +204,6 @@ func metaTestNextRound(t *testing.T, checker func(*testing.T, *nextRoundTestInst
 			}
 			if err == nil && tt.deadlineFact != 0 {
 				_, err = db.DB.Exec(qSetDeadline, tt.deadlineFact, pollId)
-			}
-			if err == nil && tt.pubInvited {
-				_, err = db.DB.Exec(qSetInvited, db.PollPublicityInvited, pollId)
 			}
 			if err == nil && tt.nbVoter > 0 {
 				stmt, err = db.DB.Prepare(qParticipate)

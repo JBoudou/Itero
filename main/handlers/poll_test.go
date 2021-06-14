@@ -63,10 +63,10 @@ func TestPollHandler(t *testing.T) {
 		target1wrong string
 	)
 
-	createPoll := func(segment *salted.Segment, target *string, publicity uint8) func(t *testing.T) {
+	createPoll := func(segment *salted.Segment, target *string, electorate db.Electorate) func(t *testing.T) {
 		segment.Salt = 42
 		return func(t *testing.T) {
-			segment.Id = env.CreatePoll("Test", userId, publicity)
+			segment.Id = env.CreatePoll("Test", userId, electorate)
 			env.Must(t)
 			encoded, err := segment.Encode()
 			if err != nil {
@@ -89,7 +89,7 @@ func TestPollHandler(t *testing.T) {
 		&srvt.T{
 			Name: "Wrong salt",
 			Update: func(t *testing.T) {
-				createPoll(&segment1, &target1, db.PollPublicityHiddenRegistered)(t)
+				createPoll(&segment1, &target1, db.ElectorateLogged)(t)
 				segment := salted.Segment{Id: segment1.Id, Salt: 9999}
 				encoded, err := segment.Encode()
 				if err != nil {
@@ -159,75 +159,79 @@ func TestPollHandler(t *testing.T) {
 		// Independent tests //
 
 		&pollTest{
-			Name:      "No user access to public",
-			Publicity: db.PollPublicityPublic,
-			UserType:  pollTestUserTypeNone,
-			Checker:   pollHandlerCheckerFactory,
+			Name:       "No user access to public",
+			Electorate: db.ElectorateAll,
+			UserType:   pollTestUserTypeNone,
+			Checker:    pollHandlerCheckerFactory,
 		},
 		&pollTest{
-			Name:      "No user access to public hidden",
-			Publicity: db.PollPublicityHidden,
-			UserType:  pollTestUserTypeNone,
-			Checker:   pollHandlerCheckerFactory,
+			Name:       "No user access to public hidden",
+			Electorate: db.ElectorateAll,
+			Hidden:     true,
+			UserType:   pollTestUserTypeNone,
+			Checker:    pollHandlerCheckerFactory,
 		},
 		&pollTest{
-			Name:      "Unlogged access to public",
-			Publicity: db.PollPublicityPublic,
-			UserType:  pollTestUserTypeUnlogged,
-			Checker:   pollHandlerCheckerFactory,
+			Name:       "Unlogged access to public",
+			Electorate: db.ElectorateAll,
+			UserType:   pollTestUserTypeUnlogged,
+			Checker:    pollHandlerCheckerFactory,
 		},
 		&pollTest{
-			Name:      "Unlogged access to public hidden",
-			Publicity: db.PollPublicityHidden,
-			UserType:  pollTestUserTypeUnlogged,
-			Checker:   pollHandlerCheckerFactory,
-		},
-
-		&pollTest{
-			Name:      "No user no access to registered",
-			Publicity: db.PollPublicityPublicRegistered,
-			UserType:  pollTestUserTypeNone,
-			Checker:   srvt.CheckStatus{http.StatusNotFound},
-		},
-		&pollTest{
-			Name:      "No user no access to hidden registered",
-			Publicity: db.PollPublicityHiddenRegistered,
-			UserType:  pollTestUserTypeNone,
-			Checker:   srvt.CheckStatus{http.StatusNotFound},
-		},
-		&pollTest{
-			Name:      "Unlogged no access to registered",
-			Publicity: db.PollPublicityPublicRegistered,
-			UserType:  pollTestUserTypeUnlogged,
-			Checker:   srvt.CheckStatus{http.StatusNotFound},
-		},
-		&pollTest{
-			Name:      "Unlogged no access to hidden registered",
-			Publicity: db.PollPublicityHiddenRegistered,
-			UserType:  pollTestUserTypeUnlogged,
-			Checker:   srvt.CheckStatus{http.StatusNotFound},
+			Name:       "Unlogged access to public hidden",
+			Electorate: db.ElectorateAll,
+			Hidden:     true,
+			UserType:   pollTestUserTypeUnlogged,
+			Checker:    pollHandlerCheckerFactory,
 		},
 
 		&pollTest{
-			Name:      "No user access any round",
-			Publicity: db.PollPublicityPublic,
-			Round:     2,
-			UserType:  pollTestUserTypeNone,
-			Checker:   pollHandlerCheckerFactory,
+			Name:       "No user no access to registered",
+			Electorate: db.ElectorateLogged,
+			UserType:   pollTestUserTypeNone,
+			Checker:    srvt.CheckStatus{http.StatusNotFound},
 		},
 		&pollTest{
-			Name:      "Logged access any round",
-			Publicity: db.PollPublicityPublic,
-			Round:     2,
-			UserType:  pollTestUserTypeLogged,
-			Checker:   pollHandlerCheckerFactory,
+			Name:       "No user no access to hidden registered",
+			Electorate: db.ElectorateLogged,
+			Hidden:     true,
+			UserType:   pollTestUserTypeNone,
+			Checker:    srvt.CheckStatus{http.StatusNotFound},
 		},
 		&pollTest{
-			Name:      "Logged no access any round",
-			Publicity: db.PollPublicityPublicRegistered,
-			Round:     2,
-			UserType:  pollTestUserTypeLogged,
-			Checker:   srvt.CheckStatus{http.StatusNotFound},
+			Name:       "Unlogged no access to registered",
+			Electorate: db.ElectorateLogged,
+			UserType:   pollTestUserTypeUnlogged,
+			Checker:    srvt.CheckStatus{http.StatusNotFound},
+		},
+		&pollTest{
+			Name:       "Unlogged no access to hidden registered",
+			Electorate: db.ElectorateLogged,
+			Hidden:     true,
+			UserType:   pollTestUserTypeUnlogged,
+			Checker:    srvt.CheckStatus{http.StatusNotFound},
+		},
+
+		&pollTest{
+			Name:       "No user access any round",
+			Electorate: db.ElectorateAll,
+			Round:      2,
+			UserType:   pollTestUserTypeNone,
+			Checker:    pollHandlerCheckerFactory,
+		},
+		&pollTest{
+			Name:       "Logged access any round",
+			Electorate: db.ElectorateAll,
+			Round:      2,
+			UserType:   pollTestUserTypeLogged,
+			Checker:    pollHandlerCheckerFactory,
+		},
+		&pollTest{
+			Name:       "Logged no access any round",
+			Electorate: db.ElectorateLogged,
+			Round:      2,
+			UserType:   pollTestUserTypeLogged,
+			Checker:    srvt.CheckStatus{http.StatusNotFound},
 		},
 	}
 	srvt.RunFunc(t, tests, PollHandler)
@@ -274,9 +278,10 @@ type pollTestVote struct {
 }
 
 type pollTest struct {
-	Name         string // Required.
-	Sequential   bool   // If the test cannot be run in parallel.
-	Publicity    uint8  // Required.
+	Name         string        // Required.
+	Sequential   bool          // If the test cannot be run in parallel.
+	Electorate   db.Electorate // Required.
+	Hidden       bool
 	Alternatives []string
 	Round        uint8
 	Participate  []pollTestParticipate // No need to add an entry for each vote.
@@ -326,10 +331,18 @@ func (self *pollTest) Prepare(t *testing.T) *ioc.Locator {
 	self.userId = make([]uint32, 2)
 	self.userId[0] = self.dbEnv.CreateUserWith(t.Name())
 	if len(self.Alternatives) < 2 {
-		self.pollId = self.dbEnv.CreatePoll("Title", self.userId[0], self.Publicity)
+		self.pollId = self.dbEnv.CreatePoll("Title", self.userId[0], self.Electorate)
 	} else {
-		self.pollId = self.dbEnv.CreatePollWith("Title", self.userId[0], self.Publicity,
+		self.pollId = self.dbEnv.CreatePollWith("Title", self.userId[0], self.Electorate,
 			self.Alternatives)
+	}
+
+	// Hidden
+	const qHidden = `UPDATE Polls SET Hidden = TRUE WHERE Id = ?`
+	if self.Hidden {
+		self.dbEnv.Must(t)
+		_, err := db.DB.Exec(qHidden, self.pollId)
+		mustt(t, err)
 	}
 
 	// Users

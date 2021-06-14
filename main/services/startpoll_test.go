@@ -79,7 +79,7 @@ func metaTestStartPoll(t *testing.T, checker func(*testing.T, *startPollTestInst
 			env := new(dbt.Env)
 			defer env.Close()
 			admin := env.CreateUserWith(t.Name())
-			poll := env.CreatePoll(tt.name, admin, db.PollPublicityPublic)
+			poll := env.CreatePoll(tt.name, admin, db.ElectorateAll)
 			env.Must(t)
 			var err error
 

@@ -64,7 +64,7 @@ func (self *pollNotifHandlerTest) Prepare(t *testing.T) *ioc.Locator {
 	if self.userKind != pollNotifHandlerTestUserAdmin {
 		self.partId = self.dbEnv.CreateUserWith("PollNotifHandler" + self.name + "Part")
 	}
-	self.pollId = self.dbEnv.CreatePoll("Title", self.admnId, db.PollPublicityPublicRegistered)
+	self.pollId = self.dbEnv.CreatePoll("Title", self.admnId, db.ElectorateLogged)
 
 	const (
 		qParticipate = `INSERT INTO Participants(User,Poll,Round) VALUE (?,?,0)`

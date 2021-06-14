@@ -147,6 +147,7 @@ func TestListHandler(t *testing.T) {
 		  UPDATE Polls
 			   SET State = 'Waiting', Start = ADDTIME(CURRENT_TIMESTAMP(), '1:00')
 			 WHERE Id = ?`
+		qHidden = `UPDATE Polls SET Hidden = TRUE WHERE Id = ?`
 
 		poll1Title = "Test-1"
 		poll2Title = "Test-2"
@@ -172,7 +173,7 @@ func TestListHandler(t *testing.T) {
 		&srvt.T{
 			Name: "PublicRegistered Poll",
 			Update: func(t *testing.T) {
-				poll1Id = env.CreatePoll(poll1Title, userId, db.PollPublicityPublicRegistered)
+				poll1Id = env.CreatePoll(poll1Title, userId, db.ElectorateLogged)
 				env.Must(t)
 			},
 			Request: srvt.Request{UserId: &userId},
@@ -200,10 +201,10 @@ func TestListHandler(t *testing.T) {
 		&srvt.T{
 			Name: "HiddenRegistered Poll",
 			Update: func(t *testing.T) {
-				poll2Id = env.CreatePoll(poll2Title, userId, db.PollPublicityHiddenRegistered)
-				if env.Error != nil {
-					t.Fatalf("Env: %s", env.Error)
-				}
+				poll2Id = env.CreatePoll(poll2Title, userId, db.ElectorateLogged)
+				env.Must(t)
+				_, err := db.DB.Exec(qHidden, poll2Id)
+				mustt(t, err)
 			},
 			Request: srvt.Request{UserId: &userId},
 			Checker: listChecker{
@@ -260,7 +261,7 @@ func TestListHandler(t *testing.T) {
 		&srvt.T{
 			Name: "Waiting",
 			Update: func(t *testing.T) {
-				poll3Id = env.CreatePoll(poll3Title, userId, db.PollPublicityPublicRegistered)
+				poll3Id = env.CreatePoll(poll3Title, userId, db.ElectorateLogged)
 				env.Must(t)
 				_, err := db.DB.Exec(qWaiting, poll3Id)
 				if err != nil {
@@ -286,13 +287,14 @@ func TestListHandler(t *testing.T) {
 
 		&pollTest{
 			Name:      "public",
-			Publicity: db.PollPublicityPublic,
+			Electorate: db.ElectorateAll,
 			UserType:  pollTestUserTypeLogged,
 			Checker:   listCheckFactory(listCheckFactoryKindPublic, PollActionPart, false),
 		},
 		&pollTest{
 			Name:        "hidden participate",
-			Publicity:   db.PollPublicityHidden,
+			Electorate: db.ElectorateAll,
+			Hidden: true,
 			Participate: []pollTestParticipate{{1, 0}},
 			UserType:    pollTestUserTypeLogged,
 			Checker:     listCheckFactory(listCheckFactoryKindPublic, PollActionModif, false),

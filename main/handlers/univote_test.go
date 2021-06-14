@@ -117,7 +117,7 @@ func TestUninominalVoteHandler(t *testing.T) {
 	var env dbt.Env
 	defer env.Close()
 	userId := env.CreateUser()
-	pollId := env.CreatePoll("Test", userId, db.PollPublicityPublicRegistered)
+	pollId := env.CreatePoll("Test", userId, db.ElectorateLogged)
 	env.Must(t)
 
 	fillRequest := func(vote UninominalVoteQuery, req srvt.Request) srvt.Request {
@@ -199,7 +199,7 @@ func TestUninominalVoteHandler(t *testing.T) {
 		&pollTest{
 			Name:       "No user public",
 			Sequential: true,
-			Publicity:  db.PollPublicityPublic,
+			Electorate: db.ElectorateAll,
 			UserType:   pollTestUserTypeNone,
 			Request:    fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{RemoteAddr: s("1.2.3.4:5")}),
 			Checker:    voteCheckerFactory,
@@ -207,7 +207,8 @@ func TestUninominalVoteHandler(t *testing.T) {
 		&pollTest{
 			Name:       "No user hidden",
 			Sequential: true,
-			Publicity:  db.PollPublicityHidden,
+			Electorate: db.ElectorateAll,
+			Hidden: true,
 			UserType:   pollTestUserTypeNone,
 			Request:    fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{RemoteAddr: s("1.2.3.4:5")}),
 			Checker:    voteCheckerFactory,
@@ -215,7 +216,7 @@ func TestUninominalVoteHandler(t *testing.T) {
 		&pollTest{
 			Name:       "Unlogged public",
 			Sequential: true,
-			Publicity:  db.PollPublicityPublic,
+			Electorate: db.ElectorateAll,
 			UserType:   pollTestUserTypeUnlogged,
 			Request:    fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
 			Checker:    voteCheckerFactory,
@@ -223,7 +224,8 @@ func TestUninominalVoteHandler(t *testing.T) {
 		&pollTest{
 			Name:       "Unlogged hidden",
 			Sequential: true,
-			Publicity:  db.PollPublicityHidden,
+			Electorate: db.ElectorateAll,
+			Hidden: true,
 			UserType:   pollTestUserTypeUnlogged,
 			Request:    fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
 			Checker:    voteCheckerFactory,
@@ -232,7 +234,7 @@ func TestUninominalVoteHandler(t *testing.T) {
 		&pollTest{
 			Name:       "No user public change",
 			Sequential: true,
-			Publicity:  db.PollPublicityPublic,
+			Electorate: db.ElectorateAll,
 			Vote:       []pollTestVote{{User: 1, Alt: 1}},
 			UserType:   pollTestUserTypeNone,
 			Request:    fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{RemoteAddr: s("1.2.3.4:5")}),
@@ -241,7 +243,8 @@ func TestUninominalVoteHandler(t *testing.T) {
 		&pollTest{
 			Name:       "No user hidden change",
 			Sequential: true,
-			Publicity:  db.PollPublicityHidden,
+			Electorate: db.ElectorateAll,
+			Hidden: true,
 			Vote:       []pollTestVote{{User: 1, Alt: 1}},
 			UserType:   pollTestUserTypeNone,
 			Request:    fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{RemoteAddr: s("1.2.3.4:5")}),
@@ -250,7 +253,7 @@ func TestUninominalVoteHandler(t *testing.T) {
 		&pollTest{
 			Name:       "Unlogged public change",
 			Sequential: true,
-			Publicity:  db.PollPublicityPublic,
+			Electorate: db.ElectorateAll,
 			Vote:       []pollTestVote{{User: 1, Alt: 1}},
 			UserType:   pollTestUserTypeUnlogged,
 			Request:    fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
@@ -259,7 +262,8 @@ func TestUninominalVoteHandler(t *testing.T) {
 		&pollTest{
 			Name:       "Unlogged hidden change",
 			Sequential: true,
-			Publicity:  db.PollPublicityHidden,
+			Electorate: db.ElectorateAll,
+			Hidden: true,
 			Vote:       []pollTestVote{{User: 1, Alt: 1}},
 			UserType:   pollTestUserTypeUnlogged,
 			Request:    fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
@@ -268,28 +272,30 @@ func TestUninominalVoteHandler(t *testing.T) {
 
 		&pollTest{
 			Name:      "No user registered",
-			Publicity: db.PollPublicityPublicRegistered,
+			Electorate: db.ElectorateLogged,
 			UserType:  pollTestUserTypeNone,
 			Request:   fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
 			Checker:   srvt.CheckStatus{http.StatusNotFound},
 		},
 		&pollTest{
 			Name:      "No user hidden registered",
-			Publicity: db.PollPublicityHiddenRegistered,
+			Electorate: db.ElectorateLogged,
+			Hidden: true,
 			UserType:  pollTestUserTypeNone,
 			Request:   fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
 			Checker:   srvt.CheckStatus{http.StatusNotFound},
 		},
 		&pollTest{
 			Name:      "Unlogged registered",
-			Publicity: db.PollPublicityPublicRegistered,
+			Electorate: db.ElectorateLogged,
 			UserType:  pollTestUserTypeUnlogged,
 			Request:   fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
 			Checker:   srvt.CheckStatus{http.StatusNotFound},
 		},
 		&pollTest{
 			Name:      "Unlogged hidden registered",
-			Publicity: db.PollPublicityHiddenRegistered,
+			Electorate: db.ElectorateLogged,
+			Hidden: true,
 			UserType:  pollTestUserTypeUnlogged,
 			Request:   fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
 			Checker:   srvt.CheckStatus{http.StatusNotFound},
@@ -297,14 +303,15 @@ func TestUninominalVoteHandler(t *testing.T) {
 
 		&pollTest{
 			Name:      "No user public cookie",
-			Publicity: db.PollPublicityPublic,
+			Electorate: db.ElectorateAll,
 			UserType:  pollTestUserTypeNone,
 			Request:   fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{RemoteAddr: s("1.2.3.4:5")}),
 			Checker:   srvt.CheckCookieIsSet{Name: server.SessionUnlogged},
 		},
 		&pollTest{
 			Name:      "No user hidden cookie",
-			Publicity: db.PollPublicityHidden,
+			Electorate: db.ElectorateAll,
+			Hidden: true,
 			UserType:  pollTestUserTypeNone,
 			Request:   fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{RemoteAddr: s("1.2.3.4:5")}),
 			Checker:   srvt.CheckCookieIsSet{Name: server.SessionUnlogged},

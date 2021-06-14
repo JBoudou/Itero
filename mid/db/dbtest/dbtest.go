@@ -126,18 +126,18 @@ func (self *Env) UserEmailWith(salt string) string {
 
 // CreatePoll adds a poll to the database. The poll has Salt 42, MaxNbRounds 4, and 2 alternatives
 // 'No' and 'Yes' (in that order). The poll is deleted by Close.
-func (self *Env) CreatePoll(title string, admin uint32, publicity uint8) uint32 {
-	return self.CreatePollWith(title, admin, publicity, []string{"No", "Yes"})
+func (self *Env) CreatePoll(title string, admin uint32, electorate db.Electorate) uint32 {
+	return self.CreatePollWith(title, admin, electorate, []string{"No", "Yes"})
 }
 
 // CreatePoll adds a poll to the database. The poll has Salt 42, MaxNbRounds 4, and the alternatives
 // given as arguments. All alternatives have Cost 1. The poll is deleted by Close.
-func (self *Env) CreatePollWith(title string, admin uint32, publicity uint8,
+func (self *Env) CreatePollWith(title string, admin uint32, electorate db.Electorate,
 	alternatives []string) (pollId uint32) {
 
 	const (
 		qCreatePoll = `
-			INSERT INTO Polls(Title, Admin, Salt, NbChoices, Publicity, MaxNbRounds)
+			INSERT INTO Polls(Title, Admin, Salt, NbChoices, Electorate, MaxNbRounds)
 			VALUE (?, ?, 42, ?, ?, 4)`
 		qCreateAlternative = `
 			INSERT INTO Alternatives(Poll, Id, Name) VALUE (?, ?, ?)`
@@ -151,7 +151,7 @@ func (self *Env) CreatePollWith(title string, admin uint32, publicity uint8,
 
 	var tx *sql.Tx
 	tx, self.Error = db.DB.Begin()
-	result := self.execTx(tx, qCreatePoll, title, admin, len(alternatives), publicity)
+	result := self.execTx(tx, qCreatePoll, title, admin, len(alternatives), electorate)
 	pollId = self.extractId(result)
 	altStmt := self.prepareTx(tx, qCreateAlternative)
 	for i, alt := range alternatives {

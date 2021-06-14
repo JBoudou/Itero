@@ -50,7 +50,7 @@ func (self *nextRoundService) ProcessOne(id uint32) error {
 	       AND (   ( RoundDeadline(p.CurrentRoundStart, p.MaxRoundDuration, p.Deadline,
 	                               p.CurrentRound, p.MinNbRounds) <= CURRENT_TIMESTAMP()
 	                 AND ( p.CurrentRound > 0 OR r.Count > 2 ))
-	            OR (    (p.CurrentRound > 0 OR p.Publicity = ?)
+	            OR (    p.CurrentRound > 0
 	                AND (   (p.RoundThreshold = 0 AND r.Count > 0)
 	                     OR ( p.RoundThreshold > 0
 	                          AND r.Count / a.Count >= p.RoundThreshold ) )
@@ -64,7 +64,7 @@ func (self *nextRoundService) ProcessOne(id uint32) error {
 	     WHERE Id = ?`
 	)
 
-	rows, err := db.DB.Query(qCheck, id, db.PollPublicityInvited)
+	rows, err := db.DB.Query(qCheck, id)
 	defer rows.Close()
 	if err != nil {
 		return err
@@ -106,7 +106,7 @@ func (self *nextRoundService) CheckOne(id uint32) (ret time.Time) {
 	           RoundDeadline(p.CurrentRoundStart, p.MaxRoundDuration, p.Deadline, p.CurrentRound,
 			                     p.MinNbRounds) <= CURRENT_TIMESTAMP,
 	           COALESCE(p.CurrentRound > 0 OR r.Count > 2, FALSE),
-	           COALESCE(    (p.CurrentRound > 0 OR p.Publicity = ?)
+	           COALESCE(    p.CurrentRound > 0
 	                    AND (   (p.RoundThreshold = 0 AND r.Count > 0)
 	                         OR ( p.RoundThreshold > 0
 	                              AND r.Count / a.Count >= p.RoundThreshold ) )
@@ -119,7 +119,7 @@ func (self *nextRoundService) CheckOne(id uint32) (ret time.Time) {
 	      LEFT OUTER JOIN Participants_Poll_Count  AS a ON p.Id = a.Poll
 	     WHERE p.Id = ? AND p.State = 'Active' AND p.CurrentRound < p.MaxNbRounds`
 
-	rows, err := db.DB.Query(qCheck, db.PollPublicityInvited, id)
+	rows, err := db.DB.Query(qCheck, id)
 	defer rows.Close()
 	if err != nil {
 		self.Logger().Errorf("CheckOne query error: %v.", err)

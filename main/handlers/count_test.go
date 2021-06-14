@@ -49,7 +49,7 @@ func TestCountInfoHandler(t *testing.T) {
 		{Id: 2, Name: "Gram", Cost: 1},
 	}
 
-	pollId := env.CreatePollWith("Test", users[0], db.PollPublicityPublic, alt)
+	pollId := env.CreatePollWith("Test", users[0], db.ElectorateAll, alt)
 	env.Vote(pollId, 0, users[0], 2)
 	env.Vote(pollId, 0, users[1], 2)
 	env.Vote(pollId, 0, users[2], 0)
@@ -166,7 +166,7 @@ func TestCountInfoHandler(t *testing.T) {
 
 		&pollTest{
 			Name:         "No user public",
-			Publicity:    db.PollPublicityPublic,
+			Electorate: db.ElectorateAll,
 			Alternatives: alt,
 			UserType:     pollTestUserTypeNone,
 			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
@@ -175,7 +175,8 @@ func TestCountInfoHandler(t *testing.T) {
 		},
 		&pollTest{
 			Name:         "No user hidden",
-			Publicity:    db.PollPublicityHidden,
+			Electorate: db.ElectorateAll,
+			Hidden: true,
 			Alternatives: alt,
 			UserType:     pollTestUserTypeNone,
 			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
@@ -184,7 +185,7 @@ func TestCountInfoHandler(t *testing.T) {
 		},
 		&pollTest{
 			Name:         "Unlogged public",
-			Publicity:    db.PollPublicityPublic,
+			Electorate: db.ElectorateAll,
 			Alternatives: alt,
 			UserType:     pollTestUserTypeUnlogged,
 			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
@@ -193,7 +194,8 @@ func TestCountInfoHandler(t *testing.T) {
 		},
 		&pollTest{
 			Name:         "Unlogged hidden",
-			Publicity:    db.PollPublicityHidden,
+			Electorate: db.ElectorateAll,
+			Hidden: true,
 			Alternatives: alt,
 			UserType:     pollTestUserTypeUnlogged,
 			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
@@ -203,7 +205,7 @@ func TestCountInfoHandler(t *testing.T) {
 
 		&pollTest{
 			Name:         "No user public registered",
-			Publicity:    db.PollPublicityPublicRegistered,
+			Electorate: db.ElectorateLogged,
 			Alternatives: alt,
 			UserType:     pollTestUserTypeNone,
 			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
@@ -212,7 +214,8 @@ func TestCountInfoHandler(t *testing.T) {
 		},
 		&pollTest{
 			Name:         "No user hidden registered",
-			Publicity:    db.PollPublicityHiddenRegistered,
+			Electorate: db.ElectorateLogged,
+			Hidden: true,
 			Alternatives: alt,
 			UserType:     pollTestUserTypeNone,
 			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
@@ -221,7 +224,7 @@ func TestCountInfoHandler(t *testing.T) {
 		},
 		&pollTest{
 			Name:         "Unlogged public registered",
-			Publicity:    db.PollPublicityPublicRegistered,
+			Electorate: db.ElectorateLogged,
 			Alternatives: alt,
 			UserType:     pollTestUserTypeUnlogged,
 			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
@@ -230,7 +233,8 @@ func TestCountInfoHandler(t *testing.T) {
 		},
 		&pollTest{
 			Name:         "Unlogged hidden registered",
-			Publicity:    db.PollPublicityHiddenRegistered,
+			Electorate: db.ElectorateLogged,
+			Hidden: true,
 			Alternatives: alt,
 			UserType:     pollTestUserTypeUnlogged,
 			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},

@@ -50,7 +50,7 @@ func (self *deleteHandlerTest) Prepare(t *testing.T) *ioc.Locator {
 	t.Parallel()
 
 	self.userId = self.dbEnv.CreateUserWith("DeleteHandle" + self.name)
-	self.pollId = self.dbEnv.CreatePoll("DeleteHandler", self.userId, db.PollPublicityPublicRegistered)
+	self.pollId = self.dbEnv.CreatePoll("DeleteHandler", self.userId, db.ElectorateLogged)
 
 	const (
 		qState = `UPDATE Polls SET State = ?, Start = CURRENT_TIMESTAMP WHERE Id = ?`

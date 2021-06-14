@@ -32,7 +32,6 @@ DROP TABLE IF EXISTS Alternatives;
 DROP PROCEDURE IF EXISTS Polls_checker_before;
 DROP TABLE IF EXISTS Polls;
 DROP TABLE IF EXISTS PollType;
-DROP TABLE IF EXISTS PollPublicity;
 DROP TABLE IF EXISTS PollRule;
 DROP TABLE IF EXISTS RoundType;
 
@@ -170,23 +169,6 @@ INSERT INTO PollType VALUES
   (0, 'Acceptance Set')
 ;
 
-# Describes who is allowed to participate in the poll.
-# Not meant to be changed in the future.
-CREATE TABLE PollPublicity (
-  Id    tinyint unsigned NOT NULL,
-  Label varchar(32) NOT NULL,
-  CONSTRAINT PollPublicity_pk PRIMARY KEY (Id),
-  CONSTRAINT PollPublicity_Label_unique UNIQUE (Label)
-) ENGINE = InnoDB;
-
-INSERT INTO PollPublicity VALUES
-  (0, 'Public'),            # Everyone can participate
-  (1, 'Public Registered'), # All registered users can participate
-  (2, 'Hidden'),            # Everyone with the link can participate
-  (3, 'Hidden Registered'), # All registered users with the link can participate
-  (4, 'Invited')            # The list of participants is fixed during poll creation.
-;
-
 # How outcome is computed.
 # See Go implementation for detail of each method.
 CREATE TABLE PollRule (
@@ -227,9 +209,11 @@ CREATE TABLE Polls (
   Salt              int unsigned      NOT NULL,
 
   Type              tinyint unsigned  NOT NULL  DEFAULT 0,  # FK on PollType
-  Publicity         tinyint unsigned  NOT NULL  DEFAULT 1,  # FK on PollPublicity
   Rule              tinyint unsigned  NOT NULL  DEFAULT 0,  # FK on PollRule
   RoundType         tinyint unsigned  NOT NULL  DEFAULT 0,  # FK on RoundType
+
+  Electorate        ENUM('All','Logged','Verified') NOT NULL DEFAULT 'Logged',
+  Hidden            bool              NOT NULL  DEFAULT FALSE,
 
   NbChoices         tinyint unsigned  NOT NULL,
   MaxOutcomeCost    decimal(65,6)     NOT NULL  DEFAULT 1,
@@ -248,10 +232,8 @@ CREATE TABLE Polls (
 
   # The round ends as soon as one of the following conditions holds:
   #  - addtime(CurrentRoundStart, MaxRoundDuration) >= CURRENT_TIMESTAMP()
-  #  - (CurrentRound > 0 OR Publicity is 'Invited') AND
-  #    RoundThreshold = 0 AND one participant moved for this round
-  #  - (CurrentRound > 0 OR Publicity is 'Invited') AND
-  #    RoundThreshold > 0 AND the proportion of participants who moved for this round >= RoundThreshold
+  #  - CurrentRound > 0 AND RoundThreshold = 0 AND one participant moved for this round
+  #  - CurrentRound > 0 AND RoundThreshold > 0 AND the proportion of participants who moved for this round >= RoundThreshold
   MaxRoundDuration  time                        DEFAULT '24:00:00',
   RoundThreshold    double unsigned   NOT NULL  DEFAULT 1,
 
@@ -262,7 +244,6 @@ CREATE TABLE Polls (
   
   CONSTRAINT Polls_Admin_fk FOREIGN KEY (Admin) REFERENCES Users (Id),
   CONSTRAINT Polls_Type_fk FOREIGN KEY (Type) REFERENCES PollType (Id),
-  CONSTRAINT Polls_Publicity_fk FOREIGN KEY (Publicity) REFERENCES PollPublicity (Id),
   CONSTRAINT Polls_Rule_fk FOREIGN KEY (Rule) REFERENCES PollRule (Id),
   CONSTRAINT Polls_RoundType_fk FOREIGN KEY (RoundType) REFERENCES RoundType (Id)
 
@@ -294,12 +275,11 @@ BEGIN
 END;
 //
 
-CREATE PROCEDURE Polls_checker_before (
+CREATE OR REPLACE PROCEDURE Polls_checker_before (
   Title             tinytext,
   State             ENUM('Waiting','Active','Terminated'),
   Start             datetime,
   Salt              int unsigned,
-  Publicity         tinyint unsigned,
   NbChoices         tinyint unsigned,
   MinNbRounds       smallint unsigned,
   MaxNbRounds       smallint unsigned,
@@ -331,9 +311,6 @@ BEGIN
   IF MaxNbRounds IS NULL AND Deadline IS NULL THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'One amongst MaxNbRounds and Deadline must not be NULL';
   END IF;
-  IF Publicity < 4 AND MaxRoundDuration IS NULL THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'MaxRoundDuration can not be NULL unless Publicity is Invited';
-  END IF;
   IF MaxRoundDuration < '00:01:00' THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'MaxRoundDuration must be at least one minute';
   END IF;
@@ -346,7 +323,7 @@ BEGIN
 END;
 //
 
-CREATE TRIGGER Polls_check_before_insert
+CREATE OR REPLACE TRIGGER Polls_check_before_insert
   BEFORE INSERT ON Polls FOR EACH ROW
 BEGIN
   IF NEW.CurrentRound != 0 THEN
@@ -364,13 +341,13 @@ BEGIN
   SET NEW.Created           = CURRENT_TIMESTAMP();
   SET NEW.CurrentRoundStart = CURRENT_TIMESTAMP();
 
-  CALL Polls_checker_before(NEW.Title, NEW.State, NEW.Start, NEW.Salt, NEW.Publicity, NEW.NbChoices,
+  CALL Polls_checker_before(NEW.Title, NEW.State, NEW.Start, NEW.Salt, NEW.NbChoices,
                             NEW.MinNbRounds, NEW.MaxNbRounds, NEW.Deadline, NEW.MaxRoundDuration,
                             NEW.RoundThreshold, NEW.CurrentRound, NEW.CurrentRoundStart);
 END;
 //
 
-CREATE TRIGGER Polls_check_before_update
+CREATE OR REPLACE TRIGGER Polls_check_before_update
   BEFORE UPDATE ON Polls FOR EACH ROW
 BEGIN
   IF NEW.Created != OLD.Created THEN
@@ -388,7 +365,7 @@ BEGIN
     SET NEW.CurrentRoundStart = CURRENT_TIMESTAMP();
   END IF;
 
-  CALL Polls_checker_before(NEW.Title, NEW.State, NEW.Start, NEW.Salt, NEW.Publicity, NEW.NbChoices,
+  CALL Polls_checker_before(NEW.Title, NEW.State, NEW.Start, NEW.Salt, NEW.NbChoices,
                             NEW.MinNbRounds, NEW.MaxNbRounds, NEW.Deadline, NEW.MaxRoundDuration,
                             NEW.RoundThreshold, NEW.CurrentRound, NEW.CurrentRoundStart);
 END;

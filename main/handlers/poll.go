@@ -66,10 +66,9 @@ func checkPollAccess(ctx context.Context, request *server.Request) (poll PollInf
 
 	// Check poll
 	var salt uint32
-	var publicity uint8
-	const qPoll = `SELECT Salt, Publicity, NbChoices, State = 'Active', CurrentRound FROM Polls WHERE Id = ?`
-	row := db.DB.QueryRowContext(ctx, qPoll, poll.Id)
-	err = row.Scan(&salt, &publicity, &poll.NbChoices, &poll.Active, &poll.CurrentRound)
+	const qPoll = `SELECT Salt, Electorate = ?, NbChoices, State = 'Active', CurrentRound FROM Polls WHERE Id = ?`
+	row := db.DB.QueryRowContext(ctx, qPoll, db.ElectorateAll, poll.Id)
+	err = row.Scan(&salt, &poll.Public, &poll.NbChoices, &poll.Active, &poll.CurrentRound)
 	if err != nil {
 		return
 	}
@@ -77,7 +76,6 @@ func checkPollAccess(ctx context.Context, request *server.Request) (poll PollInf
 		err = noPollError("Wrong salt")
 		return
 	}
-	poll.Public = publicity == db.PollPublicityPublic || publicity == db.PollPublicityHidden
 	if !poll.Logged && !poll.Public {
 		err = noPollError("Non-public poll")
 		return

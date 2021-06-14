@@ -65,7 +65,7 @@ func (self *createPollChecker) Check(t *testing.T, response *http.Response, requ
 
 	const (
 		qCheckPoll = `
-			SELECT Title, Description, Admin, State, Start, Salt, Publicity, ReportVote,
+			SELECT Title, Description, Admin, State, Start, Salt, Hidden, ReportVote,
 			       MinNbRounds, MaxNbRounds, Deadline, CurrentRoundStart,
 						 ADDTIME(CurrentRoundStart, MaxRoundDuration), RoundThreshold
 			  FROM Polls
@@ -92,7 +92,6 @@ func (self *createPollChecker) Check(t *testing.T, response *http.Response, requ
 	var state string
 	var startDate sql.NullTime
 	var salt uint32
-	var publicity uint8
 	var roundStart, roundEnd time.Time
 	mustt(t, row.Scan(
 		&got.Title,
@@ -101,7 +100,7 @@ func (self *createPollChecker) Check(t *testing.T, response *http.Response, requ
 		&state,
 		&startDate,
 		&salt,
-		&publicity,
+		&got.Hidden,
 		&got.ReportVote,
 		&got.MinNbRounds,
 		&got.MaxNbRounds,
@@ -134,8 +133,6 @@ func (self *createPollChecker) Check(t *testing.T, response *http.Response, requ
 	}
 	got.Deadline = query.Deadline
 	got.MaxRoundDuration = uint64(roundEnd.Sub(roundStart).Milliseconds())
-	got.Hidden = (publicity == db.PollPublicityHidden) ||
-		(publicity == db.PollPublicityHiddenRegistered)
 	if !reflect.DeepEqual(got, query) {
 		t.Errorf("Got %v. Expect %v.", got, query)
 	}

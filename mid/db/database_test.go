@@ -155,24 +155,6 @@ func TestInsert(t *testing.T) {
 	exec("INSERT INTO Ballots (User, Poll, Alternative, Round) VALUES (?, ?, 1, 1)", userId, pollId)
 }
 
-func TestVariables(t *testing.T) {
-	precheck(t)
-
-	allDifferent := func(vals ...uint8) {
-		t.Helper()
-		set := map[uint8]bool{}
-		for _, val := range vals {
-			if _, found := set[val]; found {
-				t.Fatalf("Value %d duplicated", val)
-			}
-			set[val] = true
-		}
-	}
-
-	allDifferent(PollPublicityPublic, PollPublicityPublicRegistered, PollPublicityHidden,
-		PollPublicityHiddenRegistered, PollPublicityInvited)
-}
-
 func TestDurationToTime(t *testing.T) {
 	tests := []struct {
 		input  time.Duration
