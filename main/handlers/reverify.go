@@ -40,12 +40,25 @@ func (self reverifyHandler) Handle(ctx context.Context, response server.Response
 	}
 
 	const qCheck = `
-	  SELECT 1 FROM Confirmations
-		WHERE User = ? AND Type = ? AND Expires > CURRENT_TIMESTAMP`
-	rows, err := db.DB.QueryContext(ctx, qCheck, request.User.Id, db.ConfirmationTypeVerify)
+		SELECT U.Verified, C.User IS NOT NULL
+		  FROM Users AS U LEFT OUTER JOIN (
+					   SELECT User FROM Confirmations WHERE Type = ? AND Expires > CURRENT_TIMESTAMP
+					 ) AS C
+		    ON U.Id = C.User
+		 WHERE U.Id = ?`
+	rows, err := db.DB.QueryContext(ctx, qCheck, db.ConfirmationTypeVerify, request.User.Id)
 	must(err)
 	defer rows.Close()
-	if rows.Next() {
+	if !rows.Next() {
+		panic(server.UnauthorizedHttpError("Unknown user"))
+	}
+	var verified, active bool
+	must(rows.Scan(&verified, &active))
+	if verified {
+		panic(server.NewHttpError(http.StatusBadRequest,
+			"Already verified", "Already verified user"))
+	}
+	if active {
 		panic(server.NewHttpError(http.StatusConflict,
 			"Already sent", "A verify confirmation is still active"))
 	}

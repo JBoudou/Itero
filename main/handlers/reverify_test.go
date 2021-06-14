@@ -37,6 +37,7 @@ type reverifyTest struct {
 	srvt.WithRequestFct
 	dbt.WithDB
 
+	Verified bool
 	Previous bool
 	ExpDiff  time.Duration // Difference from now for Expires (positive value are in the future)
 	Checker  srvt.Checker
@@ -46,6 +47,7 @@ type reverifyTest struct {
 
 type reverifyTest_ struct {
 	Name       string
+	Verified   bool
 	Previous   bool
 	ExpDiff    time.Duration
 	RequestFct srvt.RequestFct
@@ -56,6 +58,7 @@ func ReverifyTest(c reverifyTest_) *reverifyTest {
 	return &reverifyTest{
 		WithName:       srvt.WithName{c.Name},
 		WithRequestFct: srvt.WithRequestFct{RequestFct: c.RequestFct},
+		Verified:       c.Verified,
 		Previous:       c.Previous,
 		ExpDiff:        c.ExpDiff,
 		Checker:        c.Checker,
@@ -67,6 +70,12 @@ func (self *reverifyTest) Prepare(t *testing.T) *ioc.Locator {
 
 	self.Uid = self.DB.CreateUserWith(t.Name())
 	self.DB.Must(t)
+
+	const qSetVerified = `UPDATE Users SET Verified = TRUE WHERE Id = ?`
+	if self.Verified {
+		_, err := db.DB.Exec(qSetVerified, self.Uid)
+		mustt(t, err)
+	}
 
 	if self.Previous {
 		_, err := db.CreateConfirmation(context.Background(), self.Uid, db.ConfirmationTypeVerify, self.ExpDiff)
@@ -120,9 +129,9 @@ func TestReverifyHandler(t *testing.T) {
 	tests := []srvt.Test{
 
 		ReverifyTest(reverifyTest_{
-			Name: "No session",
+			Name:       "No session",
 			RequestFct: srvt.RFGetNoSession,
-			Checker: srvt.CheckStatus{http.StatusForbidden},
+			Checker:    srvt.CheckStatus{http.StatusForbidden},
 		}),
 
 		ReverifyTest(reverifyTest_{
@@ -130,28 +139,28 @@ func TestReverifyHandler(t *testing.T) {
 			RequestFct: func(uid *uint32) *srvt.Request {
 				return &srvt.Request{
 					UserId: uid,
-					Hash: uid,
+					Hash:   uid,
 				}
 			},
 			Checker: srvt.CheckStatus{http.StatusForbidden},
 		}),
 
 		ReverifyTest(reverifyTest_{
-			Name: "No previous",
+			Name:       "No previous",
 			RequestFct: srvt.RFGetLogged,
 		}),
 
 		ReverifyTest(reverifyTest_{
-			Name: "Expired previous",
-			Previous: true,
-			ExpDiff: -1 * time.Second,
+			Name:       "Expired previous",
+			Previous:   true,
+			ExpDiff:    -1 * time.Second,
 			RequestFct: srvt.RFGetLogged,
 		}),
 
 		ReverifyTest(reverifyTest_{
-			Name: "Active previous",
-			Previous: true,
-			ExpDiff: time.Second,
+			Name:       "Active previous",
+			Previous:   true,
+			ExpDiff:    time.Second,
 			RequestFct: srvt.RFGetLogged,
 			Checker: srvt.CheckError{
 				Code: http.StatusConflict,
@@ -159,6 +168,15 @@ func TestReverifyHandler(t *testing.T) {
 			},
 		}),
 
+		ReverifyTest(reverifyTest_{
+			Name:       "Already verified",
+			Verified:   true,
+			RequestFct: srvt.RFGetLogged,
+			Checker: srvt.CheckError{
+				Code: http.StatusBadRequest,
+				Body: "Already verified",
+			},
+		}),
 	}
 
 	srvt.Run(t, tests, ReverifyHandler)
