@@ -30,14 +30,31 @@ export enum SessionState {
   Refreshing,
 }
 
+export class UserProfile {
+  constructor(
+    readonly name: string,
+    readonly verified?: boolean
+  ) {
+    if (this.verified === undefined) {
+      this.verified = false
+    }
+  }
+}
+
 export class SessionInfo {
   constructor(
     readonly state: SessionState,
-    readonly user?: string,
+    readonly profile?: UserProfile,
   ) { }
 
   get logged(): boolean {
     return this.state !== SessionState.Unlogged;
+  }
+  get user(): string {
+    if (this.profile === undefined) {
+      return undefined
+    }
+    return this.profile.name
   }
 }
 
@@ -57,7 +74,7 @@ export class SessionService {
    */
   sessionId: string = '';
 
-  _state = new BehaviorSubject<SessionInfo>(new SessionInfo(SessionState.Unlogged));
+  private _state = new BehaviorSubject<SessionInfo>(new SessionInfo(SessionState.Unlogged));
 
   /** Observable to be notified about session change. */
   get state$(): Observable<SessionInfo> {
@@ -129,7 +146,7 @@ export class SessionService {
       map((obj: any) => {
         const data = SessionAnswer.fromObject(obj);
 
-        this.register(data.SessionId, user);
+        this.register(data.SessionId, new UserProfile(user, data.Verified));
         localStorage.setItem("SessionId", this.sessionId);
         localStorage.setItem("User", user);
 
@@ -188,9 +205,10 @@ export class SessionService {
     }
   }
 
-  private register(sessionId: string, user: string): void {
+  private register(sessionId: string, user: string|UserProfile): void {
     this.sessionId = sessionId;
-    this._state.next(new SessionInfo(SessionState.Logged, user));
+    const profile: UserProfile = user instanceof UserProfile ? user : new UserProfile(user)
+    this._state.next(new SessionInfo(SessionState.Logged, profile));
   }
 
   private hasCookie(): boolean {

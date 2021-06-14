@@ -57,6 +57,16 @@
     </button>
     <ng-container *ngIf="(session.state$ | async).logged">
       <hr>
+      <button mat-menu-item [disabled]="(session.state$ | async).profile.verified">
+        <ng-container [ngSwitch]="(session.state$ | async).profile.verified">
+          <ng-container *ngSwitchCase="false">
+            <mat-icon>forward_to_inbox</mat-icon> Verify email
+          </ng-container>
+          <ng-container *ngSwitchCase="true">
+            <mat-icon>mark_email_read</mat-icon> Email verified
+          </ng-container>
+        </ng-container>
+      </button>
       <button mat-menu-item (click)="notify.askAUthorization()" [disabled]="(notify.permission$ | async) != 'default'">
         <ng-container [ngSwitch]="notify.permission$ | async">
           <mat-icon *ngSwitchCase="'default'">notifications</mat-icon>

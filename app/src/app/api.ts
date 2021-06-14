@@ -20,6 +20,7 @@
 export class SessionAnswer {
   SessionId: string;
   Expires: Date;
+  Verified: boolean;
 
   static fromObject(obj: any): SessionAnswer {
     const ret = {} as SessionAnswer;
@@ -33,6 +34,9 @@ export class SessionAnswer {
       if (obj.Expires instanceof Date) {
         ret.Expires = obj.Expires
       }
+    }
+    if ('Profile' in obj && 'Verified' in obj.Profile) {
+      ret.Verified = obj.Profile.Verified
     }
     return ret
   }
