@@ -45,6 +45,7 @@ type CreateQuery struct {
 	Title            string
 	Description      string
 	Hidden           bool
+	Verified         bool
 	Start            time.Time
 	Alternatives     []SimpleAlternative
 	ReportVote       bool
@@ -67,7 +68,15 @@ func defaultCreateQuery() CreateQuery {
 	}
 }
 
-func CreateHandler(ctx context.Context, response server.Response, request *server.Request) {
+type createHandler struct {
+	evtManager events.Manager
+}
+
+func CreateHandler(evtManager events.Manager) createHandler {
+	return createHandler{evtManager: evtManager}
+}
+
+func (self createHandler) Handle(ctx context.Context, response server.Response, request *server.Request) {
 	if request.User == nil || !request.User.Logged {
 		must(request.SessionError)
 		panic(server.UnauthorizedHttpError("Unlogged user"))
@@ -97,6 +106,18 @@ func CreateHandler(ctx context.Context, response server.Response, request *serve
 		state = "Active"
 	}
 
+	electorate := db.ElectorateLogged
+	const qVerified = `SELECT 1 FROM Users WHERE Id = ? AND Verified`
+	if query.Verified {
+		rows, err := db.DB.QueryContext(ctx, qVerified, request.User.Id)
+		defer rows.Close()
+		must(err)
+		if !rows.Next() {
+			panic(server.NewHttpError(http.StatusBadRequest, "Not verified", "The user is not verified"))
+		}
+		electorate = db.ElectorateVerified
+	}
+
 	pollSegment, err := salted.New(0)
 	must(err)
 
@@ -111,10 +132,10 @@ func CreateHandler(ctx context.Context, response server.Response, request *serve
 
 	const (
 		qPoll = `
-			INSERT INTO Polls (Title, Description, Admin, State, Start, Salt, Hidden, NbChoices,
-												 ReportVote, MinNbRounds, MaxNbRounds, Deadline, MaxRoundDuration,
+			INSERT INTO Polls (Title, Description, Admin, State, Start, Salt, Electorate, Hidden,
+			                   NbChoices, ReportVote, MinNbRounds, MaxNbRounds, Deadline, MaxRoundDuration,
 												 RoundThreshold)
-				  	 VALUE (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+				  	 VALUE (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 		qAlternative = `INSERT INTO Alternatives (Poll, Id, Name) VALUE (?, ?, ?)`
 	)
 
@@ -125,13 +146,14 @@ func CreateHandler(ctx context.Context, response server.Response, request *serve
 		state,
 		start,
 		pollSegment.Salt,
+		electorate,
 		query.Hidden,
 		len(query.Alternatives),
 		query.ReportVote,
 		query.MinNbRounds,
 		query.MaxNbRounds,
 		query.Deadline,
-		db.DurationToTime(time.Duration(query.MaxRoundDuration) * time.Millisecond),
+		db.DurationToTime(time.Duration(query.MaxRoundDuration)*time.Millisecond),
 		query.RoundThreshold,
 	)
 	must(err)
@@ -150,5 +172,5 @@ func CreateHandler(ctx context.Context, response server.Response, request *serve
 	segment, err := pollSegment.Encode()
 	must(err)
 	response.SendJSON(ctx, segment)
-	events.Send(services.CreatePollEvent{pollSegment.Id})
+	self.evtManager.Send(services.CreatePollEvent{pollSegment.Id})
 }

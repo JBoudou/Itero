@@ -17,13 +17,16 @@
 package handlers
 
 import (
+	"context"
 	"testing"
 
 	"github.com/JBoudou/Itero/mid/db"
+	dbt "github.com/JBoudou/Itero/mid/db/dbtest"
 	"github.com/JBoudou/Itero/mid/salted"
 	"github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
 	"github.com/JBoudou/Itero/pkg/config"
+	"github.com/JBoudou/Itero/pkg/ioc"
 )
 
 func mustt(t *testing.T, err error) {
@@ -47,4 +50,84 @@ func makePollRequest(t *testing.T, pollId uint32, userId *uint32) *srvt.Request 
 	mustt(t, err)
 	target := "/a/test/" + encoded
 	return &srvt.Request{Target: &target, UserId: userId}
+}
+
+// WithUser //
+
+var withUserFakeAddress string = "1.2.3.4"
+
+type RequestFct = func(user *server.User) *srvt.Request
+
+type WithUser struct {
+	dbt.WithDB
+
+	Unlogged   bool
+	Verified   bool
+	RequestFct RequestFct
+
+	User server.User
+}
+
+func (self *WithUser) Prepare(t *testing.T) *ioc.Locator {
+	if self.Unlogged {
+		var err error
+		self.User, err = UnloggedFromAddr(context.Background(), withUserFakeAddress)
+		mustt(t, err)
+
+	} else {
+		self.User = server.User{
+			Id:     self.DB.CreateUserWith(t.Name()),
+			Name:   self.DB.UserNameWith(t.Name()),
+			Logged: true,
+		}
+		self.DB.Must(t)
+
+		const qVerified = `UPDATE Users SET Verified = TRUE WHERE Id = ?`
+		if self.Verified {
+			_, err := db.DB.Exec(qVerified, self.User.Id)
+			mustt(t, err)
+		}
+	}
+
+	return ioc.Root
+}
+
+func (self *WithUser) GetRequest(t *testing.T) *srvt.Request {
+	return self.RequestFct(&self.User)
+}
+
+func RFGetNoSession(user *server.User) *srvt.Request {
+	return &srvt.Request{}
+}
+
+func RFPostNoSession(body string) RequestFct {
+	return func(user *server.User) *srvt.Request {
+		return &srvt.Request{
+			Method: "POST",
+			Body:   body,
+		}
+	}
+}
+
+func rfSession(method string, body string, user *server.User) (req *srvt.Request) {
+	req = &srvt.Request{
+		Method:     method,
+		RemoteAddr: &withUserFakeAddress,
+		Body:       body,
+		UserId:     &user.Id,
+	}
+	if !user.Logged {
+		req.Hash = &user.Hash
+	}
+	return
+}
+
+func RFGetSession(user *server.User) *srvt.Request {
+	return rfSession("GET", "", user)
+}
+
+func RFPostSession(body string) RequestFct {
+	return func(user *server.User) *srvt.Request {
+		return rfSession("POST", body, user)
+	}
 }

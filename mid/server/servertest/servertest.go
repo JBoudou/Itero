@@ -170,7 +170,10 @@ func Run(t *testing.T, tests []Test, handlerFactory interface{}) {
 
 			locator := tt.Prepare(t)
 			var handler server.Handler
-			locator.Inject(handlerFactory, &handler)
+			err := locator.Inject(handlerFactory, &handler)
+			if err != nil {
+				t.Fatalf("Injection error: %v", err)
+			}
 			
 			req, err := tt.GetRequest(t).Make()
 			if err != nil {

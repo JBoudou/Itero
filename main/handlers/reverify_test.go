@@ -24,7 +24,6 @@ import (
 
 	"github.com/JBoudou/Itero/main/services"
 	"github.com/JBoudou/Itero/mid/db"
-	dbt "github.com/JBoudou/Itero/mid/db/dbtest"
 	"github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
 	"github.com/JBoudou/Itero/pkg/events"
@@ -32,12 +31,34 @@ import (
 	"github.com/JBoudou/Itero/pkg/ioc"
 )
 
+type reverifyTest_ struct {
+	Name       string
+	Unlogged   bool
+	Verified   bool
+	Previous   bool // Whether there already is a confirmation for the user.
+	ExpDiff    time.Duration
+	RequestFct RequestFct
+	Checker    srvt.Checker
+}
+
+func ReverifyTest(c reverifyTest_) *reverifyTest {
+	return &reverifyTest{
+		WithName: srvt.WithName{Name: c.Name},
+		WithUser: WithUser{
+			Unlogged:   c.Unlogged,
+			Verified:   c.Verified,
+			RequestFct: c.RequestFct,
+		},
+		Previous: c.Previous,
+		ExpDiff:  c.ExpDiff,
+		Checker:  c.Checker,
+	}
+}
+
 type reverifyTest struct {
 	srvt.WithName
-	srvt.WithRequestFct
-	dbt.WithDB
+	WithUser
 
-	Verified bool
 	Previous bool
 	ExpDiff  time.Duration // Difference from now for Expires (positive value are in the future)
 	Checker  srvt.Checker
@@ -45,40 +66,14 @@ type reverifyTest struct {
 	records []events.Event
 }
 
-type reverifyTest_ struct {
-	Name       string
-	Verified   bool
-	Previous   bool
-	ExpDiff    time.Duration
-	RequestFct srvt.RequestFct
-	Checker    srvt.Checker
-}
-
-func ReverifyTest(c reverifyTest_) *reverifyTest {
-	return &reverifyTest{
-		WithName:       srvt.WithName{c.Name},
-		WithRequestFct: srvt.WithRequestFct{RequestFct: c.RequestFct},
-		Verified:       c.Verified,
-		Previous:       c.Previous,
-		ExpDiff:        c.ExpDiff,
-		Checker:        c.Checker,
-	}
-}
-
 func (self *reverifyTest) Prepare(t *testing.T) *ioc.Locator {
 	t.Parallel()
 
-	self.Uid = self.DB.CreateUserWith(t.Name())
-	self.DB.Must(t)
-
-	const qSetVerified = `UPDATE Users SET Verified = TRUE WHERE Id = ?`
-	if self.Verified {
-		_, err := db.DB.Exec(qSetVerified, self.Uid)
-		mustt(t, err)
-	}
+	self.WithUser.Prepare(t)
 
 	if self.Previous {
-		_, err := db.CreateConfirmation(context.Background(), self.Uid, db.ConfirmationTypeVerify, self.ExpDiff)
+		_, err := db.CreateConfirmation(context.Background(),
+			self.User.Id, db.ConfirmationTypeVerify, self.ExpDiff)
 		mustt(t, err)
 	}
 
@@ -113,7 +108,7 @@ func (self *reverifyTest) Check(t *testing.T, response *http.Response, request *
 	}
 
 	for _, evt := range self.records {
-		if converted, ok := evt.(services.ReverifyEvent); ok && converted.User == self.Uid {
+		if converted, ok := evt.(services.ReverifyEvent); ok && converted.User == self.User.Id {
 			goto eventFound
 		}
 	}
@@ -130,38 +125,34 @@ func TestReverifyHandler(t *testing.T) {
 
 		ReverifyTest(reverifyTest_{
 			Name:       "No session",
-			RequestFct: srvt.RFGetNoSession,
+			RequestFct: RFGetNoSession,
 			Checker:    srvt.CheckStatus{http.StatusForbidden},
 		}),
 
 		ReverifyTest(reverifyTest_{
 			Name: "Unlogged",
-			RequestFct: func(uid *uint32) *srvt.Request {
-				return &srvt.Request{
-					UserId: uid,
-					Hash:   uid,
-				}
-			},
+			Unlogged: true,
+			RequestFct: RFGetSession,
 			Checker: srvt.CheckStatus{http.StatusForbidden},
 		}),
 
 		ReverifyTest(reverifyTest_{
 			Name:       "No previous",
-			RequestFct: srvt.RFGetLogged,
+			RequestFct: RFGetSession,
 		}),
 
 		ReverifyTest(reverifyTest_{
 			Name:       "Expired previous",
 			Previous:   true,
 			ExpDiff:    -1 * time.Second,
-			RequestFct: srvt.RFGetLogged,
+			RequestFct: RFGetSession,
 		}),
 
 		ReverifyTest(reverifyTest_{
 			Name:       "Active previous",
 			Previous:   true,
 			ExpDiff:    time.Second,
-			RequestFct: srvt.RFGetLogged,
+			RequestFct: RFGetSession,
 			Checker: srvt.CheckError{
 				Code: http.StatusConflict,
 				Body: "Already sent",
@@ -171,7 +162,7 @@ func TestReverifyHandler(t *testing.T) {
 		ReverifyTest(reverifyTest_{
 			Name:       "Already verified",
 			Verified:   true,
-			RequestFct: srvt.RFGetLogged,
+			RequestFct: RFGetSession,
 			Checker: srvt.CheckError{
 				Code: http.StatusBadRequest,
 				Body: "Already verified",

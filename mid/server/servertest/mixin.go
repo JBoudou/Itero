@@ -53,39 +53,3 @@ func (self WithChecker) Check(t *testing.T, response *http.Response, request *se
 	}
 	self.Checker.Check(t, response, request)
 }
-
-// WithRequestFct //
-
-type RequestFct = func (uid *uint32) *Request
-
-type WithRequestFct struct {
-	RequestFct RequestFct
-	Uid uint32
-}
-
-func (self WithRequestFct) GetRequest(t *testing.T) *Request {
-	return self.RequestFct(&self.Uid)
-}
-
-func RFGetNoSession(uid *uint32) *Request {
-	return &Request{}
-}
-
-func RFPostNoSession(uid *uint32) *Request {
-	return &Request{
-		Method: "POST",
-	}
-}
-
-func RFGetLogged(uid *uint32) *Request {
-	return &Request{
-		UserId: uid,
-	}
-}
-
-func RFPostLogged(uid *uint32) *Request {
-	return &Request{
-		Method: "POST",
-		UserId: uid,
-	}
-}
