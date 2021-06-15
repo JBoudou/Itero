@@ -23,8 +23,8 @@ import (
 	"time"
 
 	"github.com/JBoudou/Itero/mid/db"
-	"github.com/JBoudou/Itero/mid/server"
 	"github.com/JBoudou/Itero/mid/salted"
+	"github.com/JBoudou/Itero/mid/server"
 )
 
 /** PollInfo **/
@@ -66,9 +66,10 @@ func checkPollAccess(ctx context.Context, request *server.Request) (poll PollInf
 
 	// Check poll
 	var salt uint32
-	const qPoll = `SELECT Salt, Electorate = ?, NbChoices, State = 'Active', CurrentRound FROM Polls WHERE Id = ?`
-	row := db.DB.QueryRowContext(ctx, qPoll, db.ElectorateAll, poll.Id)
-	err = row.Scan(&salt, &poll.Public, &poll.NbChoices, &poll.Active, &poll.CurrentRound)
+	var electorate db.Electorate
+	const qPoll = `SELECT Salt, Electorate, NbChoices, State = 'Active', CurrentRound FROM Polls WHERE Id = ?`
+	row := db.DB.QueryRowContext(ctx, qPoll, poll.Id)
+	err = row.Scan(&salt, &electorate, &poll.NbChoices, &poll.Active, &poll.CurrentRound)
 	if err != nil {
 		return
 	}
@@ -76,9 +77,24 @@ func checkPollAccess(ctx context.Context, request *server.Request) (poll PollInf
 		err = noPollError("Wrong salt")
 		return
 	}
+	poll.Public = electorate == db.ElectorateAll
 	if !poll.Logged && !poll.Public {
 		err = noPollError("Non-public poll")
 		return
+	}
+
+	const qUserVerified = `SELECT 1 FROM Users WHERE Id = ? AND Verified`
+	if electorate == db.ElectorateVerified {
+		var rows *sql.Rows
+		rows, err = db.DB.QueryContext(ctx, qUserVerified, request.User.Id)
+		defer rows.Close()
+		if err != nil {
+			return
+		}
+		if !rows.Next() {
+			err = noPollError("Not verified user")
+			return
+		}
 	}
 
 	// Check participant

@@ -233,6 +233,19 @@ func TestPollHandler(t *testing.T) {
 			UserType:   pollTestUserTypeLogged,
 			Checker:    srvt.CheckStatus{http.StatusNotFound},
 		},
+		&pollTest{
+			Name:       "Poll verified, User unverified",
+			Electorate: db.ElectorateVerified,
+			UserType:   pollTestUserTypeLogged,
+			Checker:    srvt.CheckStatus{http.StatusNotFound},
+		},
+		&pollTest{
+			Name:       "Poll verified, User verified",
+			Electorate: db.ElectorateVerified,
+			UserType:   pollTestUserTypeLogged,
+			Verified:   true,
+			Checker:    pollHandlerCheckerFactory,
+		},
 	}
 	srvt.RunFunc(t, tests, PollHandler)
 }

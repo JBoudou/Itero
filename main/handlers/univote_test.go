@@ -316,6 +316,23 @@ func TestUninominalVoteHandler(t *testing.T) {
 			Request:   fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{RemoteAddr: s("1.2.3.4:5")}),
 			Checker:   srvt.CheckCookieIsSet{Name: server.SessionUnlogged},
 		},
+
+		&pollTest{
+			Name:       "Poll verified, User unverified",
+			Electorate: db.ElectorateVerified,
+			UserType:   pollTestUserTypeLogged,
+			Request:    fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
+			Checker:    srvt.CheckStatus{http.StatusNotFound},
+		},
+		&pollTest{
+			Name:       "Poll verified, User verified",
+			Sequential: true,
+			Electorate: db.ElectorateVerified,
+			UserType:   pollTestUserTypeLogged,
+			Verified:   true,
+			Request:    fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
+			Checker:    voteCheckerFactory,
+		},
 	}
 
 	srvt.RunFunc(t, tests, UninominalVoteHandler)

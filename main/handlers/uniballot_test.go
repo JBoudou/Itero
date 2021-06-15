@@ -203,7 +203,7 @@ func TestUninominalBallotHandler(t *testing.T) {
 		}
 	}
 
-	s := func (s string) *string { return &s }
+	s := func(s string) *string { return &s }
 
 	tests := []srvt.Test{
 
@@ -270,10 +270,10 @@ func TestUninominalBallotHandler(t *testing.T) {
 		// Independent tests //
 
 		&pollTest{
-			Name:      "No user public",
+			Name:       "No user public",
 			Electorate: db.ElectorateAll,
-			Vote:      []pollTestVote{{1, 0, 0}},
-			UserType:  pollTestUserTypeNone,
+			Vote:       []pollTestVote{{1, 0, 0}},
+			UserType:   pollTestUserTypeNone,
 			Checker: srvt.CheckJSON{Body: &UninominalBallotAnswer{
 				Previous:     undefinedVote,
 				Current:      undefinedVote,
@@ -281,11 +281,11 @@ func TestUninominalBallotHandler(t *testing.T) {
 			}},
 		},
 		&pollTest{
-			Name:      "No user Hidden",
+			Name:       "No user Hidden",
 			Electorate: db.ElectorateAll,
-			Hidden: true,
-			Vote:      []pollTestVote{{1, 0, 0}},
-			UserType:  pollTestUserTypeNone,
+			Hidden:     true,
+			Vote:       []pollTestVote{{1, 0, 0}},
+			UserType:   pollTestUserTypeNone,
 			Checker: srvt.CheckJSON{Body: &UninominalBallotAnswer{
 				Previous:     undefinedVote,
 				Current:      undefinedVote,
@@ -293,11 +293,11 @@ func TestUninominalBallotHandler(t *testing.T) {
 			}},
 		},
 		&pollTest{
-			Name:      "Same addr public",
+			Name:       "Same addr public",
 			Electorate: db.ElectorateAll,
-			Vote:      []pollTestVote{{1, 0, 0}},
-			UserType:  pollTestUserTypeNone,
-			Request: srvt.Request{RemoteAddr: s("1.2.3.4:56")},
+			Vote:       []pollTestVote{{1, 0, 0}},
+			UserType:   pollTestUserTypeNone,
+			Request:    srvt.Request{RemoteAddr: s("1.2.3.4:56")},
 			Checker: srvt.CheckJSON{Body: &UninominalBallotAnswer{
 				Previous:     undefinedVote,
 				Current:      noVote,
@@ -305,12 +305,12 @@ func TestUninominalBallotHandler(t *testing.T) {
 			}},
 		},
 		&pollTest{
-			Name:      "Same addr Hidden",
+			Name:       "Same addr Hidden",
 			Electorate: db.ElectorateAll,
-			Hidden: true,
-			Vote:      []pollTestVote{{1, 0, 0}},
-			UserType:  pollTestUserTypeNone,
-			Request: srvt.Request{RemoteAddr: s("9.2.3.4:56")},
+			Hidden:     true,
+			Vote:       []pollTestVote{{1, 0, 0}},
+			UserType:   pollTestUserTypeNone,
+			Request:    srvt.Request{RemoteAddr: s("9.2.3.4:56")},
 			Checker: srvt.CheckJSON{Body: &UninominalBallotAnswer{
 				Previous:     undefinedVote,
 				Current:      noVote,
@@ -318,10 +318,10 @@ func TestUninominalBallotHandler(t *testing.T) {
 			}},
 		},
 		&pollTest{
-			Name:      "Unlogged public",
+			Name:       "Unlogged public",
 			Electorate: db.ElectorateAll,
-			Vote:      []pollTestVote{{1, 0, 0}},
-			UserType:  pollTestUserTypeUnlogged,
+			Vote:       []pollTestVote{{1, 0, 0}},
+			UserType:   pollTestUserTypeUnlogged,
 			Checker: srvt.CheckJSON{Body: &UninominalBallotAnswer{
 				Previous:     undefinedVote,
 				Current:      noVote,
@@ -329,11 +329,11 @@ func TestUninominalBallotHandler(t *testing.T) {
 			}},
 		},
 		&pollTest{
-			Name:      "Unlogged hidden",
+			Name:       "Unlogged hidden",
 			Electorate: db.ElectorateAll,
-			Hidden: true,
-			Vote:      []pollTestVote{{1, 0, 0}},
-			UserType:  pollTestUserTypeUnlogged,
+			Hidden:     true,
+			Vote:       []pollTestVote{{1, 0, 0}},
+			UserType:   pollTestUserTypeUnlogged,
 			Checker: srvt.CheckJSON{Body: &UninominalBallotAnswer{
 				Previous:     undefinedVote,
 				Current:      noVote,
@@ -342,32 +342,49 @@ func TestUninominalBallotHandler(t *testing.T) {
 		},
 
 		&pollTest{
-			Name:      "No user registered",
+			Name:       "No user registered",
 			Electorate: db.ElectorateLogged,
-			UserType:  pollTestUserTypeNone,
-			Checker:   srvt.CheckStatus{http.StatusNotFound},
+			UserType:   pollTestUserTypeNone,
+			Checker:    srvt.CheckStatus{http.StatusNotFound},
 		},
 		&pollTest{
-			Name:      "No user hidden registered",
+			Name:       "No user hidden registered",
 			Electorate: db.ElectorateLogged,
-			Hidden: true,
-			UserType:  pollTestUserTypeNone,
-			Checker:   srvt.CheckStatus{http.StatusNotFound},
+			Hidden:     true,
+			UserType:   pollTestUserTypeNone,
+			Checker:    srvt.CheckStatus{http.StatusNotFound},
 		},
 		&pollTest{
-			Name:      "Unlogged registered",
+			Name:       "Unlogged registered",
 			Electorate: db.ElectorateLogged,
-			UserType:  pollTestUserTypeUnlogged,
-			Checker:   srvt.CheckStatus{http.StatusNotFound},
+			UserType:   pollTestUserTypeUnlogged,
+			Checker:    srvt.CheckStatus{http.StatusNotFound},
 		},
 		&pollTest{
-			Name:      "Unlogged hidden registered",
+			Name:       "Unlogged hidden registered",
 			Electorate: db.ElectorateLogged,
-			Hidden: true,
-			UserType:  pollTestUserTypeUnlogged,
-			Checker:   srvt.CheckStatus{http.StatusNotFound},
+			Hidden:     true,
+			UserType:   pollTestUserTypeUnlogged,
+			Checker:    srvt.CheckStatus{http.StatusNotFound},
 		},
 
+		&pollTest{
+			Name:       "Poll verified, User unverified",
+			Electorate: db.ElectorateVerified,
+			UserType:   pollTestUserTypeLogged,
+			Checker:    srvt.CheckStatus{http.StatusNotFound},
+		},
+		&pollTest{
+			Name:       "Poll verified, User verified",
+			Electorate: db.ElectorateVerified,
+			UserType:   pollTestUserTypeLogged,
+			Verified:   true,
+			Checker: srvt.CheckJSON{Body: &UninominalBallotAnswer{
+				Previous:     undefinedVote,
+				Current:      undefinedVote,
+				Alternatives: alternatives,
+			}},
+		},
 	}
 	srvt.RunFunc(t, tests, UninominalBallotHandler)
 }
