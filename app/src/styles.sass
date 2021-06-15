@@ -8,13 +8,14 @@
 body
   font-family: "Asap", sans-serif
   font-size: var(--font-size)
-  margin: #{$navbarheight + 16} $medium-space $medium-space
+  margin: 0 $medium-space $medium-space
   color: color.adjust($maincolor, $lightness: -25%)
+  padding-top: $navbarheight
 
 .main-container
   max-width: $contmaxwidth
-  margin: $navbarheight auto 0
-  padding: $contpadding $medium-space
+  margin: 0 auto 0
+  padding: $below-navtitle-space $medium-space
 
 h3:first-child
   margin-top: 0
