@@ -1,9 +1,11 @@
 <app-server-error [error]="error$ | async"></app-server-error>
-<div class="poll-list" *ngIf="(publicList$ | async)?.length">
-  <h3>Polls you participate in</h3>
-  <app-polls-table [polls]="publicList$ | async"></app-polls-table>
-</div>
-<div class="poll-list" *ngIf="(ownList$ | async)?.length">
-  <h3>Polls you have created</h3>
-  <app-polls-table [polls]="ownList$ | async"></app-polls-table>
-</div>
+<mat-tab-group mat-align-tabs="center">
+  <mat-tab  label="Participate" *ngIf="(publicList$ | async)?.length">
+    <h3>Polls you participate in</h3>
+    <app-polls-table [polls]="publicList$ | async"></app-polls-table>
+  </mat-tab>
+  <mat-tab label="Created" *ngIf="(ownList$ | async)?.length">
+    <h3>Polls you have created</h3>
+    <app-polls-table [polls]="ownList$ | async"></app-polls-table>
+  </mat-tab>
+</mat-tab-group>
