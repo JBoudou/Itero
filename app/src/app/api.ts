@@ -178,6 +178,7 @@ export interface CreateQuery {
   Title:            string;
   Description:      string;
   Hidden:           boolean;
+  Verified:         boolean;
   Start:            Date;
   Alternatives:     SimpleAlternative[];
   ReportVote:       boolean;
