@@ -5,10 +5,15 @@
 @import 'mixins'
 @import 'responsive'
 
+html, body
+  max-width: 100%
+  overflow-x: hidden
+  position: relative
+
 body
   font-family: "Asap", sans-serif
   font-size: $fontsize
-  margin: #{$navbarheight + 16} $medium-space $medium-space
+  margin: $medium-space $medium-space
   color: color.adjust($maincolor, $lightness: -25%)
 
 .main-container
@@ -164,15 +169,20 @@ $itero-mat-theme: mat-light-theme(( color: ( primary: $itero-mat-primary, accent
   right: 0
   display: flex
   flex-flow: row nowrap
+  transform: translate(85%,0)
+  transition: 1s
   width: 80%
   @media screen and (min-width: $breakpoint-tablet) and (max-width: $breakpoint-laptop)
     width: 50%
   @media screen and (min-width: $breakpoint-laptop)
     display: none
-  .info-panel-icon #help-button
+  .info-panel-icon-open #help-button, .info-panel-icon-close #close-button
     margin: 0.7em $small-space
+  .info-panel-icon-close #close-button
+    display: none
   .info-panel-content .information
-    display: contents
+    display: none
+    overflow: hidden
     p
       margin-top: 1em
 
