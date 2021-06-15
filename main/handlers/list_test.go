@@ -286,18 +286,31 @@ func TestListHandler(t *testing.T) {
 		// Independent tests //
 
 		&pollTest{
-			Name:      "public",
+			Name:       "public",
 			Electorate: db.ElectorateAll,
-			UserType:  pollTestUserTypeLogged,
-			Checker:   listCheckFactory(listCheckFactoryKindPublic, PollActionPart, false),
+			UserType:   pollTestUserTypeLogged,
+			Checker:    listCheckFactory(listCheckFactoryKindPublic, PollActionPart, false),
 		},
 		&pollTest{
 			Name:        "hidden participate",
-			Electorate: db.ElectorateAll,
-			Hidden: true,
+			Electorate:  db.ElectorateAll,
+			Hidden:      true,
 			Participate: []pollTestParticipate{{1, 0}},
 			UserType:    pollTestUserTypeLogged,
 			Checker:     listCheckFactory(listCheckFactoryKindPublic, PollActionModif, false),
+		},
+		&pollTest{
+			Name:       "poll verified user unverified",
+			Electorate: db.ElectorateVerified,
+			UserType:   pollTestUserTypeLogged,
+			Checker:    listCheckFactory(listCheckFactoryKindNone, PollActionPart, false),
+		},
+		&pollTest{
+			Name:       "poll verified user verified",
+			Electorate: db.ElectorateVerified,
+			UserType:   pollTestUserTypeLogged,
+			Verified:   true,
+			Checker:    listCheckFactory(listCheckFactoryKindPublic, PollActionPart, false),
 		},
 	}
 

@@ -91,10 +91,11 @@ func ListHandler(ctx context.Context, response server.Response, request *server.
 	                FROM Participants
 	               WHERE User = ?
 	               GROUP BY Poll
-	           ) AS a ON p.Id = a.Poll
-	     WHERE ( (p.State != 'Waiting' AND p.CurrentRound = 0 AND NOT p.Hidden)
+	           ) AS a ON p.Id = a.Poll, Users AS u
+	     WHERE ( (p.State != 'Waiting' AND p.CurrentRound = 0 AND NOT p.Hidden AND
+		 							(u.Verified OR p.Electorate != 'Verified'))
 	              OR a.Poll IS NOT NULL )
-	       AND p.Admin != ?
+	       AND u.Id = ? AND p.Admin != u.Id
 	     ORDER BY Action ASC, Deadline ASC`
 		qOwn = `
 	    SELECT p.Id, p.Salt, p.Title, p.CurrentRound, p.MaxNbRounds,

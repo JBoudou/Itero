@@ -288,6 +288,7 @@ type pollTest struct {
 	Vote         []pollTestVote
 
 	UserType pollTestUserType // Required.
+	Verified bool             // Whether the user doing the request is verified.
 	Request  srvt.Request     // Just a squeleton that will be completed by the test.
 	Checker  interface{}      // Required. Either an srvt.Checker or a PollTestCheckerFactoryParam.
 
@@ -371,6 +372,12 @@ func (self *pollTest) Prepare(t *testing.T) *ioc.Locator {
 
 	default:
 		self.userId[1] = self.userId[0]
+	}
+
+	// Verified
+	const qVerified = `UPDATE Users SET Verified = TRUE WHERE Id = ?`
+	if self.Verified {
+		self.dbEnv.QuietExec(qVerified, self.userId[1])
 	}
 
 	// Round
