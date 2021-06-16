@@ -14,6 +14,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+// Package events provides types to implement busses of events in an application.
+// Senders can send events on these busses and receiver receive the events. 
+// What differenciate such a bus from a Go channel is that each event is dispatched to all
+// receiver.
+//
+// By providing a central busses to different parts of the application, these parts can communicate
+// together without knowing each other.
 package events
 
 import (

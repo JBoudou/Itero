@@ -16,9 +16,8 @@
 
 // Package config provides configured values for all parts of the application.
 //
-// Configuration values are read from the file "config.json" in the initial
-// directory of the running program. This means in particular that for test
-// programs, the file "config.json" is searched in the package directory.
+// Configuration values are read from the file "config.json". This file is search in the
+// directory of the running program, and recursively in its parent directories.
 package config
 
 import (
@@ -122,6 +121,10 @@ func ValueOr(key string, ret interface{}, byDefault interface{}) (err error) {
 	return
 }
 
+// FindFileInParent search a file with the given filename.
+// The search starts in the current directory then explores recursively the parent directories. The
+// search fails after maxdepth changes of directory, i.e., when maxdepth is zero the file is search
+// only in the current directory.
 func FindFileInParent(filename string, maxdepth int) (path string, err error) {
 	path, err = os.Getwd()
 	if err != nil {
