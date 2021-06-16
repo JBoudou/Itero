@@ -1,16 +1,16 @@
 // Itero - Online iterative vote application
 // Copyright (C) 2020 Joseph Boudou
-// 
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
 // published by the Free Software Foundation, either version 3 of the
 // License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Affero General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
@@ -24,7 +24,8 @@ import {
   Type,
   ViewChild,
   ViewContainerRef,
-  ViewEncapsulation
+  ViewEncapsulation,
+  ElementRef
 } from '@angular/core';
 
 import { ActivatedRoute, ParamMap } from '@angular/router';
@@ -83,7 +84,7 @@ const enum SubComponentId {
 
 /**
  * This component displays the current state of the poll and allow the user to vote.
- * 
+ *
  * To manage the diversity of polls, this component delegates tasks to dynamic child components
  * called sub-component. There are currently two sub-components: one to display the ballot and
  * to vote, one to display the current informations about the poll.
@@ -97,11 +98,14 @@ const enum SubComponentId {
   encapsulation: ViewEncapsulation.None,
 })
 export class PollComponent implements OnInit, OnDestroy {
+  // Read the information panel content as a variable.
+  @ViewChild('pollInfo', {read: ElementRef, static: false}) pollInfo: ElementRef;
 
   // Anchors to insert the dynamic sub-component into.
   @ViewChild(PollBallotDirective, { static: false }) ballot: PollBallotDirective;
   @ViewChild(PollInformationDirective, { static: false }) information: PollInformationDirective;
   @ViewChild(PollPreviousDirective, { static: false }) previousInformation: PollPreviousDirective;
+
 
   previousForm = this.formBuilder.group({
     round: [1]
@@ -139,7 +143,7 @@ export class PollComponent implements OnInit, OnDestroy {
     private session: SessionService,
     private formBuilder: FormBuilder,
     private title: AppTitleService,
-    private notif: PollNotifService,
+    private notif: PollNotifService
   ) { }
 
   ngOnInit(): void {
@@ -151,7 +155,7 @@ export class PollComponent implements OnInit, OnDestroy {
       this.notif.event$.subscribe({
         next: (evt: PollNotifAnswerEntry) => this.handleEvent(evt),
       }),
-    );
+    )
   }
 
   ngOnDestroy(): void {
@@ -389,12 +393,16 @@ export class PollComponent implements OnInit, OnDestroy {
     }
     this.refresh();
   }
-  
+
   private readonly refresh = Suspendable(function(): void {
     this.previousRoundBallot = NONE_BALLOT;
     this.currentRoundBallot  = NONE_BALLOT;
     this.justVoteBallot      = NONE_BALLOT;
     this.retrieveTypes();
   });
+
+  ngAfterViewInit(): void {
+    console.log(this.pollInfo.nativeElement);
+}
 
 }

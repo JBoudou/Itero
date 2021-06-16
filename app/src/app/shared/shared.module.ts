@@ -19,16 +19,23 @@ import { CommonModule } from '@angular/common';
 import { OrdinalPipe } from './ordinal.pipe';
 import { NearDatePipe } from './near-date.pipe';
 import { ServerErrorComponent } from './server-error/server-error.component';
+import { InfoPanelComponent } from './info-panel/info-panel.component';
+
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule }    from '@angular/material/icon';
 
 @NgModule({
-  declarations: [OrdinalPipe, NearDatePipe, ServerErrorComponent],
+  declarations: [OrdinalPipe, NearDatePipe, ServerErrorComponent, InfoPanelComponent],
   imports: [
-    CommonModule
+    CommonModule,
+    MatButtonModule,
+    MatIconModule,
   ],
   exports: [
     NearDatePipe,
     OrdinalPipe,
     ServerErrorComponent,
+    InfoPanelComponent,
   ]
 })
 export class SharedModule { }
