@@ -214,10 +214,12 @@ func (self *Env) Vote(pollId uint32, round uint8, userId uint32, alternative uin
 // WithDB
 //
 
+// WithDB is a servertest.Test mixin providing a field of type Env.
 type WithDB struct {
 	DB Env
 }
 
+// Close closes the Env field, launching all defered functions.
 func (self *WithDB) Close() {
 	self.DB.Close()
 }

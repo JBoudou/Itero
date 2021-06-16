@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+// Package service provides a framework to easily implement services for the application.
+// Services are background components that execute in parallel with the handling of requests.
 package service
 
 import (

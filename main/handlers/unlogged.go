@@ -99,6 +99,8 @@ func HashAddr(addr string) uint32 {
 	return (sum >> 24) ^ (sum & 0xFFFFFF)
 }
 
+// UnloggedFromAddr constructs a server.User from an address string like http.Request.RemoteAddr.
+// The user is created if necessary.
 func UnloggedFromAddr(ctx context.Context, addr string) (server.User, error) {
 	return UnloggedFromHash(ctx, HashAddr(addr))
 }

@@ -67,7 +67,8 @@ var (
 	unloggedStore *gs.CookieStore
 )
 
-// Whether the package is usable. May be false if there is no configuration for the package.
+// Ok indicates whether the package is usable. May be false if there is no configuration for the
+// package.
 var Ok bool
 
 // SessionOptions reflects the configured options for sessions.
@@ -165,6 +166,7 @@ func Start() error {
 	return http.ListenAndServeTLS(addr, cfg.CertFile, cfg.KeyFile, nil)
 }
 
+// BaseURL returns the URL of the application.
 func BaseURL() string {
 	return "https://" + cfg.Address + "/"
 }

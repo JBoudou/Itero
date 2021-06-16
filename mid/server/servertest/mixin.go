@@ -26,6 +26,7 @@ import (
 
 // WithName //
 
+// WithName is a Test mixin whose name is given by a field of the test.
 type WithName struct {
 	Name string
 }
@@ -36,10 +37,13 @@ func (self WithName) GetName() string {
 
 // WithChecker //
 
+// WithChecker is a Test mixin that uses a Checker to check the response of the handler.
 type WithChecker struct {
 	Checker Checker
 }
 
+// Prepare call the Before method of the Checker, it it exists.
+// It always returns ioc.Root.
 func (self WithChecker) Prepare(t *testing.T) *ioc.Locator {
 	if checker, ok := self.Checker.(interface{ Before(t *testing.T) }); ok {
 		checker.Before(t)

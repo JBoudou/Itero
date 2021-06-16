@@ -14,6 +14,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+// Package salted handles salted identifiers.
+//
+// A salted identifier is pair consisting of an identifier and a random salt.
+// Salted identifier are used to prevent malicious agents to guess valid identifiers too easily.
 package salted
 
 import (
@@ -23,10 +27,13 @@ import (
 	"github.com/JBoudou/Itero/pkg/b64buff"
 )
 
+// SaltLength is the number of bits of the salt that are really used. The more significant bits are
+// ignored.
 const SaltLength = 22
 
 // Segment represents a segment encoding an id and a salt.
 // This class is used to encode and decode such segments.
+// The encoded form is a short string that can be used as an URI segment.
 type Segment struct {
 	Id   uint32
 	Salt uint32

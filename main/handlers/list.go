@@ -26,6 +26,7 @@ import (
 	"github.com/JBoudou/Itero/mid/server"
 )
 
+// NuDate is a marshalable version of sql.NullTime.
 type NuDate sql.NullTime
 
 func (self NuDate) MarshalJSON() ([]byte, error) {

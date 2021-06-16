@@ -29,6 +29,7 @@ import (
 
 /** PollInfo **/
 
+// PollInfo holds information on a poll as returned by checkPollAccess.
 type PollInfo struct {
 	Id           uint32
 	NbChoices    uint8

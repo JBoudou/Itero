@@ -29,6 +29,7 @@ import (
 	gs "github.com/gorilla/sessions"
 )
 
+// Response is used to construct the response to a HTTP request.
 type Response interface {
 	// SendJSON sends a JSON as response.
 	// On success statuc code is http.StatusOK.
@@ -84,6 +85,12 @@ func (self response) SendError(ctx context.Context, err error) {
 	}
 }
 
+// SessionAnswer is the type of the value sent by request creating a new session.
+// It is a part of the API between the server and the frontend.
+//
+// Profile is not defined in this package. It must contains information about the user corresponding
+// to the session. For security reason, Profile must not contain the user name, id, hash or
+// password.
 type SessionAnswer struct {
 	SessionId string
 	Expires   time.Time
@@ -157,9 +164,9 @@ func NewSession(st gs.Store, opts *gs.Options, answer *SessionAnswer, user User)
 	return
 }
 
-// NewUnloggedUser creates a new session for the given user.
+// NewUnloggedUser creates a new unlogged session for the given anonymous user.
 //
-// This is a low level function, made available for tests. Use SendLoginAccepted instead.
+// This is a low level function, made available for tests. Use SendUnloggedId instead.
 func NewUnloggedUser(st gs.Store, opts *gs.Options, user User) (session *gs.Session) {
 	session = gs.NewSession(st, SessionUnlogged)
 	sessionOptions := *opts

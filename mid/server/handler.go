@@ -26,6 +26,8 @@ import (
 	"github.com/justinas/alice"
 )
 
+// Interceptor is a function that takes a http.Handler and returns a http.Handler.
+// Value of this type are sometimes called "http middleware".
 type Interceptor = alice.Constructor
 
 // A Handler responds to an HTTP request.
@@ -100,7 +102,7 @@ func Handle(pattern string, handler Handler, interceptors ...Interceptor) {
 	http.Handle(pattern, packed)
 }
 
-// Handle registers the handler function for the given pattern.
+// HandleFunc registers the handler function for the given pattern.
 // See http.ServeMux for a description of the pattern format.
 func HandleFunc(pattern string, fct HandleFunction, interceptors ...Interceptor) {
 	packed := interceptorChain.Append(interceptors...).

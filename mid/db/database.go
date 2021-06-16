@@ -14,6 +14,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+// Package db provides access to the database backend of the application.
+//
+// In particular, the package reads the parameters of the database given in the configuration file
+// and provides the pool of database connections to the application.
 package db
 
 import (
@@ -30,13 +34,13 @@ import (
 	"github.com/JBoudou/Itero/pkg/config"
 )
 
-// Database pool for the application.
+// DB is the pool of database connections for the application.
 var DB *sql.DB
 
-// Whether the database is usable. May be false if there is no configuration for the package.
+// Ok indicates whether the database is usable. May be false if there is no configuration for the
+// package.
 var Ok bool
 
-// Constants for Polls fields.
 var (
 	PollTypeAcceptanceSet uint8
 
@@ -45,6 +49,7 @@ var (
 	RoundTypeFreelyAsynchronous uint8
 )
 
+// Electorate is the enum type for the field Electorate of table Polls.
 type Electorate string
 
 const (
@@ -160,6 +165,8 @@ func DurationToTime(duration time.Duration) string {
 	)
 }
 
+// IdFromResult extracts an identifier from a query result of type sql.Result.
+// Such identifiers are used as primary keys for Polls, Users and other tables.
 func IdFromResult(result sql.Result) (uint32, error) {
 	id, err := result.LastInsertId()
 	return uint32(id), err

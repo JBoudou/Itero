@@ -35,6 +35,7 @@ type Checker interface {
 
 /* ChecherFun */
 
+// CheckerFun wraps a function into a Checker.
 type CheckerFun func(t *testing.T, response *http.Response, request *server.Request)
 
 func (self CheckerFun) Check(t *testing.T, response *http.Response, request *server.Request) {
