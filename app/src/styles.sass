@@ -5,11 +5,6 @@
 @import 'mixins'
 @import 'responsive'
 
-html, body
-  max-width: 100%
-  overflow-x: hidden
-  position: relative
-
 body
   font-family: "Asap", sans-serif
   font-size: $fontsize
@@ -158,8 +153,7 @@ $itero-mat-theme: mat-light-theme(( color: ( primary: $itero-mat-primary, accent
 @include angular-material-typography($itero-mat-typography)
 
 
-
-.info-panel
+.info-panel.closed, .info-panel.opened
   border: 1px solid #704f6a
   border-right: none
   background-color: #d5b6d0
@@ -169,22 +163,52 @@ $itero-mat-theme: mat-light-theme(( color: ( primary: $itero-mat-primary, accent
   right: 0
   display: flex
   flex-flow: row nowrap
-  transform: translate(85%,0)
-  transition: 1s
-  width: 80%
+  overflow: hidden
+  width: 80vw
+  height: 150vw
   @media screen and (min-width: $breakpoint-tablet) and (max-width: $breakpoint-laptop)
-    width: 50%
+    width: 50vw
+    height: 70vw
   @media screen and (min-width: $breakpoint-laptop)
     display: none
-  .info-panel-icon-open #help-button, .info-panel-icon-close #close-button
-    margin: 0.7em $small-space
-  .info-panel-icon-close #close-button
-    display: none
+  .info-panel-content
+    position: absolute
+    z-index: 1
+    right: 0
+    width: 70vw
+    @media screen and (min-width: $breakpoint-tablet) and (max-width: $breakpoint-laptop)
+      width: 45vw
+    @media screen and (min-width: $breakpoint-laptop)
+      display: block
   .info-panel-content .information
-    display: none
-    overflow: hidden
+    display: contents
     p
       margin-top: 1em
+.info-panel.opened  
+  max-width: 80vw
+  min-width:32px
+  @media screen and (min-width: $breakpoint-tablet) and (max-width: $breakpoint-laptop)
+    max-width: 50vw
+  @media screen and (min-width: $breakpoint-laptop)
+    display: none
+  .info-panel-icon-open #help-button
+    display: none
+  .info-panel-icon-close
+    position: absolute
+    z-index: 2
+    background-color: #d5b6d0
+    width: 32px
+    height: inherit
+  .info-panel-icon-close #close-button
+    margin: 0.7em $small-space
+.info-panel.closed
+  width: 32px
+  .info-panel-icon-close #close-button
+    display: none
+  .info-panel-icon-open #help-button
+    margin: 0.7em $small-space
+  .info-panel-content
+    display: none
 
 .basicform mat-select
   @include userinput

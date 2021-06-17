@@ -24,7 +24,7 @@ import {
   Type,
   ViewChild,
   ViewContainerRef,
-  ViewEncapsulation
+  ViewEncapsulation,
 } from '@angular/core';
 
 import { ActivatedRoute, ParamMap } from '@angular/router';
@@ -119,24 +119,6 @@ export class PollComponent implements OnInit, OnDestroy {
   currentRoundBallot : PollBallot = NONE_BALLOT;
   justVoteBallot     : PollBallot = NONE_BALLOT;
 
-  //movement of sidebar
-  openSide(){
-    var sidedom:any=document.getElementById('info-panel');
-    var content:any=document.getElementById('information');
-    var closebtn:any=document.getElementById('close-button');
-    sidedom.style.transform="translate(0,0)";
-    content.style.display="contents";
-    closebtn.style.display="block";
-  }
-  closeSide(){
-    var sidedom:any=document.getElementById('info-panel');
-    var content:any=document.getElementById('information');
-    var closebtn:any=document.getElementById('close-button');
-    sidedom.style.transform="translate(90%,0)";
-    content.style.display="none";
-    closebtn.style.display="none";
-  }
-  
   // Make it visible from template.
   // TODO: Implements a decorator for PollBallot that provides methods for that.
   BallotType = BallotType;
@@ -149,7 +131,7 @@ export class PollComponent implements OnInit, OnDestroy {
 
   /** Currently loaded components, indexed by SubComponentId. **/
   private components: ComponentRef<PollSubComponent>[] = [];
-
+  
   constructor(
     private route: ActivatedRoute,
     private http: HttpClient,
