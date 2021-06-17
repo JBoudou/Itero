@@ -107,7 +107,7 @@ func closePoll_processOne_checker(t *testing.T, tt *closePollTestInstance, pollI
 
 	locator := ioc.Root.Sub()
 	closed := false
-	locator.Set(func() events.Manager {
+	locator.Bind(func() events.Manager {
 		return &eventstest.ManagerMock{
 			T: t,
 			Send_: func(evt events.Event) error {

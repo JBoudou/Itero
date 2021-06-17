@@ -82,7 +82,7 @@ type PollNotifChannel = <-chan []*PollNotification
 const PollNotifDelay = 20 * time.Second
 
 func init() {
-	ioc.Root.Set(func(evtManager events.Manager) (PollNotifChannel, error) {
+	ioc.Root.Bind(func(evtManager events.Manager) (PollNotifChannel, error) {
 		return RunPollNotif(PollNotifDelay, evtManager)
 	})
 }

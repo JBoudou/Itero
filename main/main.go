@@ -26,6 +26,13 @@ import (
 	"github.com/JBoudou/Itero/pkg/ioc"
 )
 
+func StartService(serviceFactory interface{}) {
+	err := ioc.Root.Inject(serviceFactory, service.Run)
+	if err != nil {
+		panic(err)
+	}
+}
+
 func StartHandler(url string, constructor interface{}, interceptors ...server.Interceptor) {
 	var handler server.Handler
 	err := ioc.Root.Inject(constructor, &handler)
@@ -37,10 +44,10 @@ func StartHandler(url string, constructor interface{}, interceptors ...server.In
 
 func main() {
 	// Services
-	service.Run(StartPollService, ioc.Root)
-	service.Run(NextRoundService, ioc.Root)
-	service.Run(ClosePollService, ioc.Root)
-	service.Run(EmailService, ioc.Root)
+	StartService(StartPollService)
+	StartService(NextRoundService)
+	StartService(ClosePollService)
+	StartService(EmailService)
 
 	// Handlers
 	server.HandleFunc("/a/login", LoginHandler)

@@ -104,7 +104,7 @@ func startPoll_processOne_checker(t *testing.T, tt *startPollTestInstance, poll 
 
 	locator := ioc.Root.Sub()
 	called := false
-	locator.Set(func() events.Manager {
+	locator.Bind(func() events.Manager {
 		return &eventstest.ManagerMock{
 			T: t,
 			Send_: func(evt events.Event) error {

@@ -23,7 +23,7 @@ import (
 )
 
 func init() {
-	ioc.Root.Set(func () LevelLogger { return EasyLogger{} })
+	ioc.Root.Bind(func () LevelLogger { return EasyLogger{} })
 }
 
 // LevelLogger is a temporary interface before the new logger facility is implemented.

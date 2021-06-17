@@ -22,7 +22,6 @@ import (
 
 	"github.com/JBoudou/Itero/pkg/alarm"
 	"github.com/JBoudou/Itero/pkg/events"
-	"github.com/JBoudou/Itero/pkg/ioc"
 )
 
 type serviceToTest interface {
@@ -30,16 +29,19 @@ type serviceToTest interface {
 	closeChannel() <-chan struct{}
 }
 
-func testRunService(t *testing.T, service serviceToTest, idle func()) {
-	loc := ioc.Root.Sub()
+type serviceEnv interface {
+	idle()
+	evtManager() events.Manager
+}
+
+func testRunService(t *testing.T, service serviceToTest, env serviceEnv) {
+	t.Parallel()
 
 	var alarmCtrl alarm.FakeAlarmController
-	loc.Set(func() AlarmInjector {
-		return func(chanSize int, opts ...alarm.Option) (ret alarm.Alarm) {
-			ret, alarmCtrl = alarm.NewFakeAlarm(chanSize, opts...)
-			return
-		}
-	})
+	alarmInjector := func(chanSize int, opts ...alarm.Option) (ret alarm.Alarm) {
+		ret, alarmCtrl = alarm.NewFakeAlarm(chanSize, opts...)
+		return
+	}
 	ticker := time.NewTicker(time.Second / 5)
 
 	defer func() {
@@ -47,7 +49,7 @@ func testRunService(t *testing.T, service serviceToTest, idle func()) {
 		alarmCtrl.Close()
 	}()
 
-	stopFunc := Run(func() Service { return service }, loc)
+	stopFunc := Run(service, alarmInjector, env.evtManager())
 	defer stopFunc()
 
 mainLoop:
@@ -58,7 +60,7 @@ mainLoop:
 			break mainLoop
 
 		case <-ticker.C:
-			idle()
+			env.idle()
 			alarmCtrl.Tick()
 		}
 	}
@@ -189,8 +191,20 @@ func (self *testRunServiceIterator) Close() error {
 	return self.err
 }
 
+type silentServiceEnv struct{
+	evtM events.Manager
+}
+
+func (self *silentServiceEnv) idle() {}
+func (self *silentServiceEnv) evtManager() events.Manager {
+	if self.evtM == nil {
+		self.evtM = events.NewAsyncManager(events.DefaultManagerChannelSize)
+	}
+	return self.evtM
+}
+
 func TestRunService_noEvents(t *testing.T) {
-	testRunService(t, newTestRunServiceService(t), func() {})
+	testRunService(t, newTestRunServiceService(t), &silentServiceEnv{})
 }
 
 // Test with events, but no event received //
@@ -209,7 +223,7 @@ func (self *testRunServiceServiceDumb) ReceiveEvent(events.Event, RunnerControle
 func TestRunService_dumbEvents(t *testing.T) {
 	testRunService(t, &testRunServiceServiceDumb{
 		testRunServiceService: newTestRunServiceService(t),
-	}, func() {})
+	}, &silentServiceEnv{})
 }
 
 // Test with real events //
@@ -243,18 +257,19 @@ func (self *testRunServiceServiceEvent) CheckAll() Iterator {
 }
 
 type testRunServiceEventSender struct {
+	silentServiceEnv
 	wait uint32
 	pos  uint32
 	end  uint32
 }
 
-func (self *testRunServiceEventSender) send() {
+func (self *testRunServiceEventSender) idle() {
 	if self.wait > 0 {
 		self.wait -= 1
 		return
 	}
 	if self.pos < self.end {
-		events.Send(testRunServiceEvent(self.pos))
+		self.evtManager().Send(testRunServiceEvent(self.pos))
 		self.pos += 1
 		return
 	}
@@ -264,5 +279,9 @@ func TestRunService_events(t *testing.T) {
 	testRunService(t, &testRunServiceServiceEvent{
 		testRunServiceService: newTestRunServiceService(t),
 	},
-		(&testRunServiceEventSender{wait: 1, pos: 2, end: testRunServiceNbTasks}).send)
+		&testRunServiceEventSender{
+			wait: 1,
+			pos: 2,
+			end: testRunServiceNbTasks,
+		})
 }

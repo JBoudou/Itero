@@ -53,7 +53,7 @@ var emailConfig struct {
 
 func init() {
 	// IoC
-	ioc.Root.Set(func() (emailsender.Sender, error) {
+	ioc.Root.Bind(func() (emailsender.Sender, error) {
 		options := emailsender.BatchSenderOptions{
 			MinBatchLen: 2,
 			MaxDelay:    "1m",

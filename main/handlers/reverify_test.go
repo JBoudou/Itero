@@ -82,7 +82,7 @@ func (self *reverifyTest) Prepare(t *testing.T) *ioc.Locator {
 	}
 
 	locator := ioc.Root.Sub()
-	locator.Set(func() events.Manager {
+	locator.Bind(func() events.Manager {
 		return &evtt.ManagerMock{
 			T: t,
 			Send_: func(evt events.Event) error {

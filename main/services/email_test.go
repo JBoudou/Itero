@@ -66,7 +66,7 @@ func TestEmailService_CreateUserEvent(t *testing.T) {
 
 			locator := ioc.Root.Sub()
 
-			err = locator.Set(func() events.Manager {
+			err = locator.Bind(func() events.Manager {
 				return &evtest.ManagerMock{
 					T: t,
 					AddReceiver_: func(r events.Receiver) error {
@@ -78,7 +78,7 @@ func TestEmailService_CreateUserEvent(t *testing.T) {
 			})
 			mustt(t, err)
 
-			err = locator.Set(func() emailsender.Sender {
+			err = locator.Bind(func() emailsender.Sender {
 				return estest.SenderMock{
 					T: t,
 					Send_: func(emailsender.Email) error {
@@ -89,7 +89,8 @@ func TestEmailService_CreateUserEvent(t *testing.T) {
 			})
 			mustt(t, err)
 
-			stop := service.Run(EmailService, locator)
+			var stop service.StopFunction
+			mustt(t, locator.Inject(EmailService, service.Run, &stop))
 			defer stop()
 
 		testLoop:
