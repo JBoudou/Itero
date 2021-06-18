@@ -170,9 +170,7 @@ export class SessionService {
   }
 
   verifyEmail(): void {
-    this.session.verifyEmail()
   }
-
   /** Close the current session (if any). */
   logoff() {
     localStorage.removeItem("SessionId");
