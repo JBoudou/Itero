@@ -9,11 +9,11 @@
     <a *ngIf="(session.state$ | async).logged" routerLink="/r/list" routerLinkActive="active" class="nav-link">
       <span class="navitem" i18n>Polls</span>
     </a>
-    <a *ngIf="!(session.state$ | async).logged" routerLink="/r/session/signup" 
+    <a *ngIf="!(session.state$ | async).logged" routerLink="/r/session/signup"
     routerLinkActive="active" class="nav-link">
       <span class="navitem" i18n>Sign up</span>
     </a>
-    <a *ngIf="!(session.state$ | async).logged" routerLink="/r/session/login" 
+    <a *ngIf="!(session.state$ | async).logged" routerLink="/r/session/login"
     routerLinkActive="active" class="nav-link">
       <span class="navitem" i18n>Log in</span>
     </a>
@@ -35,29 +35,29 @@
       <mat-icon>play_circle_outline</mat-icon>
       Try it
     </button>
-    <button *ngIf="!(session.state$ | async).logged" mat-menu-item class="nav-link" 
+    <button *ngIf="!(session.state$ | async).logged" mat-menu-item class="nav-link"
     routerLink="/r/session/signup" routerLinkActive="active">
       <mat-icon>person_add</mat-icon>
       Sign up
     </button>
-    <button *ngIf="!(session.state$ | async).logged" mat-menu-item class="nav-link" 
+    <button *ngIf="!(session.state$ | async).logged" mat-menu-item class="nav-link"
     routerLink="/r/session/login" routerLinkActive="active">
       <mat-icon>person_outline</mat-icon>
       Log in
     </button>
-    <button *ngIf="(session.state$ | async).logged" mat-menu-item class="nav-link" 
+    <button *ngIf="(session.state$ | async).logged" mat-menu-item class="nav-link"
     routerLink="/r/list" routerLinkActive="active">
       <mat-icon>poll</mat-icon>
       Polls
     </button>
-    <button *ngIf="(session.state$ | async).logged" mat-menu-item class="nav-link" 
+    <button *ngIf="(session.state$ | async).logged" mat-menu-item class="nav-link"
     routerLink="/r/create" routerLinkActive="active">
       <mat-icon>add_box</mat-icon>
       Create
     </button>
     <ng-container *ngIf="(session.state$ | async).logged">
       <hr>
-      <button mat-menu-item [disabled]="(session.state$ | async).profile.verified">
+      <button mat-menu-item (click)="session.verifyEmail()" [disabled]="(session.state$ | async).profile.verified">
         <ng-container [ngSwitch]="(session.state$ | async).profile.verified">
           <ng-container *ngSwitchCase="false">
             <mat-icon>forward_to_inbox</mat-icon> Verify email
