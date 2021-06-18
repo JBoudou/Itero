@@ -26,5 +26,5 @@ import (
 
 func init() {
 	ioc.Root.Bind(func() service.AlarmInjector { return alarm.New })
-	ioc.Root.Bind(func() events.Manager { return events.DefaultManager })
+	ioc.Root.Bind(func() events.Manager { return events.NewAsyncManager(events.DefaultManagerChannelSize) })
 }

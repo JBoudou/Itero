@@ -64,28 +64,6 @@ var (
 
 const DefaultManagerChannelSize = 256
 
-// DefaultManager is the manager used by direct functions like Send.
-//
-// It is initialised by a call to NewAsyncManager whith a channel size of DefaultManagerChannelSize.
-// It shoudl not be assigned after any receiver has been added or any event has been sent.
-var DefaultManager Manager
-
-func init() {
-	DefaultManager = NewAsyncManager(DefaultManagerChannelSize)
-}
-
-// Send dispatch an event to all the Receivers of DefaultManager.
-// It takes ownership of the event.
-func Send(evt Event) error {
-	return DefaultManager.Send(evt)
-}
-
-// AddReceiver registers a Receiver to receive all events sent to DefaultManager.
-// If the Receiver is added to another Manager, it must be goroutine-safe.
-func AddReceiver(rcv Receiver) error {
-	return DefaultManager.AddReceiver(rcv)
-}
-
 // ReceiverFunc turn a function into a stateless Receiver, whose Close method does nothing.
 type ReceiverFunc func(Event)
 

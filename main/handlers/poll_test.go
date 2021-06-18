@@ -29,6 +29,7 @@ import (
 	"github.com/JBoudou/Itero/mid/salted"
 	"github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
+	"github.com/JBoudou/Itero/pkg/events"
 	"github.com/JBoudou/Itero/pkg/ioc"
 )
 
@@ -291,6 +292,9 @@ type pollTestVote struct {
 }
 
 type pollTest struct {
+	dbt.WithDB
+	WithEvent
+
 	Name         string        // Required.
 	Sequential   bool          // If the test cannot be run in parallel.
 	Electorate   db.Electorate // Required.
@@ -305,7 +309,9 @@ type pollTest struct {
 	Request  srvt.Request     // Just a squeleton that will be completed by the test.
 	Checker  interface{}      // Required. Either an srvt.Checker or a PollTestCheckerFactoryParam.
 
-	dbEnv  dbt.Env
+	EventPredicate func(PollTestCheckerFactoryParam, events.Event) bool
+	EventCount     int
+
 	pollId uint32
 	userId []uint32
 }
@@ -343,18 +349,18 @@ func (self *pollTest) Prepare(t *testing.T) *ioc.Locator {
 	}
 
 	self.userId = make([]uint32, 2)
-	self.userId[0] = self.dbEnv.CreateUserWith(t.Name())
+	self.userId[0] = self.DB.CreateUserWith(t.Name())
 	if len(self.Alternatives) < 2 {
-		self.pollId = self.dbEnv.CreatePoll("Title", self.userId[0], self.Electorate)
+		self.pollId = self.DB.CreatePoll("Title", self.userId[0], self.Electorate)
 	} else {
-		self.pollId = self.dbEnv.CreatePollWith("Title", self.userId[0], self.Electorate,
+		self.pollId = self.DB.CreatePollWith("Title", self.userId[0], self.Electorate,
 			self.Alternatives)
 	}
 
 	// Hidden
 	const qHidden = `UPDATE Polls SET Hidden = TRUE WHERE Id = ?`
 	if self.Hidden {
-		self.dbEnv.Must(t)
+		self.DB.Must(t)
 		_, err := db.DB.Exec(qHidden, self.pollId)
 		mustt(t, err)
 	}
@@ -365,17 +371,17 @@ func (self *pollTest) Prepare(t *testing.T) *ioc.Locator {
 		self.userId[1] = self.userId[0]
 
 	case pollTestUserTypeLogged:
-		self.userId[1] = self.dbEnv.CreateUserWith(t.Name() + "Logged")
+		self.userId[1] = self.DB.CreateUserWith(t.Name() + "Logged")
 
 	case pollTestUserTypeUnlogged:
-		self.dbEnv.Must(t)
+		self.DB.Must(t)
 		user, err := UnloggedFromHash(context.Background(), 42)
 		mustt(t, err)
 		self.userId[1] = user.Id
 
 	case pollTestUserTypeNone:
 		if self.Request.RemoteAddr != nil {
-			self.dbEnv.Must(t)
+			self.DB.Must(t)
 			user, err := UnloggedFromAddr(context.Background(), *self.Request.RemoteAddr)
 			mustt(t, err)
 			self.userId[1] = user.Id
@@ -390,52 +396,46 @@ func (self *pollTest) Prepare(t *testing.T) *ioc.Locator {
 	// Verified
 	const qVerified = `UPDATE Users SET Verified = TRUE WHERE Id = ?`
 	if self.Verified {
-		self.dbEnv.QuietExec(qVerified, self.userId[1])
+		self.DB.QuietExec(qVerified, self.userId[1])
 	}
 
 	// Round
 	const qRound = `UPDATE Polls SET CurrentRound = ? WHERE Id = ?`
 	if self.Round > 0 {
-		self.dbEnv.QuietExec(qRound, self.Round, self.pollId)
+		self.DB.QuietExec(qRound, self.Round, self.pollId)
 	}
 
 	// Participate
 	const qParticipate = `INSERT INTO Participants (User, Poll, Round) VALUE (?,?,?)`
 	for _, participate := range self.Participate {
 		for len(self.userId) <= int(participate.User) {
-			self.userId = append(self.userId, self.dbEnv.CreateUserWith(t.Name()+strconv.Itoa(len(self.userId))))
+			self.userId = append(self.userId, self.DB.CreateUserWith(t.Name()+strconv.Itoa(len(self.userId))))
 		}
-		self.dbEnv.QuietExec(qParticipate, self.userId[participate.User], self.pollId, participate.Round)
+		self.DB.QuietExec(qParticipate, self.userId[participate.User], self.pollId, participate.Round)
 	}
 
 	// Vote
 	const qVote = `INSERT INTO Ballots (User, Poll, Alternative, Round) VALUE (?,?,?,?)`
 	for _, vote := range self.Vote {
 		for len(self.userId) <= int(vote.User) {
-			self.userId = append(self.userId, self.dbEnv.CreateUserWith(t.Name()+strconv.Itoa(len(self.userId))))
+			self.userId = append(self.userId, self.DB.CreateUserWith(t.Name()+strconv.Itoa(len(self.userId))))
 		}
 		// We don't care about errors when adding to Participants
 		db.DB.Exec(qParticipate, self.userId[vote.User], self.pollId, vote.Round)
-		self.dbEnv.QuietExec(qVote, self.userId[vote.User], self.pollId, vote.Alt, vote.Round)
+		self.DB.QuietExec(qVote, self.userId[vote.User], self.pollId, vote.Alt, vote.Round)
 	}
 
 	// Checker
 	if factory, ok := self.Checker.(pollTestCheckerFactory); ok {
-		self.Checker = factory(PollTestCheckerFactoryParam{
-			PollTitle: "Title",
-			PollId:    self.pollId,
-			AdminName: self.dbEnv.UserNameWith(t.Name()),
-			UserId:    self.userId[1],
-			Round:     self.Round,
-		})
+		self.Checker = factory(self.makeParam(t))
 	}
 
-	self.dbEnv.Must(t)
+	self.DB.Must(t)
 	if checker, ok := self.Checker.(interface{ Before(*testing.T) }); ok {
 		checker.Before(t)
 	}
 	stats("After Prepare")
-	return ioc.Root
+	return self.WithEvent.Prepare(t)
 }
 
 func (self *pollTest) GetRequest(t *testing.T) *srvt.Request {
@@ -467,9 +467,26 @@ func (self *pollTest) Check(t *testing.T, response *http.Response, request *serv
 	} else {
 		t.Errorf("Checker is not an srvt.Checker")
 	}
+
+	if self.EventPredicate != nil {
+		param := self.makeParam(t)
+		gotEvents := self.WithEvent.CountRecorderEvents(func(evt events.Event) bool {
+			return self.EventPredicate(param, evt)
+		})
+		if gotEvents != self.EventCount {
+			t.Errorf("Got %d events. Expect %d.", gotEvents, self.EventCount)
+		}
+	}
+
 	stats("After Check")
 }
 
-func (self *pollTest) Close() {
-	self.dbEnv.Close()
+func (self *pollTest) makeParam(t *testing.T) PollTestCheckerFactoryParam {
+	return PollTestCheckerFactoryParam{
+		PollTitle: "Title",
+		PollId:    self.pollId,
+		AdminName: self.DB.UserNameWith(t.Name()),
+		UserId:    self.userId[1],
+		Round:     self.Round,
+	}
 }

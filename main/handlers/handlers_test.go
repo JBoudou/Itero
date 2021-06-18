@@ -26,6 +26,8 @@ import (
 	"github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
 	"github.com/JBoudou/Itero/pkg/config"
+	"github.com/JBoudou/Itero/pkg/events"
+	"github.com/JBoudou/Itero/pkg/events/eventstest"
 	"github.com/JBoudou/Itero/pkg/ioc"
 )
 
@@ -130,4 +132,33 @@ func RFPostSession(body string) RequestFct {
 	return func(user *server.User) *srvt.Request {
 		return rfSession("POST", body, user)
 	}
+}
+
+// WithEvent //
+
+type WithEvent struct {
+	RecordedEvents []events.Event
+}
+
+func (self *WithEvent) Prepare(t *testing.T) *ioc.Locator {
+	manager := &eventstest.ManagerMock{
+		T: t,
+		Send_: func(evt events.Event) error {
+			self.RecordedEvents = append(self.RecordedEvents, evt)
+			return nil
+		},
+	}
+
+	locator := ioc.Root.Sub()
+	mustt(t, locator.Bind(func() events.Manager { return manager }))
+	return locator
+}
+
+func (self *WithEvent) CountRecorderEvents(predicate func(events.Event) bool) (ret int) {
+	for _, recorded := range self.RecordedEvents {
+		if predicate(recorded) {
+			ret += 1
+		}
+	}
+	return
 }

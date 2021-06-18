@@ -25,75 +25,87 @@ import (
 	"github.com/JBoudou/Itero/mid/db"
 	"github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
+	"github.com/JBoudou/Itero/pkg/ioc"
 )
+
+type signupHandlerTest struct {
+	srvt.T
+	WithEvent
+}
+
+func (self *signupHandlerTest) Prepare(t *testing.T) *ioc.Locator {
+	t.Parallel()
+	self.T.Prepare(t)
+	return self.WithEvent.Prepare(t)
+}
 
 func TestSignupHandler_Error(t *testing.T) {
 	precheck(t)
 
 	tests := []srvt.Test{
-		&srvt.T{
+		&signupHandlerTest{T: srvt.T{
 			Name:    "Bad request",
 			Request: srvt.Request{Method: "POST"},
 			Checker: srvt.CheckStatus{http.StatusBadRequest},
-		},
-		&srvt.T{
+		}},
+		&signupHandlerTest{T: srvt.T{
 			Name: "Name too short",
 			Request: srvt.Request{
 				Method: "POST",
 				Body:   `{"Name":"a","Email":"toto@example.com","Passwd":"tititi"}`,
 			},
 			Checker: srvt.CheckError{http.StatusBadRequest, "Name too short"},
-		},
-		&srvt.T{
+		}},
+		&signupHandlerTest{T: srvt.T{
 			Name: "Name starting with a space",
 			Request: srvt.Request{
 				Method: "POST",
 				Body:   `{"Name":" tototo","Email":"toto@example.com","Passwd":"tititi"}`,
 			},
 			Checker: srvt.CheckError{http.StatusBadRequest, "Name has spaces"},
-		},
-		&srvt.T{
+		}},
+		&signupHandlerTest{T: srvt.T{
 			Name: "Name ending with a space",
 			Request: srvt.Request{
 				Method: "POST",
 				Body:   `{"Name":"tototo ","Email":"toto@example.com","Passwd":"tititi"}`,
 			},
 			Checker: srvt.CheckError{http.StatusBadRequest, "Name has spaces"},
-		},
-		&srvt.T{
+		}},
+		&signupHandlerTest{T: srvt.T{
 			Name: "Name containing @",
 			Request: srvt.Request{
 				Method: "POST",
 				Body:   `{"Name":"toto@to","Email":"toto@example.com","Passwd":"tititi"}`,
 			},
 			Checker: srvt.CheckError{http.StatusBadRequest, "Name has at sign"},
-		},
-		&srvt.T{
+		}},
+		&signupHandlerTest{T: srvt.T{
 			Name: "Password too short",
 			Request: srvt.Request{
 				Method: "POST",
 				Body:   `{"Name":"tototo","Email":"toto@example.com","Passwd":"t"}`,
 			},
 			Checker: srvt.CheckError{http.StatusBadRequest, "Passwd too short"},
-		},
-		&srvt.T{
+		}},
+		&signupHandlerTest{T: srvt.T{
 			Name: "Wrong email 1",
 			Request: srvt.Request{
 				Method: "POST",
 				Body:   `{"Name":"tototo","Email":"toto.example.com","Passwd":"tititi"}`,
 			},
 			Checker: srvt.CheckError{http.StatusBadRequest, "Email invalid"},
-		},
-		&srvt.T{
+		}},
+		&signupHandlerTest{T: srvt.T{
 			Name: "Wrong email 2",
 			Request: srvt.Request{
 				Method: "POST",
 				Body:   `{"Name":"tototo","Email":"toto@examplecom","Passwd":"tititi"}`,
 			},
 			Checker: srvt.CheckError{http.StatusBadRequest, "Email invalid"},
-		},
+		}},
 	}
-	srvt.RunFunc(t, tests, SignupHandler)
+	srvt.Run(t, tests, SignupHandler)
 }
 
 func TestSignupHandler_Success(t *testing.T) {
@@ -119,7 +131,9 @@ func TestSignupHandler_Success(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	wrapper := server.NewHandlerWrapper("/a/test", server.HandlerFunc(SignupHandler))
+	var handler server.Handler
+	ioc.Root.Inject(SignupHandler, &handler)
+	wrapper := server.NewHandlerWrapper("/a/test", handler)
 	ctx, _, sRequest := wrapper.MakeParams(httptest.NewRecorder(), hRequest)
 	wrapper.Exec(ctx, response, sRequest)
 
@@ -128,24 +142,26 @@ func TestSignupHandler_Success(t *testing.T) {
 	}
 
 	tests := []srvt.Test{
-		&srvt.T{
+		&signupHandlerTest{T: srvt.T{
 			Name: "Name already exists",
 			Request: srvt.Request{
 				Method: "POST",
 				Body:   `{"Name":"` + name + `","Email":"another_long_dummy@example.com","Passwd":"tititi"}`,
 			},
 			Checker: srvt.CheckError{http.StatusBadRequest, "Already exists"},
-		},
-		&srvt.T{
-			Name: "Name already exists",
+		}},
+		&signupHandlerTest{T: srvt.T{
+			Name: "Email already exists",
 			Request: srvt.Request{
 				Method: "POST",
 				Body:   `{"Name":"another_long_dummy","Email":"` + name + `@example.com","Passwd":"tititi"}`,
 			},
 			Checker: srvt.CheckError{http.StatusBadRequest, "Already exists"},
-		},
+		}},
 	}
-	srvt.RunFunc(t, tests, SignupHandler)
+
+	// Additional call to Run such that cleanup code is called AFTER the parallel tests.
+	t.Run("Fail", func(t *testing.T) { srvt.Run(t, tests, SignupHandler) })
 
 	const qDelete = `DELETE FROM Users WHERE Id = ?`
 	result, err := db.DB.Exec(qDelete, userId)

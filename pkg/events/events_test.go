@@ -30,8 +30,8 @@ func TestSend(t *testing.T) {
 		stack = append(stack, evt)
 		return nil
 	}
-	DefaultManager = &ManagerMock{T: t, Send_: spy}
-	if err := Send(27); err != nil {
+	manager := &ManagerMock{T: t, Send_: spy}
+	if err := manager.Send(27); err != nil {
 		t.Fatal(err)
 	}
 	if len(stack) != 1 {
@@ -48,8 +48,8 @@ func TestAddReceiver(t *testing.T) {
 		stack = append(stack, rcv)
 		return nil
 	}
-	DefaultManager = &ManagerMock{T: t, AddReceiver_: spy}
-	if err := AddReceiver(&ReceiverMock{T: t}); err != nil {
+	manager := &ManagerMock{T: t, AddReceiver_: spy}
+	if err := manager.AddReceiver(&ReceiverMock{T: t}); err != nil {
 		t.Fatal(err)
 	}
 	if len(stack) != 1 {

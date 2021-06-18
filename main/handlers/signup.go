@@ -33,7 +33,15 @@ import (
 	"github.com/JBoudou/Itero/pkg/events"
 )
 
-func SignupHandler(ctx context.Context, response server.Response, request *server.Request) {
+type signupHandler struct {
+	evtManager events.Manager
+}
+
+func SignupHandler(evtManager events.Manager) signupHandler {
+	return signupHandler{evtManager: evtManager}
+}
+
+func (self signupHandler) Handle(ctx context.Context, response server.Response, request *server.Request) {
 	if err := request.CheckPOST(ctx); err != nil {
 		response.SendError(ctx, err)
 		return
@@ -117,7 +125,7 @@ func SignupHandler(ctx context.Context, response server.Response, request *serve
 		return
 	}
 
-	events.Send(services.CreateUserEvent{User: uint32(rawId)})
+	self.evtManager.Send(services.CreateUserEvent{User: uint32(rawId)})
 
 	// Start session //
 

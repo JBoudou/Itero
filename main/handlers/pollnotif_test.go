@@ -77,10 +77,7 @@ func (self *pollNotifHandlerTest) Prepare(t *testing.T) *ioc.Locator {
 	self.dbEnv.Must(t)
 
 	ret := ioc.Root.Sub()
-	// TODO: replace the two following lines with the commented line below.
-	ret.Bind(func() events.Manager { return events.NewAsyncManager(events.DefaultManagerChannelSize) })
-	ret.Inject(&self.evtManager)
-	//ret.Refresh(&self.evtManager)
+	ret.Refresh(&self.evtManager)
 	ret.Bind(func(evtManager events.Manager) (services.PollNotifChannel, error) {
 		return services.RunPollNotif(time.Second, evtManager)
 	})

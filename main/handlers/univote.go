@@ -34,7 +34,15 @@ type UninominalVoteQuery struct {
 	Round       uint8
 }
 
-func UninominalVoteHandler(ctx context.Context, response server.Response, request *server.Request) {
+type uninominalVoteHandler struct {
+	evtManager events.Manager
+}
+
+func UninominalVoteHandler(evtManager events.Manager) uninominalVoteHandler {
+	return uninominalVoteHandler{evtManager: evtManager}
+}
+
+func (self uninominalVoteHandler) Handle(ctx context.Context, response server.Response, request *server.Request) {
 
 	// Verifications
 	if err := request.CheckPOST(ctx); err != nil {
@@ -125,5 +133,5 @@ func UninominalVoteHandler(ctx context.Context, response server.Response, reques
 		response.SendUnloggedId(ctx, *request.User, request)
 	}
 	response.SendJSON(ctx, "Ok")
-	events.Send(services.VoteEvent{pollInfo.Id})
+	self.evtManager.Send(services.VoteEvent{pollInfo.Id})
 }

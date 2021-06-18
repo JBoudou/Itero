@@ -18,6 +18,7 @@ package main
 
 import (
 	"log"
+	"reflect"
 
 	. "github.com/JBoudou/Itero/main/handlers"
 	. "github.com/JBoudou/Itero/main/services"
@@ -33,13 +34,20 @@ func StartService(serviceFactory interface{}) {
 	}
 }
 
-func StartHandler(url string, constructor interface{}, interceptors ...server.Interceptor) {
-	var handler server.Handler
-	err := ioc.Root.Inject(constructor, &handler)
-	if err != nil {
-		panic(err)
+func StartHandler(url string, fct interface{}, interceptors ...server.Interceptor) {
+	if reflect.TypeOf(fct).AssignableTo(reflect.TypeOf(server.HandleFunc).In(1)) {
+		var handlerFunc server.HandlerFunc
+		reflect.ValueOf(&handlerFunc).Elem().Set(reflect.ValueOf(fct))
+		server.HandleFunc(url, handlerFunc, interceptors...)
+
+	} else {
+		var handler server.Handler
+		err := ioc.Root.Inject(fct, &handler)
+		if err != nil {
+			panic(err)
+		}
+		server.Handle(url, handler, interceptors...)
 	}
-	server.Handle(url, handler, interceptors...)
 }
 
 func main() {
@@ -50,18 +58,18 @@ func main() {
 	StartService(EmailService)
 
 	// Handlers
-	server.HandleFunc("/a/login", LoginHandler)
-	server.HandleFunc("/a/signup", SignupHandler)
-	server.HandleFunc("/a/refresh", RefreshHandler)
-	server.HandleFunc("/a/list", ListHandler, server.Compress)
-	server.HandleFunc("/a/poll/", PollHandler)
-	server.HandleFunc("/a/ballot/uninominal/", UninominalBallotHandler, server.Compress)
-	server.HandleFunc("/a/vote/uninominal/", UninominalVoteHandler)
-	server.HandleFunc("/a/info/count/", CountInfoHandler, server.Compress)
+	StartHandler("/a/login", LoginHandler)
+	StartHandler("/a/signup", SignupHandler)
+	StartHandler("/a/refresh", RefreshHandler)
+	StartHandler("/a/list", ListHandler, server.Compress)
+	StartHandler("/a/poll/", PollHandler)
+	StartHandler("/a/ballot/uninominal/", UninominalBallotHandler, server.Compress)
+	StartHandler("/a/vote/uninominal/", UninominalVoteHandler)
+	StartHandler("/a/info/count/", CountInfoHandler, server.Compress)
 	StartHandler("/a/create", CreateHandler)
-	server.HandleFunc("/a/delete/", DeleteHandler)
+	StartHandler("/a/delete/", DeleteHandler)
 	StartHandler("/a/pollnotif", PollNotifHandler, server.Compress)
-	server.HandleFunc("/a/config", ConfigHandler)
+	StartHandler("/a/config", ConfigHandler)
 	StartHandler("/a/confirm/", ConfirmHandler)
 	StartHandler("/a/reverify", ReverifyHandler)
 
