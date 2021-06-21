@@ -165,35 +165,40 @@ $itero-mat-theme: mat-light-theme(( color: ( primary: $itero-mat-primary, accent
   flex-flow: row nowrap
   overflow: hidden
   transition: width 2s
-  min-width: 32px
-  max-width: 80vw
-  width: 80vw
+  .info-panel-icon mat-icon
+    margin: 0.7em $small-space
+  $menu-close-width: 32px
+  $width-smartphone: 80vw
+  $width-tablet: 50vw
+  min-width: $menu-close-width
+  max-width: $width-smartphone
   @media screen and (min-width: $breakpoint-tablet) and (max-width: $breakpoint-laptop)
-    max-width: 50vw
-    width: 50vw
+    min-width: $menu-close-width
+    max-width: $width-tablet
   @media screen and (min-width: $breakpoint-laptop)
     display: none
+  &.opened
+    #help-button
+      display: none
+    width: $width-smartphone
+    @media screen and (min-width: $breakpoint-tablet) and (max-width: $breakpoint-laptop)
+      width: $width-tablet
+  &.closed
+    #close-button
+      display: none
+    width: $menu-close-width  
   .info-panel-content
     overflow: hidden
   .info-panel-content .information
     margin: 0
     padding: 0
     border: none
-    width: 70vw
+    width: calc(#{$width-smartphone} - #{$menu-close-width})
     @media screen and (min-width: $breakpoint-tablet) and (max-width: $breakpoint-laptop)
-      width: 45vw
+      width: calc(#{$width-tablet} - #{$menu-close-width})
     p
       margin-top: 1em
-.info-panel.opened  
-  .info-panel-icon-open #help-button
-    display: none
-  .info-panel-icon-close #close-button
-    margin: 0.7em $small-space
-.info-panel.closed
-  .info-panel-icon-close #close-button
-    display: none
-  .info-panel-icon-open #help-button
-    margin: 0.7em $small-space
+
 
 .basicform mat-select
   @include userinput
