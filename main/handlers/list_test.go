@@ -40,7 +40,7 @@ type listChecker struct {
 type listCheckerEntry struct {
 	title     string
 	id        *uint32
-	action    uint8
+	action    PollAction
 	deletable bool
 }
 
@@ -109,7 +109,7 @@ const (
 	listCheckFactoryKindNone
 )
 
-func listCheckFactory(kind listCheckFactoryKind, action uint8, deletable bool) pollTestCheckerFactory {
+func listCheckFactory(kind listCheckFactoryKind, action PollAction, deletable bool) pollTestCheckerFactory {
 	return func(param PollTestCheckerFactoryParam) srvt.Checker {
 		entry := []listCheckerEntry{{
 			title:     param.PollTitle,

@@ -40,12 +40,14 @@ type nextRoundTestInstance struct {
 	threshold    float64 // RoundThreshold
 	nbVoter      int     // number of Participant with LastRound = Poll.CurrentRound
 	expectNext   bool
-	expectList   bool // whether it must be listed by CheckAll
-	expectCheck  int  // kind of response from CheckOne (see testCheckOneResult*)
+	expectList   bool               // whether it must be listed by CheckAll
+	expectCheck  testCheckOneResult // kind of response from CheckOne (see testCheckOneResult*)
 }
 
+type testCheckOneResult uint8
+
 const (
-	testCheckOneResultPast = iota
+	testCheckOneResultPast testCheckOneResult = iota
 	testCheckOneResultFuture
 	testCheckOneResultNever
 )
@@ -365,24 +367,24 @@ func TestNextRoundService_CheckOne(t *testing.T) {
 // events //
 
 func TestNextRoundService_Events(t *testing.T) {
-	tests := []checkEventScheduleTest {
+	tests := []checkEventScheduleTest{
 		{
-			name: "VoteEvent",
-			event: VoteEvent{1},
+			name:     "VoteEvent",
+			event:    VoteEvent{1},
 			schedule: []uint32{1},
 		},
 		{
-			name: "CreatePollEvent",
-			event: CreatePollEvent{2},
+			name:     "CreatePollEvent",
+			event:    CreatePollEvent{2},
 			schedule: []uint32{2},
 		},
 		{
-			name: "StartPollEvent",
-			event: StartPollEvent{3},
+			name:     "StartPollEvent",
+			event:    StartPollEvent{3},
 			schedule: []uint32{3},
 		},
 		{
-			name: "ClosePollEvent",
+			name:  "ClosePollEvent",
 			event: ClosePollEvent{42},
 		},
 	}

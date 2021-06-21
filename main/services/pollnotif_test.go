@@ -117,7 +117,7 @@ func TestPollNotif(t *testing.T) {
 		event  events.Event
 		id     uint32
 		round  uint8
-		action uint8
+		action PollNotifAction
 	}{
 		{
 			event:  StartPollEvent{Poll: 1},

@@ -38,8 +38,8 @@ type partialPollAnswer struct {
 	Description  string
 	Admin        string
 	CurrentRound uint8
-	Ballot       uint8
-	Information  uint8
+	Ballot       BallotType
+	Information  InformationType
 }
 
 func TestPollHandler(t *testing.T) {

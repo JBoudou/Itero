@@ -117,7 +117,7 @@ func checkPollAccess(ctx context.Context, request *server.Request) (poll PollInf
 	return
 }
 
-func (pollInfo PollInfo) BallotType() uint8 {
+func (pollInfo PollInfo) BallotType() BallotType {
 	// TODO really compute the value
 	if !pollInfo.Active {
 		return BallotTypeClosed
@@ -125,7 +125,7 @@ func (pollInfo PollInfo) BallotType() uint8 {
 	return BallotTypeUninominal
 }
 
-func (pollInfo PollInfo) InformationType() uint8 {
+func (pollInfo PollInfo) InformationType() InformationType {
 	// TODO really compute the value
 	if pollInfo.CurrentRound == 0 {
 		return InformationTypeNoneYet
@@ -135,13 +135,17 @@ func (pollInfo PollInfo) InformationType() uint8 {
 
 /** PollHandler **/
 
+type BallotType uint8
+
 const (
-	BallotTypeClosed = iota
+	BallotTypeClosed BallotType = iota
 	BallotTypeUninominal
 )
 
+type InformationType uint8
+
 const (
-	InformationTypeNoneYet = iota
+	InformationTypeNoneYet InformationType = iota
 	InformationTypeCounts
 )
 
@@ -160,8 +164,8 @@ type PollAnswer struct {
 	MaxRoundDuration uint64 // in milliseconds
 	MinNbRounds      uint8
 	MaxNbRounds      uint8
-	Ballot           uint8
-	Information      uint8
+	Ballot           BallotType
+	Information      InformationType
 }
 
 func PollHandler(ctx context.Context, response server.Response, request *server.Request) {

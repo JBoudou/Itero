@@ -41,7 +41,7 @@ type PollNotifAnswerEntry struct {
 	Segment   string
 	Title     string
 	Round     uint8
-	Action    uint8
+	Action    services.PollNotifAction
 }
 
 type pollNotifHandler struct {

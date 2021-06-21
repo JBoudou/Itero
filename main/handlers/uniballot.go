@@ -46,13 +46,15 @@ func allAlternatives(ctx context.Context, poll PollInfo, out *[]PollAlternative)
 	}
 }
 
+type uninominalBallotState uint8
+
 type uninominalBallot struct {
 	Value uint8
-	State uint8
+	State uninominalBallotState
 }
 
 const (
-	uninominalBallotStateUndefined = iota
+	uninominalBallotStateUndefined uninominalBallotState = iota
 	uninominalBallotStateBlank
 	uninominalBallotStateValid
 )

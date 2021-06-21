@@ -33,8 +33,10 @@ import (
 	"github.com/JBoudou/Itero/pkg/ioc"
 )
 
+type pollNotifUserKind uint8
+
 const (
-	pollNotifHandlerTestUserAdmin = iota
+	pollNotifHandlerTestUserAdmin pollNotifUserKind = iota
 	pollNotifHandlerTestUserPart
 	pollNotifHandlerTestUserAlien
 )
@@ -42,7 +44,7 @@ const (
 type pollNotifHandlerTest struct {
 	name      string
 	events    []func(uint32) events.Event
-	userKind  uint8
+	userKind  pollNotifUserKind
 	lastDelay time.Duration // Compute LastUpdate in query as Now - lastDelay. Default to one second.
 	expect    []PollNotifAnswerEntry
 

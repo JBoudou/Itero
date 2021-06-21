@@ -27,8 +27,10 @@ import (
 // PollNotifications
 //
 
+type PollNotifAction uint8
+
 const (
-	PollNotifStart = iota
+	PollNotifStart PollNotifAction = iota
 	PollNotifNext
 	PollNotifTerm
 	PollNotifDelete
@@ -37,7 +39,7 @@ const (
 type PollNotification struct {
 	Timestamp    time.Time
 	Id           uint32
-	Action       uint8
+	Action       PollNotifAction
 	Round        uint8
 	Title        string
 	Participants map[uint32]bool
