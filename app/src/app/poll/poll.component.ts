@@ -1,5 +1,5 @@
 // Itero - Online iterative vote application
-// Copyright (C) 2020 Joseph Boudou
+// Copyright (C) 2020 Joseph Boudou, Wan JIN
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -25,7 +25,6 @@ import {
   ViewChild,
   ViewContainerRef,
   ViewEncapsulation,
-  ElementRef
 } from '@angular/core';
 
 import { ActivatedRoute, ParamMap } from '@angular/router';
@@ -98,14 +97,11 @@ const enum SubComponentId {
   encapsulation: ViewEncapsulation.None,
 })
 export class PollComponent implements OnInit, OnDestroy {
-  // Read the information panel content as a variable.
-  @ViewChild('pollInfo', {read: ElementRef, static: false}) pollInfo: ElementRef;
 
   // Anchors to insert the dynamic sub-component into.
   @ViewChild(PollBallotDirective, { static: false }) ballot: PollBallotDirective;
   @ViewChild(PollInformationDirective, { static: false }) information: PollInformationDirective;
   @ViewChild(PollPreviousDirective, { static: false }) previousInformation: PollPreviousDirective;
-
 
   previousForm = this.formBuilder.group({
     round: [1]
@@ -143,7 +139,7 @@ export class PollComponent implements OnInit, OnDestroy {
     private session: SessionService,
     private formBuilder: FormBuilder,
     private title: AppTitleService,
-    private notif: PollNotifService
+    private notif: PollNotifService,
   ) { }
 
   ngOnInit(): void {
@@ -400,9 +396,5 @@ export class PollComponent implements OnInit, OnDestroy {
     this.justVoteBallot      = NONE_BALLOT;
     this.retrieveTypes();
   });
-
-  ngAfterViewInit(): void {
-    console.log(this.pollInfo.nativeElement);
-}
 
 }

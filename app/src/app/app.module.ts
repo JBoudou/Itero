@@ -41,7 +41,7 @@ import { DeadRouteComponent } from './dead-route/dead-route.component';
     AppComponent,
     DeadRouteComponent,
     HomeComponent,
-    NavtitleComponent
+    NavtitleComponent,
   ],
   imports: [
     BrowserAnimationsModule,
@@ -52,7 +52,7 @@ import { DeadRouteComponent } from './dead-route/dead-route.component';
     MatMenuModule,
     PollModule,
     SessionModule,
-    AppRoutingModule // Must be last
+    AppRoutingModule, // Must be last
   ],
   bootstrap: [AppComponent]
 })

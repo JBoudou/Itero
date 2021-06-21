@@ -1,12 +1,6 @@
-<div class="info-panel-icon">
+<div class="pollInfo" [ngClass]="{'opened': showInfo, 'closed': !showInfo}">
   <button mat-icon-button matSuffix type="button" (click)="showInfo = !showInfo">
     <mat-icon>{{ showInfo ? 'help' : 'help_outline' }}</mat-icon>
   </button>
-</div>
-
-<div class="close" *ngIf="!showInfo">
-</div>
-
-<div class="showInformation" *ngIf="showInfo">
-  {{pollInfo.innerText}}
+  <ng-content *ngIf = "showInfo"></ng-content>
 </div>
