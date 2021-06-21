@@ -183,6 +183,11 @@ func Run(t *testing.T, tests []Test, handlerFactory interface{}) {
 			mock := httptest.NewRecorder()
 			wrapper := server.NewHandlerWrapper("/a/test", handler)
 			ctx, sResp, sReq := wrapper.MakeParams(mock, req)
+
+			if withResponse, ok := tt.(interface{ ChangeResponse(*testing.T, server.Response) server.Response }); ok {
+				sResp = withResponse.ChangeResponse(t, sResp)
+			}
+
 			wrapper.Exec(ctx, sResp, sReq)
 
 			tt.Check(t, mock.Result(), sReq)
