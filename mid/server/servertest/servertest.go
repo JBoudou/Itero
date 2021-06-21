@@ -158,6 +158,11 @@ func (self *T) Check(t *testing.T, response *http.Response, request *server.Requ
 // handlerFactory using the ioc.Locator returned by Prepare. The handler is registered for the
 // pattern "/a/test".
 //
+// If a test implement the method
+//    ChangeResponse(*testing.T, server.Response) server.Response
+// then this method is called with the usual server.Response objet, and the returned object is used
+// by the handler. This method allows the test to spy the calls to server.Response methods.
+//
 // Each test is executed inside testing.T.Run, hence calling t.Fatal in the checker abort only the
 // current test.
 func Run(t *testing.T, tests []Test, handlerFactory interface{}) {

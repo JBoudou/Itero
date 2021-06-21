@@ -19,18 +19,26 @@ package handlers
 import (
 	"context"
 	"net/http"
-	"net/http/httptest"
+	"strings"
 	"testing"
 
+	"github.com/JBoudou/Itero/main/services"
 	"github.com/JBoudou/Itero/mid/db"
+	dbt "github.com/JBoudou/Itero/mid/db/dbtest"
 	"github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
+	"github.com/JBoudou/Itero/pkg/events"
 	"github.com/JBoudou/Itero/pkg/ioc"
 )
+
+// signupHandlerTest
 
 type signupHandlerTest struct {
 	srvt.T
 	WithEvent
+
+	uid    uint32
+	called int
 }
 
 func (self *signupHandlerTest) Prepare(t *testing.T) *ioc.Locator {
@@ -39,8 +47,105 @@ func (self *signupHandlerTest) Prepare(t *testing.T) *ioc.Locator {
 	return self.WithEvent.Prepare(t)
 }
 
-func TestSignupHandler_Error(t *testing.T) {
+func (self *signupHandlerTest) ChangeResponse(t *testing.T, in server.Response) server.Response {
+	return srvt.ResponseSpy{
+		T:       t,
+		Backend: in,
+		LoginFct: func(_ *testing.T, _ context.Context, user server.User, _ *server.Request, _ interface{}) {
+			self.uid = user.Id
+			self.called += 1
+		},
+	}
+}
+
+func (self *signupHandlerTest) Check(t *testing.T, response *http.Response, request *server.Request) {
+	expect := 1
+	if self.Checker != nil {
+		self.Checker.Check(t, response, request)
+		expect = 0
+	} else {
+		if response.StatusCode != http.StatusOK {
+			t.Errorf("Wrong status. Got %d. Expect %d.", response.StatusCode, http.StatusOK)
+		}
+	}
+
+	if self.called != expect {
+		t.Errorf("response.SendLoginAccepted called %d times. Expect %d.", self.called, expect)
+	}
+	got := self.CountRecorderEvents(func(evt events.Event) bool {
+		_, ok := evt.(services.CreateUserEvent)
+		return ok
+	})
+	if got != expect {
+		t.Errorf("%d CreateUserEvent sent. Expect %d.", got, expect)
+	}
+}
+
+func (self *signupHandlerTest) Close() {
+	if self.called > 0 {
+		const qDelete = `DELETE FROM Users WHERE Id = ?`
+		db.DB.Exec(qDelete, self.uid)
+	}
+	self.T.Close()
+}
+
+// SignupHandlerTest with user
+
+type signupHandlerTestWithUser struct {
+	signupHandlerTest
+	dbt.WithDB
+
+	RequestFct func(t *testing.T, basename string) *srvt.Request
+}
+
+func (self *signupHandlerTestWithUser) Prepare(t *testing.T) *ioc.Locator {
+	uid := self.DB.CreateUserWith(t.Name())
+
+	// We remove the spaces for error "Name has space" to not be raised
+	const qNoSpace = `UPDATE Users SET Name = TRIM(Name) WHERE Id = ?`
+	self.DB.QuietExec(qNoSpace, uid)
+	self.DB.Must(t)
+
+	return self.signupHandlerTest.Prepare(t)
+}
+
+func (self *signupHandlerTestWithUser) GetRequest(t *testing.T) *srvt.Request {
+	return self.RequestFct(t, t.Name())
+}
+
+func (self *signupHandlerTestWithUser) Close() {
+	self.signupHandlerTest.Close()
+	self.WithDB.Close()
+}
+
+type signupHandlerTestWithUser_ struct {
+	Name       string
+	RequestFct func(t *testing.T, basename string) *srvt.Request
+	Checker    srvt.Checker
+}
+
+func SignupHandlerTest(c signupHandlerTestWithUser_) *signupHandlerTestWithUser {
+	return &signupHandlerTestWithUser{
+		signupHandlerTest: signupHandlerTest{
+			T: srvt.T{
+				Name:    c.Name,
+				Checker: c.Checker,
+			},
+		},
+		RequestFct: c.RequestFct,
+	}
+}
+
+
+// Tests
+
+func TestSignupHandler(t *testing.T) {
 	precheck(t)
+	t.Parallel()
+
+	// We have no choice but to try to find an unlikely name
+	const name = "toto_my_test_user_with_a_long_name"
+	const body = `{"Name":"` + name + `","Email":"` + name + `@example.com","Passwd":"tititi"}`
 
 	tests := []srvt.Test{
 		&signupHandlerTest{T: srvt.T{
@@ -104,75 +209,37 @@ func TestSignupHandler_Error(t *testing.T) {
 			},
 			Checker: srvt.CheckError{http.StatusBadRequest, "Email invalid"},
 		}},
+		&signupHandlerTest{T: srvt.T{
+			Name: "Success",
+			Request: srvt.Request{
+				Method: "POST",
+				Body:   body,
+			},
+		}},
+		SignupHandlerTest(signupHandlerTestWithUser_{
+			Name: "Name already exists",
+			RequestFct: func(t *testing.T, basename string) *srvt.Request {
+				other := basename + "-req"
+				return &srvt.Request{
+					Method: "POST",
+					Body: `{"Name":"` + strings.TrimSpace(dbt.UserNameWith(basename)) +
+						`","Email":"` + dbt.UserEmailWith(other) + `","Passwd":"tititi"}`,
+				}
+			},
+			Checker: srvt.CheckError{http.StatusBadRequest, "Already exists"},
+		}),
+		SignupHandlerTest(signupHandlerTestWithUser_{
+			Name: "Email already exists",
+			RequestFct: func(t *testing.T, basename string) *srvt.Request {
+				other := basename + "-req"
+				return &srvt.Request{
+					Method: "POST",
+					Body: `{"Name":"` + strings.TrimSpace(dbt.UserNameWith(other)) +
+						`","Email":"` + dbt.UserEmailWith(basename) + `","Passwd":"tititi"}`,
+				}
+			},
+			Checker: srvt.CheckError{http.StatusBadRequest, "Already exists"},
+		}),
 	}
 	srvt.Run(t, tests, SignupHandler)
-}
-
-func TestSignupHandler_Success(t *testing.T) {
-	precheck(t)
-
-	const name = "toto_my_test_user_with_a_long_name"
-	var called bool
-	var userId uint32
-	response := srvt.MockResponse{
-		T: t,
-		LoginFct: func(t *testing.T, ctx context.Context, user server.User, request *server.Request, _ interface{}) {
-			if user.Name != name {
-				t.Errorf("Wrong name. Got %s. Expect %s.", user.Name, name)
-			}
-			userId = user.Id
-			called = true
-		},
-	}
-
-	const body = `{"Name":"` + name + `","Email":"` + name + `@example.com","Passwd":"tititi"}`
-	tRequest := srvt.Request{Method: "POST", Body: body}
-	hRequest, err := tRequest.Make()
-	if err != nil {
-		t.Fatal(err)
-	}
-	var handler server.Handler
-	ioc.Root.Inject(SignupHandler, &handler)
-	wrapper := server.NewHandlerWrapper("/a/test", handler)
-	ctx, _, sRequest := wrapper.MakeParams(httptest.NewRecorder(), hRequest)
-	wrapper.Exec(ctx, response, sRequest)
-
-	if !called {
-		t.Fatal("SendLoginAccepted not called")
-	}
-
-	tests := []srvt.Test{
-		&signupHandlerTest{T: srvt.T{
-			Name: "Name already exists",
-			Request: srvt.Request{
-				Method: "POST",
-				Body:   `{"Name":"` + name + `","Email":"another_long_dummy@example.com","Passwd":"tititi"}`,
-			},
-			Checker: srvt.CheckError{http.StatusBadRequest, "Already exists"},
-		}},
-		&signupHandlerTest{T: srvt.T{
-			Name: "Email already exists",
-			Request: srvt.Request{
-				Method: "POST",
-				Body:   `{"Name":"another_long_dummy","Email":"` + name + `@example.com","Passwd":"tititi"}`,
-			},
-			Checker: srvt.CheckError{http.StatusBadRequest, "Already exists"},
-		}},
-	}
-
-	// Additional call to Run such that cleanup code is called AFTER the parallel tests.
-	t.Run("Fail", func(t *testing.T) { srvt.Run(t, tests, SignupHandler) })
-
-	const qDelete = `DELETE FROM Users WHERE Id = ?`
-	result, err := db.DB.Exec(qDelete, userId)
-	if err != nil {
-		t.Fatal(err)
-	}
-	nbRows, err := result.RowsAffected()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if nbRows != 1 {
-		t.Fatalf("Not deleting the user (%d rows instead of 1).", nbRows)
-	}
 }

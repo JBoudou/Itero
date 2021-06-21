@@ -65,5 +65,5 @@ func (self ResponseSpy) SendUnloggedId(ctx context.Context, user server.User,
 	if self.UnloggedFct != nil {
 		return self.UnloggedFct(self.T, ctx, user, request)
 	}
-	self.Backend.SendUnloggedId(ctx, user, request)
+	return self.Backend.SendUnloggedId(ctx, user, request)
 }

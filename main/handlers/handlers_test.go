@@ -79,7 +79,7 @@ func (self *WithUser) Prepare(t *testing.T) *ioc.Locator {
 	} else {
 		self.User = server.User{
 			Id:     self.DB.CreateUserWith(t.Name()),
-			Name:   self.DB.UserNameWith(t.Name()),
+			Name:   dbt.UserNameWith(t.Name()),
 			Logged: true,
 		}
 		self.DB.Must(t)

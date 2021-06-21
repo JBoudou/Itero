@@ -485,7 +485,7 @@ func (self *pollTest) makeParam(t *testing.T) PollTestCheckerFactoryParam {
 	return PollTestCheckerFactoryParam{
 		PollTitle: "Title",
 		PollId:    self.pollId,
-		AdminName: self.DB.UserNameWith(t.Name()),
+		AdminName: dbt.UserNameWith(t.Name()),
 		UserId:    self.userId[1],
 		Round:     self.Round,
 	}

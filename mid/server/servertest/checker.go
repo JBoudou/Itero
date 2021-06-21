@@ -146,7 +146,7 @@ func (self CheckError) Check(t *testing.T, response *http.Response, request *ser
 	body := strings.TrimSpace(string(buff.Bytes()))
 
 	if body != self.Body {
-		t.Errorf("Wrong error. Got %s. Expect %s.", body, self.Body)
+		t.Errorf(`Wrong error. Got "%s". Expect "%s".`, body, self.Body)
 	}
 }
 

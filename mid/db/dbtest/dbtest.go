@@ -91,7 +91,7 @@ func (self *Env) CreateUserWith(salt string) (userId uint32) {
 	   INSERT INTO Users(Name, Email, Passwd)
 	   VALUES(?, ?, X'2e43477a2da06cb4aba764381086cbc9323945eb1bffb232f221e374af44f803')`
 	var result sql.Result
-	result, self.Error = db.DB.Exec(query, self.UserNameWith(salt), self.UserEmailWith(salt))
+	result, self.Error = db.DB.Exec(query, UserNameWith(salt), UserEmailWith(salt))
 	userId = self.extractId(result)
 
 	self.Defer(func() {
@@ -103,7 +103,7 @@ func (self *Env) CreateUserWith(salt string) (userId uint32) {
 }
 
 // UserNameWith returns the name of the user created by CreateUserWith with the same salt.
-func (self *Env) UserNameWith(salt string) string {
+func UserNameWith(salt string) string {
 	const maxNameLen = 62
 	if len(salt) > maxNameLen {
 		salt = salt[len(salt)-maxNameLen:]
@@ -112,7 +112,7 @@ func (self *Env) UserNameWith(salt string) string {
 }
 
 // UserNameWith returns the email address of the user created by CreateUserWith with the same salt.
-func (self *Env) UserEmailWith(salt string) string {
+func UserEmailWith(salt string) string {
 	const (
 		prefix     = "test"
 		suffix     = "@example.test"
