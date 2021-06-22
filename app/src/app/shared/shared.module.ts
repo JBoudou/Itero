@@ -32,10 +32,10 @@ import { MatIconModule }    from '@angular/material/icon';
     MatIconModule,
   ],
   exports: [
+    InfoPanelComponent,
     NearDatePipe,
     OrdinalPipe,
     ServerErrorComponent,
-    InfoPanelComponent,
   ]
 })
 export class SharedModule { }

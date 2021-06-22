@@ -1,5 +1,5 @@
 // Itero - Online iterative vote application
-// Copyright (C) 2020 Joseph Boudou, Wan JIN
+// Copyright (C) 2020 Wan JIN
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
