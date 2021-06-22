@@ -25,6 +25,13 @@ import (
 	"github.com/JBoudou/Itero/mid/db"
 )
 
+const (
+	UserPasswd = "XYZ"
+
+	PollSalt = 42
+	PollMaxNbRounds = 4
+)
+
 // Env provides methods to add temporary test data. It collects functions to remove these data.
 // These functions are called by Close, hence a call to Close must be defered for each Env object.
 //
@@ -81,7 +88,7 @@ func (self *Env) CreateUser() uint32 {
 }
 
 // CreateUser adds a user to the database. The user has name as returned by UserNameWith, email
-// address as returned by UserEmailWith, and password is 'XYZ'. It is deleted by Close.
+// address as returned by UserEmailWith, and password is UserPasswd. It is deleted by Close.
 func (self *Env) CreateUserWith(salt string) (userId uint32) {
 	if self.Error != nil {
 		return
@@ -124,7 +131,7 @@ func UserEmailWith(salt string) string {
 	return prefix + salt + suffix
 }
 
-// CreatePoll adds a poll to the database. The poll has Salt 42, MaxNbRounds 4, and 2 alternatives
+// CreatePoll adds a poll to the database. The poll has Salt PollSalt, MaxNbRounds PollMaxNbRounds, and 2 alternatives
 // 'No' and 'Yes' (in that order). The poll is deleted by Close.
 func (self *Env) CreatePoll(title string, admin uint32, electorate db.Electorate) uint32 {
 	return self.CreatePollWith(title, admin, electorate, []string{"No", "Yes"})
@@ -138,7 +145,7 @@ func (self *Env) CreatePollWith(title string, admin uint32, electorate db.Electo
 	const (
 		qCreatePoll = `
 			INSERT INTO Polls(Title, Admin, Salt, NbChoices, Electorate, MaxNbRounds)
-			VALUE (?, ?, 42, ?, ?, 4)`
+			VALUE (?, ?, ?, ?, ?, ?)`
 		qCreateAlternative = `
 			INSERT INTO Alternatives(Poll, Id, Name) VALUE (?, ?, ?)`
 		qRemovePoll = `
@@ -151,7 +158,8 @@ func (self *Env) CreatePollWith(title string, admin uint32, electorate db.Electo
 
 	var tx *sql.Tx
 	tx, self.Error = db.DB.Begin()
-	result := self.execTx(tx, qCreatePoll, title, admin, len(alternatives), electorate)
+	result := self.execTx(tx, qCreatePoll,
+		title, admin, PollSalt, len(alternatives), electorate, PollMaxNbRounds)
 	pollId = self.extractId(result)
 	altStmt := self.prepareTx(tx, qCreateAlternative)
 	for i, alt := range alternatives {

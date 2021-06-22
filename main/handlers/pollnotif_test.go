@@ -127,7 +127,7 @@ func (self *pollNotifHandlerTest) Check(t *testing.T, response *http.Response, r
 		}
 	}
 
-	segment, err := salted.Segment{Id: self.pollId, Salt: 42}.Encode()
+	segment, err := salted.Segment{Id: self.pollId, Salt: dbt.PollSalt}.Encode()
 	mustt(t, err)
 	for i := 0; i < glen; i++ {
 

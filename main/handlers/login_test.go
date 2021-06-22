@@ -84,7 +84,7 @@ func TestLoginHandler(t *testing.T) {
 		&loginTest{
 			Name: "empty user",
 			Body: func(env *dbt.Env, t *testing.T) string {
-				return `{"Passwd":"XYZ"}`
+				return `{"Passwd":"` + dbt.UserPasswd + `"}`
 			},
 			Checker: srvt.CheckStatus{http.StatusForbidden},
 		},
@@ -98,14 +98,14 @@ func TestLoginHandler(t *testing.T) {
 		&loginTest{
 			Name: "success user",
 			Body: func(env *dbt.Env, t *testing.T) string {
-				return `{"User":"` + dbt.UserNameWith(t.Name()) + `","Passwd":"XYZ"}`
+				return `{"User":"` + dbt.UserNameWith(t.Name()) + `","Passwd":"` + dbt.UserPasswd + `"}`
 			},
 			Checker: srvt.CheckStatus{http.StatusOK},
 		},
 		&loginTest{
 			Name: "success email",
 			Body: func(env *dbt.Env, t *testing.T) string {
-				return `{"User":"` + dbt.UserEmailWith(t.Name()) + `","Passwd":"XYZ"}`
+				return `{"User":"` + dbt.UserEmailWith(t.Name()) + `","Passwd":"` + dbt.UserPasswd + `"}`
 			},
 			Checker: srvt.CheckStatus{http.StatusOK},
 		},

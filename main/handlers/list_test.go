@@ -45,7 +45,7 @@ type listCheckerEntry struct {
 }
 
 func (self *listCheckerEntry) toListEntry(t *testing.T) *listAnswerEntry {
-	segment, err := salted.Segment{Id: *self.id, Salt: 42}.Encode()
+	segment, err := salted.Segment{Id: *self.id, Salt: dbt.PollSalt}.Encode()
 	mustt(t, err)
 	return &listAnswerEntry{
 		Title:        self.title,

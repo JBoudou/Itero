@@ -47,7 +47,7 @@ func precheck(t *testing.T) {
 }
 
 func makePollRequest(t *testing.T, pollId uint32, userId *uint32) *srvt.Request {
-	pollSegment := salted.Segment{Salt: 42, Id: pollId}
+	pollSegment := salted.Segment{Salt: dbt.PollSalt, Id: pollId}
 	encoded, err := pollSegment.Encode()
 	mustt(t, err)
 	target := "/a/test/" + encoded

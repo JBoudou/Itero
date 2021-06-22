@@ -58,7 +58,7 @@ func TestCountInfoHandler(t *testing.T) {
 	request := *makePollRequest(t, pollId, &users[0])
 
 	previousRoundRequest := func(t *testing.T, round uint8) srvt.Request {
-		pollSegment := salted.Segment{Salt: 42, Id: pollId}
+		pollSegment := salted.Segment{Salt: dbt.PollSalt, Id: pollId}
 		encoded, err := pollSegment.Encode()
 		mustt(t, err)
 		target := "/a/test/" + strconv.FormatUint(uint64(round), 10) + "/" + encoded

@@ -329,7 +329,7 @@ type PollTestCheckerFactoryParam struct {
 
 type pollTestCheckerFactory = func(param PollTestCheckerFactoryParam) srvt.Checker
 
-var pollHanlerTestUnloggedHash uint32 = 42
+var pollHandlerTestUnloggedHash uint32 = 42
 
 func (self *pollTest) GetName() string {
 	return self.Name
@@ -455,7 +455,7 @@ func (self *pollTest) GetRequest(t *testing.T) *srvt.Request {
 
 	case pollTestUserTypeUnlogged:
 		self.Request.UserId = &self.userId[1]
-		self.Request.Hash = &pollHanlerTestUnloggedHash
+		self.Request.Hash = &pollHandlerTestUnloggedHash
 	}
 
 	return &self.Request
