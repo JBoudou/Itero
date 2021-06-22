@@ -90,11 +90,14 @@
 
   </div>
 
-
-
-  <div class="info-panel">
+  
+  <div class="info-panel opened">
     <div class="info-panel-icon">
       <mat-icon id="help-button">help</mat-icon>
+    </div>
+      
+    <div class="info-panel-icon">
+      <mat-icon id="close-button">close</mat-icon>
     </div>
     <div class="info-panel-content">
       <div class="information" *ngIf="!!answer">
@@ -122,7 +125,7 @@
             whichever comes first.
           </p>
         </ng-template>
-
+  
         <ng-container [ngSwitch]="answer.State">
           <ng-container *ngSwitchCase="'Waiting'">
             <p i18n>
@@ -152,7 +155,7 @@
               The round will end {{ answer.RoundDeadline | nearDate:'inside' }} or when all participants have voted,
               whichever comes first.
             </p>
-
+  
             <p i18n>
               The poll will end after
               <ng-container [ngSwitch]="pollEndCase()">
@@ -175,9 +178,12 @@
             </p>
           </ng-container>
         </ng-container>
-
+  
       </div>
     </div>
   </div>
+ 
+</div>  
+
 
 </div>

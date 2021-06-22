@@ -1,6 +1,6 @@
 // Itero - Online iterative vote application
-// Copyright (C) 2020 Joseph Boudou
-//
+// Copyright (C) 2020 Joseph Boudou, Yifan Zeng
+// 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
 // published by the Free Software Foundation, either version 3 of the
@@ -24,7 +24,7 @@ import {
   Type,
   ViewChild,
   ViewContainerRef,
-  ViewEncapsulation
+  ViewEncapsulation,
 } from '@angular/core';
 
 import { ActivatedRoute, ParamMap } from '@angular/router';
@@ -135,7 +135,7 @@ export class PollComponent implements OnInit, OnDestroy {
 
   /** Currently loaded components, indexed by SubComponentId. **/
   private components: ComponentRef<PollSubComponent>[] = [];
-
+  
   constructor(
     private route: ActivatedRoute,
     private http: HttpClient,
