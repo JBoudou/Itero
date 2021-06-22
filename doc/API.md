@@ -81,3 +81,12 @@ Sessions are created by the method server.Response.SendLoginAccepted in file
 server.Request.addSession in file [mid/server/request.go](../mid/server/request.go). On the front end,
 sessions are handled by the classes [SessionService](../app/src/app/session/session.service.ts) and
 [SessionInterceptor](../app/src/app/session/session.interceptor.ts).
+
+## Unlogged users
+
+Poll with Electorate field value 'All' can be accessed by anyone, even unlogged user. To identify
+these voters and to allow them to change their vote on the next rounds, pseudo-users are created.
+These pseudo-users are identified by a hash of their IP address. Moreover, a cookie is sent with the
+user id and hash. This cookie is named `u` and is encrypted with the same private key as for session
+cookies. When a request with this cookie is handled, the hash in the cookie is used in place of the
+hash of the IP address.
