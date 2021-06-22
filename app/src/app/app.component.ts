@@ -29,4 +29,5 @@ export class AppComponent {
     // There must be a way to tell Angular's DI to instanciate AppTitleService at startup.
     private title: AppTitleService,
   ) { }
+
 }

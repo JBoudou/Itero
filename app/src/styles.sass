@@ -45,7 +45,7 @@ input
       background-color: tame($userbuttonbgcolor)
       color: tame($useboxfgcolor)
 
-@media screen and (max-width: $breakpoint-tablet)
+@media screen and (max-width: var(--breakpoint-tablet))
   .dialog-box .formactions
     padding: 0
     flex-direction: column
@@ -131,7 +131,7 @@ input
 .information-container
   display: grid
   grid-template-columns: 1fr minmax(min-content, 31%)
-  @media screen and (max-width: $breakpoint-laptop)
+  @media screen and (max-width: var(--breakpoint-laptop))
     grid-template-columns: 1fr minmax(min-content, 5%)
 
 .information
@@ -165,9 +165,9 @@ $itero-mat-theme: mat-light-theme(( color: ( primary: $itero-mat-primary, accent
   display: flex
   flex-flow: row nowrap
   width: 80%
-  @media screen and (min-width: $breakpoint-tablet) and (max-width: $breakpoint-laptop)
+  @media screen and (min-width: var(--breakpoint-tablet)) and (max-width: var(--breakpoint-laptop))
     width: 50%
-  @media screen and (min-width: $breakpoint-laptop)
+  @media screen and (min-width: var(--breakpoint-laptop))
     display: none
   .info-panel-icon #help-button
     margin: 0.7em $small-space
@@ -228,4 +228,3 @@ div.mat-menu-panel.nav-menu
   border: none
   height: 1px
   width: 78%
-  

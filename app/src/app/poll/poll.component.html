@@ -3,6 +3,10 @@
 </ng-template>
 
 <app-server-error [error]="error"></app-server-error>
+<div>
+  <p>breakpoint-tablet: {{breakpointtablet}}</p>
+  <p>breakpoint-laptop: {{breakpointlaptop}}</p>
+</div>
 <p class="error-msg" *ngIf="!!nextRoundError" i18n>
   Your vote has not been taken into account because the next round started while you were voting.
 </p>
@@ -45,7 +49,7 @@
       </p>
       <ng-template PollBallot></ng-template>
     </div>
-      
+
     <div class="poll-result" *ngIf="answer.CurrentRound >= 1">
       <ng-template #finalTmpl>
         <h3 i18n>Final result</h3>
@@ -86,7 +90,7 @@
 
   </div>
 
-  
+
 
   <div class="info-panel">
     <div class="info-panel-icon">
@@ -94,7 +98,7 @@
     </div>
     <div class="info-panel-content">
       <div class="information" *ngIf="!!answer">
-      
+
         <ng-template #firstRoundTmpl>
           <p i18n>
             This is the first round of the poll.
@@ -174,8 +178,6 @@
 
       </div>
     </div>
-  </div>  
-  
+  </div>
+
 </div>
-
-
