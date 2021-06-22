@@ -171,21 +171,21 @@ $itero-mat-theme: mat-light-theme(( color: ( primary: $itero-mat-primary, accent
   $width-tablet: 50vw
   min-width: $menu-close-width
   max-width: $width-smartphone
-  @media screen and (min-width: $breakpoint-tablet) and (max-width: $breakpoint-laptop)
+  @media screen and (min-width: var(--breakpoint-tablet)) and (max-width: var(--breakpoint-laptop))
     min-width: $menu-close-width
     max-width: $width-tablet
-  @media screen and (min-width: $breakpoint-laptop)
+  @media screen and (min-width: var(--breakpoint-laptop))
     display: none
   &.opened
     #help-button
       display: none
     width: $width-smartphone
-    @media screen and (min-width: $breakpoint-tablet) and (max-width: $breakpoint-laptop)
+    @media screen and (min-width: var(--breakpoint-tablet)) and (max-width: var(--breakpoint-laptop))
       width: $width-tablet
   &.closed
     #close-button
       display: none
-    width: $menu-close-width  
+    width: $menu-close-width
   .info-panel-content
     overflow: hidden
   .info-panel-content .information
@@ -193,7 +193,7 @@ $itero-mat-theme: mat-light-theme(( color: ( primary: $itero-mat-primary, accent
     padding: 0
     border: none
     width: calc(#{$width-smartphone} - #{$menu-close-width})
-    @media screen and (min-width: $breakpoint-tablet) and (max-width: $breakpoint-laptop)
+    @media screen and (min-width: var(--breakpoint-tablet)) and (max-width: var(--breakpoint-laptop))
       width: calc(#{$width-tablet} - #{$menu-close-width})
     p
       margin-top: 1em
