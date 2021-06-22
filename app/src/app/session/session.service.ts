@@ -56,6 +56,9 @@ export class SessionInfo {
     }
     return this.profile.name
   }
+  get verified(): boolean {
+    return this.logged && this.profile !== undefined && this.profile.verified
+  }
 }
 
 const minRefreshTime = 15 * 1000;
@@ -201,7 +204,7 @@ export class SessionService {
     let sessionId = localStorage.getItem("SessionId");
     if (!!sessionId) {
       this.register(sessionId, localStorage.getItem("User"));
-      this._scheduler.schedule(() => { this.refresh(); }, minRefreshTime);
+      this._scheduler.schedule(() => { this.refresh(); }, 1000);
     }
   }
 
