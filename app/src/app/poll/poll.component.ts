@@ -1,16 +1,16 @@
 // Itero - Online iterative vote application
-// Copyright (C) 2020 Joseph Boudou, Yifan Zeng
-// 
+// Copyright (C) 2020 Joseph Boudou, Yifan Zeng, Wan JIN
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
 // published by the Free Software Foundation, either version 3 of the
 // License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Affero General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
@@ -83,7 +83,7 @@ const enum SubComponentId {
 
 /**
  * This component displays the current state of the poll and allow the user to vote.
- * 
+ *
  * To manage the diversity of polls, this component delegates tasks to dynamic child components
  * called sub-component. There are currently two sub-components: one to display the ballot and
  * to vote, one to display the current informations about the poll.
@@ -151,7 +151,7 @@ export class PollComponent implements OnInit, OnDestroy {
       this.notif.event$.subscribe({
         next: (evt: PollNotifAnswerEntry) => this.handleEvent(evt),
       }),
-    );
+    )
   }
 
   ngOnDestroy(): void {
@@ -389,7 +389,7 @@ export class PollComponent implements OnInit, OnDestroy {
     }
     this.refresh();
   }
-  
+
   private readonly refresh = Suspendable(function(): void {
     this.previousRoundBallot = NONE_BALLOT;
     this.currentRoundBallot  = NONE_BALLOT;

@@ -19,7 +19,7 @@ import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { HttpClientModule } from '@angular/common/http';
 
-import { MatIconModule }    from '@angular/material/icon'; 
+import { MatIconModule }    from '@angular/material/icon';
 import { MatMenuModule }    from '@angular/material/menu';
 
 import { AppRoutingModule } from './app-routing.module';
@@ -52,7 +52,7 @@ import { DeadRouteComponent } from './dead-route/dead-route.component';
     MatMenuModule,
     PollModule,
     SessionModule,
-    AppRoutingModule // Must be last
+    AppRoutingModule, // Must be last
   ],
   bootstrap: [AppComponent]
 })
