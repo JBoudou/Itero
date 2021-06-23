@@ -34,7 +34,7 @@ export class AppMenuTrigger extends MatMenuTrigger {
   get menu() { return super.menu }
   set menu(menu: MatMenuPanel) { super.menu = menu }
 
-  @Input('appMenuTriggerFilter') _filter: (evt: Event) => boolean = (_: MouseEvent) => false
+  @Input('appMenuTriggerFilter') _filter: (evt: MouseEvent) => boolean = (_: MouseEvent) => false
 
   _handleClick(evt: MouseEvent): void {
     if (this._filter(evt)) {
