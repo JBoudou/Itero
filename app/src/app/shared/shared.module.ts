@@ -16,22 +16,31 @@
 
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { OrdinalPipe } from './ordinal.pipe';
-import { NearDatePipe } from './near-date.pipe';
-import { ServerErrorComponent } from './server-error/server-error.component';
-import { InfoPanelComponent } from './info-panel/info-panel.component';
 
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule }    from '@angular/material/icon';
 
+import { AppMenuTrigger } from './app-menu-trigger.directive';
+import { InfoPanelComponent } from './info-panel/info-panel.component';
+import { NearDatePipe } from './near-date.pipe';
+import { OrdinalPipe } from './ordinal.pipe';
+import { ServerErrorComponent } from './server-error/server-error.component';
+
 @NgModule({
-  declarations: [OrdinalPipe, NearDatePipe, ServerErrorComponent, InfoPanelComponent],
+  declarations: [
+    AppMenuTrigger,
+    InfoPanelComponent,
+    NearDatePipe,
+    OrdinalPipe,
+    ServerErrorComponent,
+    ],
   imports: [
     CommonModule,
     MatButtonModule,
     MatIconModule,
   ],
   exports: [
+    AppMenuTrigger,
     InfoPanelComponent,
     NearDatePipe,
     OrdinalPipe,
