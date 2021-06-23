@@ -23,6 +23,7 @@ import { map, take, tap } from 'rxjs/operators';
 
 import { SessionAnswer } from '../api';
 import { ScheduleOne } from '../shared/schedule-one';
+import { ServerError } from 'src/app/shared/server-error';
 
 export enum SessionState {
   Unlogged,
@@ -170,7 +171,23 @@ export class SessionService {
   }
 
   verifyEmail(): void {
+    let toSend = this.form.value;
+    delete toSend.pwdconfirm;
+    toSend.Email = toSend.Email.trim()
+    this.http.get('/a/reverify', toSend)
+      .pipe(take(1))
+      .subscribe({
+      next: () => {
+        this.router.navigateByUrl(this.session.getLoginRedirectionUrl());
+      },
+      error: (err: HttpErrorResponse) => {
+        if (err.status == 409) {
+          this.errors.emit(new ServerError(err, 'previous verification has already been requested recently'));
+        }
+      }
+    });
   }
+
   /** Close the current session (if any). */
   logoff() {
     localStorage.removeItem("SessionId");
