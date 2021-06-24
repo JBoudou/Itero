@@ -74,6 +74,16 @@ func TestCtxLogger(t *testing.T) {
 			expect:    [][]interface{}{{"Error 1 2"}},
 			expectLvl: [][]interface{}{{"Error", "1 2"}},
 		},
+		{
+			name: "Push",
+			action: func(ctx context.Context) {
+				CtxPush(ctx, 1, 2)
+				CtxLog(ctx, 3, 4)
+				CtxError(ctx, 5, 6)
+			},
+			expect:    [][]interface{}{{1, 2, 3, 4}, {1, 2, "Error", 5, 6}},
+			expectLvl: [][]interface{}{{1, 2, 3, 4}, {"Error", 1, 2, 5, 6}},
+		},
 	}
 
 	for _, tt := range tests {

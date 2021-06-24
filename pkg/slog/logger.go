@@ -96,11 +96,11 @@ type SimpleLogger struct {
 }
 
 func (self SimpleLogger) Log(args ...interface{}) {
-	Log(self.Printer, self.Stack, args...)
+	Log(self.Printer.Println, self.Stack, args...)
 }
 
 func (self SimpleLogger) Logf(format string, args ...interface{}) {
-	Logf(self.Printer, self.Stack, format, args...)
+	Logf(self.Printer.Println, self.Stack, format, args...)
 }
 
 func (self *SimpleLogger) Push(args ...interface{}) {
@@ -132,19 +132,19 @@ type SimpleLeveled struct {
 }
 
 func (self SimpleLeveled) Log(args ...interface{}) {
-	Log(self.Printer, self.LogStack, args...)
+	Log(self.Printer.Println, self.LogStack, args...)
 }
 
 func (self SimpleLeveled) Logf(format string, args ...interface{}) {
-	Logf(self.Printer, self.LogStack, format, args...)
+	Logf(self.Printer.Println, self.LogStack, format, args...)
 }
 
 func (self SimpleLeveled) Error(args ...interface{}) {
-	Log(self.Printer, self.ErrStack, args...)
+	Log(self.Printer.Println, self.ErrStack, args...)
 }
 
 func (self SimpleLeveled) Errorf(format string, args ...interface{}) {
-	Logf(self.Printer, self.ErrStack, format, args...)
+	Logf(self.Printer.Println, self.ErrStack, format, args...)
 }
 
 // Push appends values to the stacks of prefixes.
@@ -162,5 +162,48 @@ func (self *SimpleLeveled) With(args ...interface{}) StackedLeveled {
 		Printer: self.Printer,
 		LogStack: append(self.LogStack, args...),
 		ErrStack: append(self.ErrStack, args...),
+	}
+}
+
+//
+// WithStack
+//
+
+// WithStack constructs a StackedLeveled from an object with Log and Error method.
+// It can be used for instance to convert a Leveled value into a StackedLeveled one.
+//
+// There is no constructor and the zero value is not usable; you must provide a Target.
+type WithStack struct {
+	Target interface{
+		Log(args ...interface{})
+		Error(args ...interface{})
+	}
+	Stack []interface{}
+}
+
+func (self WithStack) Log(args ...interface{}) {
+	Log(self.Target.Log, self.Stack, args...)
+}
+
+func (self WithStack) Logf(format string, args ...interface{}) {
+	Logf(self.Target.Log, self.Stack, format, args...)
+}
+
+func (self WithStack) Error(args ...interface{}) {
+	Log(self.Target.Error, self.Stack, args...)
+}
+
+func (self WithStack) Errorf(format string, args ...interface{}) {
+	Logf(self.Target.Error, self.Stack, format, args...)
+}
+
+func (self *WithStack) Push(args ...interface{}) {
+	self.Stack = append(self.Stack, args...)
+}
+
+func (self WithStack) With(args ...interface{}) StackedLeveled {
+	return &WithStack{
+		Target: self.Target,
+		Stack: append(self.Stack, args...),
 	}
 }

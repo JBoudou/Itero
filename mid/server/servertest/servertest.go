@@ -26,6 +26,7 @@ import (
 
 	"github.com/JBoudou/Itero/mid/server"
 	"github.com/JBoudou/Itero/pkg/ioc"
+	"github.com/JBoudou/Itero/pkg/slog"
 )
 
 var (
@@ -54,7 +55,7 @@ type Request struct {
 // If RemoteAddr is not nil, the RemoteAddr field of the returned request is set to its value.
 // If UserId is not nil and Hash is nil then a valid session for that user is added to the request.
 // If UserId and Hash are both non-nil then an "unlogged cookie" is added to the request.
-func (self *Request) Make() (req *http.Request, err error) {
+func (self *Request) Make(t *testing.T) (req *http.Request, err error) {
 	var target string
 	if self.Target == nil {
 		target = "/a/test"
@@ -94,6 +95,9 @@ func (self *Request) Make() (req *http.Request, err error) {
 		session := server.NewUnloggedUser(clientStore, &server.SessionOptions, user)
 		clientStore.Save(req, nil, session)
 	}
+
+	ctx := slog.CtxSaveLogger(req.Context(), &slog.WithStack{Target: t})
+	req = req.WithContext(ctx)
 
 	return
 }
@@ -180,7 +184,7 @@ func Run(t *testing.T, tests []Test, handlerFactory interface{}) {
 				t.Fatalf("Injection error: %v", err)
 			}
 			
-			req, err := tt.GetRequest(t).Make()
+			req, err := tt.GetRequest(t).Make(t)
 			if err != nil {
 				t.Fatalf("Error creating request: %s", err)
 			}

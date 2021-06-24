@@ -26,6 +26,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/JBoudou/Itero/pkg/slog"
+
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 )
@@ -92,7 +94,7 @@ func TestNewRequest(t *testing.T) {
 				cookies: []cookie{{
 					name: SessionUnlogged,
 					values: map[interface{}]interface{}{
-						sessionKeyHash:   uint32(27),
+						sessionKeyHash: uint32(27),
 					},
 				}},
 			},
@@ -152,6 +154,8 @@ func TestNewRequest(t *testing.T) {
 				mustt(t, err)
 				request.AddCookie(sessions.NewCookie(cookie.name, encoded, &SessionOptions))
 			}
+			ctx := slog.CtxSaveLogger(request.Context(), &slog.WithStack{Target: t})
+			request = request.WithContext(ctx)
 
 			// Run test
 			got := newRequest(tt.args.basePattern, request)
@@ -251,6 +255,8 @@ func TestLoginThenNewRequest(t *testing.T) {
 				originalRequest.AddCookie(cookie)
 			}
 			tt.addSession(t, result, originalRequest)
+			ctx := slog.CtxSaveLogger(originalRequest.Context(), &slog.WithStack{Target: t})
+			originalRequest = originalRequest.WithContext(ctx)
 
 			got := newRequest(fullPath, originalRequest)
 			tt.checker(t, got, originalRequest)
@@ -379,7 +385,7 @@ func TestRequest_CheckPOST(t *testing.T) {
 				cfg.Address = tt.address
 			}
 
-			err := self.CheckPOST(context.Background())
+			err := self.CheckPOST(slog.CtxSaveLogger(context.Background(), &slog.WithStack{Target: t}))
 
 			if (err == nil) != (len(tt.errorMsg) == 0) {
 				if err == nil {

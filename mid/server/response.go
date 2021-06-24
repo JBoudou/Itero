@@ -23,8 +23,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/JBoudou/Itero/mid/server/logger"
 	"github.com/JBoudou/Itero/pkg/b64buff"
+	"github.com/JBoudou/Itero/pkg/slog"
 
 	gs "github.com/gorilla/sessions"
 )
@@ -63,14 +63,14 @@ func (self response) SendJSON(ctx context.Context, data interface{}) {
 	}
 	self.writer.Header().Add("content-type", "application/JSON")
 	if _, err = self.writer.Write(buff); err != nil {
-		logger.Printf(ctx, "Write error: %v", err)
+		slog.CtxLogf(ctx, "Write error: %v", err)
 	}
 }
 
 func (self response) SendError(ctx context.Context, err error) {
 	send := func(statusCode int, msg string) {
 		http.Error(self.writer, msg, statusCode)
-		logger.Printf(ctx, "%d %s: %s", statusCode, msg, err)
+		slog.CtxLogf(ctx, "%d %s: %s", statusCode, msg, err)
 	}
 
 	var pError HttpError
@@ -117,7 +117,7 @@ func (self response) SendLoginAccepted(ctx context.Context, user User, req *Requ
 	answer := SessionAnswer{SessionId: sessionId, Profile: profile}
 	session := NewSession(sessionStore, sessionStore.Options, &answer, user)
 	if err = session.Save(req.original, self.writer); err != nil {
-		logger.Printf(ctx, "Error saving session: %v", err)
+		slog.CtxLogf(ctx, "Error saving session: %v", err)
 	}
 
 	self.SendJSON(ctx, answer)
@@ -133,7 +133,7 @@ func (self response) SendUnloggedId(ctx context.Context, user User, req *Request
 
 	session := NewUnloggedUser(unloggedStore, unloggedStore.Options, user)
 	if err := session.Save(req.original, self.writer); err != nil {
-		logger.Printf(ctx, "Error saving session: %v", err)
+		slog.CtxLogf(ctx, "Error saving session: %v", err)
 	}
 	return nil
 }

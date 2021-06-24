@@ -29,7 +29,6 @@ import (
 
 	"github.com/JBoudou/Itero/mid/db"
 	"github.com/JBoudou/Itero/mid/server"
-	"github.com/JBoudou/Itero/mid/server/logger"
 )
 
 type ProfileInfo struct {
@@ -51,8 +50,7 @@ func LoginHandler(ctx context.Context, response server.Response, request *server
 		Passwd string
 	}
 	if err := request.UnmarshalJSONBody(&loginQuery); err != nil {
-		logger.Print(ctx, err)
-		err = server.NewHttpError(http.StatusBadRequest, "Wrong request", "Unable to read loginQuery")
+		err = server.WrapError(http.StatusBadRequest, "Wrong request", err)
 		response.SendError(ctx, err)
 		return
 	}

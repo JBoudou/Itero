@@ -29,6 +29,14 @@ func (self *printRecorder) Println(args ...interface{}) {
 	self.records = append(self.records, args)
 }
 
+func (self *printRecorder) Log(args ...interface{}) {
+	self.records = append(self.records, args)
+}
+
+func (self *printRecorder) Error(args ...interface{}) {
+	self.records = append(self.records, args)
+}
+
 func TestSimpleLogger(t *testing.T) {
 	t.Parallel()
 
@@ -103,37 +111,37 @@ func TestSimpleLogger(t *testing.T) {
 	}
 }
 
-func TestSimpleLeveled(t *testing.T) {
+func TestStackedLeveled(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name string
-		action func(log *SimpleLeveled)
+		action func(log StackedLeveled)
 		expect [][]interface{}
 	}{
 		{
 			name: "Log",
-			action: func(log *SimpleLeveled) { log.Log(1, "2", 3) },
+			action: func(log StackedLeveled) { log.Log(1, "2", 3) },
 			expect: [][]interface{}{{1, "2", 3}},
 		},
 		{
 			name: "Logf",
-			action: func(log *SimpleLeveled) { log.Logf("%d %s", 1, "2") },
+			action: func(log StackedLeveled) { log.Logf("%d %s", 1, "2") },
 			expect: [][]interface{}{{"1 2"}},
 		},
 		{
 			name: "Error",
-			action: func(log *SimpleLeveled) { log.Error(1, "2", 3) },
+			action: func(log StackedLeveled) { log.Error(1, "2", 3) },
 			expect: [][]interface{}{{1, "2", 3}},
 		},
 		{
 			name: "Errorf",
-			action: func(log *SimpleLeveled) { log.Errorf("%d %s", 1, "2") },
+			action: func(log StackedLeveled) { log.Errorf("%d %s", 1, "2") },
 			expect: [][]interface{}{{"1 2"}},
 		},
 		{
 			name: "Push Log",
-			action: func(log *SimpleLeveled) {
+			action: func(log StackedLeveled) {
 				log.Push(1, 2)
 				log.Log(3, 4)
 			},
@@ -141,7 +149,7 @@ func TestSimpleLeveled(t *testing.T) {
 		},
 		{
 			name: "Push Logf",
-			action: func(log *SimpleLeveled) {
+			action: func(log StackedLeveled) {
 				log.Push(1, 2)
 				log.Logf("%d %s", 3, "4")
 			},
@@ -149,7 +157,7 @@ func TestSimpleLeveled(t *testing.T) {
 		},
 		{
 			name: "Push Error",
-			action: func(log *SimpleLeveled) {
+			action: func(log StackedLeveled) {
 				log.Push(1, 2)
 				log.Error(3, 4)
 			},
@@ -157,7 +165,7 @@ func TestSimpleLeveled(t *testing.T) {
 		},
 		{
 			name: "Push Errorf",
-			action: func(log *SimpleLeveled) {
+			action: func(log StackedLeveled) {
 				log.Push(1, 2)
 				log.Errorf("%d %s", 3, "4")
 			},
@@ -165,7 +173,7 @@ func TestSimpleLeveled(t *testing.T) {
 		},
 		{
 			name: "With Log",
-			action: func(log *SimpleLeveled) {
+			action: func(log StackedLeveled) {
 				log.Push(1, 2)
 				w := log.With(3, 4)
 				w.Log(5, 6)
@@ -175,7 +183,7 @@ func TestSimpleLeveled(t *testing.T) {
 		},
 		{
 			name: "With Logf",
-			action: func(log *SimpleLeveled) {
+			action: func(log StackedLeveled) {
 				log.Push(1, 2)
 				w := log.With(3, 4)
 				w.Logf("%d-%d", 5, 6)
@@ -185,7 +193,7 @@ func TestSimpleLeveled(t *testing.T) {
 		},
 		{
 			name: "With Error",
-			action: func(log *SimpleLeveled) {
+			action: func(log StackedLeveled) {
 				log.Push(1, 2)
 				w := log.With(3, 4)
 				w.Error(5, 6)
@@ -195,7 +203,7 @@ func TestSimpleLeveled(t *testing.T) {
 		},
 		{
 			name: "With Errorf",
-			action: func(log *SimpleLeveled) {
+			action: func(log StackedLeveled) {
 				log.Push(1, 2)
 				w := log.With(3, 4)
 				w.Errorf("%d-%d", 5, 6)
@@ -211,6 +219,16 @@ func TestSimpleLeveled(t *testing.T) {
 			
 			recorder := printRecorder{}
 			tt.action(&SimpleLeveled{Printer: &recorder})
+
+			if !reflect.DeepEqual(recorder.records, tt.expect) {
+				t.Errorf("Got %v. Expect %v.", recorder.records, tt.expect)
+			}
+		})
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			
+			recorder := printRecorder{}
+			tt.action(&WithStack{Target: &recorder})
 
 			if !reflect.DeepEqual(recorder.records, tt.expect) {
 				t.Errorf("Got %v. Expect %v.", recorder.records, tt.expect)

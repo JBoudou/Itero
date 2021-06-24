@@ -21,8 +21,6 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/JBoudou/Itero/mid/server/logger"
-
 	"github.com/justinas/alice"
 )
 
@@ -79,7 +77,6 @@ func (self HandlerWrapper) Exec(ctx context.Context, response Response, request 
 			err := thrown.(error)
 			var httpError HttpError
 			if !errors.As(err, &httpError) {
-				logger.Print(ctx, err)
 				panic(err)
 			}
 			response.SendError(ctx, httpError)

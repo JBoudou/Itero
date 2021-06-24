@@ -20,12 +20,16 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	. "github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
+	"github.com/JBoudou/Itero/pkg/ioc"
+	"github.com/JBoudou/Itero/pkg/slog"
 )
 
 func precheck(t *testing.T) {
@@ -168,12 +172,16 @@ func TestHandleFunc(t *testing.T) {
 		},
 	}
 
+	ioc.Root.Bind(func() slog.Stacked{
+		return &slog.SimpleLogger{Printer: log.New(os.Stderr, "", log.LstdFlags)}
+	})
+
 	for _, tt := range handlerTests {
 		t.Run(tt.name, func(t *testing.T) {
 			HandleFunc(tt.args.pattern, tt.args.fct)
 
 			wr := httptest.NewRecorder()
-			req, err := tt.req.Make()
+			req, err := tt.req.Make(t)
 			if err != nil {
 				t.Fatal(err)
 			}

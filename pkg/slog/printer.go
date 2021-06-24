@@ -26,8 +26,8 @@ type Printer interface {
 }
 
 // Log is a low level function to implement Logger.
-// It uses the given Printer to display the stack and the arguments.
-func Log(printer Printer, stack []interface{}, args ...interface{}) {
+// It uses the given function to display the stack and the arguments.
+func Log(target func(...interface{}), stack []interface{}, args ...interface{}) {
 	toPrint := make([]interface{}, 0, len(stack) + len(args))
 	if len(stack) > 0 {
 		toPrint = append(toPrint, (stack)...)
@@ -35,11 +35,11 @@ func Log(printer Printer, stack []interface{}, args ...interface{}) {
 	if len(args) > 0 {
 		toPrint = append(toPrint, args...)
 	}
-	printer.Println(toPrint...)
+	target(toPrint...)
 }
 
 // Log is a low level function to implement Logger.
-// It uses the given Printer to display the stack and the formatted arguments.
-func Logf(printer Printer, stack []interface{}, format string, args ...interface{}) {
-	Log(printer, stack, fmt.Sprintf(format, args...))
+// It uses the given function to display the stack and the formatted arguments.
+func Logf(target func(...interface{}), stack []interface{}, format string, args ...interface{}) {
+	Log(target, stack, fmt.Sprintf(format, args...))
 }

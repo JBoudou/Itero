@@ -27,9 +27,11 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/JBoudou/Itero/pkg/config"
-	"github.com/JBoudou/Itero/mid/server/logger"
+	"github.com/JBoudou/Itero/pkg/ioc"
+	"github.com/JBoudou/Itero/pkg/slog"
 
 	gs "github.com/gorilla/sessions"
 	"github.com/justinas/alice"
@@ -127,17 +129,31 @@ type User struct {
 	Logged bool
 }
 
-var interceptorChain = alice.New(logger.Constructor, addRequestInfo)
+var interceptorChain = alice.New(addLogger)
 
-func addRequestInfo(next http.Handler) http.Handler {
-	return http.HandlerFunc(
-		func(wr http.ResponseWriter, req *http.Request) {
-			ctx := req.Context()
-			if err := logger.Push(ctx, req.RemoteAddr, req.URL.Path); err != nil {
-				panic(err)
-			}
-			next.ServeHTTP(wr, req)
-		})
+type loggerInterceptor struct {
+	next   http.Handler
+	logger slog.Stacked
+}
+
+func (self loggerInterceptor) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
+	start := time.Now()
+	logger := self.logger.With(req.RemoteAddr, req.URL.Path)
+	ctx := slog.CtxSaveLogger(req.Context(), logger)
+	self.next.ServeHTTP(wr, req.WithContext(ctx))
+	logger.Log("in", time.Now().Sub(start).String())
+}
+
+func addLogger(next http.Handler) http.Handler {
+	var logger slog.Stacked
+	if err := ioc.Root.Inject(&logger); err != nil {
+		panic(err)
+	}
+	logger.Push("H")
+	return loggerInterceptor{
+		next:   next,
+		logger: logger,
+	}
 }
 
 type oneFile struct {

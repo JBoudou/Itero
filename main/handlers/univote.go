@@ -24,7 +24,6 @@ import (
 	"github.com/JBoudou/Itero/mid/db"
 	"github.com/JBoudou/Itero/pkg/events"
 	"github.com/JBoudou/Itero/mid/server"
-	"github.com/JBoudou/Itero/mid/server/logger"
 	"github.com/JBoudou/Itero/main/services"
 )
 
@@ -74,9 +73,7 @@ func (self uninominalVoteHandler) Handle(ctx context.Context, response server.Re
 	// Get query
 	var voteQuery UninominalVoteQuery
 	if err := request.UnmarshalJSONBody(&voteQuery); err != nil {
-		logger.Print(ctx, err)
-		err = server.NewHttpError(http.StatusBadRequest, "Wrong request",
-			"Unable to read UninominalVoteQuery")
+		err = server.WrapError(http.StatusBadRequest, "Wrong request", err)
 		response.SendError(ctx, err)
 		return
 	}

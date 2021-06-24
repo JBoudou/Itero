@@ -41,17 +41,32 @@ func CtxLoadLogger(ctx context.Context) Logger {
 	return ret
 }
 
+// CtxLoadStacked retrieves a Stacked stored as the logger in the context.
+// The logger must have been stored in the context by CtxSaveLogger.
+// If the stored logger implements StackedLeveled it is converted to Stacked.
+// If the stored logger does not implement neither Stacked nor StackedLeveled, nil is returned.
+func CtxLoadStacked(ctx context.Context) Stacked {
+	raw := ctx.Value(ctxKeyLogger)
+	if ret, ok := raw.(Stacked); ok {
+		return ret
+	}
+	if lvl, ok := raw.(StackedLeveled); ok {
+		return AsStacked{lvl}
+	}
+	return nil
+}
+
 // CtxLog calls Log on the Logger stored in the context.
 func CtxLog(ctx context.Context, args ...interface{}) {
 	CtxLoadLogger(ctx).Log(args...)
 }
 
-// CtxLog calls Log on the Logger stored in the context.
+// CtxLogf calls Logf on the Logger stored in the context.
 func CtxLogf(ctx context.Context, format string, args ...interface{}) {
 	CtxLoadLogger(ctx).Logf(format, args...)
 }
 
-// CtxLog calls Error on the logger stored in the context.
+// CtxError calls Error on the logger stored in the context.
 // If the stored logger does not have interface Leveled, Log is called instead
 // with "Error" as first argument.
 func CtxError(ctx context.Context, args ...interface{}) {
@@ -63,7 +78,7 @@ func CtxError(ctx context.Context, args ...interface{}) {
 	}
 }
 
-// CtxLog calls Errorf on the logger stored in the context.
+// CtxErrorf calls Errorf on the logger stored in the context.
 // If the stored logger does not have interface Leveled, Logf is called instead
 // with the format prefixed with "Error ".
 func CtxErrorf(ctx context.Context, format string, args ...interface{}) {
@@ -73,4 +88,10 @@ func CtxErrorf(ctx context.Context, format string, args ...interface{}) {
 	} else {
 		log.Logf("Error "+format, args...)
 	}
+}
+
+// CtxPush calls Push on the logger stored in the context.
+// If the stored logger does not have interface Stacked, the method panics.
+func CtxPush(ctx context.Context, args ...interface{}) {
+	CtxLoadStacked(ctx).(Stacked).Push(args...)
 }
