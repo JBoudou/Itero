@@ -17,11 +17,14 @@
 package service
 
 import (
+	"log"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/JBoudou/Itero/pkg/alarm"
 	"github.com/JBoudou/Itero/pkg/events"
+	"github.com/JBoudou/Itero/pkg/slog"
 )
 
 type serviceToTest interface {
@@ -155,8 +158,10 @@ func (self *testRunServiceService) Interval() time.Duration {
 	return time.Duration(testRunServiceNbTasks+2) * testRunServiceTaskDelay
 }
 
-func (self *testRunServiceService) Logger() LevelLogger {
-	return EasyLogger{}
+func (self *testRunServiceService) Logger() slog.Leveled {
+	return &slog.SimpleLeveled{
+		Printer: log.New(os.Stderr, "", log.LstdFlags),
+	}
 }
 
 func (self *testRunServiceService) closeChannel() <-chan struct{} {

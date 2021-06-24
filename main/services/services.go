@@ -18,13 +18,35 @@
 package services
 
 import (
-	"github.com/JBoudou/Itero/pkg/ioc"
+	"log"
+	"os"
+
+	"github.com/JBoudou/Itero/mid/service"
 	"github.com/JBoudou/Itero/pkg/alarm"
 	"github.com/JBoudou/Itero/pkg/events"
-	"github.com/JBoudou/Itero/mid/service"
+	"github.com/JBoudou/Itero/pkg/ioc"
+	"github.com/JBoudou/Itero/pkg/slog"
 )
 
 func init() {
 	ioc.Root.Bind(func() service.AlarmInjector { return alarm.New })
 	ioc.Root.Bind(func() events.Manager { return events.NewAsyncManager(events.DefaultManagerChannelSize) })
+
+	// log
+	ioc.Root.Bind(func() slog.StackedLeveled {
+		return &slog.SimpleLeveled{
+			Printer:  log.New(os.Stderr, "", log.LstdFlags|log.Lmicroseconds),
+			LogStack: []interface{}{"I"},
+			ErrStack: []interface{}{"W"},
+		}
+	})
+	ioc.Root.Bind(func(l slog.StackedLeveled) slog.Leveled { return l })
+	ioc.Root.Bind(func(l slog.StackedLeveled) slog.Stacked { return slog.AsStacked{l} })
+	ioc.Root.Bind(func(l slog.StackedLeveled) slog.Logger { return l })
+}
+
+func serviceLogger(prefix string) func(l slog.StackedLeveled) slog.Leveled {
+	return func(l slog.StackedLeveled) slog.Leveled {
+		return l.With(prefix)
+	}
 }

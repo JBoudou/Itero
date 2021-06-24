@@ -24,6 +24,7 @@ import (
 
 	"github.com/JBoudou/Itero/pkg/alarm"
 	"github.com/JBoudou/Itero/pkg/events"
+	"github.com/JBoudou/Itero/pkg/slog"
 )
 
 // AlarmInjector is the injector of an alarm into services.
@@ -55,7 +56,7 @@ type Service interface {
 	// Interval returns the maximal duration between two full check of the object to proceed.
 	Interval() time.Duration
 
-	Logger() LevelLogger
+	Logger() slog.Leveled
 }
 
 // EventReceiver is the interface implemented by services willing to react to some events.

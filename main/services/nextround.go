@@ -22,19 +22,20 @@ import (
 	"github.com/JBoudou/Itero/mid/db"
 	"github.com/JBoudou/Itero/mid/service"
 	"github.com/JBoudou/Itero/pkg/events"
+	"github.com/JBoudou/Itero/pkg/slog"
 )
 
 // The time to wait when there seems to be no forthcoming deadline.
 const nextRoundDefaultWaitDuration = time.Hour
 
 type nextRoundService struct {
-	logger     service.LevelLogger
+	logger     slog.Leveled
 	evtManager events.Manager
 }
 
-func NextRoundService(evtManager events.Manager) *nextRoundService {
+func NextRoundService(evtManager events.Manager, log slog.StackedLeveled) *nextRoundService {
 	return &nextRoundService{
-		logger:     service.NewPrefixLogger("NextRound"),
+		logger:     log.With("NextRound"),
 		evtManager: evtManager,
 	}
 }
@@ -148,7 +149,7 @@ func (self *nextRoundService) Interval() time.Duration {
 	return nextRoundDefaultWaitDuration
 }
 
-func (self *nextRoundService) Logger() service.LevelLogger {
+func (self *nextRoundService) Logger() slog.Leveled {
 	return self.logger
 }
 

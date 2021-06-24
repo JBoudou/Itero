@@ -29,6 +29,7 @@ import (
 	"github.com/JBoudou/Itero/pkg/emailsender"
 	"github.com/JBoudou/Itero/pkg/events"
 	"github.com/JBoudou/Itero/pkg/ioc"
+	"github.com/JBoudou/Itero/pkg/slog"
 )
 
 // TmplBaseDir is the directory to find email templates into.
@@ -36,10 +37,10 @@ const TmplBaseDir = "email"
 
 // EmailService constructs the email service.
 // This service listen to events and send emails to users.
-func EmailService(sender emailsender.Sender) emailService {
+func EmailService(sender emailsender.Sender, log slog.StackedLeveled) emailService {
 	return emailService{
 		sender:  sender,
-		log:     service.NewPrefixLogger("Email"),
+		log:     log.With("Email"),
 	}
 }
 
@@ -74,7 +75,7 @@ func init() {
 
 type emailService struct {
 	sender  emailsender.Sender
-	log     service.LevelLogger
+	log     slog.Leveled
 }
 
 func (self emailService) ProcessOne(id uint32) error {
@@ -104,7 +105,7 @@ func (self emailService) Interval() time.Duration {
 	return 24 * time.Hour
 }
 
-func (self emailService) Logger() service.LevelLogger {
+func (self emailService) Logger() slog.Leveled {
 	return self.log
 }
 
