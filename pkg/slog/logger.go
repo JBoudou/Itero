@@ -20,17 +20,17 @@
 // Example
 //
 // The following code
-//     log := SimpleLeveled{
+//     logger := slog.SimpleLeveled{
 //         Printer: log.New(os.Stderr, "", 0),
 //         ErrStack: []interface{}{"Error"},
 //     }
-//     log.Push("Test")
-//     log.Log("Let's try something")
-//     log.Error("It has failed")
+//     logger.Push("Test")
+//     logger.Log("Let's try something")
+//     logger.Error("It has failed")
 // must print
 //     Test Let's try something
 //     Error Test It has failed
-package log
+package slog
 
 // Logger is the base type for loggers.
 type Logger interface {
