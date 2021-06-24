@@ -44,9 +44,3 @@ func init() {
 	ioc.Root.Bind(func(l slog.StackedLeveled) slog.Stacked { return slog.AsStacked{l} })
 	ioc.Root.Bind(func(l slog.StackedLeveled) slog.Logger { return l })
 }
-
-func serviceLogger(prefix string) func(l slog.StackedLeveled) slog.Leveled {
-	return func(l slog.StackedLeveled) slog.Leveled {
-		return l.With(prefix)
-	}
-}
