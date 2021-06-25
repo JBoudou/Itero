@@ -252,3 +252,14 @@ export class SessionService {
       .subscribe();
   }
 }
+
+@Component({
+  selector: 'verify-email-dialog',
+  templateUrl: 'email-verification.dialog.html',
+  host: {class: 'dialog-box'},
+})
+export class EmailVerificationDialog {
+  constructor(
+    @Inject(MAT_DIALOG_DATA) public email: EmailVerification,
+  ) { }
+}
