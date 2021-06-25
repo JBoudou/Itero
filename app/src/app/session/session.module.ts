@@ -32,12 +32,14 @@ import { SessionInterceptor } from './session.interceptor';
 import { LoginComponent } from './login/login.component';
 import { SignupComponent } from './signup/signup.component';
 import { ConfirmationComponent } from './confirmation/confirmation.component';
+import { EmailVerificationDialog } from './session.service';
 
 @NgModule({
   declarations: [
     LoginComponent,
     SignupComponent,
     ConfirmationComponent,
+    EmailVerificationDialog,
   ],
   imports: [
     CommonModule,
