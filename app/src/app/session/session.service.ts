@@ -171,18 +171,16 @@ export class SessionService {
   }
 
   verifyEmail(): void {
-    let toSend = this.form.value;
-    delete toSend.pwdconfirm;
-    toSend.Email = toSend.Email.trim()
-    this.http.get('/a/reverify', toSend)
+    this.http.get('/a/reverify')
       .pipe(take(1))
       .subscribe({
       next: () => {
-        this.router.navigateByUrl(this.session.getLoginRedirectionUrl());
+        console.log('good');
       },
       error: (err: HttpErrorResponse) => {
         if (err.status == 409) {
-          this.errors.emit(new ServerError(err, 'previous verification has already been requested recently'));
+          console.log('bad')
+          //this.errors.emit(new ServerError(err, 'previous verification has already been requested recently'));
         }
       }
     });
