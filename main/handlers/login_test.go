@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	dbt "github.com/JBoudou/Itero/mid/db/dbtest"
+	"github.com/JBoudou/Itero/mid/root"
 	"github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
 	"github.com/JBoudou/Itero/pkg/ioc"
@@ -44,7 +45,7 @@ func (self *loginTest) Prepare(t *testing.T) *ioc.Locator {
 	if checker, ok := self.Checker.(interface{ Before(*testing.T) }); ok {
 		checker.Before(t)
 	}
-	return ioc.Root
+	return root.IoC
 }
 
 func (self *loginTest) GetRequest(t *testing.T) *srvt.Request {

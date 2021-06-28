@@ -23,12 +23,12 @@ import (
 	"time"
 
 	"github.com/JBoudou/Itero/mid/db"
+	"github.com/JBoudou/Itero/mid/root"
 	"github.com/JBoudou/Itero/mid/server"
 	"github.com/JBoudou/Itero/mid/service"
 	"github.com/JBoudou/Itero/pkg/config"
 	"github.com/JBoudou/Itero/pkg/emailsender"
 	"github.com/JBoudou/Itero/pkg/events"
-	"github.com/JBoudou/Itero/pkg/ioc"
 	"github.com/JBoudou/Itero/pkg/slog"
 )
 
@@ -39,8 +39,8 @@ const TmplBaseDir = "email"
 // This service listen to events and send emails to users.
 func EmailService(sender emailsender.Sender, log slog.StackedLeveled) emailService {
 	return emailService{
-		sender:  sender,
-		log:     log.With("Email"),
+		sender: sender,
+		log:    log.With("Email"),
 	}
 }
 
@@ -54,7 +54,7 @@ var emailConfig struct {
 
 func init() {
 	// IoC
-	ioc.Root.Bind(func() (emailsender.Sender, error) {
+	root.IoC.Bind(func() (emailsender.Sender, error) {
 		options := emailsender.BatchSenderOptions{
 			MinBatchLen: 2,
 			MaxDelay:    "1m",
@@ -74,8 +74,8 @@ func init() {
 }
 
 type emailService struct {
-	sender  emailsender.Sender
-	log     slog.Leveled
+	sender emailsender.Sender
+	log    slog.Leveled
 }
 
 func (self emailService) ProcessOne(id uint32) error {

@@ -58,10 +58,6 @@ var (
 	NotFound    = errors.New("No binding")                // No factory for the requested type.
 )
 
-// Root is the base Locator.
-// It may be used by packages to register default factories for the services they provide.
-var Root *Locator = New()
-
 type binding struct {
 	factory  reflect.Value
 	instance reflect.Value
@@ -76,8 +72,6 @@ type Locator struct {
 // New constructs a brand new Locator.
 // The new Locator has bindings only of type *Locator, providing itself for singleton values, and
 // calling Sub() for fresh values.
-//
-// Since packages may have registered factories on Root, you should probably use Root.Sub() instead.
 func New() *Locator {
 	return (&Locator{bindings: map[reflect.Type]*binding{}}).addMyself()
 }
@@ -128,7 +122,7 @@ func (self *Locator) Bind(factory interface{}) error {
 // will store value 2 in the variable v.
 //
 //     var v int
-//     Root.Inject(func() int {return 1}, func() int {return 2}, func() interface{} {return 3}, &v)
+//     loc.Inject(func() int {return 1}, func() int {return 2}, func() interface{} {return 3}, &v)
 func (self *Locator) Inject(chain ...interface{}) error {
 	// Check all types
 	for _, receptor := range chain {

@@ -20,6 +20,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/JBoudou/Itero/mid/root"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
 	"github.com/JBoudou/Itero/pkg/ioc"
 )
@@ -34,7 +35,7 @@ func CreateUserTest(c createUserTest_) *createUserTest {
 	return &createUserTest{
 		WithName:    srvt.WithName{c.Name},
 		WithChecker: srvt.WithChecker{c.Checker},
-		WithUser: WithUser{RequestFct: c.Request},
+		WithUser:    WithUser{RequestFct: c.Request},
 	}
 }
 
@@ -47,23 +48,23 @@ type createUserTest struct {
 func (self *createUserTest) Prepare(t *testing.T) *ioc.Locator {
 	self.WithUser.Prepare(t)
 	self.WithChecker.Prepare(t)
-	return ioc.Root
+	return root.IoC
 }
 
 func TestRefreshHandler(t *testing.T) {
 	tests := []srvt.Test{
 		CreateUserTest(createUserTest_{
-			Name: "No user",
+			Name:    "No user",
 			Request: RFPostNoSession(""),
 			Checker: srvt.CheckStatus{http.StatusForbidden},
 		}),
 		CreateUserTest(createUserTest_{
-			Name: "GET",
+			Name:    "GET",
 			Request: RFGetSession,
 			Checker: srvt.CheckStatus{http.StatusForbidden},
 		}),
 		CreateUserTest(createUserTest_{
-			Name: "Success",
+			Name:    "Success",
 			Request: RFPostSession(""),
 			Checker: srvt.CheckStatus{http.StatusOK},
 		}),

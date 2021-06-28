@@ -25,10 +25,10 @@ import (
 
 	"github.com/JBoudou/Itero/mid/db"
 	dbt "github.com/JBoudou/Itero/mid/db/dbtest"
+	"github.com/JBoudou/Itero/mid/root"
 	"github.com/JBoudou/Itero/mid/service"
 	"github.com/JBoudou/Itero/pkg/events"
 	"github.com/JBoudou/Itero/pkg/events/eventstest"
-	"github.com/JBoudou/Itero/pkg/ioc"
 )
 
 type nextRoundTestInstance struct {
@@ -231,7 +231,7 @@ func metaTestNextRound(t *testing.T, checker func(*testing.T, *nextRoundTestInst
 func nextRound_processOne_checker(t *testing.T, tt *nextRoundTestInstance, pollId uint32) {
 	const qGetRound = `SELECT CurrentRound FROM Polls WHERE Id = ?`
 
-	locator := ioc.Root.Sub()
+	locator := root.IoC.Sub()
 	incremented := false
 	locator.Bind(func() events.Manager {
 		return &eventstest.ManagerMock{
@@ -303,7 +303,7 @@ func idDateIteratorHasId(t *testing.T, iterator service.Iterator, id uint32) boo
 
 func nextRound_checkAll_checker(t *testing.T, tt *nextRoundTestInstance, pollId uint32) {
 	var svc service.Service
-	mustt(t, ioc.Root.Inject(NextRoundService, &svc))
+	mustt(t, root.IoC.Inject(NextRoundService, &svc))
 
 	iterator := svc.CheckAll()
 	defer iterator.Close()
@@ -326,7 +326,7 @@ func TestNextRoundService_CheckAll(t *testing.T) {
 
 func nextRound_checkOne_checker(t *testing.T, tt *nextRoundTestInstance, pollId uint32) {
 	var svc service.Service
-	mustt(t, ioc.Root.Inject(NextRoundService, &svc))
+	mustt(t, root.IoC.Inject(NextRoundService, &svc))
 
 	got := svc.CheckOne(pollId)
 	diff := time.Until(got)

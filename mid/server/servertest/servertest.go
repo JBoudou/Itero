@@ -24,6 +24,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/JBoudou/Itero/mid/root"
 	"github.com/JBoudou/Itero/mid/server"
 	"github.com/JBoudou/Itero/pkg/ioc"
 	"github.com/JBoudou/Itero/pkg/slog"
@@ -146,7 +147,7 @@ func (self *T) Prepare(t *testing.T) *ioc.Locator {
 	if checker, ok := self.Checker.(interface{ Before(t *testing.T) }); ok {
 		checker.Before(t)
 	}
-	return ioc.Root
+	return root.IoC
 }
 
 func (self *T) Close() {
@@ -183,7 +184,7 @@ func Run(t *testing.T, tests []Test, handlerFactory interface{}) {
 			if err != nil {
 				t.Fatalf("Injection error: %v", err)
 			}
-			
+
 			req, err := tt.GetRequest(t).Make(t)
 			if err != nil {
 				t.Fatalf("Error creating request: %s", err)
@@ -193,7 +194,9 @@ func Run(t *testing.T, tests []Test, handlerFactory interface{}) {
 			wrapper := server.NewHandlerWrapper("/a/test", handler)
 			ctx, sResp, sReq := wrapper.MakeParams(mock, req)
 
-			if withResponse, ok := tt.(interface{ ChangeResponse(*testing.T, server.Response) server.Response }); ok {
+			if withResponse, ok := tt.(interface {
+				ChangeResponse(*testing.T, server.Response) server.Response
+			}); ok {
 				sResp = withResponse.ChangeResponse(t, sResp)
 			}
 

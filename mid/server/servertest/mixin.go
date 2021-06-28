@@ -20,6 +20,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/JBoudou/Itero/mid/root"
 	"github.com/JBoudou/Itero/mid/server"
 	"github.com/JBoudou/Itero/pkg/ioc"
 )
@@ -43,12 +44,12 @@ type WithChecker struct {
 }
 
 // Prepare call the Before method of the Checker, it it exists.
-// It always returns ioc.Root.
+// It always returns root.IoC.
 func (self WithChecker) Prepare(t *testing.T) *ioc.Locator {
 	if checker, ok := self.Checker.(interface{ Before(t *testing.T) }); ok {
 		checker.Before(t)
 	}
-	return ioc.Root
+	return root.IoC
 }
 
 func (self WithChecker) Check(t *testing.T, response *http.Response, request *server.Request) {

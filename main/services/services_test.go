@@ -20,9 +20,9 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/JBoudou/Itero/mid/root"
 	"github.com/JBoudou/Itero/mid/service"
 	"github.com/JBoudou/Itero/pkg/events"
-	"github.com/JBoudou/Itero/pkg/ioc"
 )
 
 func mustt(t *testing.T, err error) {
@@ -38,7 +38,7 @@ func mustt(t *testing.T, err error) {
 
 type mockRunnerController struct {
 	schedule []uint32
-	stop bool
+	stop     bool
 }
 
 func (self *mockRunnerController) Schedule(id uint32) {
@@ -63,7 +63,7 @@ func checkEventSchedule(t *testing.T, tests []checkEventScheduleTest, factory in
 			t.Parallel()
 
 			var svc service.EventReceiver
-			mustt(t, ioc.Root.Inject(factory, &svc))
+			mustt(t, root.IoC.Inject(factory, &svc))
 
 			controler := &mockRunnerController{}
 			if svc.FilterEvent(tt.event) {

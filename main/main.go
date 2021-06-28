@@ -21,14 +21,14 @@ import (
 
 	. "github.com/JBoudou/Itero/main/handlers"
 	. "github.com/JBoudou/Itero/main/services"
+	"github.com/JBoudou/Itero/mid/root"
 	"github.com/JBoudou/Itero/mid/server"
 	"github.com/JBoudou/Itero/mid/service"
-	"github.com/JBoudou/Itero/pkg/ioc"
 	"github.com/JBoudou/Itero/pkg/slog"
 )
 
 func StartService(serviceFactory interface{}) {
-	err := ioc.Root.Inject(serviceFactory, service.Run)
+	err := root.IoC.Inject(serviceFactory, service.Run)
 	if err != nil {
 		panic(err)
 	}
@@ -42,7 +42,7 @@ func StartHandler(url string, fct interface{}, interceptors ...server.Intercepto
 
 	} else {
 		var handler server.Handler
-		err := ioc.Root.Inject(fct, &handler)
+		err := root.IoC.Inject(fct, &handler)
 		if err != nil {
 			panic(err)
 		}
@@ -74,7 +74,7 @@ func main() {
 	StartHandler("/a/reverify", ReverifyHandler)
 
 	var logger slog.Leveled
-	ioc.Root.Inject(&logger)
+	root.IoC.Inject(&logger)
 	logger.Log("Server starting")
 	if err := server.Start(); err != nil {
 		logger.Error(err)

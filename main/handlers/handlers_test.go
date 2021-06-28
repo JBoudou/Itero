@@ -22,6 +22,7 @@ import (
 
 	"github.com/JBoudou/Itero/mid/db"
 	dbt "github.com/JBoudou/Itero/mid/db/dbtest"
+	"github.com/JBoudou/Itero/mid/root"
 	"github.com/JBoudou/Itero/mid/salted"
 	"github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
@@ -91,7 +92,7 @@ func (self *WithUser) Prepare(t *testing.T) *ioc.Locator {
 		}
 	}
 
-	return ioc.Root
+	return root.IoC
 }
 
 func (self *WithUser) GetRequest(t *testing.T) *srvt.Request {
@@ -149,7 +150,7 @@ func (self *WithEvent) Prepare(t *testing.T) *ioc.Locator {
 		},
 	}
 
-	locator := ioc.Root.Sub()
+	locator := root.IoC.Sub()
 	mustt(t, locator.Bind(func() events.Manager { return manager }))
 	return locator
 }

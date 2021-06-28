@@ -19,8 +19,8 @@ package services
 import (
 	"time"
 
+	"github.com/JBoudou/Itero/mid/root"
 	"github.com/JBoudou/Itero/pkg/events"
-	"github.com/JBoudou/Itero/pkg/ioc"
 )
 
 //
@@ -84,7 +84,7 @@ type PollNotifChannel = <-chan []*PollNotification
 const PollNotifDelay = 20 * time.Second
 
 func init() {
-	ioc.Root.Bind(func(evtManager events.Manager) (PollNotifChannel, error) {
+	root.IoC.Bind(func(evtManager events.Manager) (PollNotifChannel, error) {
 		return RunPollNotif(PollNotifDelay, evtManager)
 	})
 }

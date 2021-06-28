@@ -26,6 +26,7 @@ import (
 	"github.com/JBoudou/Itero/main/services"
 	"github.com/JBoudou/Itero/mid/db"
 	dbt "github.com/JBoudou/Itero/mid/db/dbtest"
+	"github.com/JBoudou/Itero/mid/root"
 	"github.com/JBoudou/Itero/mid/salted"
 	"github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
@@ -78,7 +79,7 @@ func (self *pollNotifHandlerTest) Prepare(t *testing.T) *ioc.Locator {
 
 	self.dbEnv.Must(t)
 
-	ret := ioc.Root.Sub()
+	ret := root.IoC.Sub()
 	ret.Refresh(&self.evtManager)
 	ret.Bind(func(evtManager events.Manager) (services.PollNotifChannel, error) {
 		return services.RunPollNotif(time.Second, evtManager)

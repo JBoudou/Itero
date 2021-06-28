@@ -26,9 +26,9 @@ import (
 	"os"
 	"testing"
 
+	"github.com/JBoudou/Itero/mid/root"
 	. "github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
-	"github.com/JBoudou/Itero/pkg/ioc"
 	"github.com/JBoudou/Itero/pkg/slog"
 )
 
@@ -172,7 +172,7 @@ func TestHandleFunc(t *testing.T) {
 		},
 	}
 
-	ioc.Root.Bind(func() slog.Printer { return log.New(os.Stderr, "", log.LstdFlags) })
+	root.IoC.Bind(func() slog.Printer { return log.New(os.Stderr, "", log.LstdFlags) })
 
 	for _, tt := range handlerTests {
 		t.Run(tt.name, func(t *testing.T) {

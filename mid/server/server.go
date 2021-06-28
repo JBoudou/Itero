@@ -29,8 +29,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/JBoudou/Itero/mid/root"
 	"github.com/JBoudou/Itero/pkg/config"
-	"github.com/JBoudou/Itero/pkg/ioc"
 	"github.com/JBoudou/Itero/pkg/slog"
 
 	gs "github.com/gorilla/sessions"
@@ -146,14 +146,14 @@ func (self loggerInterceptor) ServeHTTP(wr http.ResponseWriter, req *http.Reques
 
 func addLogger(next http.Handler) http.Handler {
 	var printer slog.Printer
-	if err := ioc.Root.Inject(&printer); err != nil {
+	if err := root.IoC.Inject(&printer); err != nil {
 		panic(err)
 	}
 	return loggerInterceptor{
-		next:   next,
+		next: next,
 		logger: &slog.SimpleLogger{
 			Printer: printer,
-			Stack: []interface{}{"H"},
+			Stack:   []interface{}{"H"},
 		},
 	}
 }

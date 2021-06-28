@@ -23,10 +23,10 @@ import (
 
 	"github.com/JBoudou/Itero/mid/db"
 	dbt "github.com/JBoudou/Itero/mid/db/dbtest"
+	"github.com/JBoudou/Itero/mid/root"
 	"github.com/JBoudou/Itero/mid/service"
 	"github.com/JBoudou/Itero/pkg/events"
 	"github.com/JBoudou/Itero/pkg/events/eventstest"
-	"github.com/JBoudou/Itero/pkg/ioc"
 )
 
 type closePollTestInstance struct {
@@ -105,7 +105,7 @@ func metaTestClosePoll(t *testing.T, checker func(*testing.T, *closePollTestInst
 func closePoll_processOne_checker(t *testing.T, tt *closePollTestInstance, pollId uint32) {
 	const qIsActive = `SELECT State = 'Active' FROM Polls WHERE Id = ?`
 
-	locator := ioc.Root.Sub()
+	locator := root.IoC.Sub()
 	closed := false
 	locator.Bind(func() events.Manager {
 		return &eventstest.ManagerMock{
@@ -166,7 +166,7 @@ func TestClosePollService_ProcessOne(t *testing.T) {
 
 func closePoll_CheckAll_checker(t *testing.T, tt *closePollTestInstance, poll uint32) {
 	var svc service.Service
-	mustt(t, ioc.Root.Inject(ClosePollService, &svc))
+	mustt(t, root.IoC.Inject(ClosePollService, &svc))
 
 	iterator := svc.CheckAll()
 	defer iterator.Close()
@@ -189,7 +189,7 @@ func TestClosePollService_CheckAll(t *testing.T) {
 
 func closePoll_CheckOne_checker(t *testing.T, tt *closePollTestInstance, poll uint32) {
 	var svc service.Service
-	mustt(t, ioc.Root.Inject(ClosePollService, &svc))
+	mustt(t, root.IoC.Inject(ClosePollService, &svc))
 	got := svc.CheckOne(poll)
 
 	isZero := got.IsZero()
@@ -209,14 +209,14 @@ func TestClosePollService_CheckOne(t *testing.T) {
 // events //
 
 func TestClosePollService_Events(t *testing.T) {
-	tests := []checkEventScheduleTest {
+	tests := []checkEventScheduleTest{
 		{
-			name: "NextRoundEvent",
-			event: NextRoundEvent{Poll: 1, Round: 2},
+			name:     "NextRoundEvent",
+			event:    NextRoundEvent{Poll: 1, Round: 2},
 			schedule: []uint32{1},
 		},
 		{
-			name: "ClosePollEvent",
+			name:  "ClosePollEvent",
 			event: ClosePollEvent{42},
 		},
 	}

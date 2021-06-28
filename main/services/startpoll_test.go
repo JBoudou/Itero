@@ -23,10 +23,10 @@ import (
 
 	"github.com/JBoudou/Itero/mid/db"
 	dbt "github.com/JBoudou/Itero/mid/db/dbtest"
+	"github.com/JBoudou/Itero/mid/root"
 	"github.com/JBoudou/Itero/mid/service"
 	"github.com/JBoudou/Itero/pkg/events"
 	"github.com/JBoudou/Itero/pkg/events/eventstest"
-	"github.com/JBoudou/Itero/pkg/ioc"
 )
 
 type startPollTestInstance struct {
@@ -102,7 +102,7 @@ func metaTestStartPoll(t *testing.T, checker func(*testing.T, *startPollTestInst
 func startPoll_processOne_checker(t *testing.T, tt *startPollTestInstance, poll uint32) {
 	const qPollState = `SELECT State FROM Polls WHERE Id = ?`
 
-	locator := ioc.Root.Sub()
+	locator := root.IoC.Sub()
 	called := false
 	locator.Bind(func() events.Manager {
 		return &eventstest.ManagerMock{
@@ -163,7 +163,7 @@ func TestStartPollService_ProcessOne(t *testing.T) {
 
 func startPoll_CheckAll_checker(t *testing.T, tt *startPollTestInstance, poll uint32) {
 	var svc service.Service
-	mustt(t, ioc.Root.Inject(StartPollService, &svc))
+	mustt(t, root.IoC.Inject(StartPollService, &svc))
 
 	iterator := svc.CheckAll()
 	defer iterator.Close()
@@ -186,7 +186,7 @@ func TestStartPollService_CheckAll(t *testing.T) {
 
 func startPoll_CheckOne_checker(t *testing.T, tt *startPollTestInstance, poll uint32) {
 	var svc service.Service
-	mustt(t, ioc.Root.Inject(StartPollService, &svc))
+	mustt(t, root.IoC.Inject(StartPollService, &svc))
 
 	got := svc.CheckOne(poll)
 
@@ -207,14 +207,14 @@ func TestStartPollService_CheckOne(t *testing.T) {
 // events //
 
 func TestStartPollService_Events(t *testing.T) {
-	tests := []checkEventScheduleTest {
+	tests := []checkEventScheduleTest{
 		{
-			name: "CreatePollEvent",
-			event: CreatePollEvent{42},
+			name:     "CreatePollEvent",
+			event:    CreatePollEvent{42},
 			schedule: []uint32{42},
 		},
 		{
-			name: "StartPollEvent",
+			name:  "StartPollEvent",
 			event: StartPollEvent{42},
 		},
 	}
