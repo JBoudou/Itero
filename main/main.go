@@ -17,7 +17,6 @@
 package main
 
 import (
-	"log"
 	"reflect"
 
 	. "github.com/JBoudou/Itero/main/handlers"
@@ -25,6 +24,7 @@ import (
 	"github.com/JBoudou/Itero/mid/server"
 	"github.com/JBoudou/Itero/mid/service"
 	"github.com/JBoudou/Itero/pkg/ioc"
+	"github.com/JBoudou/Itero/pkg/slog"
 )
 
 func StartService(serviceFactory interface{}) {
@@ -73,9 +73,11 @@ func main() {
 	StartHandler("/a/confirm/", ConfirmHandler)
 	StartHandler("/a/reverify", ReverifyHandler)
 
-	log.Println("Server starting")
+	var logger slog.Leveled
+	ioc.Root.Inject(&logger)
+	logger.Log("Server starting")
 	if err := server.Start(); err != nil {
-		log.Fatal(err)
+		logger.Error(err)
 	}
-	log.Println("Server terminated")
+	logger.Log("Server terminated")
 }

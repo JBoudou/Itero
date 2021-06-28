@@ -145,14 +145,16 @@ func (self loggerInterceptor) ServeHTTP(wr http.ResponseWriter, req *http.Reques
 }
 
 func addLogger(next http.Handler) http.Handler {
-	var logger slog.Stacked
-	if err := ioc.Root.Inject(&logger); err != nil {
+	var printer slog.Printer
+	if err := ioc.Root.Inject(&printer); err != nil {
 		panic(err)
 	}
-	logger.Push("H")
 	return loggerInterceptor{
 		next:   next,
-		logger: logger,
+		logger: &slog.SimpleLogger{
+			Printer: printer,
+			Stack: []interface{}{"H"},
+		},
 	}
 }
 

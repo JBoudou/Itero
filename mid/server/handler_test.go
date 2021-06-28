@@ -172,9 +172,7 @@ func TestHandleFunc(t *testing.T) {
 		},
 	}
 
-	ioc.Root.Bind(func() slog.Stacked{
-		return &slog.SimpleLogger{Printer: log.New(os.Stderr, "", log.LstdFlags)}
-	})
+	ioc.Root.Bind(func() slog.Printer { return log.New(os.Stderr, "", log.LstdFlags) })
 
 	for _, tt := range handlerTests {
 		t.Run(tt.name, func(t *testing.T) {

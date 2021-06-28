@@ -33,9 +33,12 @@ func init() {
 	ioc.Root.Bind(func() events.Manager { return events.NewAsyncManager(events.DefaultManagerChannelSize) })
 
 	// log
-	ioc.Root.Bind(func() slog.StackedLeveled {
+	ioc.Root.Bind(func() slog.Printer {
+		return log.New(os.Stderr, "", log.LstdFlags|log.Lmicroseconds)
+	})
+	ioc.Root.Bind(func(printer slog.Printer) slog.StackedLeveled {
 		return &slog.SimpleLeveled{
-			Printer:  log.New(os.Stderr, "", log.LstdFlags|log.Lmicroseconds),
+			Printer:  printer,
 			LogStack: []interface{}{"I"},
 			ErrStack: []interface{}{"W"},
 		}
