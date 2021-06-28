@@ -23,7 +23,6 @@
 package server
 
 import (
-	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -85,11 +84,16 @@ type myConfig struct {
 }
 
 func init() {
+	var logger slog.Leveled
+	if err := root.IoC.Inject(&logger); err != nil {
+		panic(err)
+	}
+
 	// Configuration
 	cfg.Address = defaultPort
 	if err := config.Value("server", &cfg); err != nil {
-		log.Print(err)
-		log.Println("WARNING: Package server not usable because there is no configuration for it.")
+		logger.Error(err)
+		logger.Error("Package server not usable because there is no configuration for it.")
 		Ok = false
 		return
 	}

@@ -41,7 +41,7 @@ func init() {
 	IoC.Bind(func(printer slog.Printer) slog.StackedLeveled {
 		return &slog.SimpleLeveled{
 			Printer:  printer,
-			LogStack: []interface{}{"L"},
+			LogStack: []interface{}{"M"},
 			ErrStack: []interface{}{"E"},
 		}
 	})

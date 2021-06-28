@@ -21,10 +21,11 @@ import (
 	"database/sql"
 	"net/http"
 
-	"github.com/JBoudou/Itero/mid/db"
-	"github.com/JBoudou/Itero/pkg/events"
-	"github.com/JBoudou/Itero/mid/server"
 	"github.com/JBoudou/Itero/main/services"
+	"github.com/JBoudou/Itero/mid/db"
+	"github.com/JBoudou/Itero/mid/server"
+	"github.com/JBoudou/Itero/pkg/events"
+	"github.com/JBoudou/Itero/pkg/slog"
 )
 
 type UninominalVoteQuery struct {
@@ -100,7 +101,7 @@ func (self uninominalVoteHandler) Handle(ctx context.Context, response server.Re
 		qInsertParticipant = `INSERT INTO Participants (User, Poll, Round) VALUE (?, ?, ?)`
 	)
 
-	db.RepeatDeadlocked(ctx, nil, func(tx *sql.Tx) {
+	db.RepeatDeadlocked(slog.CtxLoadLogger(ctx), ctx, nil, func(tx *sql.Tx) {
 		var result sql.Result
 		result, err = tx.ExecContext(ctx, qDeleteBallot, request.User.Id, pollInfo.Id, pollInfo.CurrentRound)
 		must(err)
