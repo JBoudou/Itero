@@ -24,25 +24,21 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"sync"
-)
 
-const (
-	configFileName = "config.json"
-	maxDepth       = 2
+	"github.com/JBoudou/Itero/pkg/slog"
 )
 
 var (
 	values  map[string]json.RawMessage
 	valLock sync.RWMutex
-)
 
-// Ok is true iff the configuration file has successfully been read.
-// It may be false after init() has been called if no configuration file has been found.
-var Ok bool
+	logger         slog.Leveled
+	configFileName string
+	maxDepth       int
+)
 
 // BaseDir is the path in which the configuration file has been found.
 var BaseDir string
@@ -54,18 +50,24 @@ func (self KeyNotFound) Error() string {
 	return fmt.Sprintf("Key %s not found", string(self))
 }
 
-func init() {
-	Ok = readConfigFile()
+// ReadConfigFile reads and stores the given configuration file.
+// This method must be called once before Value is called.
+// When called multiple times, only the values from the last read configuration file are available.
+func ReadConfigFile(logger_ slog.Leveled, configFileName_ string, maxDepth_ int) bool {
+	logger = logger_
+	configFileName = configFileName_
+	maxDepth = maxDepth_
+	return readConfigFile()
 }
 
 func readConfigFile() bool {
-	log.Println("Loading configuration")
+	logger.Log("Loading configuration")
 
 	var err error
 	BaseDir, err = FindFileInParent(configFileName, maxDepth)
 	if err != nil && errors.Is(err, os.ErrNotExist) {
-		log.Printf("WARNING: no configuration file ./%s found! You must create it.", configFileName)
-		log.Printf("To enable tests, there must be a configuration file (or link) in each package folder.")
+		logger.Errorf("No configuration file ./%s found! You must create it.", configFileName)
+		logger.Error("To enable tests, there must be a configuration file (or link) in each package folder.")
 		return false
 	}
 	in, err := os.Open(filepath.Join(BaseDir, configFileName))
