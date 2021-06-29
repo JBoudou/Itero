@@ -256,7 +256,7 @@ export class SessionService {
 }
 
 @Component({
-  selector: 'verify-email-dialog',
+  selector: 'email-verification-dialog',
   templateUrl: 'email-verification.dialog.html',
   host: {class: 'dialog-box'},
 })
