@@ -14,12 +14,14 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Injectable } from '@angular/core';
+import { Component, Inject, Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 
 import { Observable, BehaviorSubject, pipe, UnaryFunction } from 'rxjs';
 import { map, take, tap } from 'rxjs/operators';
+import { MatDialog, MAT_DIALOG_DATA } from '@angular/material/dialog';
+
 
 import { SessionAnswer } from '../api';
 import { ScheduleOne } from '../shared/schedule-one';
@@ -260,6 +262,6 @@ export class SessionService {
 })
 export class EmailVerificationDialog {
   constructor(
-    @Inject(MAT_DIALOG_DATA) public email: EmailVerification,
+    @Inject(MAT_DIALOG_DATA) public emailSent: boolean,
   ) { }
 }
