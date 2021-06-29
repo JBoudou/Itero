@@ -100,6 +100,7 @@ export class SessionService {
   constructor(
     private router: Router,
     private http: HttpClient,
+    private dialog: MatDialog,
   ) {
     this.checkSession();
   }
@@ -177,12 +178,11 @@ export class SessionService {
       .pipe(take(1))
       .subscribe({
       next: () => {
-        console.log('good');
+        this.dialog.open<EmailVerificationDialog, boolean>(EmailVerificationDialog, {data: true});
       },
       error: (err: HttpErrorResponse) => {
         if (err.status == 409) {
-          console.log('bad')
-          //this.errors.emit(new ServerError(err, 'previous verification has already been requested recently'));
+          this.dialog.open<EmailVerificationDialog, boolean>(EmailVerificationDialog, {data: false});
         }
       }
     });
