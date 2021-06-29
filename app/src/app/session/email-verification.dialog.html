@@ -1,4 +1,11 @@
-<div class="EmailVerificationDialog">
-  <p [mat-dialog-close]="true"  i18n>Yes</p>
-  <p [mat-dialog-close]="false" i18n>No</p>
+  <div [ngSwitch]="emailSent">
+    <div *ngSwitchCase="true">
+      A verification email has been sent to your email address
+    </div>
+    <div *ngSwitchCase="false">
+      An email has already been sent to your email, please check again
+    </div>
+    <div class="formactions">
+      <button mat-dialog-close  i18n>Ok</button>
+    </div>
 </div>
