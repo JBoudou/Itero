@@ -69,11 +69,17 @@ func checkPollAccess(ctx context.Context, request *server.Request) (poll PollInf
 	var salt uint32
 	var electorate db.Electorate
 	const qPoll = `SELECT Salt, Electorate, NbChoices, State = 'Active', CurrentRound FROM Polls WHERE Id = ?`
-	row := db.DB.QueryRowContext(ctx, qPoll, poll.Id)
-	err = row.Scan(&salt, &electorate, &poll.NbChoices, &poll.Active, &poll.CurrentRound)
+	rows, err := db.DB.QueryContext(ctx, qPoll, poll.Id)
+	defer rows.Close()
+	if !rows.Next() {
+		err = noPollError("Id not found")
+		return
+	}
+	err = rows.Scan(&salt, &electorate, &poll.NbChoices, &poll.Active, &poll.CurrentRound)
 	if err != nil {
 		return
 	}
+	rows.Close()
 	if salt != segment.Salt {
 		err = noPollError("Wrong salt")
 		return
