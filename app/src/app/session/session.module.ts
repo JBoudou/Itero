@@ -20,6 +20,7 @@ import { HTTP_INTERCEPTORS } from '@angular/common/http';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -45,6 +46,7 @@ import { EmailVerificationDialog } from './session.service';
     CommonModule,
     FormsModule,
     MatButtonModule,
+    MatDialogModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
