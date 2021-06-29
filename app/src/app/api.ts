@@ -213,8 +213,3 @@ export class PollNotifAnswerEntry {
 export interface ConfirmAnswer {
   Type: string
 }
-
-export class EmailVerification {
-  verified: boolean
-  unverified: boolean
-}
