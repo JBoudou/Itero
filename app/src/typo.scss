@@ -1,9 +1,9 @@
 // We define the fonts in SCSS instead of SASS, because maps suck in SASS :(
 @import '~@angular/material/theming';
+@import './responsive';
 
 $mainfont: 'Asap';
 $fontsize: 13pt;
-$smallfontsize: 10pt;
 
 $titlefont: 'Overpass';
 $infofont: 300 100% 'Livvic';
@@ -16,3 +16,30 @@ $itero-mat-typography: mat-typography-config(
   $button:    mat-typography-level($fontsize, 1.2),
   $input:     mat-typography-level($fontsize, 1.3),
 );
+
+//laptop-size (default size)
+@media only screen and (min-width : $breakpoint-laptop)
+{
+  :root{
+        --font-size: 13pt;
+        --small-font-size: 12pt;
+       }
+}
+
+//tablet-size
+@media only screen and (min-width : $breakpoint-tablet + 1) and (max-width : $breakpoint-laptop - 1px)
+{
+    :root{
+        --font-size: 12pt;
+        --small-font-size: 11pt;
+         }
+}
+
+//phone-size
+@media only screen and  (max-width: $breakpoint-tablet)
+{
+    :root{
+      --font-size: 11pt;
+      --small-font-size: 10pt;
+         }
+}

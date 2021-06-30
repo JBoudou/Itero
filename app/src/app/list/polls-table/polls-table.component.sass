@@ -1,49 +1,65 @@
 @import '../../../colors'
 @import '../../../responsive'
 @import '../../../sizes'
+
 table
+  display: grid
+  grid-template-columns: 1fr min-content min-content min-content min-content
   border: solid 1px $maincolor
-  border-collapse: collapse
-  thead
-    border: solid 1px $maincolor
-  td, th
+  tbody, tr, thead
+    display: contents
+  th
+    border-bottom: solid 1px $maincolor
+    background-color: $softbgcolor
     padding: 2px 4px
   th.manage
     padding: 2px 0
-  tr.tableheader
-    background-color: $softbgcolor
   tr.poll
     td
+      padding: 3px 4px
       cursor: default
-    &:hover
+    &:hover td
       background-color: $softbgcolor
+    td[colspan="2"]
+      grid-column: span 2
+    td.title
+      align-self: center
+      text-overflow: ellipsis
+      overflow: hidden
+      white-space: nowrap
     td.round, td.deadline, td.terminated
+      align-self: center
       text-align: center
-    td.action
-      cursor: pointer
-      span
-        display: block
-        margin: auto
-        border-radius: 2px
-        font-size: smaller
-        padding: 3px .5em
-        text-align: center
-      .part
-        background-color: lightblue
-      .vote
-        background-color: lightgreen
-      .modi
-        background-color: orange
-      .term
-        background-color: $userbuttonbgcolor
-      .wait
-        background-color: $softbgcolor
-        border: solid 1px $userbuttonbgcolor
-    td.manage
-      padding: 2px 0
-      span
-        margin-right: 2px
+      white-space: nowrap
+    .last-line
+      display: contents
+      td.action
         cursor: pointer
+        white-space: nowrap
+        span
+          display: block
+          cursor: pointer
+          margin: auto
+          border-radius: 2px
+          font-size: smaller
+          padding: 3px .5em
+          text-align: center
+        .part
+          background-color: lightblue
+        .vote
+          background-color: lightgreen
+        .modi
+          background-color: orange
+        .term
+          background-color: $userbuttonbgcolor
+        .wait
+          background-color: $softbgcolor
+          border: solid 1px $userbuttonbgcolor
+      td.manage
+        padding: 0
+        span
+          margin-right: 2px
+          cursor: pointer
         &:hover
           color: $maincolor
 
@@ -62,24 +78,23 @@ table
       margin-bottom: $medium-space
       padding: $small-space
       td
-        border: solid 1px #ddd
         padding: $tiny-space
         display: block
         text-align: right
         text-overflow: ellipsis
         overflow: hidden
         white-space: nowrap
+      td.title
+        border-bottom: solid 2px #ddd
+        text-align: left
+      td.round,  td.deadline,  td.terminated
+        font-size: smaller
+        text-align: right
         &:before
           content: attr(data-label)
           float: left
-          font-weight: bold
+          font-weight: 600
           padding-right: 1.5em
-      td.round,  td.deadline,  td.terminated
-        text-align: right
-      td.action
-        span
-          display: inline-block
-          text-align: right
-      td.manage
-        padding: 0
-        display: contents
+      .last-line
+        display: flex
+        justify-content: flex-end

@@ -7,14 +7,14 @@
 
 body
   font-family: "Asap", sans-serif
-  font-size: $fontsize
-  margin: $medium-space
+  font-size: var(--font-size)
   color: color.adjust($maincolor, $lightness: -25%)
+  padding: $navbarheight $medium-space $medium-space
 
 .main-container
   max-width: $contmaxwidth
-  margin: 6em auto 0
-  padding: 0 $medium-space
+  margin: 0 auto
+  padding: $below-navtitle-space $medium-space
 
 h3:first-child
   margin-top: 0
@@ -22,7 +22,6 @@ h3:first-child
 input
   font-size: inherit
   font-family: inherit
-
 
 @function tame($color)
   @return color.adjust($color, $saturation: -20%, $lightness: +10%)
@@ -34,7 +33,7 @@ input
   button
     @include userbox
     background-color: $userbuttonbgcolor
-    font-size: $fontsize
+    font-size: var(--font-size)
     padding: 0.4em 1em
     margin-left: $medium-space
     &:hover
@@ -109,7 +108,9 @@ input
 
 .form-alone
   width: 260px
-  margin: 0 auto
+  position: relative
+  left: 50%
+  transform: translate(-50%,0)
   padding: 1em
   border: solid 2px $maincolor
   border-radius: 8px
@@ -236,6 +237,7 @@ div.mat-menu-panel.nav-menu
   background-color: $userbuttonbgcolor
   border-top-left-radius: 0
   border-top-right-radius: 0
+  margin-top: 4px
   button.mat-menu-item
     font-size: smaller
     line-height: 36px
@@ -251,4 +253,3 @@ div.mat-menu-panel.nav-menu
   border: none
   height: 1px
   width: 78%
-  
