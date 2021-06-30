@@ -1,10 +1,10 @@
 <div class="dialog-message" [ngSwitch]="emailSent">
-    <div *ngSwitchCase="true">
+    <ng-container *ngSwitchCase="true">
       A verification email has been sent to your email address.
-    </div>
-    <div *ngSwitchCase="false">
+    </ng-container>
+    <ng-container *ngSwitchCase="false">
       An email has already been sent to your email, please check.
-    </div>
+    </ng-container>
 </div>
 <div class="formactions">
   <button mat-dialog-close  i18n>Ok</button>
