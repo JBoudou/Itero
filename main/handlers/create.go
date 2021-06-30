@@ -22,15 +22,17 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/JBoudou/Itero/pkg/b64buff"
-	"github.com/JBoudou/Itero/mid/db"
-	"github.com/JBoudou/Itero/pkg/events"
-	"github.com/JBoudou/Itero/mid/server"
 	"github.com/JBoudou/Itero/main/services"
+	"github.com/JBoudou/Itero/mid/db"
+	"github.com/JBoudou/Itero/mid/salted"
+	"github.com/JBoudou/Itero/mid/server"
+	"github.com/JBoudou/Itero/pkg/events"
 )
 
+type PollUserType uint8
+
 const (
-	PollUserTypeSimple = iota
+	PollUserTypeSimple PollUserType = iota
 )
 
 type SimpleAlternative struct {
@@ -39,10 +41,11 @@ type SimpleAlternative struct {
 }
 
 type CreateQuery struct {
-	UserType         uint8
+	UserType         PollUserType
 	Title            string
 	Description      string
 	Hidden           bool
+	Verified         bool
 	Start            time.Time
 	Alternatives     []SimpleAlternative
 	ReportVote       bool
@@ -65,7 +68,15 @@ func defaultCreateQuery() CreateQuery {
 	}
 }
 
-func CreateHandler(ctx context.Context, response server.Response, request *server.Request) {
+type createHandler struct {
+	evtManager events.Manager
+}
+
+func CreateHandler(evtManager events.Manager) createHandler {
+	return createHandler{evtManager: evtManager}
+}
+
+func (self createHandler) Handle(ctx context.Context, response server.Response, request *server.Request) {
 	if request.User == nil || !request.User.Logged {
 		must(request.SessionError)
 		panic(server.UnauthorizedHttpError("Unlogged user"))
@@ -95,14 +106,20 @@ func CreateHandler(ctx context.Context, response server.Response, request *serve
 		state = "Active"
 	}
 
-	var err error
-	pollSegment := PollSegment{}
-	pollSegment.Salt, err = b64buff.RandomUInt32(saltNbBits)
-	must(err)
-	publicity := db.PollPublicityPublicRegistered
-	if query.Hidden {
-		publicity = db.PollPublicityHiddenRegistered
+	electorate := db.ElectorateLogged
+	const qVerified = `SELECT 1 FROM Users WHERE Id = ? AND Verified`
+	if query.Verified {
+		rows, err := db.DB.QueryContext(ctx, qVerified, request.User.Id)
+		defer rows.Close()
+		must(err)
+		if !rows.Next() {
+			panic(server.NewHttpError(http.StatusBadRequest, "Not verified", "The user is not verified"))
+		}
+		electorate = db.ElectorateVerified
 	}
+
+	pollSegment, err := salted.New(0)
+	must(err)
 
 	tx, err := db.DB.BeginTx(ctx, nil)
 	must(err)
@@ -115,10 +132,10 @@ func CreateHandler(ctx context.Context, response server.Response, request *serve
 
 	const (
 		qPoll = `
-			INSERT INTO Polls (Title, Description, Admin, State, Start, Salt, Publicity, NbChoices,
-												 ReportVote, MinNbRounds, MaxNbRounds, Deadline, MaxRoundDuration,
+			INSERT INTO Polls (Title, Description, Admin, State, Start, Salt, Electorate, Hidden,
+			                   NbChoices, ReportVote, MinNbRounds, MaxNbRounds, Deadline, MaxRoundDuration,
 												 RoundThreshold)
-				  	 VALUE (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+				  	 VALUE (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 		qAlternative = `INSERT INTO Alternatives (Poll, Id, Name) VALUE (?, ?, ?)`
 	)
 
@@ -129,13 +146,14 @@ func CreateHandler(ctx context.Context, response server.Response, request *serve
 		state,
 		start,
 		pollSegment.Salt,
-		publicity,
+		electorate,
+		query.Hidden,
 		len(query.Alternatives),
 		query.ReportVote,
 		query.MinNbRounds,
 		query.MaxNbRounds,
 		query.Deadline,
-		db.MillisecondsToTime(query.MaxRoundDuration),
+		db.DurationToTime(time.Duration(query.MaxRoundDuration)*time.Millisecond),
 		query.RoundThreshold,
 	)
 	must(err)
@@ -154,5 +172,5 @@ func CreateHandler(ctx context.Context, response server.Response, request *serve
 	segment, err := pollSegment.Encode()
 	must(err)
 	response.SendJSON(ctx, segment)
-	events.Send(services.CreatePollEvent{pollSegment.Id})
+	self.evtManager.Send(services.CreatePollEvent{pollSegment.Id})
 }

@@ -14,6 +14,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+// Package handlers contains the handler for all the HTTP request on the server.
+//
+// Types and functions whose name ends with "Handler" are the handler.
+// Types whose name ends with "Query" are the type of the information received in the requests.
+// Types whose name ends with "Answer" are the type of the information sent in the responses.
 package handlers
 
 import (

@@ -22,13 +22,20 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/JBoudou/Itero/main/services"
 	"github.com/JBoudou/Itero/mid/db"
 	dbt "github.com/JBoudou/Itero/mid/db/dbtest"
+	"github.com/JBoudou/Itero/mid/salted"
 	"github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
+	"github.com/JBoudou/Itero/pkg/events"
+	"github.com/JBoudou/Itero/pkg/ioc"
 )
 
 type deleteHandlerTest struct {
+	dbt.WithDB
+	WithEvent
+
 	name          string
 	state         string
 	round         uint8   // First round is 0
@@ -36,7 +43,6 @@ type deleteHandlerTest struct {
 	expectStatus  int
 	expectMessage string
 
-	dbEnv  dbt.Env
 	userId uint32
 	pollId uint32
 }
@@ -45,32 +51,33 @@ func (self *deleteHandlerTest) GetName() string {
 	return self.name
 }
 
-func (self *deleteHandlerTest) Prepare(t *testing.T) {
+func (self *deleteHandlerTest) Prepare(t *testing.T) *ioc.Locator {
 	t.Parallel()
 
-	self.userId = self.dbEnv.CreateUserWith("DeleteHandle" + self.name)
-	self.pollId = self.dbEnv.CreatePoll("DeleteHandler", self.userId, db.PollPublicityPublicRegistered)
+	self.userId = self.DB.CreateUserWith("DeleteHandle" + self.name)
+	self.pollId = self.DB.CreatePoll("DeleteHandler", self.userId, db.ElectorateLogged)
 
 	const (
 		qState = `UPDATE Polls SET State = ?, Start = CURRENT_TIMESTAMP WHERE Id = ?`
 		qRound = `UPDATE Polls SET CurrentRound = ? WHERE Id = ?`
-		qTime = `
+		qTime  = `
 		  UPDATE Polls
 			   SET CurrentRoundStart = ADDTIME(CURRENT_TIMESTAMP, -1 * ? * MaxRoundDuration)
 			 WHERE Id = ?`
 	)
 
 	if self.state != "" {
-		self.dbEnv.QuietExec(qState, self.state, self.pollId)
+		self.DB.QuietExec(qState, self.state, self.pollId)
 	}
 	if self.round != 0 {
-		self.dbEnv.QuietExec(qRound, self.round, self.pollId)
+		self.DB.QuietExec(qRound, self.round, self.pollId)
 	}
 	if self.roundTime != 0. {
-		self.dbEnv.QuietExec(qTime, self.roundTime, self.pollId)
+		self.DB.QuietExec(qTime, self.roundTime, self.pollId)
 	}
-		
-	self.dbEnv.Must(t)
+
+	self.DB.Must(t)
+	return self.WithEvent.Prepare(t)
 }
 
 func (self *deleteHandlerTest) GetRequest(t *testing.T) *srvt.Request {
@@ -78,8 +85,10 @@ func (self *deleteHandlerTest) GetRequest(t *testing.T) *srvt.Request {
 }
 
 func (self *deleteHandlerTest) Check(t *testing.T, response *http.Response, request *server.Request) {
+	expectEvents := 0
 	if self.expectStatus == 0 {
 		self.expectStatus = http.StatusOK
+		expectEvents = 1
 	}
 	if self.expectStatus != response.StatusCode {
 		t.Errorf("Wrong status code. Got %d. Expect %d.", response.StatusCode, self.expectStatus)
@@ -95,10 +104,16 @@ func (self *deleteHandlerTest) Check(t *testing.T, response *http.Response, requ
 			t.Errorf("Wrong message. Got %s. Expect %s.", message, self.expectMessage)
 		}
 	}
-}
 
-func (self *deleteHandlerTest) Close() {
-	self.dbEnv.Close()
+	segment, err := salted.FromRequest(request)
+	mustt(t, err)
+	gotEvents := self.CountRecorderEvents(func(evt events.Event) bool {
+		converted, ok := evt.(services.DeletePollEvent)
+		return ok && converted.Poll == segment.Id
+	})
+	if gotEvents != expectEvents {
+		t.Errorf("Got %d events. Expect %d.", gotEvents, expectEvents)
+	}
 }
 
 type deleteHandlerTestWrongUser struct {
@@ -123,58 +138,59 @@ type deleteHandlerTestWithVote struct {
 	deleteHandlerTest
 }
 
-func (self *deleteHandlerTestWithVote) Prepare(t *testing.T) {
-	self.deleteHandlerTest.Prepare(t)
+func (self *deleteHandlerTestWithVote) Prepare(t *testing.T) *ioc.Locator {
+	ret := self.deleteHandlerTest.Prepare(t)
 	for i := uint8(0); i <= self.round; i++ {
-		self.dbEnv.Vote(self.pollId, i, self.userId, 0)
+		self.DB.Vote(self.pollId, i, self.userId, 0)
 	}
-	self.dbEnv.Must(t)
+	self.DB.Must(t)
+	return ret
 }
 
 func TestDeleteHandler(t *testing.T) {
-	tests := []srvt.Test {
+	tests := []srvt.Test{
 		&deleteHandlerTest{
-			name: "Waiting",
+			name:  "Waiting",
 			state: "Waiting",
 		},
 		&deleteHandlerTest{
-			name: "Terminated",
-			state: "Terminated",
-			expectStatus: http.StatusLocked,
+			name:          "Terminated",
+			state:         "Terminated",
+			expectStatus:  http.StatusLocked,
 			expectMessage: "Not deletable",
 		},
-		&deleteHandlerTestNoUser{ deleteHandlerTest{
-			name: "No user",
-			expectStatus: http.StatusForbidden,
+		&deleteHandlerTestNoUser{deleteHandlerTest{
+			name:          "No user",
+			expectStatus:  http.StatusForbidden,
 			expectMessage: server.UnauthorizedHttpErrorMsg,
 		}},
-		&deleteHandlerTestWrongUser{ deleteHandlerTest{
-			name: "Wrong admin",
-			expectStatus: http.StatusLocked,
+		&deleteHandlerTestWrongUser{deleteHandlerTest{
+			name:          "Wrong admin",
+			expectStatus:  http.StatusLocked,
 			expectMessage: "Not deletable",
 		}},
 		&deleteHandlerTest{
-			name: "Round 2",
-			round: 1,
-			roundTime: 1.5,
-			expectStatus: http.StatusLocked,
+			name:          "Round 2",
+			round:         1,
+			roundTime:     1.5,
+			expectStatus:  http.StatusLocked,
 			expectMessage: "Not deletable",
 		},
 		&deleteHandlerTest{
-			name: "Round 1 not over",
-			roundTime: 0.5,
-			expectStatus: http.StatusLocked,
+			name:          "Round 1 not over",
+			roundTime:     0.5,
+			expectStatus:  http.StatusLocked,
 			expectMessage: "Not deletable",
 		},
 		&deleteHandlerTest{
-			name: "Round 1 over",
+			name:      "Round 1 over",
 			roundTime: 1.1,
 		},
-		&deleteHandlerTestWithVote{ deleteHandlerTest{
-			name: "Round 1 with vote",
+		&deleteHandlerTestWithVote{deleteHandlerTest{
+			name:      "Round 1 with vote",
 			roundTime: 1.1,
 		}},
 	}
 
-	srvt.RunFunc(t, tests, DeleteHandler)
+	srvt.Run(t, tests, DeleteHandler)
 }

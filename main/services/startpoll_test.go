@@ -23,9 +23,10 @@ import (
 
 	"github.com/JBoudou/Itero/mid/db"
 	dbt "github.com/JBoudou/Itero/mid/db/dbtest"
+	"github.com/JBoudou/Itero/mid/root"
+	"github.com/JBoudou/Itero/mid/service"
 	"github.com/JBoudou/Itero/pkg/events"
 	"github.com/JBoudou/Itero/pkg/events/eventstest"
-	"github.com/JBoudou/Itero/mid/service"
 )
 
 type startPollTestInstance struct {
@@ -37,6 +38,7 @@ type startPollTestInstance struct {
 }
 
 func metaTestStartPoll(t *testing.T, checker func(*testing.T, *startPollTestInstance, uint32)) {
+	t.Parallel()
 	const qSetPoll = `UPDATE Polls SET State = ?, Start = ? WHERE Id = ?`
 
 	tests := []startPollTestInstance{
@@ -70,11 +72,14 @@ func metaTestStartPoll(t *testing.T, checker func(*testing.T, *startPollTestInst
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			env := new(dbt.Env)
 			defer env.Close()
-			admin := env.CreateUser()
-			poll := env.CreatePoll(tt.name, admin, db.PollPublicityPublic)
+			admin := env.CreateUserWith(t.Name())
+			poll := env.CreatePoll(tt.name, admin, db.ElectorateAll)
 			env.Must(t)
 			var err error
 
@@ -97,21 +102,23 @@ func metaTestStartPoll(t *testing.T, checker func(*testing.T, *startPollTestInst
 func startPoll_processOne_checker(t *testing.T, tt *startPollTestInstance, poll uint32) {
 	const qPollState = `SELECT State FROM Polls WHERE Id = ?`
 
-	originalManager := events.DefaultManager
+	locator := root.IoC.Sub()
 	called := false
-	events.DefaultManager = &eventstest.ManagerMock{
-		T: t,
-		Send_: func(evt events.Event) error {
-			if startEvent, ok := evt.(StartPollEvent); ok && startEvent.Poll == poll {
-				called = true
-			}
-			return nil
-		},
-	}
+	locator.Bind(func() events.Manager {
+		return &eventstest.ManagerMock{
+			T: t,
+			Send_: func(evt events.Event) error {
+				if startEvent, ok := evt.(StartPollEvent); ok && startEvent.Poll == poll {
+					called = true
+				}
+				return nil
+			},
+		}
+	})
 
-	err := StartPollService.ProcessOne(poll)
-
-	events.DefaultManager = originalManager
+	var svc service.Service
+	mustt(t, locator.Inject(StartPollService, &svc))
+	err := svc.ProcessOne(poll)
 
 	nothingToDoYet := false
 	if errors.Is(err, service.NothingToDoYet) {
@@ -155,7 +162,11 @@ func TestStartPollService_ProcessOne(t *testing.T) {
 // CheckAll //
 
 func startPoll_CheckAll_checker(t *testing.T, tt *startPollTestInstance, poll uint32) {
-	iterator := StartPollService.CheckAll()
+	var svc service.Service
+	mustt(t, root.IoC.Inject(StartPollService, &svc))
+
+	iterator := svc.CheckAll()
+	defer iterator.Close()
 
 	listed := idDateIteratorHasId(t, iterator, poll)
 	if listed != tt.expectList {
@@ -174,8 +185,11 @@ func TestStartPollService_CheckAll(t *testing.T) {
 // CheckOne //
 
 func startPoll_CheckOne_checker(t *testing.T, tt *startPollTestInstance, poll uint32) {
-	got := StartPollService.CheckOne(poll)
-	
+	var svc service.Service
+	mustt(t, root.IoC.Inject(StartPollService, &svc))
+
+	got := svc.CheckOne(poll)
+
 	isZero := got.IsZero()
 	if isZero == tt.expectList {
 		if tt.expectList {
@@ -188,4 +202,21 @@ func startPoll_CheckOne_checker(t *testing.T, tt *startPollTestInstance, poll ui
 
 func TestStartPollService_CheckOne(t *testing.T) {
 	metaTestStartPoll(t, startPoll_CheckOne_checker)
+}
+
+// events //
+
+func TestStartPollService_Events(t *testing.T) {
+	tests := []checkEventScheduleTest{
+		{
+			name:     "CreatePollEvent",
+			event:    CreatePollEvent{42},
+			schedule: []uint32{42},
+		},
+		{
+			name:  "StartPollEvent",
+			event: StartPollEvent{42},
+		},
+	}
+	checkEventSchedule(t, tests, StartPollService)
 }

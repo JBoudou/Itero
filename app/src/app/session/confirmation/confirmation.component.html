@@ -1,0 +1,14 @@
+<ng-container [ngSwitch]="(state$ | async).type">
+  <p *ngSwitchCase="'loading'" i18n>
+    Loading...
+  </p>
+  <p *ngSwitchCase="'verify'" i18n>
+    Your email address has successfully been verified!
+  </p>
+  <p *ngSwitchCase="'notfound'" class="error-msg" i18n>
+    This confirmation link is invalid. Maybe it has expired.
+    Please request another one.
+  </p>
+  <app-server-error *ngSwitchCase="'error'" [error]="(state$ | async).data">
+  </app-server-error>
+</ng-container>

@@ -37,6 +37,8 @@ func (self *recorderSender) Close() error {
 }
 
 func TestBatchSender(t *testing.T) {
+	t.Parallel()
+
 	const (
 		maxWait = 200 * time.Millisecond
 		minLen  = 3
@@ -101,5 +103,38 @@ func TestBatchSender(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestBatchSender_Close(t *testing.T) {
+	t.Parallel()
+
+	sender := newBatchSender(time.Second, 3)
+	recorder := recorderSender{}
+	sender.back = &recorder
+	go sender.run()
+
+	to := [][]string{{"one"}, {"two"}}
+	for _, t := range to {
+		sender.Send(Email{
+			To:   t,
+			Tmpl: &template.Template{},
+		})
+	}
+
+	sender.Close()
+	time.Sleep(50 * time.Millisecond)
+
+	recLen := len(recorder.records)
+	if recLen != 2 {
+		t.Errorf("Wrong record length. Got %d. Expect 2.", recLen)
+		if 2 < recLen {
+			recLen = 2
+		}
+	}
+	for i := 0; i < recLen; i++ {
+		if !reflect.DeepEqual(recorder.records[i], to[i]) {
+			t.Errorf("Wrong email index %d. Got %v. Expect %v.", i, recorder.records[i], to[i])
+		}
 	}
 }

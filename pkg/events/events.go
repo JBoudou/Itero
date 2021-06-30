@@ -14,6 +14,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+// Package events provides types to implement busses of events in an application.
+// Senders can send events on these busses and receiver receive the events. 
+// What differenciate such a bus from a Go channel is that each event is dispatched to all
+// receiver.
+//
+// By providing a central busses to different parts of the application, these parts can communicate
+// together without knowing each other.
 package events
 
 import (
@@ -56,28 +63,6 @@ var (
 )
 
 const DefaultManagerChannelSize = 256
-
-// DefaultManager is the manager used by direct functions like Send.
-//
-// It is initialised by a call to NewAsyncManager whith a channel size of DefaultManagerChannelSize.
-// It shoudl not be assigned after any receiver has been added or any event has been sent.
-var DefaultManager Manager
-
-func init() {
-	DefaultManager = NewAsyncManager(DefaultManagerChannelSize)
-}
-
-// Send dispatch an event to all the Receivers of DefaultManager.
-// It takes ownership of the event.
-func Send(evt Event) error {
-	return DefaultManager.Send(evt)
-}
-
-// AddReceiver registers a Receiver to receive all events sent to DefaultManager.
-// If the Receiver is added to another Manager, it must be goroutine-safe.
-func AddReceiver(rcv Receiver) error {
-	return DefaultManager.AddReceiver(rcv)
-}
 
 // ReceiverFunc turn a function into a stateless Receiver, whose Close method does nothing.
 type ReceiverFunc func(Event)

@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+// emailsender package provides email senders.
 package emailsender
 
 import (
@@ -32,6 +33,11 @@ type Email struct {
 }
 
 type Sender interface {
+
+	// Send asks the sender to send an email. The email may be kept in memory and sent later.
+	// Hence nil return value does not mean the email has been sent.
 	Send(email Email) error
+
+	// Close closes the sender. This may result in retained email to be sent.
 	Close() error
 }

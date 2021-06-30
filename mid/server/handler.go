@@ -21,11 +21,11 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/JBoudou/Itero/mid/server/logger"
-
 	"github.com/justinas/alice"
 )
 
+// Interceptor is a function that takes a http.Handler and returns a http.Handler.
+// Value of this type are sometimes called "http middleware".
 type Interceptor = alice.Constructor
 
 // A Handler responds to an HTTP request.
@@ -77,7 +77,6 @@ func (self HandlerWrapper) Exec(ctx context.Context, response Response, request 
 			err := thrown.(error)
 			var httpError HttpError
 			if !errors.As(err, &httpError) {
-				logger.Print(ctx, err)
 				panic(err)
 			}
 			response.SendError(ctx, httpError)
@@ -100,7 +99,7 @@ func Handle(pattern string, handler Handler, interceptors ...Interceptor) {
 	http.Handle(pattern, packed)
 }
 
-// Handle registers the handler function for the given pattern.
+// HandleFunc registers the handler function for the given pattern.
 // See http.ServeMux for a description of the pattern format.
 func HandleFunc(pattern string, fct HandleFunction, interceptors ...Interceptor) {
 	packed := interceptorChain.Append(interceptors...).

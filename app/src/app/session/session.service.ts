@@ -1,25 +1,26 @@
 // Itero - Online iterative vote application
-// Copyright (C) 2020 Joseph Boudou
-// 
+// Copyright (C) 2020 Joseph Boudou, David Gomez Prieto
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
 // published by the Free Software Foundation, either version 3 of the
 // License, or (at your option) any later version.
-// 
+//
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU Affero General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Injectable } from '@angular/core';
+import { Component, Inject, Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 
 import { Observable, BehaviorSubject, pipe, UnaryFunction } from 'rxjs';
 import { map, take, tap } from 'rxjs/operators';
+import { MatDialog, MAT_DIALOG_DATA } from '@angular/material/dialog';
 
 import { SessionAnswer } from '../api';
 import { ScheduleOne } from '../shared/schedule-one';
@@ -30,14 +31,34 @@ export enum SessionState {
   Refreshing,
 }
 
+export class UserProfile {
+  constructor(
+    readonly name: string,
+    readonly verified?: boolean
+  ) {
+    if (this.verified === undefined) {
+      this.verified = false
+    }
+  }
+}
+
 export class SessionInfo {
   constructor(
     readonly state: SessionState,
-    readonly user?: string,
+    readonly profile?: UserProfile,
   ) { }
 
   get logged(): boolean {
     return this.state !== SessionState.Unlogged;
+  }
+  get user(): string {
+    if (this.profile === undefined) {
+      return undefined
+    }
+    return this.profile.name
+  }
+  get verified(): boolean {
+    return this.logged && this.profile !== undefined && this.profile.verified
   }
 }
 
@@ -57,7 +78,7 @@ export class SessionService {
    */
   sessionId: string = '';
 
-  _state = new BehaviorSubject<SessionInfo>(new SessionInfo(SessionState.Unlogged));
+  private _state = new BehaviorSubject<SessionInfo>(new SessionInfo(SessionState.Unlogged));
 
   /** Observable to be notified about session change. */
   get state$(): Observable<SessionInfo> {
@@ -80,6 +101,7 @@ export class SessionService {
   constructor(
     private router: Router,
     private http: HttpClient,
+    private dialog: MatDialog,
   ) {
     this.checkSession();
   }
@@ -129,7 +151,7 @@ export class SessionService {
       map((obj: any) => {
         const data = SessionAnswer.fromObject(obj);
 
-        this.register(data.SessionId, user);
+        this.register(data.SessionId, new UserProfile(user, data.Verified));
         localStorage.setItem("SessionId", this.sessionId);
         localStorage.setItem("User", user);
 
@@ -140,7 +162,7 @@ export class SessionService {
           diff = minRefreshTime;
         }
         this._scheduler.schedule(() => { this.refresh(); }, (data.Expires.getTime() - Date.now()) * 0.75);
-        
+
         return true;
       }),
       tap({
@@ -150,6 +172,21 @@ export class SessionService {
         }
       }),
     );
+  }
+
+  verifyEmail(): void {
+    this.http.get('/a/reverify')
+      .pipe(take(1))
+      .subscribe({
+        next: () => {
+          this.dialog.open<EmailVerificationDialog, boolean>(EmailVerificationDialog, {data: true});
+        },
+        error: (err: HttpErrorResponse) => {
+          if (err.status == 409) {
+            this.dialog.open<EmailVerificationDialog, boolean>(EmailVerificationDialog, {data: false});
+          }
+        }
+      });
   }
 
   /** Close the current session (if any). */
@@ -184,13 +221,14 @@ export class SessionService {
     let sessionId = localStorage.getItem("SessionId");
     if (!!sessionId) {
       this.register(sessionId, localStorage.getItem("User"));
-      this._scheduler.schedule(() => { this.refresh(); }, minRefreshTime);
+      this._scheduler.schedule(() => { this.refresh(); }, 1000);
     }
   }
 
-  private register(sessionId: string, user: string): void {
+  private register(sessionId: string, user: string|UserProfile): void {
     this.sessionId = sessionId;
-    this._state.next(new SessionInfo(SessionState.Logged, user));
+    const profile: UserProfile = user instanceof UserProfile ? user : new UserProfile(user)
+    this._state.next(new SessionInfo(SessionState.Logged, profile));
   }
 
   private hasCookie(): boolean {
@@ -216,4 +254,15 @@ export class SessionService {
       .pipe(this.httpOperator(user), take(1))
       .subscribe();
   }
+}
+
+@Component({
+  selector: 'email-verification-dialog',
+  templateUrl: 'email-verification.dialog.html',
+  host: {class: 'dialog-box'},
+})
+export class EmailVerificationDialog {
+  constructor(
+    @Inject(MAT_DIALOG_DATA) public emailSent: boolean,
+  ) { }
 }

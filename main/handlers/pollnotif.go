@@ -22,9 +22,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/JBoudou/Itero/mid/db"
-	"github.com/JBoudou/Itero/mid/server"
 	"github.com/JBoudou/Itero/main/services"
+	"github.com/JBoudou/Itero/mid/db"
+	"github.com/JBoudou/Itero/mid/salted"
+	"github.com/JBoudou/Itero/mid/server"
 )
 
 //
@@ -40,10 +41,20 @@ type PollNotifAnswerEntry struct {
 	Segment   string
 	Title     string
 	Round     uint8
-	Action    uint8
+	Action    services.PollNotifAction
 }
 
-func PollNotifHandler(ctx context.Context, response server.Response, request *server.Request) {
+type pollNotifHandler struct {
+	notifChannel services.PollNotifChannel
+}
+
+func PollNotifHandler(notifChannel services.PollNotifChannel) *pollNotifHandler {
+	return &pollNotifHandler{
+		notifChannel: notifChannel,
+	}
+}
+
+func (self *pollNotifHandler) Handle(ctx context.Context, response server.Response, request *server.Request) {
 	if request.User == nil {
 		if request.SessionError != nil {
 			must(request.SessionError)
@@ -59,7 +70,7 @@ func PollNotifHandler(ctx context.Context, response server.Response, request *se
 		panic(server.WrapError(http.StatusBadRequest, "Bad request", err))
 	}
 
-	baseList := <-services.PollNotifChannel
+	baseList := <-self.notifChannel
 	if len(baseList) == 0 {
 		response.SendJSON(ctx, make([]PollNotifAnswerEntry, 0))
 		return
@@ -98,7 +109,7 @@ func PollNotifHandler(ctx context.Context, response server.Response, request *se
 			if !rows.Next() {
 				continue
 			}
-			segment := PollSegment{Id: notif.Id}
+			segment := salted.Segment{Id: notif.Id}
 			err = rows.Scan(&entry.Title, &segment.Salt)
 			rows.Close()
 			must(err)

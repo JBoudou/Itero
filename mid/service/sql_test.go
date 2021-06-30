@@ -24,8 +24,6 @@ import (
 
 	"github.com/JBoudou/Itero/mid/db"
 	"github.com/JBoudou/Itero/mid/db/dbtest"
-	"github.com/JBoudou/Itero/pkg/events"
-	"github.com/JBoudou/Itero/pkg/events/eventstest"
 )
 
 func mustt(t *testing.T, err error) {
@@ -115,7 +113,6 @@ func TestSQLProcessOne(t *testing.T) {
 		query          string
 		id             uint32
 		nothingToDoYet bool
-		eventSent      bool
 	}{
 		{
 			name:           "NothingToDoYet",
@@ -124,32 +121,17 @@ func TestSQLProcessOne(t *testing.T) {
 			nothingToDoYet: true,
 		},
 		{
-			name:      "Send event",
-			query:     `UPDATE Users SET Name="mu" WHERE Id=?`,
-			id:        userId,
-			eventSent: true,
+			name:  "Send event",
+			query: `UPDATE Users SET Name="mu" WHERE Id=?`,
+			id:    userId,
 		},
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			err := SQLProcessOne(tt.query, tt.id)
 
-			// Event handling
-			event := int(42)
-			originalManager := events.DefaultManager
-			got_eventSent := false
-			events.DefaultManager = &eventstest.ManagerMock{
-				T: t,
-				Send_: func(evt events.Event) error {
-					if intEvt, ok := evt.(int); ok && intEvt == event {
-						got_eventSent = true
-					}
-					return nil
-				},
-			}
-
-			err := SQLProcessOne(tt.query, tt.id, event)
-			events.DefaultManager = originalManager
 			got_nothingToDoYet := false
 			if errors.Is(err, NothingToDoYet) {
 				got_nothingToDoYet = true
@@ -159,9 +141,6 @@ func TestSQLProcessOne(t *testing.T) {
 
 			if got_nothingToDoYet != tt.nothingToDoYet {
 				t.Errorf("Wrong nothingToDoYet. Expect %t. Got %t.", tt.nothingToDoYet, got_nothingToDoYet)
-			}
-			if got_eventSent != tt.eventSent {
-				t.Errorf("Wrong eventSent. Expect %t. Got %t.", tt.eventSent, got_eventSent)
 			}
 		})
 	}

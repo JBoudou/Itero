@@ -22,9 +22,11 @@ import (
 	"net/http"
 
 	"github.com/JBoudou/Itero/mid/db"
+	"github.com/JBoudou/Itero/mid/salted"
 	"github.com/JBoudou/Itero/mid/server"
 )
 
+// NuDate is a marshalable version of sql.NullTime.
 type NuDate sql.NullTime
 
 func (self NuDate) MarshalJSON() ([]byte, error) {
@@ -45,8 +47,10 @@ func (self *NuDate) UnmarshalJSON(raw []byte) (err error) {
 	return
 }
 
+type PollAction uint8
+
 const (
-	PollActionVote = iota
+	PollActionVote PollAction = iota
 	PollActionModif
 	PollActionPart
 	PollActionTerm
@@ -64,7 +68,7 @@ type listAnswerEntry struct {
 	CurrentRound uint8
 	MaxRound     uint8
 	Deadline     NuDate
-	Action       uint8
+	Action       PollAction
 	Deletable    bool `json:",omitempty"`
 }
 
@@ -90,10 +94,11 @@ func ListHandler(ctx context.Context, response server.Response, request *server.
 	                FROM Participants
 	               WHERE User = ?
 	               GROUP BY Poll
-	           ) AS a ON p.Id = a.Poll
-	     WHERE ( (p.State != 'Waiting' AND p.CurrentRound = 0 AND p.Publicity <= ?)
+	           ) AS a ON p.Id = a.Poll, Users AS u
+	     WHERE ( (p.State != 'Waiting' AND p.CurrentRound = 0 AND NOT p.Hidden AND
+		 							(u.Verified OR p.Electorate != 'Verified'))
 	              OR a.Poll IS NOT NULL )
-	       AND p.Admin != ?
+	       AND u.Id = ? AND p.Admin != u.Id
 	     ORDER BY Action ASC, Deadline ASC`
 		qOwn = `
 	    SELECT p.Id, p.Salt, p.Title, p.CurrentRound, p.MaxNbRounds,
@@ -120,8 +125,7 @@ func ListHandler(ctx context.Context, response server.Response, request *server.
 	)
 
 	var publicList []listAnswerEntry
-	rows, err := db.DB.QueryContext(ctx, qPublic,
-		request.User.Id, db.PollPublicityPublicRegistered, request.User.Id)
+	rows, err := db.DB.QueryContext(ctx, qPublic, request.User.Id, request.User.Id)
 	must(err)
 	publicList, err = makeListEntriesList(rows)
 	must(err)
@@ -141,7 +145,7 @@ func makeListEntriesList(rows *sql.Rows) (list []listAnswerEntry, err error) {
 
 	for rows.Next() {
 		var listAnswerEntry listAnswerEntry
-		var segment PollSegment
+		var segment salted.Segment
 		var deadline sql.NullTime
 
 		err = rows.Scan(&segment.Id, &segment.Salt, &listAnswerEntry.Title,

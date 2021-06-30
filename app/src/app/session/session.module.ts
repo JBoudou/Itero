@@ -1,5 +1,5 @@
 // Itero - Online iterative vote application
-// Copyright (C) 2021 Joseph Boudou
+// Copyright (C) 2021 Joseph Boudou, David Gomez Prieto
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -20,30 +20,39 @@ import { HTTP_INTERCEPTORS } from '@angular/common/http';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+
+import { SharedModule } from '../shared/shared.module';
 
 import { SessionRoutingModule } from './session-routing.module';
 import { SessionInterceptor } from './session.interceptor';
 
 import { LoginComponent } from './login/login.component';
 import { SignupComponent } from './signup/signup.component';
+import { ConfirmationComponent } from './confirmation/confirmation.component';
+import { EmailVerificationDialog } from './session.service';
 
 @NgModule({
   declarations: [
     LoginComponent,
     SignupComponent,
+    ConfirmationComponent,
+    EmailVerificationDialog,
   ],
   imports: [
     CommonModule,
+    FormsModule,
     MatButtonModule,
+    MatDialogModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
-    SessionRoutingModule,
     ReactiveFormsModule,
-    FormsModule,
+    SessionRoutingModule,
+    SharedModule,
   ],
   providers: [
     { provide: HTTP_INTERCEPTORS, useClass: SessionInterceptor, multi: true },

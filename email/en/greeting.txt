@@ -1,0 +1,16 @@
+From: Itero <{{ .Sender }}>
+To: {{ .Name }} <{{ .Address }}>
+Subject: Welcome to Itero
+
+Dear {{ .Name }},
+
+Thank you very much for joining Itero. You can now participate in all public
+polls and create your own polls. To confirm your email address please visit
+the following link:
+
+  {{ .BaseURL }}r/confirm/{{ .Confirmation }}
+
+We remain at your disposal for any question or comment about the application.
+
+Best,
+The Itero team

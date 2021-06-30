@@ -19,11 +19,14 @@ import { Component } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 
+import { of } from 'rxjs';
+
 import { MatRadioModule } from '@angular/material/radio';
 
 import { GeneralComponent } from './general.component';
 
 import { CreateService } from '../create.service';
+import { SessionService } from '../../session/session.service';
 
 import { ActivatedRouteStub } from 'src/testing/activated-route-stub'
 
@@ -38,10 +41,14 @@ describe('GeneralComponent', () => {
   let component: GeneralComponent;
   let fixture: ComponentFixture<GeneralComponent>;
   let serviceSpy: jasmine.SpyObj<CreateService>;
+  let sessionSpy : jasmine.SpyObj<SessionService>;
   let activatedRouteStub: ActivatedRouteStub;
 
   beforeEach(async () => {
     serviceSpy = jasmine.createSpyObj('CreateService', {register: {}});
+    sessionSpy = jasmine.createSpyObj('SessionService', ['checkSession', 'login'], {
+      state$: of({logged: false}),
+    });
     activatedRouteStub = new ActivatedRouteStub();
     
     await TestBed.configureTestingModule({
@@ -54,6 +61,7 @@ describe('GeneralComponent', () => {
       providers: [
         FormBuilder,
         { provide: CreateService, useValue: serviceSpy },
+        { provide: SessionService, useValue: sessionSpy },
         { provide: ActivatedRoute, useValue: activatedRouteStub },
       ],
     })

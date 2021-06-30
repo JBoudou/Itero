@@ -19,7 +19,7 @@ package services
 import (
 	"testing"
 	"time"
-	
+
 	"github.com/JBoudou/Itero/pkg/events"
 )
 
@@ -106,13 +106,18 @@ func TestPollNotifList_Global(t *testing.T) {
 }
 
 func TestPollNotif(t *testing.T) {
-	mustt(t, RunPollNotif(10*time.Millisecond))
+	t.Parallel()
+
+	evtManager := events.NewAsyncManager(0)
+	defer evtManager.Close()
+	notifChannel, err := RunPollNotif(10*time.Millisecond, evtManager)
+	mustt(t, err)
 
 	elements := []struct {
 		event  events.Event
 		id     uint32
 		round  uint8
-		action uint8
+		action PollNotifAction
 	}{
 		{
 			event:  StartPollEvent{Poll: 1},
@@ -132,11 +137,11 @@ func TestPollNotif(t *testing.T) {
 		},
 	}
 	for _, elt := range elements {
-		events.Send(elt.event)
+		evtManager.Send(elt.event)
 	}
 	time.Sleep(5 * time.Millisecond)
 
-	sl := <-PollNotifChannel
+	sl := <-notifChannel
 	sllen := len(sl)
 	if sllen != len(elements) {
 		t.Errorf("Wrong slice len. Got %d. Expect %d.", sllen, len(elements))

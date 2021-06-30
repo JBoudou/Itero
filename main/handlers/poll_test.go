@@ -17,53 +17,23 @@
 package handlers
 
 import (
-	"context"
-	"fmt"
 	"net/http"
-	"runtime"
-	"strconv"
 	"testing"
 
 	"github.com/JBoudou/Itero/mid/db"
 	dbt "github.com/JBoudou/Itero/mid/db/dbtest"
-	"github.com/JBoudou/Itero/mid/server"
+	"github.com/JBoudou/Itero/mid/salted"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
+	"github.com/JBoudou/Itero/pkg/ioc"
 )
-
-func TestPollSegment(t *testing.T) {
-	tests := []struct {
-		name    string
-		segment PollSegment
-	}{
-		{
-			name:    "Simple",
-			segment: PollSegment{Id: 0xF1234567, Salt: 0x312345},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			encoded, err := tt.segment.Encode()
-			if err != nil {
-				t.Fatalf("Encode error: %s", err)
-			}
-			got, err := PollSegmentDecode(encoded)
-			if err != nil {
-				t.Fatalf("Decode error: %s", err)
-			}
-			if got != tt.segment {
-				t.Errorf("Got %v. Expect %v", got, tt.segment)
-			}
-		})
-	}
-}
 
 type partialPollAnswer struct {
 	Title        string
 	Description  string
 	Admin        string
 	CurrentRound uint8
-	Ballot       uint8
-	Information  uint8
+	Ballot       BallotType
+	Information  InformationType
 }
 
 func TestPollHandler(t *testing.T) {
@@ -81,17 +51,17 @@ func TestPollHandler(t *testing.T) {
 	)
 
 	var (
-		segment1 PollSegment
+		segment1 salted.Segment
 
 		target1 string
 
 		target1wrong string
 	)
 
-	createPoll := func(segment *PollSegment, target *string, publicity uint8) func(t *testing.T) {
+	createPoll := func(segment *salted.Segment, target *string, electorate db.Electorate) func(t *testing.T) {
 		segment.Salt = 42
 		return func(t *testing.T) {
-			segment.Id = env.CreatePoll("Test", userId, publicity)
+			segment.Id = env.CreatePoll("Test", userId, electorate)
 			env.Must(t)
 			encoded, err := segment.Encode()
 			if err != nil {
@@ -114,8 +84,8 @@ func TestPollHandler(t *testing.T) {
 		&srvt.T{
 			Name: "Wrong salt",
 			Update: func(t *testing.T) {
-				createPoll(&segment1, &target1, db.PollPublicityHiddenRegistered)(t)
-				segment := PollSegment{Id: segment1.Id, Salt: 9999}
+				createPoll(&segment1, &target1, db.ElectorateLogged)(t)
+				segment := salted.Segment{Id: segment1.Id, Salt: 9999}
 				encoded, err := segment.Encode()
 				if err != nil {
 					t.Fatal(err)
@@ -183,81 +153,97 @@ func TestPollHandler(t *testing.T) {
 
 		// Independent tests //
 
+		&missingPollTest{},
+
 		&pollTest{
-			Name:      "No user access to public",
-			Publicity: db.PollPublicityPublic,
-			UserType:  pollTestUserTypeNone,
-			Checker:   pollHandlerCheckerFactory,
+			Name:       "No user access to public",
+			Electorate: db.ElectorateAll,
+			UserType:   pollTestUserTypeNone,
+			Checker:    pollHandlerCheckerFactory,
 		},
 		&pollTest{
-			Name:      "No user access to public hidden",
-			Publicity: db.PollPublicityHidden,
-			UserType:  pollTestUserTypeNone,
-			Checker:   pollHandlerCheckerFactory,
+			Name:       "No user access to public hidden",
+			Electorate: db.ElectorateAll,
+			Hidden:     true,
+			UserType:   pollTestUserTypeNone,
+			Checker:    pollHandlerCheckerFactory,
 		},
 		&pollTest{
-			Name:      "Unlogged access to public",
-			Publicity: db.PollPublicityPublic,
-			UserType:  pollTestUserTypeUnlogged,
-			Checker:   pollHandlerCheckerFactory,
+			Name:       "Unlogged access to public",
+			Electorate: db.ElectorateAll,
+			UserType:   pollTestUserTypeUnlogged,
+			Checker:    pollHandlerCheckerFactory,
 		},
 		&pollTest{
-			Name:      "Unlogged access to public hidden",
-			Publicity: db.PollPublicityHidden,
-			UserType:  pollTestUserTypeUnlogged,
-			Checker:   pollHandlerCheckerFactory,
+			Name:       "Unlogged access to public hidden",
+			Electorate: db.ElectorateAll,
+			Hidden:     true,
+			UserType:   pollTestUserTypeUnlogged,
+			Checker:    pollHandlerCheckerFactory,
 		},
 
 		&pollTest{
-			Name:      "No user no access to registered",
-			Publicity: db.PollPublicityPublicRegistered,
-			UserType:  pollTestUserTypeNone,
-			Checker:   srvt.CheckStatus{http.StatusNotFound},
+			Name:       "No user no access to registered",
+			Electorate: db.ElectorateLogged,
+			UserType:   pollTestUserTypeNone,
+			Checker:    srvt.CheckStatus{http.StatusNotFound},
 		},
 		&pollTest{
-			Name:      "No user no access to hidden registered",
-			Publicity: db.PollPublicityHiddenRegistered,
-			UserType:  pollTestUserTypeNone,
-			Checker:   srvt.CheckStatus{http.StatusNotFound},
+			Name:       "No user no access to hidden registered",
+			Electorate: db.ElectorateLogged,
+			Hidden:     true,
+			UserType:   pollTestUserTypeNone,
+			Checker:    srvt.CheckStatus{http.StatusNotFound},
 		},
 		&pollTest{
-			Name:      "Unlogged no access to registered",
-			Publicity: db.PollPublicityPublicRegistered,
-			UserType:  pollTestUserTypeUnlogged,
-			Checker:   srvt.CheckStatus{http.StatusNotFound},
+			Name:       "Unlogged no access to registered",
+			Electorate: db.ElectorateLogged,
+			UserType:   pollTestUserTypeUnlogged,
+			Checker:    srvt.CheckStatus{http.StatusNotFound},
 		},
 		&pollTest{
-			Name:      "Unlogged no access to hidden registered",
-			Publicity: db.PollPublicityHiddenRegistered,
-			UserType:  pollTestUserTypeUnlogged,
-			Checker:   srvt.CheckStatus{http.StatusNotFound},
+			Name:       "Unlogged no access to hidden registered",
+			Electorate: db.ElectorateLogged,
+			Hidden:     true,
+			UserType:   pollTestUserTypeUnlogged,
+			Checker:    srvt.CheckStatus{http.StatusNotFound},
 		},
 
 		&pollTest{
-			Name:      "No user access any round",
-			Publicity: db.PollPublicityPublic,
-			Round:     2,
-			UserType:  pollTestUserTypeNone,
-			Checker:   pollHandlerCheckerFactory,
+			Name:       "No user access any round",
+			Electorate: db.ElectorateAll,
+			Round:      2,
+			UserType:   pollTestUserTypeNone,
+			Checker:    pollHandlerCheckerFactory,
 		},
 		&pollTest{
-			Name:      "Logged access any round",
-			Publicity: db.PollPublicityPublic,
-			Round:     2,
-			UserType:  pollTestUserTypeLogged,
-			Checker:   pollHandlerCheckerFactory,
+			Name:       "Logged access any round",
+			Electorate: db.ElectorateAll,
+			Round:      2,
+			UserType:   pollTestUserTypeLogged,
+			Checker:    pollHandlerCheckerFactory,
 		},
 		&pollTest{
-			Name:      "Logged no access any round",
-			Publicity: db.PollPublicityPublicRegistered,
-			Round:     2,
-			UserType:  pollTestUserTypeLogged,
-			Checker:   srvt.CheckStatus{http.StatusNotFound},
+			Name:       "Logged no access any round",
+			Electorate: db.ElectorateLogged,
+			Round:      2,
+			UserType:   pollTestUserTypeLogged,
+			Checker:    srvt.CheckStatus{http.StatusNotFound},
+		},
+		&pollTest{
+			Name:       "Poll verified, User unverified",
+			Electorate: db.ElectorateVerified,
+			UserType:   pollTestUserTypeLogged,
+			Checker:    srvt.CheckStatus{http.StatusNotFound},
+		},
+		&pollTest{
+			Name:       "Poll verified, User verified",
+			Electorate: db.ElectorateVerified,
+			UserType:   pollTestUserTypeLogged,
+			Verified:   true,
+			Checker:    pollHandlerCheckerFactory,
 		},
 	}
-	srvt.RunFunc(t, tests, PollHandler)
-
-	tests = []srvt.Test{}
 	srvt.RunFunc(t, tests, PollHandler)
 }
 
@@ -278,192 +264,44 @@ func pollHandlerCheckerFactory(param PollTestCheckerFactoryParam) srvt.Checker {
 	}
 }
 
-// What follows is generic and used for other handler.
-// TODO move that in its own place.
+//
+// missingPollTest
+//
 
-type pollTestUserType uint8
+type missingPollTest struct {
+	WithUser         // If WithUser.RequestFct is nil, uses RFGetSession.
+	srvt.WithChecker // If WithChecker.Checker is nil, check StatusNotFound.
 
-const (
-	pollTestUserTypeNone pollTestUserType = iota
-	pollTestUserTypeAdmin
-	pollTestUserTypeLogged
-	pollTestUserTypeUnlogged
-)
-
-type pollTestParticipate struct {
-	User  uint8 // 0 is admin, 1 is request user, n > 1 are additional users.
-	Round uint8
+	pollSegment salted.Segment
 }
 
-type pollTestVote struct {
-	User  uint8 // 0 is admin, 1 is request user, n > 1 are additional users.
-	Round uint8
-	Alt   uint8
+func (self missingPollTest) GetName() string {
+	return "Missing poll"
 }
 
-type pollTest struct {
-	Name         string // Required.
-	Sequential   bool   // If the test cannot be run in parallel.
-	Publicity    uint8  // Required.
-	Alternatives []string
-	Round        uint8
-	Participate  []pollTestParticipate // No need to add an entry for each vote.
-	Vote         []pollTestVote
+func (self *missingPollTest) Prepare(t *testing.T) *ioc.Locator {
+	if self.WithUser.RequestFct == nil {
+		self.WithUser.RequestFct = RFGetSession
+	}
+	self.WithUser.Prepare(t)
 
-	UserType pollTestUserType // Required.
-	Request  srvt.Request     // Just a squeleton that will be completed by the test.
-	Checker  interface{}      // Required. Either an srvt.Checker or a PollTestCheckerFactoryParam.
+	var pollEnv dbt.Env
+	self.pollSegment.Id = pollEnv.CreatePoll("Todel", self.User.Id, db.ElectorateAll)
+	self.pollSegment.Salt = dbt.PollSalt
+	pollEnv.Must(t)
+	pollEnv.Close()
 
-	dbEnv  dbt.Env
-	pollId uint32
-	userId []uint32
+	if self.Checker == nil {
+		self.Checker = srvt.CheckStatus{http.StatusNotFound}
+	}
+	return self.WithChecker.Prepare(t)
 }
 
-// PollTestCheckerFactoryParam contains the parameter to construct a default Checker.
-// We use a struct type instead of a list of arguments to ease the addition of parameters.
-// TODO consider moving that to a _test package.
-type PollTestCheckerFactoryParam struct {
-	PollTitle string
-	PollId    uint32
-	AdminName string
-	UserId    uint32
-	Round     uint8
-}
-
-type pollTestCheckerFactory = func(param PollTestCheckerFactoryParam) srvt.Checker
-
-var pollHanlerTestUnloggedHash uint32 = 42
-
-func (self *pollTest) GetName() string {
-	return self.Name
-}
-
-func stats(ctx string) {
-	stats := db.DB.Stats()
-	fmt.Printf("%s -- open %d, use %d, idle %d, goroutines %d\n", ctx,
-		stats.OpenConnections, stats.InUse, stats.Idle, runtime.NumGoroutine())
-}
-
-func (self *pollTest) Prepare(t *testing.T) {
-	stats("Before Prepare")
-
-	if !self.Sequential {
-		t.Parallel()
-	}
-
-	self.userId = make([]uint32, 2)
-	self.userId[0] = self.dbEnv.CreateUserWith(t.Name())
-	if len(self.Alternatives) < 2 {
-		self.pollId = self.dbEnv.CreatePoll("Title", self.userId[0], self.Publicity)
-	} else {
-		self.pollId = self.dbEnv.CreatePollWith("Title", self.userId[0], self.Publicity,
-			self.Alternatives)
-	}
-
-	// Users
-	switch self.UserType {
-	case pollTestUserTypeAdmin:
-		self.userId[1] = self.userId[0]
-
-	case pollTestUserTypeLogged:
-		self.userId[1] = self.dbEnv.CreateUserWith(t.Name() + "Logged")
-
-	case pollTestUserTypeUnlogged:
-		self.dbEnv.Must(t)
-		user, err := UnloggedFromHash(context.Background(), 42)
-		mustt(t, err)
-		self.userId[1] = user.Id
-
-	case pollTestUserTypeNone:
-		if self.Request.RemoteAddr != nil {
-			self.dbEnv.Must(t)
-			user, err := UnloggedFromAddr(context.Background(), *self.Request.RemoteAddr)
-			mustt(t, err)
-			self.userId[1] = user.Id
-			break
-		}
-		fallthrough // There must be a break at the end of the previous if
-
-	default:
-		self.userId[1] = self.userId[0]
-	}
-
-	// Round
-	const qRound = `UPDATE Polls SET CurrentRound = ? WHERE Id = ?`
-	if self.Round > 0 {
-		self.dbEnv.QuietExec(qRound, self.Round, self.pollId)
-	}
-
-	// Participate
-	const qParticipate = `INSERT INTO Participants (User, Poll, Round) VALUE (?,?,?)`
-	for _, participate := range self.Participate {
-		for len(self.userId) <= int(participate.User) {
-			self.userId = append(self.userId, self.dbEnv.CreateUserWith(t.Name()+strconv.Itoa(len(self.userId))))
-		}
-		self.dbEnv.QuietExec(qParticipate, self.userId[participate.User], self.pollId, participate.Round)
-	}
-
-	// Vote
-	const qVote = `INSERT INTO Ballots (User, Poll, Alternative, Round) VALUE (?,?,?,?)`
-	for _, vote := range self.Vote {
-		for len(self.userId) <= int(vote.User) {
-			self.userId = append(self.userId, self.dbEnv.CreateUserWith(t.Name()+strconv.Itoa(len(self.userId))))
-		}
-		// We don't care about errors when adding to Participants
-		db.DB.Exec(qParticipate, self.userId[vote.User], self.pollId, vote.Round)
-		self.dbEnv.QuietExec(qVote, self.userId[vote.User], self.pollId, vote.Alt, vote.Round)
-	}
-
-	// Checker
-	if factory, ok := self.Checker.(pollTestCheckerFactory); ok {
-		self.Checker = factory(PollTestCheckerFactoryParam{
-			PollTitle: "Title",
-			PollId:    self.pollId,
-			AdminName: " Test" + t.Name() + " ",
-			UserId:    self.userId[1],
-			Round:     self.Round,
-		})
-	}
-
-	self.dbEnv.Must(t)
-	if checker, ok := self.Checker.(interface { Before(*testing.T) }); ok {
-		checker.Before(t)
-	}
-	stats("After Prepare")
-}
-
-func (self *pollTest) GetRequest(t *testing.T) *srvt.Request {
-	segment, err := PollSegment{Id: self.pollId, Salt: 42}.Encode()
-	if err != nil {
-		t.Errorf("Error encoding poll segment: %v.", err)
-	}
-	target := "/a/test/" + segment
-	self.Request.Target = &target
-
-	switch self.UserType {
-	case pollTestUserTypeAdmin:
-		self.Request.UserId = &self.userId[0]
-
-	case pollTestUserTypeLogged:
-		self.Request.UserId = &self.userId[1]
-
-	case pollTestUserTypeUnlogged:
-		self.Request.UserId = &self.userId[1]
-		self.Request.Hash = &pollHanlerTestUnloggedHash
-	}
-
-	return &self.Request
-}
-
-func (self *pollTest) Check(t *testing.T, response *http.Response, request *server.Request) {
-	if checker, ok := self.Checker.(srvt.Checker); ok {
-		checker.Check(t, response, request)
-	} else {
-		t.Errorf("Checker is not an srvt.Checker")
-	}
-	stats("After Check")
-}
-
-func (self *pollTest) Close() {
-	self.dbEnv.Close()
+func (self missingPollTest) GetRequest(t *testing.T) *srvt.Request {
+	req := self.WithUser.GetRequest(t)
+	segment, err := self.pollSegment.Encode()
+	mustt(t, err)
+	segment = "/a/test/" + segment
+	req.Target = &segment
+	return req
 }

@@ -23,9 +23,10 @@ import (
 
 	"github.com/JBoudou/Itero/mid/db"
 	dbt "github.com/JBoudou/Itero/mid/db/dbtest"
+	"github.com/JBoudou/Itero/mid/root"
+	"github.com/JBoudou/Itero/mid/service"
 	"github.com/JBoudou/Itero/pkg/events"
 	"github.com/JBoudou/Itero/pkg/events/eventstest"
-	"github.com/JBoudou/Itero/mid/service"
 )
 
 type closePollTestInstance struct {
@@ -35,6 +36,8 @@ type closePollTestInstance struct {
 }
 
 func metaTestClosePoll(t *testing.T, checker func(*testing.T, *closePollTestInstance, uint32)) {
+	t.Parallel()
+
 	const (
 		qSetMinMax      = `UPDATE Polls SET MinNbRounds = 1, MaxNbRounds = 2 WHERE Id = ?`
 		qSetRound       = `UPDATE Polls SET CurrentRound = ? WHERE Id = ?`
@@ -80,7 +83,7 @@ func metaTestClosePoll(t *testing.T, checker func(*testing.T, *closePollTestInst
 			env := new(dbt.Env)
 			defer env.Close()
 			userId := env.CreateUserWith(t.Name())
-			pollId := env.CreatePoll("TestRoundCheckAllPolls_Close", userId, db.PollPublicityPublic)
+			pollId := env.CreatePoll("TestRoundCheckAllPolls_Close", userId, db.ElectorateAll)
 			env.Must(t)
 
 			var err error
@@ -102,21 +105,23 @@ func metaTestClosePoll(t *testing.T, checker func(*testing.T, *closePollTestInst
 func closePoll_processOne_checker(t *testing.T, tt *closePollTestInstance, pollId uint32) {
 	const qIsActive = `SELECT State = 'Active' FROM Polls WHERE Id = ?`
 
-	originalManager := events.DefaultManager
+	locator := root.IoC.Sub()
 	closed := false
-	events.DefaultManager = &eventstest.ManagerMock{
-		T: t,
-		Send_: func(evt events.Event) error {
-			if closeEvent, ok := evt.(ClosePollEvent); ok && closeEvent.Poll == pollId {
-				closed = true
-			}
-			return nil
-		},
-	}
+	locator.Bind(func() events.Manager {
+		return &eventstest.ManagerMock{
+			T: t,
+			Send_: func(evt events.Event) error {
+				if closeEvent, ok := evt.(ClosePollEvent); ok && closeEvent.Poll == pollId {
+					closed = true
+				}
+				return nil
+			},
+		}
+	})
 
-	err := ClosePollService.ProcessOne(pollId)
-
-	events.DefaultManager = originalManager
+	var svc service.Service
+	mustt(t, locator.Inject(ClosePollService, &svc))
+	err := svc.ProcessOne(pollId)
 
 	nothingToDoYet := false
 	if errors.Is(err, service.NothingToDoYet) {
@@ -160,7 +165,11 @@ func TestClosePollService_ProcessOne(t *testing.T) {
 // CheckAll //
 
 func closePoll_CheckAll_checker(t *testing.T, tt *closePollTestInstance, poll uint32) {
-	iterator := ClosePollService.CheckAll()
+	var svc service.Service
+	mustt(t, root.IoC.Inject(ClosePollService, &svc))
+
+	iterator := svc.CheckAll()
+	defer iterator.Close()
 
 	listed := idDateIteratorHasId(t, iterator, poll)
 	if listed != tt.expectClosed {
@@ -179,7 +188,9 @@ func TestClosePollService_CheckAll(t *testing.T) {
 // CheckOne //
 
 func closePoll_CheckOne_checker(t *testing.T, tt *closePollTestInstance, poll uint32) {
-	got := ClosePollService.CheckOne(poll)
+	var svc service.Service
+	mustt(t, root.IoC.Inject(ClosePollService, &svc))
+	got := svc.CheckOne(poll)
 
 	isZero := got.IsZero()
 	if isZero == tt.expectClosed {
@@ -193,4 +204,21 @@ func closePoll_CheckOne_checker(t *testing.T, tt *closePollTestInstance, poll ui
 
 func TestClosePollService_CheckOne(t *testing.T) {
 	metaTestClosePoll(t, closePoll_CheckOne_checker)
+}
+
+// events //
+
+func TestClosePollService_Events(t *testing.T) {
+	tests := []checkEventScheduleTest{
+		{
+			name:     "NextRoundEvent",
+			event:    NextRoundEvent{Poll: 1, Round: 2},
+			schedule: []uint32{1},
+		},
+		{
+			name:  "ClosePollEvent",
+			event: ClosePollEvent{42},
+		},
+	}
+	checkEventSchedule(t, tests, ClosePollService)
 }

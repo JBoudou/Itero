@@ -133,13 +133,13 @@ export class PollComponent implements OnInit, OnDestroy {
   private components: ComponentRef<PollSubComponent>[] = [];
 
   constructor(
-    private route: ActivatedRoute,
-    private http: HttpClient,
     private dynamicComponentFactory: DynamicComponentFactoryService,
-    private session: SessionService,
     private formBuilder: FormBuilder,
-    private title: AppTitleService,
+    private http: HttpClient,
     private notif: PollNotifService,
+    private route: ActivatedRoute,
+    private session: SessionService,
+    private title: AppTitleService,
   ) { }
 
   ngOnInit(): void {
@@ -248,7 +248,8 @@ export class PollComponent implements OnInit, OnDestroy {
     this.http.get('/a/poll/' + this.segment, {responseType: 'text'}).pipe(take(1)).subscribe({
       next: (body: string) => {
         this.answer = PollAnswer.fromJSON(body)
-        // When need the ViewChilds to appear before inserting components in them.
+        this.title.setTitle(this.answer.Title)
+        // We need the ViewChilds to appear before inserting components in them.
         setTimeout(() => this.synchronizeSubComponents(), 0);
       },
       error: (err: HttpErrorResponse) => {
