@@ -19,6 +19,7 @@ import { HttpClientTestingModule, HttpTestingController } from '@angular/common/
 import { RouterTestingModule } from '@angular/router/testing';
 
 import { BehaviorSubject } from 'rxjs';
+import { MatDialog } from '@angular/material/dialog';
 
 import { PollNotifService } from './poll-notif.service';
 import { Recorder } from 'src/testing/recorder';
@@ -38,6 +39,8 @@ describe('PollNotifService', () => {
     const sessionSpy = jasmine.createSpyObj('SessionService', [], ['state$']);
     setSpyProperty(sessionSpy, 'state$', state$);
 
+    const dummyMatDialog = jasmine.createSpyObj('MatDialog', ['open'])
+
     TestBed.configureTestingModule({
       imports: [
         HttpClientTestingModule,
@@ -45,6 +48,7 @@ describe('PollNotifService', () => {
       ],
       providers: [
         { provide: SessionService, UseValue: sessionSpy },
+        { provide: MatDialog, useValue: dummyMatDialog },
       ],
     });
     service = TestBed.inject(PollNotifService);

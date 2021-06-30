@@ -20,6 +20,7 @@ import { HttpClientTestingModule, HttpTestingController } from '@angular/common/
 import { Router } from '@angular/router';
 
 import { throwError, of } from 'rxjs';
+import { MatDialog } from '@angular/material/dialog';
 
 import { SessionInfo, SessionService } from './session.service';
 
@@ -34,11 +35,14 @@ describe('SessionService', () => {
   beforeEach(() => {
     routerSpy = new RouterStub();
 
+    const dummyMatDialog = jasmine.createSpyObj('MatDialog', ['open'])
+
     TestBed.configureTestingModule({
       imports: [ HttpClientTestingModule ],
       providers: [
         SessionService,
         { provide: Router, useValue: routerSpy },
+        { provide: MatDialog, useValue: dummyMatDialog },
       ],
     });
     service = TestBed.inject(SessionService);
