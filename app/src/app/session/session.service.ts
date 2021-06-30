@@ -178,15 +178,15 @@ export class SessionService {
     this.http.get('/a/reverify')
       .pipe(take(1))
       .subscribe({
-      next: () => {
-        this.dialog.open<EmailVerificationDialog, boolean>(EmailVerificationDialog, {data: true});
-      },
-      error: (err: HttpErrorResponse) => {
-        if (err.status == 409) {
-          this.dialog.open<EmailVerificationDialog, boolean>(EmailVerificationDialog, {data: false});
+        next: () => {
+          this.dialog.open<EmailVerificationDialog, boolean>(EmailVerificationDialog, {data: true});
+        },
+        error: (err: HttpErrorResponse) => {
+          if (err.status == 409) {
+            this.dialog.open<EmailVerificationDialog, boolean>(EmailVerificationDialog, {data: false});
+          }
         }
-      }
-    });
+      });
   }
 
   /** Close the current session (if any). */
