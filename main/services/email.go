@@ -111,7 +111,7 @@ func (self emailService) Logger() slog.Leveled {
 
 func (self emailService) FilterEvent(evt events.Event) bool {
 	switch evt.(type) {
-	case CreateUserEvent, ReverifyEvent:
+	case CreateUserEvent, ReverifyEvent, ForgotEvent:
 		return true
 	}
 	return false
@@ -120,13 +120,16 @@ func (self emailService) FilterEvent(evt events.Event) bool {
 func (self emailService) ReceiveEvent(evt events.Event, ctrl service.RunnerControler) {
 	switch converted := evt.(type) {
 	case CreateUserEvent:
-		self.verify(converted.User, ctrl, "greeting.txt")
+		self.confirmationEmail(converted.User, ctrl, "greeting.txt", db.ConfirmationTypeVerify, 48*time.Hour)
 	case ReverifyEvent:
-		self.verify(converted.User, ctrl, "reverify.txt")
+		self.confirmationEmail(converted.User, ctrl, "reverify.txt", db.ConfirmationTypeVerify, 48*time.Hour)
+	case ForgotEvent:
+		self.confirmationEmail(converted.User, ctrl, "forgot.txt", db.ConfirmationTypePasswd, 3*time.Hour)
 	}
 }
 
-func (self emailService) verify(userId uint32, ctrl service.RunnerControler, tmplFile string) {
+func (self emailService) confirmationEmail(userId uint32, ctrl service.RunnerControler,
+	tmplFile string, confirmType db.ConfirmationType, confirmDuration time.Duration) {
 	var data struct {
 		Sender       string
 		Name         string
@@ -166,7 +169,7 @@ func (self emailService) verify(userId uint32, ctrl service.RunnerControler, tmp
 	rows.Close()
 
 	// Create the confirmation
-	segment, err := db.CreateConfirmation(context.Background(), userId, db.ConfirmationTypeVerify, 48*time.Hour)
+	segment, err := db.CreateConfirmation(context.Background(), userId, confirmType, confirmDuration)
 	if err != nil {
 		self.log.Errorf("Error creating confirmation %v.", err)
 		return

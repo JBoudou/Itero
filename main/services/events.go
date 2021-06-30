@@ -30,6 +30,11 @@ type ReverifyEvent struct {
 	User uint32
 }
 
+// ForgotEvent is sent when a user requests to change its passwd.
+type ForgotEvent struct {
+	User uint32
+}
+
 //
 // Polls
 //

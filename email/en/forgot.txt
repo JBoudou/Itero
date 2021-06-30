@@ -1,0 +1,17 @@
+From: Itero <{{ .Sender }}>
+To: {{ .Name }} <{{ .Address }}>
+Subject: Forgotten password for Itero
+
+Dear {{ .Name }},
+
+To change your password on Itero please follow the following link:
+
+  {{ .BaseURL }}r/confirm/{{ .Confirmation }}
+
+If you have not requested to change your password then you don't have to do
+anything. Your previous password is still valid.
+
+We remain at your disposal for any question or comment about the application.
+
+Best,
+The Itero team

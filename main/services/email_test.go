@@ -32,20 +32,28 @@ import (
 	evtest "github.com/JBoudou/Itero/pkg/events/eventstest"
 )
 
-func TestEmailService_CreateUserEvent(t *testing.T) {
+func TestEmailService_Events(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name  string
 		event func(uid uint32) events.Event
+		type_ db.ConfirmationType
 	}{
 		{
 			name:  "CreateUserEvent",
 			event: func(uid uint32) events.Event { return CreateUserEvent{User: uid} },
+			type_: db.ConfirmationTypeVerify,
 		},
 		{
 			name:  "ReverifyEvent",
 			event: func(uid uint32) events.Event { return ReverifyEvent{User: uid} },
+			type_: db.ConfirmationTypeVerify,
+		},
+		{
+			name:  "ForgotEvent",
+			event: func(uid uint32) events.Event { return ForgotEvent{User: uid} },
+			type_: db.ConfirmationTypePasswd,
 		},
 	}
 
@@ -111,8 +119,8 @@ func TestEmailService_CreateUserEvent(t *testing.T) {
 				t.Errorf("No email sent")
 			}
 
-			const qSelect = `SELECT 1 FROM Confirmations WHERE User = ? AND Type = 'verify'`
-			rows, err := db.DB.Query(qSelect, uid)
+			const qSelect = `SELECT 1 FROM Confirmations WHERE User = ? AND Type = ?`
+			rows, err := db.DB.Query(qSelect, uid, tt.type_)
 			defer rows.Close()
 			mustt(t, err)
 			if !rows.Next() {
@@ -132,14 +140,26 @@ type emailTestInstance struct {
 func metaTestEmail(t *testing.T, checker func(*testing.T, *emailTestInstance, uint32)) {
 	tests := []emailTestInstance{
 		{
-			name:     "Past",
+			name:     "Past Verify",
 			type_:    db.ConfirmationTypeVerify,
 			duration: -1 * time.Hour,
 			expected: true,
 		},
 		{
-			name:     "Future",
+			name:     "Future Verify",
 			type_:    db.ConfirmationTypeVerify,
+			duration: 1 * time.Hour,
+			expected: false,
+		},
+		{
+			name:     "Past Passwd",
+			type_:    db.ConfirmationTypePasswd,
+			duration: -1 * time.Hour,
+			expected: true,
+		},
+		{
+			name:     "Future Passwd",
+			type_:    db.ConfirmationTypePasswd,
 			duration: 1 * time.Hour,
 			expected: false,
 		},
