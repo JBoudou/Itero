@@ -40,12 +40,12 @@ type listChecker struct {
 type listCheckerEntry struct {
 	title     string
 	id        *uint32
-	action    uint8
+	action    PollAction
 	deletable bool
 }
 
 func (self *listCheckerEntry) toListEntry(t *testing.T) *listAnswerEntry {
-	segment, err := salted.Segment{Id: *self.id, Salt: 42}.Encode()
+	segment, err := salted.Segment{Id: *self.id, Salt: dbt.PollSalt}.Encode()
 	mustt(t, err)
 	return &listAnswerEntry{
 		Title:        self.title,
@@ -109,7 +109,7 @@ const (
 	listCheckFactoryKindNone
 )
 
-func listCheckFactory(kind listCheckFactoryKind, action uint8, deletable bool) pollTestCheckerFactory {
+func listCheckFactory(kind listCheckFactoryKind, action PollAction, deletable bool) pollTestCheckerFactory {
 	return func(param PollTestCheckerFactoryParam) srvt.Checker {
 		entry := []listCheckerEntry{{
 			title:     param.PollTitle,

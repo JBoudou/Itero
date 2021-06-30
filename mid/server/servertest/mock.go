@@ -23,7 +23,8 @@ import (
 	"github.com/JBoudou/Itero/mid/server"
 )
 
-type MockResponse struct {
+type ResponseSpy struct {
+	Backend     server.Response
 	T           *testing.T
 	JsonFct     func(*testing.T, context.Context, interface{})
 	ErrorFct    func(*testing.T, context.Context, error)
@@ -31,42 +32,38 @@ type MockResponse struct {
 	UnloggedFct func(*testing.T, context.Context, server.User, *server.Request) error
 }
 
-func (self MockResponse) SendJSON(ctx context.Context, data interface{}) {
+func (self ResponseSpy) SendJSON(ctx context.Context, data interface{}) {
 	self.T.Helper()
-	if self.JsonFct == nil {
-		self.T.Errorf("SendJSON called with data %v", data)
-		return
+	if self.JsonFct != nil {
+		self.JsonFct(self.T, ctx, data)
 	}
-	self.JsonFct(self.T, ctx, data)
+	self.Backend.SendJSON(ctx, data)
 }
 
-func (self MockResponse) SendError(ctx context.Context, err error) {
+func (self ResponseSpy) SendError(ctx context.Context, err error) {
 	self.T.Helper()
-	if self.ErrorFct == nil {
-		self.T.Errorf("SendError called with error %s", err)
-		return
+	if self.ErrorFct != nil {
+		self.ErrorFct(self.T, ctx, err)
 	}
-	self.ErrorFct(self.T, ctx, err)
+	self.Backend.SendError(ctx, err)
 }
 
-func (self MockResponse) SendLoginAccepted(ctx context.Context, user server.User,
+func (self ResponseSpy) SendLoginAccepted(ctx context.Context, user server.User,
 	request *server.Request, profile interface{}) {
 
 	self.T.Helper()
-	if self.LoginFct == nil {
-		self.T.Errorf("SendLoginAccepted called with user %v", user)
-		return
+	if self.LoginFct != nil {
+		self.LoginFct(self.T, ctx, user, request, profile)
 	}
-	self.LoginFct(self.T, ctx, user, request, profile)
+	self.Backend.SendLoginAccepted(ctx, user, request, profile)
 }
 
-func (self MockResponse) SendUnloggedId(ctx context.Context, user server.User,
+func (self ResponseSpy) SendUnloggedId(ctx context.Context, user server.User,
 	request *server.Request) error {
 
 	self.T.Helper()
-	if self.UnloggedFct == nil {
-		self.T.Errorf("SendUnloggedId called with user %v", user)
-		return nil
+	if self.UnloggedFct != nil {
+		return self.UnloggedFct(self.T, ctx, user, request)
 	}
-	return self.UnloggedFct(self.T, ctx, user, request)
+	return self.Backend.SendUnloggedId(ctx, user, request)
 }

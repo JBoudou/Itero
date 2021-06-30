@@ -14,6 +14,10 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+// Package db provides access to the database backend of the application.
+//
+// In particular, the package reads the parameters of the database given in the configuration file
+// and provides the pool of database connections to the application.
 package db
 
 import (
@@ -21,22 +25,23 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
 	"github.com/go-sql-driver/mysql"
 
+	"github.com/JBoudou/Itero/mid/root"
 	"github.com/JBoudou/Itero/pkg/config"
+	"github.com/JBoudou/Itero/pkg/slog"
 )
 
-// Database pool for the application.
+// DB is the pool of database connections for the application.
 var DB *sql.DB
 
-// Whether the database is usable. May be false if there is no configuration for the package.
+// Ok indicates whether the database is usable. May be false if there is no configuration for the
+// package.
 var Ok bool
 
-// Constants for Polls fields.
 var (
 	PollTypeAcceptanceSet uint8
 
@@ -45,6 +50,7 @@ var (
 	RoundTypeFreelyAsynchronous uint8
 )
 
+// Electorate is the enum type for the field Electorate of table Polls.
 type Electorate string
 
 const (
@@ -70,14 +76,19 @@ type myConfig struct {
 }
 
 func init() {
+	var logger slog.Leveled
+	if err := root.IoC.Inject(&logger); err != nil {
+		panic(err)
+	}
+
 	// Read conf
 	cfg := myConfig{
 		MaxIdleConns: 2,
 		MaxIdleTime:  "2m",
 	}
 	if err := config.Value("database", &cfg); err != nil {
-		log.Print(err)
-		log.Println("WARNING: Package db not usable because there is no configuration for it.")
+		logger.Error(err)
+		logger.Error("Package db not usable because there is no configuration for it.")
 		Ok = false
 		return
 	}
@@ -89,8 +100,8 @@ func init() {
 	// Open DB
 	var err error
 	DB, err = sql.Open("mysql", cfg.DSN)
-	mustm(err, "Error initializing database:")
-	mustm(DB.Ping(), "Error connecting the the database:")
+	mustm(logger, err, "Error initializing database:")
+	mustm(logger, DB.Ping(), "Error connecting the the database:")
 
 	// configure DB
 	if dur, err := time.ParseDuration(cfg.MaxLifetime); err == nil {
@@ -103,9 +114,9 @@ func init() {
 	DB.SetMaxOpenConns(cfg.MaxOpenConns)
 
 	// Fill variables
-	fillVars("PollType", map[string]*uint8{"Acceptance Set": &PollTypeAcceptanceSet})
-	fillVars("PollRule", map[string]*uint8{"Plurality": &PollRulePlurality})
-	fillVars("RoundType", map[string]*uint8{"Freely Asynchronous": &RoundTypeFreelyAsynchronous})
+	fillVars(logger, "PollType", map[string]*uint8{"Acceptance Set": &PollTypeAcceptanceSet})
+	fillVars(logger, "PollRule", map[string]*uint8{"Plurality": &PollRulePlurality})
+	fillVars(logger, "RoundType", map[string]*uint8{"Freely Asynchronous": &RoundTypeFreelyAsynchronous})
 }
 
 // AddURLQuery adds a query string to an url string.
@@ -118,18 +129,19 @@ func AddURLQuery(url, query string) string {
 	return url + sep + query
 }
 
-func fillVars(table string, assoc map[string]*uint8) {
+func fillVars(logger slog.Leveled, table string, assoc map[string]*uint8) {
 	rows, err := DB.Query("SELECT Id, Label FROM " + table)
-	mustm(err, "Query on "+table+":")
+	mustm(logger, err, "Query on "+table+":")
 
 	for rows.Next() {
 		var id uint8
 		var label string
-		mustm(rows.Scan(&id, &label), "Parsing error:")
+		mustm(logger, rows.Scan(&id, &label), "Parsing error:")
 
 		ptr, ok := assoc[label]
 		if !ok {
-			log.Fatalf("Unknown label \"%s\" in table %s", label, table)
+			logger.Errorf("Unknown label \"%s\" in table %s", label, table)
+			panic(nil)
 		}
 		*ptr = id
 		delete(assoc, label)
@@ -140,7 +152,8 @@ func fillVars(table string, assoc map[string]*uint8) {
 		for label := range assoc {
 			joined += " \"" + label + "\""
 		}
-		log.Fatalf("Labels not found in %s:%s", table, joined)
+		logger.Errorf("Labels not found in %s:%s", table, joined)
+		panic(nil)
 	}
 }
 
@@ -160,6 +173,8 @@ func DurationToTime(duration time.Duration) string {
 	)
 }
 
+// IdFromResult extracts an identifier from a query result of type sql.Result.
+// Such identifiers are used as primary keys for Polls, Users and other tables.
 func IdFromResult(result sql.Result) (uint32, error) {
 	id, err := result.LastInsertId()
 	return uint32(id), err
@@ -167,7 +182,7 @@ func IdFromResult(result sql.Result) (uint32, error) {
 
 // RepeatDeadlocked repeats a transaction as long as it produce mySQL deadlocks.
 // MySQL deadlocks are detected by a panic of a mysql.MySQLError with Number 1213.
-func RepeatDeadlocked(ctx context.Context, opts *sql.TxOptions, fct func(tx *sql.Tx)) {
+func RepeatDeadlocked(logger slog.Logger, ctx context.Context, opts *sql.TxOptions, fct func(tx *sql.Tx)) {
 	must := func(err error) {
 		if err != nil {
 			panic(err)
@@ -194,7 +209,7 @@ func RepeatDeadlocked(ctx context.Context, opts *sql.TxOptions, fct func(tx *sql
 				if !ok || !errors.As(err, &mySqlError) || mySqlError.Number != 1213 {
 					panic(exc)
 				}
-				log.Println("SQL error 1213. Restarting transaction.")
+				logger.Log("SQL error 1213. Restarting transaction.")
 			}()
 
 			fct(tx)
@@ -205,8 +220,9 @@ func RepeatDeadlocked(ctx context.Context, opts *sql.TxOptions, fct func(tx *sql
 	}
 }
 
-func mustm(err error, msg string) {
+func mustm(logger slog.Leveled, err error, msg string) {
 	if err != nil {
-		log.Fatal(msg, " ", err)
+		logger.Error(msg)
+		panic(err)
 	}
 }

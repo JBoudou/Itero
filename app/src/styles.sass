@@ -7,14 +7,14 @@
 
 body
   font-family: "Asap", sans-serif
-  font-size: $fontsize
-  margin: #{$navbarheight + 16} $medium-space $medium-space
+  font-size: var(--font-size)
   color: color.adjust($maincolor, $lightness: -25%)
+  padding: $navbarheight $medium-space $medium-space
 
 .main-container
   max-width: $contmaxwidth
-  margin: 6em auto 0
-  padding: 0 $medium-space
+  margin: 0 auto
+  padding: $below-navtitle-space $medium-space
 
 h3:first-child
   margin-top: 0
@@ -22,7 +22,6 @@ h3:first-child
 input
   font-size: inherit
   font-family: inherit
-
 
 @function tame($color)
   @return color.adjust($color, $saturation: -20%, $lightness: +10%)
@@ -34,7 +33,7 @@ input
   button
     @include userbox
     background-color: $userbuttonbgcolor
-    font-size: $fontsize
+    font-size: var(--font-size)
     padding: 0.4em 1em
     margin-left: $medium-space
     &:hover
@@ -154,22 +153,6 @@ $itero-mat-theme: mat-light-theme(( color: ( primary: $itero-mat-primary, accent
   @include userinput
   width: auto
 
-//.mat-select-panel.base-colors mat-option.mat-selected:not(.mat-option-multiple)
-  background-color: $userbuttonbgcolor
-
-//.mat-select-panel.base-colors mat-option:hover:not(.mat-option-disabled):not(.mat-selected)
-  background-color: $softbgcolor
-
-//.mat-form-field-wrapper
-  padding: 0
-  .mat-form-field-infix
-    padding: 4px 0
-    border-top: 0.3em solid transparent
-    .mat-select-arrow-wrapper
-      transform: none
-  .mat-form-field-outline > div
-    background-color: $softbgcolor
-
 mat-form-field.lone-field
   display: block
   .mat-from-field-wrapper
@@ -202,4 +185,3 @@ div.mat-menu-panel.nav-menu
   border: none
   height: 1px
   width: 78%
-  

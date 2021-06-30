@@ -16,3 +16,13 @@
 
 // Package main/services contains the concrete services used by Itero middleware server.
 package services
+
+import (
+	"github.com/JBoudou/Itero/mid/root"
+	"github.com/JBoudou/Itero/mid/service"
+	"github.com/JBoudou/Itero/pkg/alarm"
+)
+
+func init() {
+	root.IoC.Bind(func() service.AlarmInjector { return alarm.New })
+}

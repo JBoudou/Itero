@@ -26,6 +26,7 @@ import (
 
 	"github.com/JBoudou/Itero/mid/db"
 	dbt "github.com/JBoudou/Itero/mid/db/dbtest"
+	"github.com/JBoudou/Itero/mid/root"
 	"github.com/JBoudou/Itero/mid/salted"
 	"github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
@@ -43,7 +44,7 @@ type confirmTest struct {
 	Checker srvt.Checker
 
 	dbEnv     dbt.Env
-	uid uint32
+	uid       uint32
 	segments  []salted.Segment
 	requested salted.Segment
 }
@@ -79,7 +80,7 @@ func (self *confirmTest) Prepare(t *testing.T) *ioc.Locator {
 	if checker, ok := self.Checker.(interface{ Before(*testing.T) }); checker != nil && ok {
 		checker.Before(t)
 	}
-	return ioc.Root
+	return root.IoC
 }
 
 func (self *confirmTest) GetRequest(t *testing.T) *srvt.Request {
@@ -195,7 +196,6 @@ func TestConfirmHandler(t *testing.T) {
 				return segments[0]
 			},
 		},
-
 	}
 	srvt.Run(t, tests, ConfirmHandler)
 }

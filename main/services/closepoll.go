@@ -22,16 +22,17 @@ import (
 	"github.com/JBoudou/Itero/mid/db"
 	"github.com/JBoudou/Itero/mid/service"
 	"github.com/JBoudou/Itero/pkg/events"
+	"github.com/JBoudou/Itero/pkg/slog"
 )
 
 type closePollService struct {
-	logger     service.LevelLogger
+	logger     slog.Leveled
 	evtManager events.Manager
 }
 
-func ClosePollService(evtManager events.Manager) *closePollService {
+func ClosePollService(evtManager events.Manager, log slog.StackedLeveled) *closePollService {
 	return &closePollService{
-		logger:     service.NewPrefixLogger("ClosePoll"),
+		logger:     log.With("ClosePoll"),
 		evtManager: evtManager,
 	}
 }
@@ -82,7 +83,7 @@ func (self *closePollService) Interval() time.Duration {
 	return 12 * time.Hour
 }
 
-func (self *closePollService) Logger() service.LevelLogger {
+func (self *closePollService) Logger() slog.Leveled {
 	return self.logger
 }
 

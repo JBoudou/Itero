@@ -24,6 +24,7 @@ import (
 
 	"github.com/JBoudou/Itero/main/services"
 	"github.com/JBoudou/Itero/mid/db"
+	"github.com/JBoudou/Itero/mid/root"
 	"github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
 	"github.com/JBoudou/Itero/pkg/events"
@@ -81,8 +82,8 @@ func (self *reverifyTest) Prepare(t *testing.T) *ioc.Locator {
 		checker.Before(t)
 	}
 
-	locator := ioc.Root.Sub()
-	locator.Set(func() events.Manager {
+	locator := root.IoC.Sub()
+	locator.Bind(func() events.Manager {
 		return &evtt.ManagerMock{
 			T: t,
 			Send_: func(evt events.Event) error {

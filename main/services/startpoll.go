@@ -22,19 +22,20 @@ import (
 	"github.com/JBoudou/Itero/mid/db"
 	"github.com/JBoudou/Itero/mid/service"
 	"github.com/JBoudou/Itero/pkg/events"
+	"github.com/JBoudou/Itero/pkg/slog"
 )
 
 // The time to wait when there seems to be no waiting poll.
 const startPollDefaultWaitDuration = time.Hour
 
 type startPollService struct {
-	logger     service.LevelLogger
+	logger     slog.Leveled
 	evtManager events.Manager
 }
 
-func StartPollService(evtManager events.Manager) *startPollService {
+func StartPollService(evtManager events.Manager, log slog.StackedLeveled) *startPollService {
 	return &startPollService{
-		logger: service.NewPrefixLogger("StartPoll"),
+		logger: log.With("StartPoll"),
 		evtManager: evtManager,
 	}
 }
@@ -87,7 +88,7 @@ func (self *startPollService) Interval() time.Duration {
 	return startPollDefaultWaitDuration
 }
 
-func (self *startPollService) Logger() service.LevelLogger {
+func (self *startPollService) Logger() slog.Leveled {
 	return self.logger
 }
 

@@ -16,34 +16,3 @@
 
 package servertest
 
-import (
-	"context"
-	"testing"
-)
-
-func TestMockResponse_SendJSON(t *testing.T) {
-	t.Run("Without", func(t *testing.T){
-		ttt := &testing.T{}
-		MockResponse{T:ttt}.SendJSON(context.Background(), 0)
-		if !ttt.Failed() {
-			t.Errorf("SendJSON did not fail")
-		}
-	})
-	t.Run("With", func(t *testing.T){
-		called := 0
-		mock := MockResponse{
-			T: &testing.T{},
-			JsonFct: func(t *testing.T, ctx context.Context, data interface{}) {
-				if converted, ok := data.(int); ok && converted == 42 {
-					called += 1
-				} else {
-					t.Errorf("Wrong data %v.", data)
-				}
-			},
-		}
-		mock.SendJSON(context.Background(), 42)
-		if called != 1 {
-			t.Errorf("Given function called %d times. Expect one.", called)
-		}
-	})
-}

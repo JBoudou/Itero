@@ -24,12 +24,12 @@ import (
 
 	"github.com/JBoudou/Itero/mid/db"
 	"github.com/JBoudou/Itero/mid/db/dbtest"
+	"github.com/JBoudou/Itero/mid/root"
 	"github.com/JBoudou/Itero/mid/service"
 	"github.com/JBoudou/Itero/pkg/emailsender"
 	estest "github.com/JBoudou/Itero/pkg/emailsender/emailsendertest"
 	"github.com/JBoudou/Itero/pkg/events"
 	evtest "github.com/JBoudou/Itero/pkg/events/eventstest"
-	"github.com/JBoudou/Itero/pkg/ioc"
 )
 
 func TestEmailService_CreateUserEvent(t *testing.T) {
@@ -64,9 +64,9 @@ func TestEmailService_CreateUserEvent(t *testing.T) {
 			uid := dbenv.CreateUserWith(t.Name())
 			dbenv.Must(t)
 
-			locator := ioc.Root.Sub()
+			locator := root.IoC.Sub()
 
-			err = locator.Set(func() events.Manager {
+			err = locator.Bind(func() events.Manager {
 				return &evtest.ManagerMock{
 					T: t,
 					AddReceiver_: func(r events.Receiver) error {
@@ -78,7 +78,7 @@ func TestEmailService_CreateUserEvent(t *testing.T) {
 			})
 			mustt(t, err)
 
-			err = locator.Set(func() emailsender.Sender {
+			err = locator.Bind(func() emailsender.Sender {
 				return estest.SenderMock{
 					T: t,
 					Send_: func(emailsender.Email) error {
@@ -89,7 +89,8 @@ func TestEmailService_CreateUserEvent(t *testing.T) {
 			})
 			mustt(t, err)
 
-			stop := service.Run(EmailService, locator)
+			var stop service.StopFunction
+			mustt(t, locator.Inject(EmailService, service.Run, &stop))
 			defer stop()
 
 		testLoop:
@@ -165,7 +166,7 @@ func metaTestEmail(t *testing.T, checker func(*testing.T, *emailTestInstance, ui
 
 func email_ProcessOne_checker(t *testing.T, tt *emailTestInstance, id uint32) {
 	var svc service.Service
-	mustt(t, ioc.Root.Inject(EmailService, &svc))
+	mustt(t, root.IoC.Inject(EmailService, &svc))
 
 	err := svc.ProcessOne(id)
 
@@ -203,7 +204,7 @@ func TestEmailService_ProcessOne(t *testing.T) {
 
 func email_CheckAll_checker(t *testing.T, tt *emailTestInstance, id uint32) {
 	var svc service.Service
-	mustt(t, ioc.Root.Inject(EmailService, &svc))
+	mustt(t, root.IoC.Inject(EmailService, &svc))
 
 	iterator := svc.CheckAll()
 	defer iterator.Close()
@@ -222,7 +223,7 @@ func TestEmailService_CheckAll(t *testing.T) {
 
 func email_CheckOne_checker(t *testing.T, tt *emailTestInstance, id uint32) {
 	var svc service.Service
-	mustt(t, ioc.Root.Inject(EmailService, &svc))
+	mustt(t, root.IoC.Inject(EmailService, &svc))
 
 	expires := svc.CheckOne(id)
 

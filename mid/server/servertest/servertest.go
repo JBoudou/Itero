@@ -24,8 +24,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/JBoudou/Itero/mid/root"
 	"github.com/JBoudou/Itero/mid/server"
 	"github.com/JBoudou/Itero/pkg/ioc"
+	"github.com/JBoudou/Itero/pkg/slog"
 )
 
 var (
@@ -54,7 +56,7 @@ type Request struct {
 // If RemoteAddr is not nil, the RemoteAddr field of the returned request is set to its value.
 // If UserId is not nil and Hash is nil then a valid session for that user is added to the request.
 // If UserId and Hash are both non-nil then an "unlogged cookie" is added to the request.
-func (self *Request) Make() (req *http.Request, err error) {
+func (self *Request) Make(t *testing.T) (req *http.Request, err error) {
 	var target string
 	if self.Target == nil {
 		target = "/a/test"
@@ -94,6 +96,9 @@ func (self *Request) Make() (req *http.Request, err error) {
 		session := server.NewUnloggedUser(clientStore, &server.SessionOptions, user)
 		clientStore.Save(req, nil, session)
 	}
+
+	ctx := slog.CtxSaveLogger(req.Context(), &slog.WithStack{Target: t})
+	req = req.WithContext(ctx)
 
 	return
 }
@@ -142,7 +147,7 @@ func (self *T) Prepare(t *testing.T) *ioc.Locator {
 	if checker, ok := self.Checker.(interface{ Before(t *testing.T) }); ok {
 		checker.Before(t)
 	}
-	return ioc.Root
+	return root.IoC
 }
 
 func (self *T) Close() {
@@ -157,6 +162,11 @@ func (self *T) Check(t *testing.T, response *http.Response, request *server.Requ
 // The tests are executed in the given order. For each test, the handler is created by calling
 // handlerFactory using the ioc.Locator returned by Prepare. The handler is registered for the
 // pattern "/a/test".
+//
+// If a test implement the method
+//    ChangeResponse(*testing.T, server.Response) server.Response
+// then this method is called with the usual server.Response objet, and the returned object is used
+// by the handler. This method allows the test to spy the calls to server.Response methods.
 //
 // Each test is executed inside testing.T.Run, hence calling t.Fatal in the checker abort only the
 // current test.
@@ -174,8 +184,8 @@ func Run(t *testing.T, tests []Test, handlerFactory interface{}) {
 			if err != nil {
 				t.Fatalf("Injection error: %v", err)
 			}
-			
-			req, err := tt.GetRequest(t).Make()
+
+			req, err := tt.GetRequest(t).Make(t)
 			if err != nil {
 				t.Fatalf("Error creating request: %s", err)
 			}
@@ -183,6 +193,13 @@ func Run(t *testing.T, tests []Test, handlerFactory interface{}) {
 			mock := httptest.NewRecorder()
 			wrapper := server.NewHandlerWrapper("/a/test", handler)
 			ctx, sResp, sReq := wrapper.MakeParams(mock, req)
+
+			if withResponse, ok := tt.(interface {
+				ChangeResponse(*testing.T, server.Response) server.Response
+			}); ok {
+				sResp = withResponse.ChangeResponse(t, sResp)
+			}
+
 			wrapper.Exec(ctx, sResp, sReq)
 
 			tt.Check(t, mock.Result(), sReq)

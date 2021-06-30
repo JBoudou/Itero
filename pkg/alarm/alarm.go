@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+// Package alarm defines the Alarm type that resend events at given times.
 package alarm
 
 import (
@@ -21,10 +22,13 @@ import (
 	"time"
 )
 
+// Events is the structure that is sent to and received from Alarm.
 type Event struct {
+	// Time indicates when the Event must be resent by Alarms.
 	Time time.Time
+	// Data is untouched by Alarm.
 	Data interface{}
-	// Before resending the event, Remaining is set by Alarm to the number of remaining waiting events.
+	// Remaining is set by Alarm to the number of remaining waiting events, when the event is resent.
 	Remaining int
 }
 
@@ -35,20 +39,23 @@ type Alarm struct {
 	Receive <-chan Event
 }
 
+// Option is the type of options given as optional arguments to New.
 type Option func(evt *alarmLogic)
 
 var (
-	// Events received by Alarm with Time greater than any waiting event are ignored.
+	// DiscardLaterEvent is an Option to ignore Events received by Alarm with Time greater than any
+	// waiting event.
 	DiscardLaterEvent Option = func(evt *alarmLogic) {
 		evt.discardLaterEvent = true
 	}
 
-	// Event received with same Data as any waiting event are ignored.
+	// DiscardDuplicates is an Option to ignore Events received with tsame Data as any waiting event.
 	DiscardDuplicates Option = func(evt *alarmLogic) {
 		evt.discardDuplicates = true
 	}
 
-	// Event received with same Data and later Time than some waiting event are ignored.
+	// DiscardLateDuplicates is an Option to ignore Events received with same Data and later Time than
+	// some waiting event.
 	DiscardLateDuplicates Option = func(evt *alarmLogic) {
 		evt.discardLateDuplicates = true
 	}

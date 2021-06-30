@@ -87,6 +87,18 @@ export abstract class NavTreeNode {
     return new NavStepStatus(pos, steps, !child.isFinal);
   }
 
+  /** Find the first node with the given segment in depth-first search. */
+  findSegment(segment: string): NavTreeNode|null {
+    if (this.segment === segment) {
+      return this
+    }
+    const next = this.next()
+    if (next === undefined) {
+      return null
+    }
+    return next.findSegment(segment)
+  }
+
   /** 
    * Reset the state of the query for this node and transitively all its descendants.
    * Should be called only on the root of the tree.

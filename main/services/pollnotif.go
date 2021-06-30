@@ -19,16 +19,18 @@ package services
 import (
 	"time"
 
+	"github.com/JBoudou/Itero/mid/root"
 	"github.com/JBoudou/Itero/pkg/events"
-	"github.com/JBoudou/Itero/pkg/ioc"
 )
 
 //
 // PollNotifications
 //
 
+type PollNotifAction uint8
+
 const (
-	PollNotifStart = iota
+	PollNotifStart PollNotifAction = iota
 	PollNotifNext
 	PollNotifTerm
 	PollNotifDelete
@@ -37,7 +39,7 @@ const (
 type PollNotification struct {
 	Timestamp    time.Time
 	Id           uint32
-	Action       uint8
+	Action       PollNotifAction
 	Round        uint8
 	Title        string
 	Participants map[uint32]bool
@@ -82,7 +84,7 @@ type PollNotifChannel = <-chan []*PollNotification
 const PollNotifDelay = 20 * time.Second
 
 func init() {
-	ioc.Root.Set(func(evtManager events.Manager) (PollNotifChannel, error) {
+	root.IoC.Bind(func(evtManager events.Manager) (PollNotifChannel, error) {
 		return RunPollNotif(PollNotifDelay, evtManager)
 	})
 }

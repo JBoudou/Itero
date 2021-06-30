@@ -25,10 +25,10 @@ import (
 
 	"github.com/JBoudou/Itero/mid/db"
 	dbt "github.com/JBoudou/Itero/mid/db/dbtest"
+	"github.com/JBoudou/Itero/mid/root"
 	"github.com/JBoudou/Itero/mid/service"
 	"github.com/JBoudou/Itero/pkg/events"
 	"github.com/JBoudou/Itero/pkg/events/eventstest"
-	"github.com/JBoudou/Itero/pkg/ioc"
 )
 
 type nextRoundTestInstance struct {
@@ -40,12 +40,14 @@ type nextRoundTestInstance struct {
 	threshold    float64 // RoundThreshold
 	nbVoter      int     // number of Participant with LastRound = Poll.CurrentRound
 	expectNext   bool
-	expectList   bool // whether it must be listed by CheckAll
-	expectCheck  int  // kind of response from CheckOne (see testCheckOneResult*)
+	expectList   bool               // whether it must be listed by CheckAll
+	expectCheck  testCheckOneResult // kind of response from CheckOne (see testCheckOneResult*)
 }
 
+type testCheckOneResult uint8
+
 const (
-	testCheckOneResultPast = iota
+	testCheckOneResultPast testCheckOneResult = iota
 	testCheckOneResultFuture
 	testCheckOneResultNever
 )
@@ -229,9 +231,9 @@ func metaTestNextRound(t *testing.T, checker func(*testing.T, *nextRoundTestInst
 func nextRound_processOne_checker(t *testing.T, tt *nextRoundTestInstance, pollId uint32) {
 	const qGetRound = `SELECT CurrentRound FROM Polls WHERE Id = ?`
 
-	locator := ioc.Root.Sub()
+	locator := root.IoC.Sub()
 	incremented := false
-	locator.Set(func() events.Manager {
+	locator.Bind(func() events.Manager {
 		return &eventstest.ManagerMock{
 			T: t,
 			Send_: func(evt events.Event) error {
@@ -301,7 +303,7 @@ func idDateIteratorHasId(t *testing.T, iterator service.Iterator, id uint32) boo
 
 func nextRound_checkAll_checker(t *testing.T, tt *nextRoundTestInstance, pollId uint32) {
 	var svc service.Service
-	mustt(t, ioc.Root.Inject(NextRoundService, &svc))
+	mustt(t, root.IoC.Inject(NextRoundService, &svc))
 
 	iterator := svc.CheckAll()
 	defer iterator.Close()
@@ -324,7 +326,7 @@ func TestNextRoundService_CheckAll(t *testing.T) {
 
 func nextRound_checkOne_checker(t *testing.T, tt *nextRoundTestInstance, pollId uint32) {
 	var svc service.Service
-	mustt(t, ioc.Root.Inject(NextRoundService, &svc))
+	mustt(t, root.IoC.Inject(NextRoundService, &svc))
 
 	got := svc.CheckOne(pollId)
 	diff := time.Until(got)
@@ -365,24 +367,24 @@ func TestNextRoundService_CheckOne(t *testing.T) {
 // events //
 
 func TestNextRoundService_Events(t *testing.T) {
-	tests := []checkEventScheduleTest {
+	tests := []checkEventScheduleTest{
 		{
-			name: "VoteEvent",
-			event: VoteEvent{1},
+			name:     "VoteEvent",
+			event:    VoteEvent{1},
 			schedule: []uint32{1},
 		},
 		{
-			name: "CreatePollEvent",
-			event: CreatePollEvent{2},
+			name:     "CreatePollEvent",
+			event:    CreatePollEvent{2},
 			schedule: []uint32{2},
 		},
 		{
-			name: "StartPollEvent",
-			event: StartPollEvent{3},
+			name:     "StartPollEvent",
+			event:    StartPollEvent{3},
 			schedule: []uint32{3},
 		},
 		{
-			name: "ClosePollEvent",
+			name:  "ClosePollEvent",
 			event: ClosePollEvent{42},
 		},
 	}

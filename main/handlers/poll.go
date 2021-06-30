@@ -23,12 +23,13 @@ import (
 	"time"
 
 	"github.com/JBoudou/Itero/mid/db"
-	"github.com/JBoudou/Itero/mid/server"
 	"github.com/JBoudou/Itero/mid/salted"
+	"github.com/JBoudou/Itero/mid/server"
 )
 
 /** PollInfo **/
 
+// PollInfo holds information on a poll as returned by checkPollAccess.
 type PollInfo struct {
 	Id           uint32
 	NbChoices    uint8
@@ -66,19 +67,41 @@ func checkPollAccess(ctx context.Context, request *server.Request) (poll PollInf
 
 	// Check poll
 	var salt uint32
-	const qPoll = `SELECT Salt, Electorate = ?, NbChoices, State = 'Active', CurrentRound FROM Polls WHERE Id = ?`
-	row := db.DB.QueryRowContext(ctx, qPoll, db.ElectorateAll, poll.Id)
-	err = row.Scan(&salt, &poll.Public, &poll.NbChoices, &poll.Active, &poll.CurrentRound)
+	var electorate db.Electorate
+	const qPoll = `SELECT Salt, Electorate, NbChoices, State = 'Active', CurrentRound FROM Polls WHERE Id = ?`
+	rows, err := db.DB.QueryContext(ctx, qPoll, poll.Id)
+	defer rows.Close()
+	if !rows.Next() {
+		err = noPollError("Id not found")
+		return
+	}
+	err = rows.Scan(&salt, &electorate, &poll.NbChoices, &poll.Active, &poll.CurrentRound)
 	if err != nil {
 		return
 	}
+	rows.Close()
 	if salt != segment.Salt {
 		err = noPollError("Wrong salt")
 		return
 	}
+	poll.Public = electorate == db.ElectorateAll
 	if !poll.Logged && !poll.Public {
 		err = noPollError("Non-public poll")
 		return
+	}
+
+	const qUserVerified = `SELECT 1 FROM Users WHERE Id = ? AND Verified`
+	if electorate == db.ElectorateVerified {
+		var rows *sql.Rows
+		rows, err = db.DB.QueryContext(ctx, qUserVerified, request.User.Id)
+		defer rows.Close()
+		if err != nil {
+			return
+		}
+		if !rows.Next() {
+			err = noPollError("Not verified user")
+			return
+		}
 	}
 
 	// Check participant
@@ -100,7 +123,7 @@ func checkPollAccess(ctx context.Context, request *server.Request) (poll PollInf
 	return
 }
 
-func (pollInfo PollInfo) BallotType() uint8 {
+func (pollInfo PollInfo) BallotType() BallotType {
 	// TODO really compute the value
 	if !pollInfo.Active {
 		return BallotTypeClosed
@@ -108,7 +131,7 @@ func (pollInfo PollInfo) BallotType() uint8 {
 	return BallotTypeUninominal
 }
 
-func (pollInfo PollInfo) InformationType() uint8 {
+func (pollInfo PollInfo) InformationType() InformationType {
 	// TODO really compute the value
 	if pollInfo.CurrentRound == 0 {
 		return InformationTypeNoneYet
@@ -118,13 +141,17 @@ func (pollInfo PollInfo) InformationType() uint8 {
 
 /** PollHandler **/
 
+type BallotType uint8
+
 const (
-	BallotTypeClosed = iota
+	BallotTypeClosed BallotType = iota
 	BallotTypeUninominal
 )
 
+type InformationType uint8
+
 const (
-	InformationTypeNoneYet = iota
+	InformationTypeNoneYet InformationType = iota
 	InformationTypeCounts
 )
 
@@ -143,8 +170,8 @@ type PollAnswer struct {
 	MaxRoundDuration uint64 // in milliseconds
 	MinNbRounds      uint8
 	MaxNbRounds      uint8
-	Ballot           uint8
-	Information      uint8
+	Ballot           BallotType
+	Information      InformationType
 }
 
 func PollHandler(ctx context.Context, response server.Response, request *server.Request) {

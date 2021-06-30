@@ -28,6 +28,11 @@ const (
 	ConfirmationTypeVerify = "verify"
 )
 
+// CreateConfirmation creates a new confirmation.
+// The created confirmation will be valid only for the given duration, starting at the moment the
+// confirmation is created.
+// Currently, no check is made to ensure that the creation of the confirmation will succeed, and
+// nothing is done when it doesn't.
 func CreateConfirmation(ctx context.Context,
 	user uint32, type_ string, duration time.Duration) (ret salted.Segment, err error) {
 

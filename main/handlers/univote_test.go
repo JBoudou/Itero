@@ -28,37 +28,15 @@ import (
 	"github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
 	"github.com/JBoudou/Itero/pkg/events"
-	"github.com/JBoudou/Itero/pkg/events/eventstest"
 )
 
 type voteChecker struct {
 	poll  uint32
 	user  uint32
 	round uint8
-
-	originalEventManager events.Manager
-	eventSent            bool
-}
-
-func (self *voteChecker) Before(t *testing.T) {
-	self.eventSent = false
-	self.originalEventManager = events.DefaultManager
-	events.DefaultManager = &eventstest.ManagerMock{
-		T: t,
-		Send_: func(evt events.Event) error {
-			if vEvt, ok := evt.(services.VoteEvent); ok && vEvt.Poll == self.poll {
-				self.eventSent = true
-			}
-			return nil
-		},
-	}
 }
 
 func (self *voteChecker) Check(t *testing.T, response *http.Response, request *server.Request) {
-	defer func() {
-		events.DefaultManager = self.originalEventManager
-	}()
-
 	srvt.CheckStatus{http.StatusOK}.Check(t, response, request)
 
 	var query UninominalVoteQuery
@@ -101,14 +79,15 @@ func (self *voteChecker) Check(t *testing.T, response *http.Response, request *s
 			t.Errorf("Wrong alternative. Got %d. Expect %d.", gotAlternative.Int32, query.Alternative)
 		}
 	}
-
-	if !self.eventSent {
-		t.Error("VoteEvent not sent")
-	}
 }
 
 func voteCheckerFactory(param PollTestCheckerFactoryParam) srvt.Checker {
 	return &voteChecker{poll: param.PollId, user: param.UserId, round: param.Round}
+}
+
+func checkVoteEvent(param PollTestCheckerFactoryParam, evt events.Event) bool {
+	converted, ok := evt.(services.VoteEvent)
+	return ok && converted.Poll == param.PollId
 }
 
 func TestUninominalVoteHandler(t *testing.T) {
@@ -197,126 +176,161 @@ func TestUninominalVoteHandler(t *testing.T) {
 		// Independent tests //
 
 		&pollTest{
-			Name:       "No user public",
-			Sequential: true,
-			Electorate: db.ElectorateAll,
-			UserType:   pollTestUserTypeNone,
-			Request:    fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{RemoteAddr: s("1.2.3.4:5")}),
-			Checker:    voteCheckerFactory,
+			Name:           "No user public",
+			Electorate:     db.ElectorateAll,
+			UserType:       pollTestUserTypeNone,
+			Request:        fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{RemoteAddr: s("1.2.3.4:5")}),
+			EventPredicate: checkVoteEvent,
+			EventCount:     1,
+			Checker:        voteCheckerFactory,
 		},
 		&pollTest{
-			Name:       "No user hidden",
-			Sequential: true,
-			Electorate: db.ElectorateAll,
-			Hidden: true,
-			UserType:   pollTestUserTypeNone,
-			Request:    fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{RemoteAddr: s("1.2.3.4:5")}),
-			Checker:    voteCheckerFactory,
+			Name:           "No user hidden",
+			Electorate:     db.ElectorateAll,
+			Hidden:         true,
+			UserType:       pollTestUserTypeNone,
+			Request:        fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{RemoteAddr: s("1.2.3.4:5")}),
+			EventPredicate: checkVoteEvent,
+			EventCount:     1,
+			Checker:        voteCheckerFactory,
 		},
 		&pollTest{
-			Name:       "Unlogged public",
-			Sequential: true,
-			Electorate: db.ElectorateAll,
-			UserType:   pollTestUserTypeUnlogged,
-			Request:    fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
-			Checker:    voteCheckerFactory,
+			Name:           "Unlogged public",
+			Electorate:     db.ElectorateAll,
+			UserType:       pollTestUserTypeUnlogged,
+			Request:        fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
+			EventPredicate: checkVoteEvent,
+			EventCount:     1,
+			Checker:        voteCheckerFactory,
 		},
 		&pollTest{
-			Name:       "Unlogged hidden",
-			Sequential: true,
-			Electorate: db.ElectorateAll,
-			Hidden: true,
-			UserType:   pollTestUserTypeUnlogged,
-			Request:    fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
-			Checker:    voteCheckerFactory,
-		},
-
-		&pollTest{
-			Name:       "No user public change",
-			Sequential: true,
-			Electorate: db.ElectorateAll,
-			Vote:       []pollTestVote{{User: 1, Alt: 1}},
-			UserType:   pollTestUserTypeNone,
-			Request:    fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{RemoteAddr: s("1.2.3.4:5")}),
-			Checker:    voteCheckerFactory,
-		},
-		&pollTest{
-			Name:       "No user hidden change",
-			Sequential: true,
-			Electorate: db.ElectorateAll,
-			Hidden: true,
-			Vote:       []pollTestVote{{User: 1, Alt: 1}},
-			UserType:   pollTestUserTypeNone,
-			Request:    fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{RemoteAddr: s("1.2.3.4:5")}),
-			Checker:    voteCheckerFactory,
-		},
-		&pollTest{
-			Name:       "Unlogged public change",
-			Sequential: true,
-			Electorate: db.ElectorateAll,
-			Vote:       []pollTestVote{{User: 1, Alt: 1}},
-			UserType:   pollTestUserTypeUnlogged,
-			Request:    fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
-			Checker:    voteCheckerFactory,
-		},
-		&pollTest{
-			Name:       "Unlogged hidden change",
-			Sequential: true,
-			Electorate: db.ElectorateAll,
-			Hidden: true,
-			Vote:       []pollTestVote{{User: 1, Alt: 1}},
-			UserType:   pollTestUserTypeUnlogged,
-			Request:    fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
-			Checker:    voteCheckerFactory,
+			Name:           "Unlogged hidden",
+			Electorate:     db.ElectorateAll,
+			Hidden:         true,
+			UserType:       pollTestUserTypeUnlogged,
+			Request:        fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
+			EventPredicate: checkVoteEvent,
+			EventCount:     1,
+			Checker:        voteCheckerFactory,
 		},
 
 		&pollTest{
-			Name:      "No user registered",
-			Electorate: db.ElectorateLogged,
-			UserType:  pollTestUserTypeNone,
-			Request:   fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
-			Checker:   srvt.CheckStatus{http.StatusNotFound},
+			Name:           "No user public change",
+			Electorate:     db.ElectorateAll,
+			Vote:           []pollTestVote{{User: 1, Alt: 1}},
+			UserType:       pollTestUserTypeNone,
+			Request:        fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{RemoteAddr: s("1.2.3.4:5")}),
+			EventPredicate: checkVoteEvent,
+			EventCount:     1,
+			Checker:        voteCheckerFactory,
 		},
 		&pollTest{
-			Name:      "No user hidden registered",
-			Electorate: db.ElectorateLogged,
-			Hidden: true,
-			UserType:  pollTestUserTypeNone,
-			Request:   fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
-			Checker:   srvt.CheckStatus{http.StatusNotFound},
+			Name:           "No user hidden change",
+			Electorate:     db.ElectorateAll,
+			Hidden:         true,
+			Vote:           []pollTestVote{{User: 1, Alt: 1}},
+			UserType:       pollTestUserTypeNone,
+			Request:        fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{RemoteAddr: s("1.2.3.4:5")}),
+			EventPredicate: checkVoteEvent,
+			EventCount:     1,
+			Checker:        voteCheckerFactory,
 		},
 		&pollTest{
-			Name:      "Unlogged registered",
-			Electorate: db.ElectorateLogged,
-			UserType:  pollTestUserTypeUnlogged,
-			Request:   fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
-			Checker:   srvt.CheckStatus{http.StatusNotFound},
+			Name:           "Unlogged public change",
+			Electorate:     db.ElectorateAll,
+			Vote:           []pollTestVote{{User: 1, Alt: 1}},
+			UserType:       pollTestUserTypeUnlogged,
+			Request:        fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
+			EventPredicate: checkVoteEvent,
+			EventCount:     1,
+			Checker:        voteCheckerFactory,
 		},
 		&pollTest{
-			Name:      "Unlogged hidden registered",
-			Electorate: db.ElectorateLogged,
-			Hidden: true,
-			UserType:  pollTestUserTypeUnlogged,
-			Request:   fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
-			Checker:   srvt.CheckStatus{http.StatusNotFound},
+			Name:           "Unlogged hidden change",
+			Electorate:     db.ElectorateAll,
+			Hidden:         true,
+			Vote:           []pollTestVote{{User: 1, Alt: 1}},
+			UserType:       pollTestUserTypeUnlogged,
+			Request:        fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
+			EventPredicate: checkVoteEvent,
+			EventCount:     1,
+			Checker:        voteCheckerFactory,
 		},
 
 		&pollTest{
-			Name:      "No user public cookie",
-			Electorate: db.ElectorateAll,
-			UserType:  pollTestUserTypeNone,
-			Request:   fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{RemoteAddr: s("1.2.3.4:5")}),
-			Checker:   srvt.CheckCookieIsSet{Name: server.SessionUnlogged},
+			Name:           "No user registered",
+			Electorate:     db.ElectorateLogged,
+			UserType:       pollTestUserTypeNone,
+			Request:        fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
+			EventPredicate: checkVoteEvent,
+			Checker:        srvt.CheckStatus{http.StatusNotFound},
 		},
 		&pollTest{
-			Name:      "No user hidden cookie",
-			Electorate: db.ElectorateAll,
-			Hidden: true,
-			UserType:  pollTestUserTypeNone,
-			Request:   fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{RemoteAddr: s("1.2.3.4:5")}),
-			Checker:   srvt.CheckCookieIsSet{Name: server.SessionUnlogged},
+			Name:           "No user hidden registered",
+			Electorate:     db.ElectorateLogged,
+			Hidden:         true,
+			UserType:       pollTestUserTypeNone,
+			Request:        fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
+			EventPredicate: checkVoteEvent,
+			Checker:        srvt.CheckStatus{http.StatusNotFound},
+		},
+		&pollTest{
+			Name:           "Unlogged registered",
+			Electorate:     db.ElectorateLogged,
+			UserType:       pollTestUserTypeUnlogged,
+			Request:        fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
+			EventPredicate: checkVoteEvent,
+			Checker:        srvt.CheckStatus{http.StatusNotFound},
+		},
+		&pollTest{
+			Name:           "Unlogged hidden registered",
+			Electorate:     db.ElectorateLogged,
+			Hidden:         true,
+			UserType:       pollTestUserTypeUnlogged,
+			Request:        fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
+			EventPredicate: checkVoteEvent,
+			Checker:        srvt.CheckStatus{http.StatusNotFound},
+		},
+
+		&pollTest{
+			Name:           "No user public cookie",
+			Electorate:     db.ElectorateAll,
+			UserType:       pollTestUserTypeNone,
+			Request:        fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{RemoteAddr: s("1.2.3.4:5")}),
+			EventPredicate: checkVoteEvent,
+			EventCount:     1,
+			Checker:        srvt.CheckCookieIsSet{Name: server.SessionUnlogged},
+		},
+		&pollTest{
+			Name:           "No user hidden cookie",
+			Electorate:     db.ElectorateAll,
+			Hidden:         true,
+			UserType:       pollTestUserTypeNone,
+			Request:        fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{RemoteAddr: s("1.2.3.4:5")}),
+			EventPredicate: checkVoteEvent,
+			EventCount:     1,
+			Checker:        srvt.CheckCookieIsSet{Name: server.SessionUnlogged},
+		},
+
+		&pollTest{
+			Name:           "Poll verified, User unverified",
+			Electorate:     db.ElectorateVerified,
+			UserType:       pollTestUserTypeLogged,
+			Request:        fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
+			EventPredicate: checkVoteEvent,
+			Checker:        srvt.CheckStatus{http.StatusNotFound},
+		},
+		&pollTest{
+			Name:           "Poll verified, User verified",
+			Electorate:     db.ElectorateVerified,
+			UserType:       pollTestUserTypeLogged,
+			Verified:       true,
+			Request:        fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
+			EventPredicate: checkVoteEvent,
+			EventCount:     1,
+			Checker:        voteCheckerFactory,
 		},
 	}
 
-	srvt.RunFunc(t, tests, UninominalVoteHandler)
+	srvt.Run(t, tests, UninominalVoteHandler)
 }

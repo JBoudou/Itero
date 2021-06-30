@@ -25,6 +25,13 @@ import (
 	"github.com/JBoudou/Itero/mid/db"
 )
 
+const (
+	UserPasswd = "XYZ"
+
+	PollSalt = 42
+	PollMaxNbRounds = 4
+)
+
 // Env provides methods to add temporary test data. It collects functions to remove these data.
 // These functions are called by Close, hence a call to Close must be defered for each Env object.
 //
@@ -81,7 +88,7 @@ func (self *Env) CreateUser() uint32 {
 }
 
 // CreateUser adds a user to the database. The user has name as returned by UserNameWith, email
-// address as returned by UserEmailWith, and password is 'XYZ'. It is deleted by Close.
+// address as returned by UserEmailWith, and password is UserPasswd. It is deleted by Close.
 func (self *Env) CreateUserWith(salt string) (userId uint32) {
 	if self.Error != nil {
 		return
@@ -91,7 +98,7 @@ func (self *Env) CreateUserWith(salt string) (userId uint32) {
 	   INSERT INTO Users(Name, Email, Passwd)
 	   VALUES(?, ?, X'2e43477a2da06cb4aba764381086cbc9323945eb1bffb232f221e374af44f803')`
 	var result sql.Result
-	result, self.Error = db.DB.Exec(query, self.UserNameWith(salt), self.UserEmailWith(salt))
+	result, self.Error = db.DB.Exec(query, UserNameWith(salt), UserEmailWith(salt))
 	userId = self.extractId(result)
 
 	self.Defer(func() {
@@ -103,7 +110,7 @@ func (self *Env) CreateUserWith(salt string) (userId uint32) {
 }
 
 // UserNameWith returns the name of the user created by CreateUserWith with the same salt.
-func (self *Env) UserNameWith(salt string) string {
+func UserNameWith(salt string) string {
 	const maxNameLen = 62
 	if len(salt) > maxNameLen {
 		salt = salt[len(salt)-maxNameLen:]
@@ -112,7 +119,7 @@ func (self *Env) UserNameWith(salt string) string {
 }
 
 // UserNameWith returns the email address of the user created by CreateUserWith with the same salt.
-func (self *Env) UserEmailWith(salt string) string {
+func UserEmailWith(salt string) string {
 	const (
 		prefix     = "test"
 		suffix     = "@example.test"
@@ -124,7 +131,7 @@ func (self *Env) UserEmailWith(salt string) string {
 	return prefix + salt + suffix
 }
 
-// CreatePoll adds a poll to the database. The poll has Salt 42, MaxNbRounds 4, and 2 alternatives
+// CreatePoll adds a poll to the database. The poll has Salt PollSalt, MaxNbRounds PollMaxNbRounds, and 2 alternatives
 // 'No' and 'Yes' (in that order). The poll is deleted by Close.
 func (self *Env) CreatePoll(title string, admin uint32, electorate db.Electorate) uint32 {
 	return self.CreatePollWith(title, admin, electorate, []string{"No", "Yes"})
@@ -138,7 +145,7 @@ func (self *Env) CreatePollWith(title string, admin uint32, electorate db.Electo
 	const (
 		qCreatePoll = `
 			INSERT INTO Polls(Title, Admin, Salt, NbChoices, Electorate, MaxNbRounds)
-			VALUE (?, ?, 42, ?, ?, 4)`
+			VALUE (?, ?, ?, ?, ?, ?)`
 		qCreateAlternative = `
 			INSERT INTO Alternatives(Poll, Id, Name) VALUE (?, ?, ?)`
 		qRemovePoll = `
@@ -151,7 +158,8 @@ func (self *Env) CreatePollWith(title string, admin uint32, electorate db.Electo
 
 	var tx *sql.Tx
 	tx, self.Error = db.DB.Begin()
-	result := self.execTx(tx, qCreatePoll, title, admin, len(alternatives), electorate)
+	result := self.execTx(tx, qCreatePoll,
+		title, admin, PollSalt, len(alternatives), electorate, PollMaxNbRounds)
 	pollId = self.extractId(result)
 	altStmt := self.prepareTx(tx, qCreateAlternative)
 	for i, alt := range alternatives {
@@ -214,10 +222,12 @@ func (self *Env) Vote(pollId uint32, round uint8, userId uint32, alternative uin
 // WithDB
 //
 
+// WithDB is a servertest.Test mixin providing a field of type Env.
 type WithDB struct {
 	DB Env
 }
 
+// Close closes the Env field, launching all defered functions.
 func (self *WithDB) Close() {
 	self.DB.Close()
 }

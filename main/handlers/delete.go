@@ -27,7 +27,15 @@ import (
 	"github.com/JBoudou/Itero/pkg/events"
 )
 
-func DeleteHandler(ctx context.Context, response server.Response, request *server.Request) {
+type deleteHandler struct {
+	evtManager events.Manager
+}
+
+func DeleteHandler(evtManager events.Manager) deleteHandler {
+	return deleteHandler{evtManager: evtManager}
+}
+
+func (self deleteHandler) Handle(ctx context.Context, response server.Response, request *server.Request) {
 	const (
 		ImpossibleStatus  = http.StatusLocked
 		ImpossibleMessage = "Not deletable"
@@ -82,6 +90,6 @@ func DeleteHandler(ctx context.Context, response server.Response, request *serve
 		panic(server.NewHttpError(ImpossibleStatus, ImpossibleMessage, "The query affects no row"))
 	}
 
-	events.Send(event)
+	self.evtManager.Send(event)
 	response.SendJSON(ctx, "Ok")
 }

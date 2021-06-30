@@ -26,6 +26,7 @@ import (
 	"github.com/JBoudou/Itero/mid/server"
 )
 
+// NuDate is a marshalable version of sql.NullTime.
 type NuDate sql.NullTime
 
 func (self NuDate) MarshalJSON() ([]byte, error) {
@@ -46,8 +47,10 @@ func (self *NuDate) UnmarshalJSON(raw []byte) (err error) {
 	return
 }
 
+type PollAction uint8
+
 const (
-	PollActionVote = iota
+	PollActionVote PollAction = iota
 	PollActionModif
 	PollActionPart
 	PollActionTerm
@@ -65,7 +68,7 @@ type listAnswerEntry struct {
 	CurrentRound uint8
 	MaxRound     uint8
 	Deadline     NuDate
-	Action       uint8
+	Action       PollAction
 	Deletable    bool `json:",omitempty"`
 }
 

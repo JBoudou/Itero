@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+// Package service provides a framework to easily implement services for the application.
+// Services are background components that execute in parallel with the handling of requests.
 package service
 
 import (
@@ -22,7 +24,7 @@ import (
 
 	"github.com/JBoudou/Itero/pkg/alarm"
 	"github.com/JBoudou/Itero/pkg/events"
-	"github.com/JBoudou/Itero/pkg/ioc"
+	"github.com/JBoudou/Itero/pkg/slog"
 )
 
 // AlarmInjector is the injector of an alarm into services.
@@ -54,7 +56,7 @@ type Service interface {
 	// Interval returns the maximal duration between two full check of the object to proceed.
 	Interval() time.Duration
 
-	Logger() LevelLogger
+	Logger() slog.Leveled
 }
 
 // EventReceiver is the interface implemented by services willing to react to some events.
@@ -98,25 +100,14 @@ type StopFunction func()
 // events.DefaultManager and calls EventReceiver.ReceiveEvent for each received event.
 // The returned function must be called to stop the service and free the resources associated with
 // the runner.
-func Run(service interface{}, loc *ioc.Locator) StopFunction {
-	var alarmInjector AlarmInjector
-	err := loc.Get(&alarmInjector)
-	if err != nil {
-		panic(err)
-	}
-	runner := &serviceRunner{alarm: alarmInjector(maxHandledIds, alarm.DiscardLateDuplicates)}
-	err = loc.Inject(service, &runner.service)
-	if err != nil {
-		panic(err)
+func Run(service Service, alarmInjector AlarmInjector, evtManager events.Manager) StopFunction {
+	runner := &serviceRunner{
+		alarm: alarmInjector(maxHandledIds, alarm.DiscardLateDuplicates),
+		service: service,
 	}
 
 	if eventReceiver, ok := runner.service.(EventReceiver); ok {
 		evtChan := make(chan events.Event, 64)
-		var evtManager events.Manager
-		err = loc.Get(&evtManager)
-		if err != nil {
-			panic(err)
-		}
 		evtManager.AddReceiver(events.AsyncForwarder{
 			Filter: eventReceiver.FilterEvent,
 			Chan:   evtChan,
@@ -142,11 +133,6 @@ const (
 	// Maximal number of ids that are considered at each full check.
 	maxHandledIds = 1024
 )
-
-func init() {
-	ioc.Root.Set(func() AlarmInjector { return alarm.New })
-	ioc.Root.Set(func() events.Manager { return events.DefaultManager })
-}
 
 type runner interface {
 	run()

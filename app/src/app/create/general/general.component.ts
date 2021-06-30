@@ -20,6 +20,7 @@ import { ActivatedRoute } from '@angular/router';
 
 import { CreateService } from '../create.service';
 import { CreateSubComponentBase } from '../create-sub-component-base';
+import { SessionService } from 'src/app/session/session.service';
 
 @Component({
   selector: 'app-create-general',
@@ -38,9 +39,11 @@ export class GeneralComponent extends CreateSubComponentBase implements OnInit, 
     ]],
     Description: [''],
     Hidden: [false],
+    Verified: [false],
   });
 
   constructor(
+    public session: SessionService,
     protected service: CreateService,
     protected route: ActivatedRoute,
     private formBuilder: FormBuilder,

@@ -73,7 +73,7 @@ func (self *createPollTest) Prepare(t *testing.T) *ioc.Locator {
 
 	self.pollsCreated = make(map[uint32]bool, 2)
 	locator := self.WithUser.Prepare(t).Sub()
-	locator.Set(func() events.Manager {
+	locator.Bind(func() events.Manager {
 		return &eventstest.ManagerMock{
 			T: t,
 			Send_: func(evt events.Event) error {

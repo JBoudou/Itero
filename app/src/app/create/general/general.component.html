@@ -12,6 +12,9 @@
     <mat-radio-button [value]="false" i18n>Make the poll public.</mat-radio-button>
     <mat-radio-button [value]="true"  i18n>Manually spread the link.</mat-radio-button>
   </mat-radio-group>
+  <mat-checkbox *ngIf="(session.state$ | async).verified" class="verifiedPoll" formControlName="Verified" i18n>
+    Restrict to users with a verified email.
+  </mat-checkbox>
 </form>
 
 <ng-template #stepInfo let-query="query$">
@@ -25,13 +28,21 @@
     </p>
     <p *ngIf="!q.Hidden; else Hidden" i18n>
       The title will be displayed in the list of polls,
-      allowing any user to participate in.
+      allowing
+      <ng-container [ngSwitch]="q.Verified">
+        <ng-container *ngSwitchCase="false">any user</ng-container>
+        <ng-container *ngSwitchCase="true" >users with a verified email</ng-container>
+      </ng-container>
+      to participate in.
       If you don't want the poll to be public, select "Manually spread the link".
     </p>
     <ng-template #Hidden>
       <p>
         The title will be displayed in the list of poll only for the participants in the poll.
         You will have to send the link of the poll to all the participants.
+        <ng-container *ngIf="q.Verified">
+          Beware that users whose email is not verified yet will not have access to the poll.
+        </ng-container>
         If you prefer your poll to be public, select "Make the poll public".
       </p>
     </ng-template>

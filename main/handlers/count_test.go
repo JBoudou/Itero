@@ -58,7 +58,7 @@ func TestCountInfoHandler(t *testing.T) {
 	request := *makePollRequest(t, pollId, &users[0])
 
 	previousRoundRequest := func(t *testing.T, round uint8) srvt.Request {
-		pollSegment := salted.Segment{Salt: 42, Id: pollId}
+		pollSegment := salted.Segment{Salt: dbt.PollSalt, Id: pollId}
 		encoded, err := pollSegment.Encode()
 		mustt(t, err)
 		target := "/a/test/" + strconv.FormatUint(uint64(round), 10) + "/" + encoded
@@ -166,7 +166,7 @@ func TestCountInfoHandler(t *testing.T) {
 
 		&pollTest{
 			Name:         "No user public",
-			Electorate: db.ElectorateAll,
+			Electorate:   db.ElectorateAll,
 			Alternatives: alt,
 			UserType:     pollTestUserTypeNone,
 			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
@@ -175,8 +175,8 @@ func TestCountInfoHandler(t *testing.T) {
 		},
 		&pollTest{
 			Name:         "No user hidden",
-			Electorate: db.ElectorateAll,
-			Hidden: true,
+			Electorate:   db.ElectorateAll,
+			Hidden:       true,
 			Alternatives: alt,
 			UserType:     pollTestUserTypeNone,
 			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
@@ -185,7 +185,7 @@ func TestCountInfoHandler(t *testing.T) {
 		},
 		&pollTest{
 			Name:         "Unlogged public",
-			Electorate: db.ElectorateAll,
+			Electorate:   db.ElectorateAll,
 			Alternatives: alt,
 			UserType:     pollTestUserTypeUnlogged,
 			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
@@ -194,8 +194,8 @@ func TestCountInfoHandler(t *testing.T) {
 		},
 		&pollTest{
 			Name:         "Unlogged hidden",
-			Electorate: db.ElectorateAll,
-			Hidden: true,
+			Electorate:   db.ElectorateAll,
+			Hidden:       true,
 			Alternatives: alt,
 			UserType:     pollTestUserTypeUnlogged,
 			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
@@ -205,7 +205,7 @@ func TestCountInfoHandler(t *testing.T) {
 
 		&pollTest{
 			Name:         "No user public registered",
-			Electorate: db.ElectorateLogged,
+			Electorate:   db.ElectorateLogged,
 			Alternatives: alt,
 			UserType:     pollTestUserTypeNone,
 			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
@@ -214,8 +214,8 @@ func TestCountInfoHandler(t *testing.T) {
 		},
 		&pollTest{
 			Name:         "No user hidden registered",
-			Electorate: db.ElectorateLogged,
-			Hidden: true,
+			Electorate:   db.ElectorateLogged,
+			Hidden:       true,
 			Alternatives: alt,
 			UserType:     pollTestUserTypeNone,
 			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
@@ -224,7 +224,7 @@ func TestCountInfoHandler(t *testing.T) {
 		},
 		&pollTest{
 			Name:         "Unlogged public registered",
-			Electorate: db.ElectorateLogged,
+			Electorate:   db.ElectorateLogged,
 			Alternatives: alt,
 			UserType:     pollTestUserTypeUnlogged,
 			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
@@ -233,10 +233,20 @@ func TestCountInfoHandler(t *testing.T) {
 		},
 		&pollTest{
 			Name:         "Unlogged hidden registered",
-			Electorate: db.ElectorateLogged,
-			Hidden: true,
+			Electorate:   db.ElectorateLogged,
+			Hidden:       true,
 			Alternatives: alt,
 			UserType:     pollTestUserTypeUnlogged,
+			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
+			Round:        1,
+			Checker:      srvt.CheckStatus{http.StatusNotFound},
+		},
+
+		&pollTest{
+			Name:         "Poll verified, User unverified",
+			Electorate:   db.ElectorateVerified,
+			Alternatives: alt,
+			UserType:     pollTestUserTypeLogged,
 			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
 			Round:        1,
 			Checker:      srvt.CheckStatus{http.StatusNotFound},

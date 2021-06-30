@@ -26,6 +26,7 @@ import (
 	"github.com/JBoudou/Itero/main/services"
 	"github.com/JBoudou/Itero/mid/db"
 	dbt "github.com/JBoudou/Itero/mid/db/dbtest"
+	"github.com/JBoudou/Itero/mid/root"
 	"github.com/JBoudou/Itero/mid/salted"
 	"github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
@@ -33,8 +34,10 @@ import (
 	"github.com/JBoudou/Itero/pkg/ioc"
 )
 
+type pollNotifUserKind uint8
+
 const (
-	pollNotifHandlerTestUserAdmin = iota
+	pollNotifHandlerTestUserAdmin pollNotifUserKind = iota
 	pollNotifHandlerTestUserPart
 	pollNotifHandlerTestUserAlien
 )
@@ -42,7 +45,7 @@ const (
 type pollNotifHandlerTest struct {
 	name      string
 	events    []func(uint32) events.Event
-	userKind  uint8
+	userKind  pollNotifUserKind
 	lastDelay time.Duration // Compute LastUpdate in query as Now - lastDelay. Default to one second.
 	expect    []PollNotifAnswerEntry
 
@@ -76,12 +79,9 @@ func (self *pollNotifHandlerTest) Prepare(t *testing.T) *ioc.Locator {
 
 	self.dbEnv.Must(t)
 
-	ret := ioc.Root.Sub()
-	// TODO: replace the two following lines with the commented line below.
-	ret.Set(func() events.Manager { return events.NewAsyncManager(events.DefaultManagerChannelSize) })
-	ret.Get(&self.evtManager)
-	//ret.Refresh(&self.evtManager)
-	ret.Set(func(evtManager events.Manager) (services.PollNotifChannel, error) {
+	ret := root.IoC.Sub()
+	ret.Refresh(&self.evtManager)
+	ret.Bind(func(evtManager events.Manager) (services.PollNotifChannel, error) {
 		return services.RunPollNotif(time.Second, evtManager)
 	})
 
@@ -128,7 +128,7 @@ func (self *pollNotifHandlerTest) Check(t *testing.T, response *http.Response, r
 		}
 	}
 
-	segment, err := salted.Segment{Id: self.pollId, Salt: 42}.Encode()
+	segment, err := salted.Segment{Id: self.pollId, Salt: dbt.PollSalt}.Encode()
 	mustt(t, err)
 	for i := 0; i < glen; i++ {
 

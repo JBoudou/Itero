@@ -57,8 +57,8 @@
     </button>
     <ng-container *ngIf="(session.state$ | async).logged">
       <hr>
-      <button mat-menu-item (click)="session.verifyEmail()" [disabled]="(session.state$ | async).profile.verified">
-        <ng-container [ngSwitch]="(session.state$ | async).profile.verified">
+      <button mat-menu-item [disabled]="(session.state$ | async).verified">
+        <ng-container [ngSwitch]="(session.state$ | async).verified">
           <ng-container *ngSwitchCase="false">
             <mat-icon>forward_to_inbox</mat-icon> Verify email
           </ng-container>

@@ -22,10 +22,12 @@ import (
 
 	"github.com/JBoudou/Itero/mid/db"
 	dbt "github.com/JBoudou/Itero/mid/db/dbtest"
+	"github.com/JBoudou/Itero/mid/root"
 	"github.com/JBoudou/Itero/mid/salted"
 	"github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
-	"github.com/JBoudou/Itero/pkg/config"
+	"github.com/JBoudou/Itero/pkg/events"
+	"github.com/JBoudou/Itero/pkg/events/eventstest"
 	"github.com/JBoudou/Itero/pkg/ioc"
 )
 
@@ -37,7 +39,7 @@ func mustt(t *testing.T, err error) {
 }
 
 func precheck(t *testing.T) {
-	if !(config.Ok && db.Ok && server.Ok) {
+	if !(root.Configured && db.Ok && server.Ok) {
 		t.Log("Impossible to test the main package: some dependent packages are not ok.")
 		t.Log("Check that there is a configuration file in main/. (or a link to the main configuation file).")
 		t.SkipNow()
@@ -45,7 +47,7 @@ func precheck(t *testing.T) {
 }
 
 func makePollRequest(t *testing.T, pollId uint32, userId *uint32) *srvt.Request {
-	pollSegment := salted.Segment{Salt: 42, Id: pollId}
+	pollSegment := salted.Segment{Salt: dbt.PollSalt, Id: pollId}
 	encoded, err := pollSegment.Encode()
 	mustt(t, err)
 	target := "/a/test/" + encoded
@@ -77,7 +79,7 @@ func (self *WithUser) Prepare(t *testing.T) *ioc.Locator {
 	} else {
 		self.User = server.User{
 			Id:     self.DB.CreateUserWith(t.Name()),
-			Name:   self.DB.UserNameWith(t.Name()),
+			Name:   dbt.UserNameWith(t.Name()),
 			Logged: true,
 		}
 		self.DB.Must(t)
@@ -89,7 +91,7 @@ func (self *WithUser) Prepare(t *testing.T) *ioc.Locator {
 		}
 	}
 
-	return ioc.Root
+	return root.IoC
 }
 
 func (self *WithUser) GetRequest(t *testing.T) *srvt.Request {
@@ -130,4 +132,33 @@ func RFPostSession(body string) RequestFct {
 	return func(user *server.User) *srvt.Request {
 		return rfSession("POST", body, user)
 	}
+}
+
+// WithEvent //
+
+type WithEvent struct {
+	RecordedEvents []events.Event
+}
+
+func (self *WithEvent) Prepare(t *testing.T) *ioc.Locator {
+	manager := &eventstest.ManagerMock{
+		T: t,
+		Send_: func(evt events.Event) error {
+			self.RecordedEvents = append(self.RecordedEvents, evt)
+			return nil
+		},
+	}
+
+	locator := root.IoC.Sub()
+	mustt(t, locator.Bind(func() events.Manager { return manager }))
+	return locator
+}
+
+func (self *WithEvent) CountRecorderEvents(predicate func(events.Event) bool) (ret int) {
+	for _, recorded := range self.RecordedEvents {
+		if predicate(recorded) {
+			ret += 1
+		}
+	}
+	return
 }
