@@ -1,0 +1,3 @@
+ALTER TABLE Confirmations
+  MODIFY COLUMN
+    Type    ENUM('verify','passwd') NOT NULL;

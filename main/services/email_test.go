@@ -124,8 +124,8 @@ func TestEmailService_CreateUserEvent(t *testing.T) {
 
 type emailTestInstance struct {
 	name     string
-	type_    string        // Type of the confirmation
-	duration time.Duration // From now., for the Expires field of the confirmation
+	type_    db.ConfirmationType
+	duration time.Duration // From now, for the Expires field of the confirmation
 	expected bool          // Whether the confirmation should be processed/listed
 }
 

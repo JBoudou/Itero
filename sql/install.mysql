@@ -107,11 +107,11 @@ DELIMITER ;
 
 CREATE TABLE Confirmations (
 
-  Id      int unsigned    NOT NULL AUTO_INCREMENT,
-  Salt    int unsigned    NOT NULL,
-  Type    ENUM('verify')  NOT NULL,
-  User    int unsigned    NOT NULL,
-  Expires datetime        NOT NULL,
+  Id      int unsigned            NOT NULL AUTO_INCREMENT,
+  Salt    int unsigned            NOT NULL,
+  Type    ENUM('verify','passwd') NOT NULL,
+  User    int unsigned            NOT NULL,
+  Expires datetime                NOT NULL,
 
   CONSTRAINT Confirmations_pk PRIMARY KEY (Id),
   CONSTRAINT Confirmations_User_fk FOREIGN KEY (User) REFERENCES Users (Id) ON DELETE CASCADE,

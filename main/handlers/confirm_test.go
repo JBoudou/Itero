@@ -50,7 +50,7 @@ type confirmTest struct {
 }
 
 type confirmTestEntry struct {
-	typ string
+	typ db.ConfirmationType
 	dur time.Duration
 }
 

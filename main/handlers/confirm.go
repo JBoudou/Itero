@@ -26,7 +26,7 @@ import (
 )
 
 type ConfirmAnswer struct {
-	Type string
+	Type db.ConfirmationType
 }
 
 type confirmHandler struct {

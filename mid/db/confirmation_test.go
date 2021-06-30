@@ -56,7 +56,7 @@ func TestCreateConfirmation(t *testing.T) {
 	mustt(t, err)
 
 	// Check it
-	var gotType string
+	var gotType ConfirmationType
 	var gotExpires time.Time
 	var gotId, gotSalt uint32
 	rows, err = DB.Query(qFindConfirmation, uid)
