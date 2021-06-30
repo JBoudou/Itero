@@ -24,7 +24,6 @@ import { MatDialog, MAT_DIALOG_DATA } from '@angular/material/dialog';
 
 import { SessionAnswer } from '../api';
 import { ScheduleOne } from '../shared/schedule-one';
-import { ServerError } from 'src/app/shared/server-error';
 
 export enum SessionState {
   Unlogged,
