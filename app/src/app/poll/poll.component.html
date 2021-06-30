@@ -11,6 +11,12 @@
   <p>This is the message that must be displayed in the panel</p>
 </app-info-panel>
 
+<dl class="debug">
+  <dt>Tablet<dd>{{ breakpoints.tablet }}
+  <dt>Laptop<dd>{{ breakpoints.laptop }}
+</dl>
+
+
 <div class="information-container" *ngIf="!error">
   <div class="poll-main" *ngIf="!!answer else loadingTmpl">
 
