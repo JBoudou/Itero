@@ -54,7 +54,9 @@ func makePollRequest(t *testing.T, pollId uint32, userId *uint32) *srvt.Request 
 	return &srvt.Request{Target: &target, UserId: userId}
 }
 
+//
 // WithUser //
+//
 
 var withUserFakeAddress string = "1.2.3.4"
 
@@ -134,7 +136,9 @@ func RFPostSession(body string) RequestFct {
 	}
 }
 
+//
 // WithEvent //
+//
 
 type WithEvent struct {
 	RecordedEvents []events.Event

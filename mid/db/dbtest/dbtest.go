@@ -30,6 +30,9 @@ const (
 
 	PollSalt = 42
 	PollMaxNbRounds = 4
+
+	// ImpossibleUserName is a user name which is guaranteed to not exist.
+	ImpossibleUserName = "  "
 )
 
 // Env provides methods to add temporary test data. It collects functions to remove these data.
