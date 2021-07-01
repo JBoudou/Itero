@@ -20,6 +20,7 @@ import { FormBuilder, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 
 import { take } from 'rxjs/operators';
+import {ServerError} from 'src/app/shared/server-error';
 
 import { SessionService } from '../session.service';
 
@@ -47,6 +48,9 @@ export class LoginComponent implements OnInit {
   errorType = 'None'
   errorMsg = ''
 
+  serverError: ServerError = new ServerError()
+  forgotSent: boolean = false
+
   constructor(
     private session: SessionService,
     private http: HttpClient,
@@ -62,21 +66,46 @@ export class LoginComponent implements OnInit {
       .pipe(this.session.httpOperator(this.form.value.User), take(1))
       .subscribe({
       next: _ => {
-        this.errorType = 'None';
+        this.reset()
         this.router.navigateByUrl(this.session.getLoginRedirectionUrl());
       },
       error: (err: HttpErrorResponse) => {
-        if (err.error instanceof ErrorEvent) {
-          this.errorType = 'Local';
-          this.errorMsg  = err.error.message;
-        } else if (err.status == 403) {
+        this.reset()
+        if (err.status == 403) {
           this.errorType = 'Wrong';
         } else {
-          this.errorType = 'Server';
-          this.errorMsg = err.statusText;
+          this.serverError = new ServerError(err, 'loging in')
         }
       }
     });
+  }
+
+  onForgot(): void {
+    this.http.post('/a/forgot', this.form.value)
+      .pipe(take(1))
+      .subscribe({
+      next: _ => {
+        this.reset()
+        console.log('sent')
+        this.forgotSent = true
+      },
+      error: (err: HttpErrorResponse) => {
+        this.reset()
+        if (err.status == 403) {
+          this.errorType = 'Unknown';
+        } else if (err.status == 409) {
+          this.errorType = 'Already'
+        } else {
+          this.serverError = new ServerError(err, 'requesting a password change')
+        }
+      }
+    });
+  }
+
+  private reset(): void {
+    this.errorType = 'None'
+    this.serverError = new ServerError()
+    this.forgotSent = false
   }
 
 }
