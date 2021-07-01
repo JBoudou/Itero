@@ -25,6 +25,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 
+import { FormWidgetModule } from '../form-widget/form-widget.module';
 import { SharedModule } from '../shared/shared.module';
 
 import { SessionRoutingModule } from './session-routing.module';
@@ -45,6 +46,7 @@ import { EmailVerificationDialog } from './session.service';
   imports: [
     CommonModule,
     FormsModule,
+    FormWidgetModule,
     MatButtonModule,
     MatDialogModule,
     MatFormFieldModule,

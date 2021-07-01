@@ -9,17 +9,11 @@
   </mat-form-field>
   <mat-form-field class="lone-field" appearance="standard">
     <mat-label i18n>Password</mat-label>
-    <input matInput [type]="showPassword ? 'text' : 'password'" formControlName="Passwd">
-    <button mat-icon-button matSuffix type="button" (click)="showPassword = !showPassword">
-      <mat-icon>{{ showPassword ? 'visibility' : 'visibility_off' }}</mat-icon>
-    </button>
+    <app-disclose-password formControlName="Passwd"></app-disclose-password>
   </mat-form-field>
   <mat-form-field class="lone-field" appearance="standard">
     <mat-label i18n>Confirm password</mat-label>
-    <input matInput [type]="showConfirm ? 'text' : 'password'" formControlName="pwdconfirm">
-    <button mat-icon-button matSuffix type="button" (click)="showConfirm = !showConfirm">
-      <mat-icon>{{ showConfirm ? 'visibility' : 'visibility_off' }}</mat-icon>
-    </button>
+    <app-disclose-password formControlName="pwdconfirm"></app-disclose-password>
   </mat-form-field>
   <div class="formerrors" *ngIf="!form.valid">
     <p *ngIf="nameTooShort()" i18n>Your login name must be at least 5 characters long.</p>

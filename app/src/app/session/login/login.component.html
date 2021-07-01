@@ -10,10 +10,7 @@
   </mat-form-field>
   <mat-form-field class="lone-field" appearance="standard">
     <mat-label i18n>Password</mat-label>
-    <input matInput [type]="showPassword ? 'text' : 'password'" formControlName="Passwd" />
-    <button mat-icon-button matSuffix type="button" (click)="showPassword = !showPassword">
-      <mat-icon>{{ showPassword ? 'visibility' : 'visibility_off' }}</mat-icon>
-    </button>
+    <app-disclose-password formControlName="Passwd"></app-disclose-password>
   </mat-form-field>
   <div class="formerrors" *ngIf="errorType != 'None'" [ngSwitch]="errorType">
     <p *ngSwitchCase="'Wrong'" i18n>Wrong user name or password. Please try again.</p>

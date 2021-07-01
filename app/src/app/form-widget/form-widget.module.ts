@@ -18,9 +18,15 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 
+import { MatButtonModule } from '@angular/material/button';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+
 import { DateTimePickerComponent } from './date-time-picker/date-time-picker.component';
 import { DayHourMinDurationComponent } from './day-hour-min-duration/day-hour-min-duration.component';
 import { DurationPipe } from './duration.pipe';
+import { DisclosePasswordComponent } from './disclose-password/disclose-password.component';
 
 
 @NgModule({
@@ -28,16 +34,22 @@ import { DurationPipe } from './duration.pipe';
     DateTimePickerComponent,
     DayHourMinDurationComponent,
     DurationPipe,
+    DisclosePasswordComponent,
   ],
   imports: [
     CommonModule,
-    ReactiveFormsModule,
     FormsModule,
+    MatButtonModule,
+    MatFormFieldModule,
+    MatIconModule,
+    MatInputModule,
+    ReactiveFormsModule,
   ],
   exports: [
     DateTimePickerComponent,
     DayHourMinDurationComponent,
     DurationPipe,
+    DisclosePasswordComponent,
   ],
 })
 export class FormWidgetModule { }
