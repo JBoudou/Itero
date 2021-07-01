@@ -110,14 +110,7 @@ func (self *confirmTest) Check(t *testing.T, response *http.Response, request *s
 		t.Errorf("Wrong type. Got %s. Expect %s.", answer.Type, expectType)
 	}
 
-	const qFind = `SELECT 1 FROM Confirmations WHERE Id = ?`
-	rows, err := db.DB.Query(qFind, self.requested.Id)
-	defer rows.Close()
-	mustt(t, err)
-	if rows.Next() {
-		t.Errorf("Confirmation with id %d has not been deleted", self.requested.Id)
-	}
-
+	expectDelete := true
 	switch expectType {
 	case db.ConfirmationTypeVerify:
 		const qCheckVerify = `SELECT Verified FROM Users WHERE Id = ?`
@@ -126,6 +119,19 @@ func (self *confirmTest) Check(t *testing.T, response *http.Response, request *s
 		if !verified {
 			t.Errorf("User %d not verified.", self.uid)
 		}
+
+	case db.ConfirmationTypePasswd:
+		expectDelete = false
+	}
+
+	const qFind = `SELECT 1 FROM Confirmations WHERE Id = ?`
+	rows, err := db.DB.Query(qFind, self.requested.Id)
+	defer rows.Close()
+	mustt(t, err)
+	gotDelete := !rows.Next()
+	if gotDelete != expectDelete {
+		t.Errorf("Wrong delete status for %d. Got %t. Expect %t.", self.requested.Id,
+			gotDelete, expectDelete)
 	}
 }
 
@@ -188,12 +194,16 @@ func TestConfirmHandler(t *testing.T) {
 		},
 
 		&confirmTest{
-			Name: "Expired",
+			Name: "Success",
 			Create: []confirmTestEntry{
 				{typ: db.ConfirmationTypeVerify, dur: time.Minute},
 			},
-			Fct: func(t *testing.T, segments []salted.Segment) salted.Segment {
-				return segments[0]
+		},
+
+		&confirmTest{
+			Name: "Passwd",
+			Create: []confirmTestEntry{
+				{typ: db.ConfirmationTypePasswd, dur: time.Minute},
 			},
 		},
 	}

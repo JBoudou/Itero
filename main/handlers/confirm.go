@@ -60,21 +60,26 @@ func (self confirmHandler) Handle(ctx context.Context, response server.Response,
 	}
 
 	// Execute
+	var delConfirm bool
 	switch answer.Type {
 	case db.ConfirmationTypeVerify:
-		err = self.verify(ctx, uid)
+		delConfirm, err = self.verify(ctx, uid)
+	case db.ConfirmationTypePasswd:
+		delConfirm = false
 	}
 	must(err)
 
 	// Delete
-	_, err = db.DB.ExecContext(ctx, qDelete, segment.Id)
-	must(err)
+	if delConfirm{
+		_, err = db.DB.ExecContext(ctx, qDelete, segment.Id)
+		must(err)
+	}
 
 	response.SendJSON(ctx, answer)
 }
 
-func (self confirmHandler) verify(ctx context.Context, uid uint32) error {
+func (self confirmHandler) verify(ctx context.Context, uid uint32) (bool, error) {
 	const qUpdate = `UPDATE Users SET Verified = TRUE WHERE Id = ?`
 	_, err := db.DB.ExecContext(ctx, qUpdate, uid)
-	return err
+	return true, err
 }
