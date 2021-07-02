@@ -21,22 +21,16 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"hash"
 	"net/http"
 	"strings"
 
-	"golang.org/x/crypto/blake2b"
-
 	"github.com/JBoudou/Itero/mid/db"
+	"github.com/JBoudou/Itero/mid/root"
 	"github.com/JBoudou/Itero/mid/server"
 )
 
 type ProfileInfo struct {
 	Verified bool
-}
-
-func passwdHash() (hash.Hash, error) {
-	return blake2b.New256(nil)
 }
 
 type userInfo struct {
@@ -82,7 +76,7 @@ func LoginHandler(ctx context.Context, response server.Response, request *server
 	userInfo, err := getUserInfo(ctx, loginQuery.User)
 	must(err)
 
-	hashFct, err := passwdHash()
+	hashFct, err := root.PasswdHash()
 	if err != nil {
 		response.SendError(ctx, err)
 		return
@@ -95,6 +89,6 @@ func LoginHandler(ctx context.Context, response server.Response, request *server
 	}
 
 	response.SendLoginAccepted(ctx, server.User{Name: loginQuery.User, Id: userInfo.Id, Logged: true},
-		request, ProfileInfo{ Verified: userInfo.Verified })
+		request, ProfileInfo{Verified: userInfo.Verified})
 	return
 }

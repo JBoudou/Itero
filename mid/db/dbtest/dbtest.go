@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	"github.com/JBoudou/Itero/mid/db"
+	"github.com/JBoudou/Itero/mid/root"
 )
 
 const (
@@ -34,6 +35,17 @@ const (
 	// ImpossibleUserName is a user name which is guaranteed to not exist.
 	ImpossibleUserName = "  "
 )
+
+var UserPasswdHash []byte
+
+func init() {
+	hashFct, err := root.PasswdHash()
+	if err != nil {
+		panic(err)
+	}
+	hashFct.Write([]byte(UserPasswd))
+	UserPasswdHash = hashFct.Sum(nil)
+}	
 
 // Env provides methods to add temporary test data. It collects functions to remove these data.
 // These functions are called by Close, hence a call to Close must be defered for each Env object.
@@ -85,7 +97,7 @@ func (self *Env) QuietExec(query string, args ...interface{}) {
 }
 
 // CreateUser adds a user to the database. The user has name ' Test ' (mind the spaces), email
-// address 'testTest@example.test', and password 'XYZ'. It is deleted by Close.
+// address 'testTest@example.test', and password UserPasswd. It is deleted by Close.
 func (self *Env) CreateUser() uint32 {
 	return self.CreateUserWith("Test")
 }
@@ -99,9 +111,9 @@ func (self *Env) CreateUserWith(salt string) (userId uint32) {
 
 	const query = `
 	   INSERT INTO Users(Name, Email, Passwd)
-	   VALUES(?, ?, X'2e43477a2da06cb4aba764381086cbc9323945eb1bffb232f221e374af44f803')`
+	   VALUES(?, ?, ?)`
 	var result sql.Result
-	result, self.Error = db.DB.Exec(query, UserNameWith(salt), UserEmailWith(salt))
+	result, self.Error = db.DB.Exec(query, UserNameWith(salt), UserEmailWith(salt), UserPasswdHash)
 	userId = self.extractId(result)
 
 	self.Defer(func() {

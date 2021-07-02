@@ -28,6 +28,7 @@ import (
 
 	"github.com/JBoudou/Itero/main/services"
 	"github.com/JBoudou/Itero/mid/db"
+	"github.com/JBoudou/Itero/mid/root"
 	"github.com/JBoudou/Itero/mid/server"
 	"github.com/JBoudou/Itero/pkg/events"
 )
@@ -38,6 +39,20 @@ type signupHandler struct {
 
 func SignupHandler(evtManager events.Manager) signupHandler {
 	return signupHandler{evtManager: evtManager}
+}
+
+func checkAndHashPasswd(clearPwd string) (hashPwd []byte, err error) {
+	if len(clearPwd) < 5 {
+		err = server.NewHttpError(http.StatusBadRequest, "Passwd too short", "Password too short")
+		return
+	}
+	hashFct, err := root.PasswdHash()
+	if err != nil {
+		return
+	}
+	hashFct.Write([]byte(clearPwd))
+	hashPwd = hashFct.Sum(nil)
+	return
 }
 
 func (self signupHandler) Handle(ctx context.Context, response server.Response, request *server.Request) {
@@ -79,18 +94,8 @@ func (self signupHandler) Handle(ctx context.Context, response server.Response, 
 		return
 	}
 
-	if len(signupQuery.Passwd) < 5 {
-		err := server.NewHttpError(http.StatusBadRequest, "Passwd too short", "Password too short")
-		response.SendError(ctx, err)
-		return
-	}
-	hashFct, err := passwdHash()
-	if err != nil {
-		response.SendError(ctx, err)
-		return
-	}
-	hashFct.Write([]byte(signupQuery.Passwd))
-	hashPwd := hashFct.Sum(nil)
+	hashPwd, err := checkAndHashPasswd(signupQuery.Passwd)
+	must(err)
 
 	ok, err := regexp.MatchString("^[^\\s@]+@[^\\s.]+\\.\\S\\S+$", signupQuery.Email)
 	if err != nil {
@@ -128,8 +133,8 @@ func (self signupHandler) Handle(ctx context.Context, response server.Response, 
 	// Start session //
 
 	response.SendLoginAccepted(ctx, server.User{
-		Name: signupQuery.Name,
-		Id: uint32(rawId),
+		Name:   signupQuery.Name,
+		Id:     uint32(rawId),
 		Logged: true,
 	}, request, ProfileInfo{})
 	return

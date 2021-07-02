@@ -15,11 +15,18 @@
 // this program. If not, see <https://www.gnu.org/licenses/>.
 
 // Package root provides shared resources to the whole application.
+//
+// In particular, this package initialize IoC with binding for external packages.
+// This package can be imported by all other application specific packages (main/* and mid/*).
+// Therefore, it must not import any application specific package.
 package root
 
 import (
+	"hash"
 	"log"
 	"os"
+
+	"golang.org/x/crypto/blake2b"
 
 	"github.com/JBoudou/Itero/pkg/config"
 	"github.com/JBoudou/Itero/pkg/events"
@@ -53,4 +60,8 @@ func init() {
 	IoC.Inject(func(logger slog.Leveled) {
 		Configured = config.ReadConfigFile(logger, "config.json", 2)
 	})
+}
+
+func PasswdHash() (hash.Hash, error) {
+	return blake2b.New256(nil)
 }

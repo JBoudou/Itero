@@ -21,6 +21,8 @@ import { HttpClientTestingModule, HttpTestingController } from '@angular/common/
 import { map } from 'rxjs/operators';
 
 import { LoginComponent } from './login.component';
+
+import { FormWidgetModule } from '../../form-widget/form-widget.module';
 import { SessionService } from '../session.service';
 
 describe('LoginComponent', () => {
@@ -40,6 +42,7 @@ describe('LoginComponent', () => {
       imports: [ 
         HttpClientTestingModule,
         FormsModule,
+        FormWidgetModule,
         ReactiveFormsModule,
       ],
       providers: [

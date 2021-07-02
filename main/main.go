@@ -73,6 +73,7 @@ func main() {
 	StartHandler("/a/confirm/", ConfirmHandler)
 	StartHandler("/a/reverify", ReverifyHandler)
 	StartHandler("/a/forgot", ForgotHandler)
+	StartHandler("/a/passwd/", PasswdHandler)
 
 	var logger slog.Leveled
 	root.IoC.Inject(&logger)

@@ -23,6 +23,7 @@ import { map } from 'rxjs/operators';
 
 import { SignupComponent } from './signup.component';
 
+import { FormWidgetModule } from 'src/app/form-widget/form-widget.module';
 import { SessionService } from '../session.service';
 
 describe('SignupComponent', () => {
@@ -40,6 +41,7 @@ describe('SignupComponent', () => {
       imports: [
         HttpClientTestingModule,
         FormsModule,
+        FormWidgetModule,
         ReactiveFormsModule,
       ],
       providers: [
