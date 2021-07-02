@@ -71,6 +71,9 @@ func checkPollAccess(ctx context.Context, request *server.Request) (poll PollInf
 	const qPoll = `SELECT Salt, Electorate, NbChoices, State = 'Active', CurrentRound FROM Polls WHERE Id = ?`
 	rows, err := db.DB.QueryContext(ctx, qPoll, poll.Id)
 	defer rows.Close()
+	if err != nil {
+		return
+	}
 	if !rows.Next() {
 		err = noPollError("Id not found")
 		return
