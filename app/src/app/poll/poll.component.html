@@ -7,6 +7,8 @@
   Your vote has not been taken into account because the next round started while you were voting.
 </p>
 
+<p class="debug">Current responsive statut is {{ responsiveName$ | async }}.</p>
+
 <div class="information-container" *ngIf="!error">
   <div class="poll-main" *ngIf="!!answer else loadingTmpl">
 

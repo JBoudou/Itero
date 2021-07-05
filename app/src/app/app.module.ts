@@ -19,6 +19,7 @@ import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { HttpClientModule } from '@angular/common/http';
 
+import { LayoutModule }     from '@angular/cdk/layout';
 import { MatIconModule }    from '@angular/material/icon';
 import { MatMenuModule }    from '@angular/material/menu';
 
@@ -47,6 +48,7 @@ import { DeadRouteComponent } from './dead-route/dead-route.component';
     BrowserAnimationsModule,
     BrowserModule,
     HttpClientModule,
+    LayoutModule,
     ListModule,
     MatIconModule,
     MatMenuModule,

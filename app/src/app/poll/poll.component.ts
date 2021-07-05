@@ -32,7 +32,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder } from '@angular/forms';
 
 import { Observable, Subscription } from 'rxjs';
-import { take } from 'rxjs/operators';
+import { map, take } from 'rxjs/operators';
 
 import {
   NONE_BALLOT,
@@ -52,6 +52,7 @@ import { ServerError } from '../shared/server-error';
 
 import { UninominalBallotComponent } from './uninominal-ballot/uninominal-ballot.component';
 import { CountsInformationComponent } from './counts-information/counts-information.component';
+import { ResponsiveBreakpointService, ResponsiveState } from '../responsive-breakpoint.service';
 
 @Directive({
   selector: '[PollBallot]',
@@ -123,6 +124,8 @@ export class PollComponent implements OnInit, OnDestroy {
   // TODO: Implements a decorator for PollBallot that provides methods for that.
   BallotType = BallotType;
 
+  responsiveName$ : Observable<string>
+
   /** Subscription for the sub component. The first index must be a SubComponentId. */
   private subsubscriptions: Subscription[][] = [];
 
@@ -140,7 +143,10 @@ export class PollComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private session: SessionService,
     private title: AppTitleService,
-  ) { }
+    private responsive: ResponsiveBreakpointService,
+  ) {
+    this.responsiveName$ = this.responsive.state$.pipe(map((st: ResponsiveState): string => ResponsiveState[st]))
+  }
 
   ngOnInit(): void {
     this.route.paramMap.pipe(take(1)).subscribe((params: ParamMap) => {
