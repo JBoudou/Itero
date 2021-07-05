@@ -1,5 +1,5 @@
 // Itero - Online iterative vote application
-// Copyright (C) 2020 Wan JIN
+// Copyright (C) 2021 Wan JIN, Joseph Boudou
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -15,7 +15,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import { Component, OnInit } from '@angular/core';
+import { Component, HostBinding, OnInit } from '@angular/core';
 
 @Component({
   selector: 'app-info-panel',
@@ -23,6 +23,10 @@ import { Component, OnInit } from '@angular/core';
   styleUrls: ['./info-panel.component.sass']
 })
 export class InfoPanelComponent implements OnInit {
+
+  @HostBinding('class') get stateClass() {
+    return this.showInfo ? 'opened' : 'closed'
+  }
 
   showInfo: boolean = false;
 

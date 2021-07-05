@@ -1,9 +1,9 @@
 @use 'sass:color'
 @import 'colors'
-@import 'typo'
-@import 'sizes'
 @import 'mixins'
 @import 'responsive'
+@import 'sizes'
+@import 'typo'
 
 body
   font-family: "Asap", sans-serif
@@ -152,52 +152,6 @@ $itero-mat-accent: mat-palette($itero-mat-maincolor, A400, A200, A700)
 $itero-mat-theme: mat-light-theme(( color: ( primary: $itero-mat-primary, accent: $itero-mat-accent )))
 @include angular-material-theme($itero-mat-theme)
 @include angular-material-typography($itero-mat-typography)
-
-
-.info-panel
-  border: 1px solid #704f6a
-  border-right: none
-  background-color: #d5b6d0
-  box-shadow: -5px 0px 5px 0 rgba(255, 204, 244, 0.7)
-  position: absolute
-  z-index: 1
-  right: 0
-  display: flex
-  flex-flow: row nowrap
-  transition: width 2s
-  .info-panel-icon mat-icon
-    margin: 0.7em $small-space
-  $menu-close-width: 32px
-  $width-smartphone: 80vw
-  $width-tablet: 50vw
-  min-width: $menu-close-width
-  max-width: $width-smartphone
-  @media screen and (min-width: $breakpoint-tablet) and (max-width: $breakpoint-laptop)
-    min-width: $menu-close-width
-    max-width: $width-tablet
-  @media screen and (min-width: $breakpoint-laptop)
-    display: none
-  &.opened
-    #help-button
-      display: none
-    width: $width-smartphone
-    @media screen and (min-width: $breakpoint-tablet) and (max-width: $breakpoint-laptop)
-      width: $width-tablet
-  &.closed
-    #close-button
-      display: none
-    width: $menu-close-width  
-  .info-panel-content
-    overflow: hidden
-  .info-panel-content .information
-    margin: 0
-    padding: 0
-    border: none
-    width: calc(#{$width-smartphone} - #{$menu-close-width})
-    @media screen and (min-width: $breakpoint-tablet) and (max-width: $breakpoint-laptop)
-      width: calc(#{$width-tablet} - #{$menu-close-width})
-    p
-      margin-top: 1em
 
 
 .basicform mat-select
