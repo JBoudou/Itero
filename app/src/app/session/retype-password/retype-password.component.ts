@@ -39,7 +39,7 @@ function samePasswordValidator(grp: FormGroup): ValidationErrors | null {
 })
 export class RetypePasswordComponent implements OnInit, OnDestroy {
 
-  @Input('controlGroup') form: FormGroup
+  @Input('controlGroup') form!: FormGroup
   @Input() passwdLabel: string = "Password"
 
   @Output() errors: EventEmitter<Set<string>> = new EventEmitter<Set<string>>()

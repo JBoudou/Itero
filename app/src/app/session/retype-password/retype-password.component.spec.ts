@@ -15,9 +15,11 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ReactiveFormsModule, FormBuilder, FormsModule } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, FormsModule, FormGroup } from '@angular/forms';
 
 import { RetypePasswordComponent } from './retype-password.component';
+
+import { FormWidgetModule } from 'src/app/form-widget/form-widget.module';
 
 describe('RetypePasswordComponent', () => {
   let component: RetypePasswordComponent;
@@ -28,6 +30,7 @@ describe('RetypePasswordComponent', () => {
       declarations: [ RetypePasswordComponent ],
       imports: [
         FormsModule,
+        FormWidgetModule,
         ReactiveFormsModule,
       ],
       providers: [
@@ -40,6 +43,9 @@ describe('RetypePasswordComponent', () => {
   beforeEach(() => {
     fixture = TestBed.createComponent(RetypePasswordComponent);
     component = fixture.componentInstance;
+
+    component.form = new FormGroup({})
+
     fixture.detectChanges();
   });
 
