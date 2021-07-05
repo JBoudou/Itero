@@ -81,6 +81,11 @@ const enum SubComponentId {
   Previous
 }
 
+interface Breakpoints {
+  tablet: string;
+  laptop: string;
+}
+
 /**
  * This component displays the current state of the poll and allow the user to vote.
  *
@@ -142,6 +147,8 @@ export class PollComponent implements OnInit, OnDestroy {
     private notif: PollNotifService,
   ) { }
 
+  breakpoints: Breakpoints;
+
   ngOnInit(): void {
     this.route.paramMap.pipe(take(1)).subscribe((params: ParamMap) => {
       this.segment = params.get('pollSegment');
@@ -152,6 +159,13 @@ export class PollComponent implements OnInit, OnDestroy {
         next: (evt: PollNotifAnswerEntry) => this.handleEvent(evt),
       }),
     )
+    
+    // Breakpoints
+    const bpStyle = getComputedStyle(document.getElementById('breakpoints-spy'))
+    this.breakpoints = {
+      tablet: bpStyle.getPropertyValue('min-width'),
+      laptop: bpStyle.getPropertyValue('max-width'),
+    }
   }
 
   ngOnDestroy(): void {
