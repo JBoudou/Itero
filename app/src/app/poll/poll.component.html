@@ -86,7 +86,7 @@
 
   </div>
 
-  <div class="information" *ngIf="!!answer">
+  <app-info-panel *ngIf="!!answer">
     
     <ng-template #firstRoundTmpl>
       <p i18n>
@@ -165,6 +165,8 @@
       </ng-container>
     </ng-container>
 
-  </div>
+  </app-info-panel>
+ 
+</div>  
 
-</div>
+

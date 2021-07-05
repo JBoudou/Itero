@@ -1,9 +1,9 @@
 @use 'sass:color'
 @import 'colors'
-@import 'typo'
-@import 'sizes'
 @import 'mixins'
 @import 'responsive'
+@import 'sizes'
+@import 'typo'
 
 body
   font-family: "Asap", sans-serif
@@ -134,6 +134,8 @@ input
 .information-container
   display: grid
   grid-template-columns: 1fr minmax(min-content, 31%)
+  @media screen and (max-width: $breakpoint-laptop)
+    grid-template-columns: 1fr minmax(min-content, 5%)
 
 .information
   margin-left: $medium-space
@@ -152,6 +154,7 @@ $itero-mat-accent: mat-palette($itero-mat-maincolor, A400, A200, A700)
 $itero-mat-theme: mat-light-theme(( color: ( primary: $itero-mat-primary, accent: $itero-mat-accent )))
 @include angular-material-theme($itero-mat-theme)
 @include angular-material-typography($itero-mat-typography)
+
 
 .basicform mat-select
   @include userinput

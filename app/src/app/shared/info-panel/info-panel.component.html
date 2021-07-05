@@ -1,0 +1,9 @@
+<button class="info-panel-icon" (click)="showInfo = !showInfo">
+  <mat-icon class="help-button">help</mat-icon>
+  <mat-icon class="close-button">close</mat-icon>
+</button>
+<div class="info-panel-content">
+  <div class="info-panel-inner information">
+    <ng-content></ng-content>
+  </div>
+</div>

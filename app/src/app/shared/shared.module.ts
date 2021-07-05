@@ -1,5 +1,5 @@
 // Itero - Online iterative vote application
-// Copyright (C) 2021 Joseph Boudou
+// Copyright (C) 2021 Joseph Boudou, Wan JIN
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -19,13 +19,20 @@ import { CommonModule } from '@angular/common';
 import { OrdinalPipe } from './ordinal.pipe';
 import { NearDatePipe } from './near-date.pipe';
 import { ServerErrorComponent } from './server-error/server-error.component';
+import { InfoPanelComponent } from './info-panel/info-panel.component';
+
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule }    from '@angular/material/icon';
 
 @NgModule({
-  declarations: [OrdinalPipe, NearDatePipe, ServerErrorComponent],
+  declarations: [OrdinalPipe, NearDatePipe, ServerErrorComponent, InfoPanelComponent],
   imports: [
-    CommonModule
+    CommonModule,
+    MatButtonModule,
+    MatIconModule,
   ],
   exports: [
+    InfoPanelComponent,
     NearDatePipe,
     OrdinalPipe,
     ServerErrorComponent,
