@@ -1,5 +1,5 @@
 // Itero - Online iterative vote application
-// Copyright (C) 2021 Joseph Boudou
+// Copyright (C) 2021 Joseph Boudou, Milo Parra
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -28,6 +28,7 @@ import { DayHourMinDurationComponent } from './day-hour-min-duration/day-hour-mi
 import { DurationPipe } from './duration.pipe';
 import { DisclosePasswordComponent } from './disclose-password/disclose-password.component';
 
+import { MatMenuModule } from '@angular/material/menu';
 
 @NgModule({
   declarations: [
@@ -43,6 +44,7 @@ import { DisclosePasswordComponent } from './disclose-password/disclose-password
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    MatMenuModule,
     ReactiveFormsModule,
   ],
   exports: [
