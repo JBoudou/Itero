@@ -22,6 +22,7 @@ import { DateTimePickerComponent } from './date-time-picker/date-time-picker.com
 import { DayHourMinDurationComponent } from './day-hour-min-duration/day-hour-min-duration.component';
 import { DurationPipe } from './duration.pipe';
 
+import { MatMenuModule } from '@angular/material/menu';
 
 @NgModule({
   declarations: [
@@ -33,6 +34,7 @@ import { DurationPipe } from './duration.pipe';
     CommonModule,
     ReactiveFormsModule,
     FormsModule,
+    MatMenuModule,
   ],
   exports: [
     DateTimePickerComponent,

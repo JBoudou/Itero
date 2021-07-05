@@ -1,4 +1,4 @@
-<div role="group" class="day-hour-min-duration merged-input" [formGroup]="form">
+<div role="group" class="day-hour-min-duration merged-input" [formGroup]="form" [matMenuTriggerFor]="durationMenu">
   <input #days type="number" size="3" min="0" max="999" formControlName="days"  />
   &nbsp;{days.value, plural, =0 {day} =1 {day} other {days}},
   <input #hours type="number" size="2" min="0"  max="23" formControlName="hours" />
@@ -6,3 +6,39 @@
   <input #mins type="number" size="2" min="0"  max="59" formControlName="mins"  />
   &nbsp;{mins.value, plural, =0 {minute} =1 {minute} other {minutes }}.
 </div>
+
+<mat-menu #durationMenu="matMenu" id="MenuDuration">
+  <button mat-menu-item>
+    5 min
+  </button>
+  <button mat-menu-item>
+    10 min
+  </button>
+  <button mat-menu-item>
+    15 min
+  </button>
+  <button mat-menu-item>
+    30 min
+  </button>
+  <button mat-menu-item>
+    1 hour
+  </button>
+  <button mat-menu-item>
+    2 hours
+  </button>
+  <button mat-menu-item>
+    6 hours
+  </button>
+  <button mat-menu-item>
+    12 hours
+  </button>
+  <button mat-menu-item>
+    1 day
+  </button>
+  <button mat-menu-item>
+    2 days
+  </button>
+  <button mat-menu-item>
+    7 days
+  </button>
+</mat-menu>
