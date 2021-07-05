@@ -5,6 +5,20 @@
   <p *ngSwitchCase="'verify'" i18n>
     Your email address has successfully been verified!
   </p>
+  <form *ngSwitchCase="'passwd'" class="form-alone" (ngSubmit)="onChangePassword()">
+    <app-retype-password [controlGroup]="passwdForm" passwdLabel="New Password" (errors)="onPwdErrors($event)">
+    </app-retype-password>
+    <div class="formerrors" *ngIf="!passwdForm.valid">
+      <p *ngIf="passwdErrors.has('pwdTooShort')" i18n>Your password must be at least 5 characters long.</p>
+      <p *ngIf="passwdErrors.has('passwordsDiffer')" i18n>The passwords do not match.</p>
+    </div>
+    <div class="formactions login-action">
+      <button type="submit" [disabled]="!passwdForm.valid" i18n>Change password</button>
+    </div>
+  </form>
+  <p *ngSwitchCase="'passwd changed'" i18n>
+    Your password has been successfully changed.
+  </p>
   <p *ngSwitchCase="'notfound'" class="error-msg" i18n>
     This confirmation link is invalid. Maybe it has expired.
     Please request another one.

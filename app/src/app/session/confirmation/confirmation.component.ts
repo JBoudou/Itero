@@ -23,6 +23,7 @@ import { take } from 'rxjs/operators';
 import { ConfirmAnswer } from 'src/app/api';
 import { ServerError } from 'src/app/shared/server-error';
 import {BehaviorSubject, Observable} from 'rxjs';
+import {FormGroup} from '@angular/forms';
 
 interface ConfirmState {
   type: string
@@ -37,9 +38,9 @@ interface ConfirmState {
 })
 export class ConfirmationComponent implements OnInit {
 
-  private state = new BehaviorSubject<ConfirmState>({ type: 'loading' })
+  private _state = new BehaviorSubject<ConfirmState>({ type: 'loading' })
   get state$(): Observable<ConfirmState> {
-    return this.state
+    return this._state
   }
 
   constructor(
@@ -47,20 +48,42 @@ export class ConfirmationComponent implements OnInit {
     private route: ActivatedRoute,
   ) { }
 
+  private _segment: string
   ngOnInit(): void {
     this.route.paramMap.pipe(take(1)).subscribe((params: ParamMap) => {
-      this.http.get<ConfirmAnswer>('/a/confirm/' + params.get('confirmSegment')).pipe(take(1)).subscribe({
+      this._segment = params.get('confirmSegment')
+      this.http.get<ConfirmAnswer>('/a/confirm/' + this._segment).pipe(take(1)).subscribe({
         next: (answer: ConfirmAnswer) => {
-          this.state.next({ type: answer.Type })
+          this._state.next({ type: answer.Type })
         },
         error: (err: HttpErrorResponse) => {
           if (err.status == 404) {
-            this.state.next({ type: 'notfound' })
+            this._state.next({ type: 'notfound' })
           } else {
-            this.state.next({ type: 'error', data: new ServerError(err, 'retrieving confirmation') })
+            this._state.next({ type: 'error', data: new ServerError(err, 'retrieving confirmation') })
           }
         },
       })
+    })
+  }
+
+  // Change password //
+
+  passwdForm: FormGroup = new FormGroup({})
+  passwdErrors: Set<string> = new Set<string>()
+
+  onPwdErrors(evt: Set<string>): void {
+    this.passwdErrors = evt
+  }
+
+  onChangePassword():void {
+    let toSend = this.passwdForm.value;
+    delete toSend.pwdconfirm;
+    this.http.post('/a/passwd/' + this._segment, toSend).pipe(take(1)).subscribe({
+      next: () =>
+        this._state.next({ type: 'passwd changed' }),
+      error: (err: HttpErrorResponse) =>
+        this._state.next({ type: 'error', data: new ServerError(err, 'changing password') }),
     })
   }
 
