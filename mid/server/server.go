@@ -23,10 +23,10 @@
 package server
 
 import (
+	"log"
 	"net/http"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/JBoudou/Itero/mid/root"
 	"github.com/JBoudou/Itero/pkg/config"
@@ -135,33 +135,6 @@ type User struct {
 
 var interceptorChain = alice.New(addLogger)
 
-type loggerInterceptor struct {
-	next   http.Handler
-	logger slog.Stacked
-}
-
-func (self loggerInterceptor) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
-	start := time.Now()
-	logger := self.logger.With(req.RemoteAddr, req.URL.Path)
-	ctx := slog.CtxSaveLogger(req.Context(), logger)
-	self.next.ServeHTTP(wr, req.WithContext(ctx))
-	logger.Log("in", time.Now().Sub(start).String())
-}
-
-func addLogger(next http.Handler) http.Handler {
-	var printer slog.Printer
-	if err := root.IoC.Inject(&printer); err != nil {
-		panic(err)
-	}
-	return loggerInterceptor{
-		next: next,
-		logger: &slog.SimpleLogger{
-			Printer: printer,
-			Stack:   []interface{}{"H"},
-		},
-	}
-}
-
 type oneFile struct {
 	path string
 }
@@ -177,15 +150,23 @@ func Start() error {
 		Then(http.FileServer(oneFile{wwwroot + "/index.html"})))
 	http.Handle("/", interceptorChain.
 		Then(http.FileServer(http.Dir(wwwroot))))
-	http.Handle("/s/", interceptorChain.
-		Then(http.StripPrefix("/s/", http.FileServer(http.Dir("static")))))
 
 	addr := cfg.Address
 	if !strings.Contains(addr, ":") {
 		addr = addr + defaultPort
 	}
 
-	return http.ListenAndServeTLS(addr, cfg.CertFile, cfg.KeyFile, nil)
+	server := &http.Server{
+		Addr: addr,
+	}
+	var printer slog.Printer
+	if err := root.IoC.Inject(&printer); err != nil {
+		if logger, ok := printer.(*log.Logger); ok {
+			server.ErrorLog = logger
+		}
+	}
+
+	return server.ListenAndServeTLS(cfg.CertFile, cfg.KeyFile)
 }
 
 // BaseURL returns the URL of the application.
