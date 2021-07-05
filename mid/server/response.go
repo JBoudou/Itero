@@ -24,11 +24,12 @@ import (
 	"time"
 
 	"github.com/JBoudou/Itero/pkg/b64buff"
-	"github.com/JBoudou/Itero/mid/server/logger"
+	"github.com/JBoudou/Itero/pkg/slog"
 
 	gs "github.com/gorilla/sessions"
 )
 
+// Response is used to construct the response to a HTTP request.
 type Response interface {
 	// SendJSON sends a JSON as response.
 	// On success statuc code is http.StatusOK.
@@ -40,7 +41,7 @@ type Response interface {
 	SendError(context.Context, error)
 
 	// SendLoginAccepted create new credential for the user and send it as response.
-	SendLoginAccepted(context.Context, User, *Request)
+	SendLoginAccepted(ctx context.Context, usr User, req *Request, profileInfo interface{})
 
 	// SendUnloggedId adds a cookie for unlogged users.
 	SendUnloggedId(ctx context.Context, user User, req *Request) error
@@ -62,14 +63,14 @@ func (self response) SendJSON(ctx context.Context, data interface{}) {
 	}
 	self.writer.Header().Add("content-type", "application/JSON")
 	if _, err = self.writer.Write(buff); err != nil {
-		logger.Printf(ctx, "Write error: %v", err)
+		slog.CtxLogf(ctx, "Write error: %v", err)
 	}
 }
 
 func (self response) SendError(ctx context.Context, err error) {
 	send := func(statusCode int, msg string) {
 		http.Error(self.writer, msg, statusCode)
-		logger.Printf(ctx, "%d %s: %s", statusCode, msg, err)
+		slog.CtxLogf(ctx, "%d %s: %s", statusCode, msg, err)
 	}
 
 	var pError HttpError
@@ -84,12 +85,19 @@ func (self response) SendError(ctx context.Context, err error) {
 	}
 }
 
+// SessionAnswer is the type of the value sent by request creating a new session.
+// It is a part of the API between the server and the frontend.
+//
+// Profile is not defined in this package. It must contains information about the user corresponding
+// to the session. For security reason, Profile must not contain the user name, id, hash or
+// password.
 type SessionAnswer struct {
 	SessionId string
 	Expires   time.Time
+	Profile   interface{}
 }
 
-func (self response) SendLoginAccepted(ctx context.Context, user User, req *Request) {
+func (self response) SendLoginAccepted(ctx context.Context, user User, req *Request, profile interface{}) {
 	if err := ctx.Err(); err != nil {
 		self.SendError(ctx, err)
 		return
@@ -106,10 +114,10 @@ func (self response) SendLoginAccepted(ctx context.Context, user User, req *Requ
 		self.SendError(ctx, err)
 		return
 	}
-	answer := SessionAnswer{SessionId: sessionId}
+	answer := SessionAnswer{SessionId: sessionId, Profile: profile}
 	session := NewSession(sessionStore, sessionStore.Options, &answer, user)
 	if err = session.Save(req.original, self.writer); err != nil {
-		logger.Printf(ctx, "Error saving session: %v", err)
+		slog.CtxLogf(ctx, "Error saving session: %v", err)
 	}
 
 	self.SendJSON(ctx, answer)
@@ -125,7 +133,7 @@ func (self response) SendUnloggedId(ctx context.Context, user User, req *Request
 
 	session := NewUnloggedUser(unloggedStore, unloggedStore.Options, user)
 	if err := session.Save(req.original, self.writer); err != nil {
-		logger.Printf(ctx, "Error saving session: %v", err)
+		slog.CtxLogf(ctx, "Error saving session: %v", err)
 	}
 	return nil
 }
@@ -156,9 +164,9 @@ func NewSession(st gs.Store, opts *gs.Options, answer *SessionAnswer, user User)
 	return
 }
 
-// NewUnloggedUser creates a new session for the given user.
+// NewUnloggedUser creates a new unlogged session for the given anonymous user.
 //
-// This is a low level function, made available for tests. Use SendLoginAccepted instead.
+// This is a low level function, made available for tests. Use SendUnloggedId instead.
 func NewUnloggedUser(st gs.Store, opts *gs.Options, user User) (session *gs.Session) {
 	session = gs.NewSession(st, SessionUnlogged)
 	sessionOptions := *opts

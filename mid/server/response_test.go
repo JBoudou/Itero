@@ -21,13 +21,15 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/JBoudou/Itero/mid/server/logger"
+	"github.com/JBoudou/Itero/pkg/slog"
 	"github.com/gorilla/securecookie"
 )
 
@@ -136,14 +138,17 @@ func TestResponse_SendJSON(t *testing.T) {
 			self := response{
 				writer: mock,
 			}
-			self.SendJSON(tt.args.ctx, tt.args.data)
+			ctx := slog.CtxSaveLogger(tt.args.ctx, &slog.WithStack{Target: t})
+			self.SendJSON(ctx, tt.args.data)
 			tt.check(t, mock, &tt.args)
 		})
 	}
 }
 
 func TestResponse_SendError(t *testing.T) {
-	ctx := logger.New(context.Background())
+	ctx := slog.CtxSaveLogger(context.Background(), &slog.SimpleLogger{
+		Printer: log.New(os.Stderr, "", log.LstdFlags),
+	})
 
 	tests := []struct {
 		name         string
@@ -349,7 +354,8 @@ func TestResponse_SendLoginAccepted(t *testing.T) {
 			self := response{
 				writer: mock,
 			}
-			self.SendLoginAccepted(tt.args.ctx, tt.args.user, tt.args.req)
+			ctx := slog.CtxSaveLogger(tt.args.ctx, &slog.WithStack{Target: t})
+			self.SendLoginAccepted(ctx, tt.args.user, tt.args.req, 0)
 			tt.check(t, mock, &tt.args)
 		})
 	}

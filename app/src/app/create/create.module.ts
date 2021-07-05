@@ -20,6 +20,7 @@ import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 
 import { ClipboardModule }  from '@angular/cdk/clipboard';
 import { MatButtonModule }  from '@angular/material/button';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialogModule }  from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule }    from '@angular/material/icon'; 
@@ -61,6 +62,7 @@ import { NavbuttonsComponent } from './navtree/navbuttons.component';
     FormsModule,
     FormWidgetModule,
     MatButtonModule,
+    MatCheckboxModule,
     MatDialogModule,
     MatFormFieldModule,
     MatIconModule,

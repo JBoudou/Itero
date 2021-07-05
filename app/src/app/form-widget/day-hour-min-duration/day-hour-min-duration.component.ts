@@ -197,5 +197,5 @@ export class DayHourMinDurationComponent
   registerOnTouched(fn: any): void {
     this.notifTouch = fn;
   }
-    
+
 }

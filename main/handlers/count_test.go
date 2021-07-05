@@ -23,6 +23,7 @@ import (
 
 	"github.com/JBoudou/Itero/mid/db"
 	dbt "github.com/JBoudou/Itero/mid/db/dbtest"
+	"github.com/JBoudou/Itero/mid/salted"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
 )
 
@@ -48,7 +49,7 @@ func TestCountInfoHandler(t *testing.T) {
 		{Id: 2, Name: "Gram", Cost: 1},
 	}
 
-	pollId := env.CreatePollWith("Test", users[0], db.PollPublicityPublic, alt)
+	pollId := env.CreatePollWith("Test", users[0], db.ElectorateAll, alt)
 	env.Vote(pollId, 0, users[0], 2)
 	env.Vote(pollId, 0, users[1], 2)
 	env.Vote(pollId, 0, users[2], 0)
@@ -57,7 +58,7 @@ func TestCountInfoHandler(t *testing.T) {
 	request := *makePollRequest(t, pollId, &users[0])
 
 	previousRoundRequest := func(t *testing.T, round uint8) srvt.Request {
-		pollSegment := PollSegment{Salt: 42, Id: pollId}
+		pollSegment := salted.Segment{Salt: dbt.PollSalt, Id: pollId}
 		encoded, err := pollSegment.Encode()
 		mustt(t, err)
 		target := "/a/test/" + strconv.FormatUint(uint64(round), 10) + "/" + encoded
@@ -165,7 +166,7 @@ func TestCountInfoHandler(t *testing.T) {
 
 		&pollTest{
 			Name:         "No user public",
-			Publicity:    db.PollPublicityPublic,
+			Electorate:   db.ElectorateAll,
 			Alternatives: alt,
 			UserType:     pollTestUserTypeNone,
 			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
@@ -174,7 +175,8 @@ func TestCountInfoHandler(t *testing.T) {
 		},
 		&pollTest{
 			Name:         "No user hidden",
-			Publicity:    db.PollPublicityHidden,
+			Electorate:   db.ElectorateAll,
+			Hidden:       true,
 			Alternatives: alt,
 			UserType:     pollTestUserTypeNone,
 			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
@@ -183,7 +185,7 @@ func TestCountInfoHandler(t *testing.T) {
 		},
 		&pollTest{
 			Name:         "Unlogged public",
-			Publicity:    db.PollPublicityPublic,
+			Electorate:   db.ElectorateAll,
 			Alternatives: alt,
 			UserType:     pollTestUserTypeUnlogged,
 			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
@@ -192,7 +194,8 @@ func TestCountInfoHandler(t *testing.T) {
 		},
 		&pollTest{
 			Name:         "Unlogged hidden",
-			Publicity:    db.PollPublicityHidden,
+			Electorate:   db.ElectorateAll,
+			Hidden:       true,
 			Alternatives: alt,
 			UserType:     pollTestUserTypeUnlogged,
 			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
@@ -202,39 +205,51 @@ func TestCountInfoHandler(t *testing.T) {
 
 		&pollTest{
 			Name:         "No user public registered",
-			Publicity:    db.PollPublicityPublicRegistered,
+			Electorate:   db.ElectorateLogged,
 			Alternatives: alt,
 			UserType:     pollTestUserTypeNone,
 			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
 			Round:        1,
-			Checker:   srvt.CheckStatus{http.StatusNotFound},
+			Checker:      srvt.CheckStatus{http.StatusNotFound},
 		},
 		&pollTest{
 			Name:         "No user hidden registered",
-			Publicity:    db.PollPublicityHiddenRegistered,
+			Electorate:   db.ElectorateLogged,
+			Hidden:       true,
 			Alternatives: alt,
 			UserType:     pollTestUserTypeNone,
 			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
 			Round:        1,
-			Checker:   srvt.CheckStatus{http.StatusNotFound},
+			Checker:      srvt.CheckStatus{http.StatusNotFound},
 		},
 		&pollTest{
 			Name:         "Unlogged public registered",
-			Publicity:    db.PollPublicityPublicRegistered,
+			Electorate:   db.ElectorateLogged,
 			Alternatives: alt,
 			UserType:     pollTestUserTypeUnlogged,
 			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
 			Round:        1,
-			Checker:   srvt.CheckStatus{http.StatusNotFound},
+			Checker:      srvt.CheckStatus{http.StatusNotFound},
 		},
 		&pollTest{
 			Name:         "Unlogged hidden registered",
-			Publicity:    db.PollPublicityHiddenRegistered,
+			Electorate:   db.ElectorateLogged,
+			Hidden:       true,
 			Alternatives: alt,
 			UserType:     pollTestUserTypeUnlogged,
 			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
 			Round:        1,
-			Checker:   srvt.CheckStatus{http.StatusNotFound},
+			Checker:      srvt.CheckStatus{http.StatusNotFound},
+		},
+
+		&pollTest{
+			Name:         "Poll verified, User unverified",
+			Electorate:   db.ElectorateVerified,
+			Alternatives: alt,
+			UserType:     pollTestUserTypeLogged,
+			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
+			Round:        1,
+			Checker:      srvt.CheckStatus{http.StatusNotFound},
 		},
 	}
 	srvt.RunFunc(t, tests, CountInfoHandler)

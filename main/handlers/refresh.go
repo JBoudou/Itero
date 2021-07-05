@@ -19,6 +19,7 @@ package handlers
 import (
 	"context"
 
+	"github.com/JBoudou/Itero/mid/db"
 	"github.com/JBoudou/Itero/mid/server"
 )
 
@@ -34,5 +35,9 @@ func RefreshHandler(ctx context.Context, response server.Response, request *serv
 		must(server.WrapUnauthorizedError(err))
 	}
 
-	response.SendLoginAccepted(ctx, *request.User, request)
+	const qProfile = `SELECT Verified FROM Users WHERE Id = ?`
+	var profileInfo ProfileInfo
+	must(db.DB.QueryRowContext(ctx, qProfile, request.User.Id).Scan(&profileInfo.Verified))
+
+	response.SendLoginAccepted(ctx, *request.User, request, profileInfo)
 }

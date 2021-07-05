@@ -21,11 +21,11 @@ import (
 	"database/sql"
 	"net/http"
 
-	"github.com/JBoudou/Itero/mid/db"
-	"github.com/JBoudou/Itero/pkg/events"
-	"github.com/JBoudou/Itero/mid/server"
-	"github.com/JBoudou/Itero/mid/server/logger"
 	"github.com/JBoudou/Itero/main/services"
+	"github.com/JBoudou/Itero/mid/db"
+	"github.com/JBoudou/Itero/mid/server"
+	"github.com/JBoudou/Itero/pkg/events"
+	"github.com/JBoudou/Itero/pkg/slog"
 )
 
 type UninominalVoteQuery struct {
@@ -34,7 +34,15 @@ type UninominalVoteQuery struct {
 	Round       uint8
 }
 
-func UninominalVoteHandler(ctx context.Context, response server.Response, request *server.Request) {
+type uninominalVoteHandler struct {
+	evtManager events.Manager
+}
+
+func UninominalVoteHandler(evtManager events.Manager) uninominalVoteHandler {
+	return uninominalVoteHandler{evtManager: evtManager}
+}
+
+func (self uninominalVoteHandler) Handle(ctx context.Context, response server.Response, request *server.Request) {
 
 	// Verifications
 	if err := request.CheckPOST(ctx); err != nil {
@@ -66,9 +74,7 @@ func UninominalVoteHandler(ctx context.Context, response server.Response, reques
 	// Get query
 	var voteQuery UninominalVoteQuery
 	if err := request.UnmarshalJSONBody(&voteQuery); err != nil {
-		logger.Print(ctx, err)
-		err = server.NewHttpError(http.StatusBadRequest, "Wrong request",
-			"Unable to read UninominalVoteQuery")
+		err = server.WrapError(http.StatusBadRequest, "Wrong request", err)
 		response.SendError(ctx, err)
 		return
 	}
@@ -95,7 +101,7 @@ func UninominalVoteHandler(ctx context.Context, response server.Response, reques
 		qInsertParticipant = `INSERT INTO Participants (User, Poll, Round) VALUE (?, ?, ?)`
 	)
 
-	db.RepeatDeadlocked(ctx, nil, func(tx *sql.Tx) {
+	db.RepeatDeadlocked(slog.CtxLoadLogger(ctx), ctx, nil, func(tx *sql.Tx) {
 		var result sql.Result
 		result, err = tx.ExecContext(ctx, qDeleteBallot, request.User.Id, pollInfo.Id, pollInfo.CurrentRound)
 		must(err)
@@ -125,5 +131,5 @@ func UninominalVoteHandler(ctx context.Context, response server.Response, reques
 		response.SendUnloggedId(ctx, *request.User, request)
 	}
 	response.SendJSON(ctx, "Ok")
-	events.Send(services.VoteEvent{pollInfo.Id})
+	self.evtManager.Send(services.VoteEvent{pollInfo.Id})
 }

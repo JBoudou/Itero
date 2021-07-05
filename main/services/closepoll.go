@@ -20,15 +20,22 @@ import (
 	"time"
 
 	"github.com/JBoudou/Itero/mid/db"
-	"github.com/JBoudou/Itero/pkg/events"
 	"github.com/JBoudou/Itero/mid/service"
+	"github.com/JBoudou/Itero/pkg/events"
+	"github.com/JBoudou/Itero/pkg/slog"
 )
 
 type closePollService struct {
-	logger service.LevelLogger
+	logger     slog.Leveled
+	evtManager events.Manager
 }
 
-var ClosePollService = &closePollService{logger: service.NewPrefixLogger("ClosePoll")}
+func ClosePollService(evtManager events.Manager, log slog.StackedLeveled) *closePollService {
+	return &closePollService{
+		logger:     log.With("ClosePoll"),
+		evtManager: evtManager,
+	}
+}
 
 func (self *closePollService) ProcessOne(id uint32) error {
 	const qUpdate = `
@@ -37,7 +44,10 @@ func (self *closePollService) ProcessOne(id uint32) error {
 	     AND ( CurrentRound >= MaxNbRounds
 	           OR (CurrentRound >= MinNbRounds AND Deadline <= CURRENT_TIMESTAMP) )`
 
-	return service.SQLProcessOne(qUpdate, id, ClosePollEvent{id})
+	if err := service.SQLProcessOne(qUpdate, id); err != nil {
+		return err
+	}
+	return self.evtManager.Send(ClosePollEvent{id})
 }
 
 func (self *closePollService) CheckAll() service.Iterator {
@@ -73,7 +83,7 @@ func (self *closePollService) Interval() time.Duration {
 	return 12 * time.Hour
 }
 
-func (self *closePollService) Logger() service.LevelLogger {
+func (self *closePollService) Logger() slog.Leveled {
 	return self.logger
 }
 

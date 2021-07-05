@@ -1,0 +1,165 @@
+## Confirmations and Users ##
+
+CREATE TABLE Confirmations (
+
+  Id      int unsigned    NOT NULL AUTO_INCREMENT,
+  Salt    int unsigned    NOT NULL,
+  Type    ENUM('verify')  NOT NULL,
+  User    int unsigned    NOT NULL,
+  Expires datetime        NOT NULL,
+
+  CONSTRAINT Confirmations_pk PRIMARY KEY (Id),
+  CONSTRAINT Confirmations_User_fk FOREIGN KEY (User) REFERENCES Users (Id) ON DELETE CASCADE,
+  CONSTRAINT Confirmations_UserType_unique UNIQUE (User, Type)
+
+) ENGINE = InnoDB;
+
+DELIMITER //
+
+CREATE OR REPLACE PROCEDURE Confirmations_checker_before (
+  Salt    int unsigned
+)
+BEGIN
+  IF Salt >= 4194304 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Salt must be 22 bits long';
+  END IF;
+END;
+//
+
+CREATE OR REPLACE TRIGGER Confirmations_check_before_insert
+  BEFORE INSERT ON Confirmations FOR EACH ROW
+BEGIN
+  CALL Confirmations_checker_before(NEW.Salt);
+END;
+//
+
+CREATE OR REPLACE TRIGGER Confirmations_check_before_update
+  BEFORE UPDATE ON Confirmations FOR EACH ROW
+BEGIN
+  CALL Confirmations_checker_before(NEW.Salt);
+END;
+//
+
+DELIMITER ;
+
+ALTER TABLE Users
+  ADD COLUMN
+    Verified  bool          NOT NULL  DEFAULT FALSE;
+
+
+## Publicity ##
+
+ALTER TABLE Polls
+  ADD COLUMN
+    Electorate        ENUM('All','Logged','Verified') NOT NULL DEFAULT 'Logged',
+  ADD COLUMN
+    Hidden            bool              NOT NULL  DEFAULT FALSE;
+
+UPDATE Polls SET Electorate = 'All' WHERE Publicity IN (0,2);
+UPDATE Polls SET Hidden = TRUE WHERE Publicity IN (2,3);
+
+DELIMITER //
+
+CREATE OR REPLACE PROCEDURE Polls_checker_before (
+  Title             tinytext,
+  State             ENUM('Waiting','Active','Terminated'),
+  Start             datetime,
+  Salt              int unsigned,
+  NbChoices         tinyint unsigned,
+  MinNbRounds       smallint unsigned,
+  MaxNbRounds       smallint unsigned,
+  Deadline          datetime,
+  MaxRoundDuration  time,
+  RoundThreshold    double unsigned ,
+  CurrentRound      tinyint unsigned,
+  CurrentRoundStart timestamp
+)
+BEGIN
+  IF length(Title) < 3 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Title field is too short';
+  END IF;
+  IF State = '' THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Unauthorized State value';
+  END IF;
+  IF Start IS NULL AND State = 'Waiting' THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'A Start date must be given for Waiting polls';
+  END IF;
+  IF Salt >= 4194304 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Salt must be 22 bits long';
+  END IF;
+  IF NbChoices < 2 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'NbChoices must be at least 2';
+  END IF;
+  IF MaxNbRounds < MinNbRounds THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'MaxNbRounds must be greater than MinNbRounds';
+  END IF;
+  IF MaxNbRounds IS NULL AND Deadline IS NULL THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'One amongst MaxNbRounds and Deadline must not be NULL';
+  END IF;
+  IF MaxRoundDuration < '00:01:00' THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'MaxRoundDuration must be at least one minute';
+  END IF;
+  IF RoundThreshold < 0 OR RoundThreshold > 1 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'RoundThreshold must be in [0;1]';
+  END IF;
+  IF CurrentRound > MaxNbRounds THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'CurrentRound must be at most MaxNbRounds';
+  END IF;
+END;
+//
+
+CREATE OR REPLACE TRIGGER Polls_check_before_insert
+  BEFORE INSERT ON Polls FOR EACH ROW
+BEGIN
+  IF NEW.CurrentRound != 0 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'CurrentRound must be zero on INSERT';
+  END IF;
+
+  SELECT Name
+    INTO @Name
+    FROM Users
+   WHERE Id = NEW.Admin;
+  IF @Name IS NULL THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Admin must correspond to a named user';
+  END IF;
+
+  SET NEW.Created           = CURRENT_TIMESTAMP();
+  SET NEW.CurrentRoundStart = CURRENT_TIMESTAMP();
+
+  CALL Polls_checker_before(NEW.Title, NEW.State, NEW.Start, NEW.Salt, NEW.NbChoices,
+                            NEW.MinNbRounds, NEW.MaxNbRounds, NEW.Deadline, NEW.MaxRoundDuration,
+                            NEW.RoundThreshold, NEW.CurrentRound, NEW.CurrentRoundStart);
+END;
+//
+
+CREATE OR REPLACE TRIGGER Polls_check_before_update
+  BEFORE UPDATE ON Polls FOR EACH ROW
+BEGIN
+  IF NEW.Created != OLD.Created THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Created cannot be changed';
+  END IF;
+  IF NEW.Admin != OLD.Admin THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Admin cannot be changed';
+  END IF;
+
+  IF NEW.CurrentRound > OLD.CurrentRound THEN
+    SET NEW.CurrentRoundStart = CURRENT_TIMESTAMP();
+  END IF;
+  IF OLD.State = 'Waiting' AND NEW.State = 'Active' THEN
+    SET NEW.CurrentRound = 0;
+    SET NEW.CurrentRoundStart = CURRENT_TIMESTAMP();
+  END IF;
+
+  CALL Polls_checker_before(NEW.Title, NEW.State, NEW.Start, NEW.Salt, NEW.NbChoices,
+                            NEW.MinNbRounds, NEW.MaxNbRounds, NEW.Deadline, NEW.MaxRoundDuration,
+                            NEW.RoundThreshold, NEW.CurrentRound, NEW.CurrentRoundStart);
+END;
+//
+
+DELIMITER ;
+
+ALTER TABLE Polls
+  DROP FOREIGN KEY Polls_Publicity_fk,
+  DROP COLUMN Publicity;
+
+DROP TABLE PollPublicity;

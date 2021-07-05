@@ -20,6 +20,8 @@ import (
 	"net/smtp"
 )
 
+// DirectSender is a sender that directly sends emails to an SMTP server.
+// The connection to the server is left open for multiple emails to be send in one session.
 type DirectSender struct {
 	Sender string // email address
 	SMTP   string // host:port
@@ -27,6 +29,8 @@ type DirectSender struct {
 	client *smtp.Client
 }
 
+// Send sends an email to the SMTP server. It opens a new connection if needed, otherwise it uses
+// the previously opened connection.
 func (self *DirectSender) Send(email Email) (err error) {
 	if self.client == nil {
 		err = self.connect()
@@ -72,6 +76,8 @@ func (self *DirectSender) Close() error {
 	return self.Quit()
 }
 
+// Quit closes the currently opened connection, if any. It should be called as soon as there is no
+// email to send.
 func (self *DirectSender) Quit() error {
 	if self.client == nil {
 		return nil

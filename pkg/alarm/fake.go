@@ -21,7 +21,7 @@ import (
 	"sync"
 )
 
-// NewFakeAlarm creates a fake alarm replacement where an event is resend each time
+// NewFakeAlarm creates a fake alarm replacement that resent one event each time
 // FakeAlarmController.Tick() is called.
 func NewFakeAlarm(chanSize int, opts ...Option) (Alarm, FakeAlarmController) {
 	alarm, logic := newAlarmLogic(chanSize, opts...)

@@ -20,20 +20,24 @@ import (
 	"encoding/json"
 	"net/http"
 	"reflect"
-	"sync"
 	"testing"
 	"time"
 
 	"github.com/JBoudou/Itero/main/services"
 	"github.com/JBoudou/Itero/mid/db"
 	dbt "github.com/JBoudou/Itero/mid/db/dbtest"
+	"github.com/JBoudou/Itero/mid/root"
+	"github.com/JBoudou/Itero/mid/salted"
 	"github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
 	"github.com/JBoudou/Itero/pkg/events"
+	"github.com/JBoudou/Itero/pkg/ioc"
 )
 
+type pollNotifUserKind uint8
+
 const (
-	pollNotifHandlerTestUserAdmin = iota
+	pollNotifHandlerTestUserAdmin pollNotifUserKind = iota
 	pollNotifHandlerTestUserPart
 	pollNotifHandlerTestUserAlien
 )
@@ -41,28 +45,29 @@ const (
 type pollNotifHandlerTest struct {
 	name      string
 	events    []func(uint32) events.Event
-	userKind  uint8
+	userKind  pollNotifUserKind
 	lastDelay time.Duration // Compute LastUpdate in query as Now - lastDelay. Default to one second.
 	expect    []PollNotifAnswerEntry
 
-	dbEnv  dbt.Env
-	admnId uint32
-	partId uint32
-	pollId uint32
+	dbEnv      dbt.Env
+	evtManager events.Manager
+	admnId     uint32
+	partId     uint32
+	pollId     uint32
 }
 
 func (self *pollNotifHandlerTest) GetName() string {
 	return self.name
 }
 
-func (self *pollNotifHandlerTest) Prepare(t *testing.T) {
+func (self *pollNotifHandlerTest) Prepare(t *testing.T) *ioc.Locator {
 	t.Parallel()
 
 	self.admnId = self.dbEnv.CreateUserWith("PollNotifHandler" + self.name + "Admin")
 	if self.userKind != pollNotifHandlerTestUserAdmin {
 		self.partId = self.dbEnv.CreateUserWith("PollNotifHandler" + self.name + "Part")
 	}
-	self.pollId = self.dbEnv.CreatePoll("Title", self.admnId, db.PollPublicityPublicRegistered)
+	self.pollId = self.dbEnv.CreatePoll("Title", self.admnId, db.ElectorateLogged)
 
 	const (
 		qParticipate = `INSERT INTO Participants(User,Poll,Round) VALUE (?,?,0)`
@@ -74,13 +79,22 @@ func (self *pollNotifHandlerTest) Prepare(t *testing.T) {
 
 	self.dbEnv.Must(t)
 
-	for _, fct := range self.events {
-		mustt(t, events.Send(fct(self.pollId)))
-		time.Sleep(time.Millisecond)
-	}
+	ret := root.IoC.Sub()
+	ret.Refresh(&self.evtManager)
+	ret.Bind(func(evtManager events.Manager) (services.PollNotifChannel, error) {
+		return services.RunPollNotif(time.Second, evtManager)
+	})
+
+	return ret
 }
 
 func (self *pollNotifHandlerTest) GetRequest(t *testing.T) *srvt.Request {
+	// Send the events now that the handler is created
+	for _, fct := range self.events {
+		mustt(t, self.evtManager.Send(fct(self.pollId)))
+		time.Sleep(time.Millisecond)
+	}
+
 	userId := &self.partId
 	if self.userKind == pollNotifHandlerTestUserAdmin {
 		userId = &self.admnId
@@ -114,7 +128,7 @@ func (self *pollNotifHandlerTest) Check(t *testing.T, response *http.Response, r
 		}
 	}
 
-	segment, err := PollSegment{Id: self.pollId, Salt: 42}.Encode()
+	segment, err := salted.Segment{Id: self.pollId, Salt: dbt.PollSalt}.Encode()
 	mustt(t, err)
 	for i := 0; i < glen; i++ {
 
@@ -134,13 +148,12 @@ func (self *pollNotifHandlerTest) Check(t *testing.T, response *http.Response, r
 
 func (self *pollNotifHandlerTest) Close() {
 	self.dbEnv.Close()
+	if self.evtManager != nil {
+		self.evtManager.Close()
+	}
 }
 
-var testPollNotifHandlerRunPollNotif sync.Once
-
 func TestPollNotifHandler(t *testing.T) {
-	testPollNotifHandlerRunPollNotif.Do(func() { services.RunPollNotif(time.Second) })
-
 	create := func(id uint32) events.Event { return services.StartPollEvent{Poll: id} }
 	next := func(id uint32) events.Event { return services.NextRoundEvent{Poll: id} }
 	term := func(id uint32) events.Event { return services.ClosePollEvent{Poll: id} }
@@ -206,5 +219,5 @@ func TestPollNotifHandler(t *testing.T) {
 		},
 	}
 
-	srvt.RunFunc(t, tests, PollNotifHandler)
+	srvt.Run(t, tests, PollNotifHandler)
 }

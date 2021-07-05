@@ -20,30 +20,40 @@ import (
 	"time"
 
 	"github.com/JBoudou/Itero/mid/db"
-	"github.com/JBoudou/Itero/pkg/events"
 	"github.com/JBoudou/Itero/mid/service"
+	"github.com/JBoudou/Itero/pkg/events"
+	"github.com/JBoudou/Itero/pkg/slog"
 )
 
 // The time to wait when there seems to be no waiting poll.
-const	startPollDefaultWaitDuration = time.Hour
+const startPollDefaultWaitDuration = time.Hour
 
 type startPollService struct {
-	logger service.LevelLogger
+	logger     slog.Leveled
+	evtManager events.Manager
 }
 
-var StartPollService = &startPollService{logger: service.NewPrefixLogger("StartPoll")}
+func StartPollService(evtManager events.Manager, log slog.StackedLeveled) *startPollService {
+	return &startPollService{
+		logger: log.With("StartPoll"),
+		evtManager: evtManager,
+	}
+}
 
 func (self *startPollService) ProcessOne(id uint32) error {
 	const qUpdate = `
 	  UPDATE Polls SET State = 'Active'
 	   WHERE Id = ? AND State = 'Waiting'
 	     AND Start <= CURRENT_TIMESTAMP`
-	
-	return service.SQLProcessOne(qUpdate, id, StartPollEvent{id})
+
+	if err := service.SQLProcessOne(qUpdate, id); err != nil {
+		return err
+	}
+	return self.evtManager.Send(StartPollEvent{id})
 }
 
 func (self *startPollService) CheckAll() service.Iterator {
-	const	qSelectStart = `
+	const qSelectStart = `
 		  SELECT Id, Start
 		    FROM Polls
 		   WHERE State  = 'Waiting'
@@ -64,7 +74,7 @@ func (self *startPollService) CheckOne(id uint32) time.Time {
 	if !rows.Next() {
 		return time.Time{}
 	}
-	
+
 	var ret time.Time
 	err = rows.Scan(&ret)
 	if err != nil {
@@ -78,10 +88,9 @@ func (self *startPollService) Interval() time.Duration {
 	return startPollDefaultWaitDuration
 }
 
-func (self *startPollService) Logger() service.LevelLogger {
+func (self *startPollService) Logger() slog.Leveled {
 	return self.logger
 }
-
 
 func (self *startPollService) FilterEvent(evt events.Event) bool {
 	switch evt.(type) {

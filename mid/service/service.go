@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+// Package service provides a framework to easily implement services for the application.
+// Services are background components that execute in parallel with the handling of requests.
 package service
 
 import (
@@ -22,10 +24,11 @@ import (
 
 	"github.com/JBoudou/Itero/pkg/alarm"
 	"github.com/JBoudou/Itero/pkg/events"
+	"github.com/JBoudou/Itero/pkg/slog"
 )
 
 // AlarmInjector is the injector of an alarm into services.
-var AlarmInjector = alarm.New
+type AlarmInjector = func(int, ...alarm.Option) alarm.Alarm
 
 var (
 	NothingToDoYet = errors.New("Nothing to do yet")
@@ -53,7 +56,7 @@ type Service interface {
 	// Interval returns the maximal duration between two full check of the object to proceed.
 	Interval() time.Duration
 
-	Logger() LevelLogger
+	Logger() slog.Leveled
 }
 
 // EventReceiver is the interface implemented by services willing to react to some events.
@@ -97,12 +100,15 @@ type StopFunction func()
 // events.DefaultManager and calls EventReceiver.ReceiveEvent for each received event.
 // The returned function must be called to stop the service and free the resources associated with
 // the runner.
-func Run(service Service) StopFunction {
-	runner := &serviceRunner{service: service}
+func Run(service Service, alarmInjector AlarmInjector, evtManager events.Manager) StopFunction {
+	runner := &serviceRunner{
+		alarm: alarmInjector(maxHandledIds, alarm.DiscardLateDuplicates),
+		service: service,
+	}
 
-	if eventReceiver, ok := service.(EventReceiver); ok {
+	if eventReceiver, ok := runner.service.(EventReceiver); ok {
 		evtChan := make(chan events.Event, 64)
-		events.AddReceiver(events.AsyncForwarder{
+		evtManager.AddReceiver(events.AsyncForwarder{
 			Filter: eventReceiver.FilterEvent,
 			Chan:   evtChan,
 		})
@@ -184,7 +190,6 @@ mainLoop:
 }
 
 func (self *serviceRunner) init() {
-	self.alarm = AlarmInjector(maxHandledIds, alarm.DiscardLateDuplicates)
 	self.stopped = make(chan struct{})
 	self.fullCheck()
 }

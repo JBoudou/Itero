@@ -17,7 +17,6 @@
 package handlers
 
 import (
-	"context"
 	"database/sql"
 	"encoding/json"
 	"net/http"
@@ -27,44 +26,78 @@ import (
 
 	"github.com/JBoudou/Itero/main/services"
 	"github.com/JBoudou/Itero/mid/db"
-	dbt "github.com/JBoudou/Itero/mid/db/dbtest"
+	"github.com/JBoudou/Itero/mid/salted"
 	"github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
 	"github.com/JBoudou/Itero/pkg/events"
 	"github.com/JBoudou/Itero/pkg/events/eventstest"
+	"github.com/JBoudou/Itero/pkg/ioc"
 )
 
-type createPollChecker struct {
-	user uint32
-
-	originalEventManager events.Manager
-	pollsCreated         map[uint32]bool
+type createPollTest_ struct {
+	Name       string
+	Unlogged   bool
+	Verified   bool // Whether the user is verified
+	RequestFct RequestFct
+	Checker    srvt.Checker
 }
 
-func (self *createPollChecker) Before(t *testing.T) {
-	self.pollsCreated = make(map[uint32]bool, 1)
-	self.originalEventManager = events.DefaultManager
-	events.DefaultManager = &eventstest.ManagerMock{
-		T: t,
-		Send_: func(evt events.Event) error {
-			if vEvt, ok := evt.(services.CreatePollEvent); ok {
-				self.pollsCreated[vEvt.Poll] = true
-			}
-			return nil
+func CreatePollTest(c createPollTest_) *createPollTest {
+	return &createPollTest{
+		WithName: srvt.WithName{Name: c.Name},
+		WithUser: WithUser{
+			Unlogged:   c.Unlogged,
+			Verified:   c.Verified,
+			RequestFct: c.RequestFct,
 		},
+		Checker: c.Checker,
 	}
 }
 
-func (self *createPollChecker) Check(t *testing.T, response *http.Response, request *server.Request) {
-	defer func() {
-		events.DefaultManager = self.originalEventManager
-	}()
+type createPollTest struct {
+	srvt.WithName
+	WithUser
+
+	Verified bool
+	Checker  srvt.Checker
+
+	pollsCreated map[uint32]bool
+}
+
+func (self *createPollTest) Prepare(t *testing.T) *ioc.Locator {
+	t.Parallel()
+
+	if checker, ok := self.Checker.(interface{ Before(t *testing.T) }); ok {
+		checker.Before(t)
+	}
+
+	self.pollsCreated = make(map[uint32]bool, 2)
+	locator := self.WithUser.Prepare(t).Sub()
+	locator.Bind(func() events.Manager {
+		return &eventstest.ManagerMock{
+			T: t,
+			Send_: func(evt events.Event) error {
+				if vEvt, ok := evt.(services.CreatePollEvent); ok {
+					self.pollsCreated[vEvt.Poll] = true
+				}
+				return nil
+			},
+		}
+	})
+	return locator
+}
+
+func (self *createPollTest) Check(t *testing.T, response *http.Response, request *server.Request) {
+	if self.Checker != nil {
+		self.Checker.Check(t, response, request)
+		return
+	}
 
 	srvt.CheckStatus{http.StatusOK}.Check(t, response, request)
 
 	const (
 		qCheckPoll = `
-			SELECT Title, Description, Admin, State, Start, Salt, Publicity, ReportVote,
+			SELECT Title, Description, Admin, State, Start, Salt, Electorate, Hidden, ReportVote,
 			       MinNbRounds, MaxNbRounds, Deadline, CurrentRoundStart,
 						 ADDTIME(CurrentRoundStart, MaxRoundDuration), RoundThreshold
 			  FROM Polls
@@ -75,7 +108,7 @@ func (self *createPollChecker) Check(t *testing.T, response *http.Response, requ
 
 	var answer string
 	mustt(t, json.NewDecoder(response.Body).Decode(&answer))
-	pollSegment, err := PollSegmentDecode(answer)
+	pollSegment, err := salted.Decode(answer)
 	mustt(t, err)
 	defer func() {
 		db.DB.Exec(qCleanUp, pollSegment.Id)
@@ -91,7 +124,7 @@ func (self *createPollChecker) Check(t *testing.T, response *http.Response, requ
 	var state string
 	var startDate sql.NullTime
 	var salt uint32
-	var publicity uint8
+	var electorate db.Electorate
 	var roundStart, roundEnd time.Time
 	mustt(t, row.Scan(
 		&got.Title,
@@ -100,7 +133,8 @@ func (self *createPollChecker) Check(t *testing.T, response *http.Response, requ
 		&state,
 		&startDate,
 		&salt,
-		&publicity,
+		&electorate,
+		&got.Hidden,
 		&got.ReportVote,
 		&got.MinNbRounds,
 		&got.MaxNbRounds,
@@ -112,8 +146,8 @@ func (self *createPollChecker) Check(t *testing.T, response *http.Response, requ
 	if salt != pollSegment.Salt {
 		t.Errorf("Wrong salt. Got %d. Expect %d.", salt, pollSegment.Salt)
 	}
-	if admin != self.user {
-		t.Errorf("Wrong admin. Got %d. Expect %d.", admin, self.user)
+	if admin != self.User.Id {
+		t.Errorf("Wrong admin. Got %d. Expect %d.", admin, self.User.Id)
 	}
 	var expectState string
 	if startDate.Valid {
@@ -131,10 +165,12 @@ func (self *createPollChecker) Check(t *testing.T, response *http.Response, requ
 		t.Errorf("Deadline differ. Got %v. Expect %v. Difference %v.",
 			got.Deadline, query.Deadline, dateDiff)
 	}
+	if electorate == db.ElectorateAll {
+		t.Errorf("Wrong ElectorateAll.")
+	}
+	got.Verified = electorate == db.ElectorateVerified
 	got.Deadline = query.Deadline
 	got.MaxRoundDuration = uint64(roundEnd.Sub(roundStart).Milliseconds())
-	got.Hidden = (publicity == db.PollPublicityHidden) ||
-		(publicity == db.PollPublicityHiddenRegistered)
 	if !reflect.DeepEqual(got, query) {
 		t.Errorf("Got %v. Expect %v.", got, query)
 	}
@@ -169,116 +205,78 @@ func (self *createPollChecker) Check(t *testing.T, response *http.Response, requ
 func TestCreateHandler(t *testing.T) {
 	precheck(t)
 
-	var env dbt.Env
-	defer env.Close()
-	userId := env.CreateUser()
-	env.Must(t)
-
-	unlogged, err := UnloggedFromHash(context.Background(), 42)
-	mustt(t, err)
-
-	makeRequest := func(user *uint32, innerBody string, alternatives []string) srvt.Request {
+	makeBody := func(innerBody string, alternatives []string) string {
 		pollAlternatives := make([]SimpleAlternative, len(alternatives))
 		for id, name := range alternatives {
 			pollAlternatives[id] = SimpleAlternative{Name: name, Cost: 1.}
 		}
 		encoded, err := json.Marshal(pollAlternatives)
 		mustt(t, err)
-		return srvt.Request{
-			UserId: user,
-			Method: "POST",
-			Body:   `{"Title":"Test",` + innerBody + `"Alternatives": ` + string(encoded) + "}",
-		}
+		return `{"Title":"Test",` + innerBody + `"Alternatives": ` + string(encoded) + "}"
 	}
 
 	tests := []srvt.Test{
-		&srvt.T{
-			Name:    "No user",
-			Request: makeRequest(nil, "", []string{"No", "Yes"}),
-			Checker: srvt.CheckStatus{http.StatusForbidden},
-		},
-		&srvt.T{
+		CreatePollTest(createPollTest_{
+			Name:       "No user",
+			RequestFct: RFPostNoSession(makeBody("", []string{"No", "Yes"})),
+			Checker:    srvt.CheckStatus{http.StatusForbidden},
+		}),
+		CreatePollTest(createPollTest_{
 			Name: "GET",
-			Request: srvt.Request{
-				UserId: &userId,
-				Method: "GET",
-				Body: `{
-					"Title": "Test",
-					"Alternatives": [{"Name":"No", "Cost":1}, {"Name":"Yes", "Cost":1}]
-				}`,
+			RequestFct: func(user *server.User) *srvt.Request {
+				return &srvt.Request{
+					UserId: &user.Id,
+					Method: "GET",
+					Body: `{
+						"Title": "Test",
+						"Alternatives": [{"Name":"No", "Cost":1}, {"Name":"Yes", "Cost":1}]
+					}`,
+				}
 			},
 			Checker: srvt.CheckStatus{http.StatusForbidden},
-		},
-		&srvt.T{
+		}),
+		CreatePollTest(createPollTest_{
 			Name: "Duplicate",
-			Request: srvt.Request{
-				UserId: &userId,
-				Method: "POST",
-				Body: `{
+			RequestFct: RFPostSession(`{
 					"Title": "Test",
 					"Alternatives": [{"Name":"Yip", "Cost":1}, {"Name":"Yip", "Cost":1}]
-				}`,
-			},
+				}`),
 			Checker: srvt.CheckAnyErrorStatus,
-		},
-		&srvt.T{
-			Name:    "Success",
-			Request: makeRequest(&userId, "", []string{"No", "Yes"}),
-			Checker: &createPollChecker{user: userId},
-		},
-		&srvt.T{
-			Name: "Hidden",
-			Request: srvt.Request{
-				UserId: &userId,
-				Method: "POST",
-				Body: `{
-					"Title": "Test",
-					"Alternatives": [{"Name":"First", "Cost":1}, {"Name":"Second", "Cost":1}],
-					"Hidden": true
-				}`,
-			},
-			Checker: &createPollChecker{user: userId},
-		},
-		&srvt.T{
-			Name: "ReportVote",
-			Request: srvt.Request{
-				UserId: &userId,
-				Method: "POST",
-				Body: `{
-					"Title": "Test",
-					"Alternatives": [{"Name":"First", "Cost":1}, {"Name":"Second", "Cost":1}],
-					"ReportVote": false
-				}`,
-			},
-			Checker: &createPollChecker{user: userId},
-		},
-		&srvt.T{
-			Name: "Start later",
-			Request: srvt.Request{
-				UserId: &userId,
-				Method: "POST",
-				Body: `{
-					"Title": "Test",
-					"Alternatives": [{"Name":"First", "Cost":1}, {"Name":"Second", "Cost":1}],
-					"Start": "3000-01-01T12:12:12Z"
-				}`,
-			},
-			Checker: &createPollChecker{user: userId},
-		},
-		&srvt.T{
-			Name: "Unlogged",
-			Request: srvt.Request{
-				UserId: &unlogged.Id,
-				Hash:   &unlogged.Hash,
-				Method: "POST",
-				Body: `{
-					"Title": "Test",
-					"Alternatives": [{"Name":"First", "Cost":1}, {"Name":"Second", "Cost":1}]
-				}`,
-			},
-			Checker: srvt.CheckStatus{http.StatusForbidden},
-		},
+		}),
+		CreatePollTest(createPollTest_{
+			Name:       "Success",
+			RequestFct: RFPostSession(makeBody("", []string{"No", "Yes"})),
+		}),
+		CreatePollTest(createPollTest_{
+			Name:       "Hidden",
+			RequestFct: RFPostSession(makeBody(`"Hidden": true,`, []string{"First", "Second"})),
+		}),
+		CreatePollTest(createPollTest_{
+			Name:       "ReportVote",
+			RequestFct: RFPostSession(makeBody(`"ReportVote": false,`, []string{"First", "Second"})),
+		}),
+		CreatePollTest(createPollTest_{
+			Name:       "Start later",
+			RequestFct: RFPostSession(makeBody(`"Start": "3000-01-01T12:12:12Z",`, []string{"First", "Second"})),
+		}),
+		CreatePollTest(createPollTest_{
+			Name:       "Unlogged",
+			Unlogged:   true,
+			RequestFct: RFPostSession(makeBody("", []string{"First", "Second"})),
+			Checker:    srvt.CheckStatus{http.StatusForbidden},
+		}),
+		CreatePollTest(createPollTest_{
+			Name:       "Unverified",
+			Verified:   false,
+			RequestFct: RFPostSession(makeBody(`"Verified": true,`, []string{"First", "Second"})),
+			Checker:    srvt.CheckStatus{http.StatusBadRequest},
+		}),
+		CreatePollTest(createPollTest_{
+			Name:       "Verified",
+			Verified:   true,
+			RequestFct: RFPostSession(makeBody(`"Verified": true,`, []string{"First", "Second"})),
+		}),
 	}
 
-	srvt.RunFunc(t, tests, CreateHandler)
+	srvt.Run(t, tests, CreateHandler)
 }

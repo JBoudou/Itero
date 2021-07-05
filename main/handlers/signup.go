@@ -26,12 +26,21 @@ import (
 
 	"github.com/go-sql-driver/mysql"
 
+	"github.com/JBoudou/Itero/main/services"
 	"github.com/JBoudou/Itero/mid/db"
 	"github.com/JBoudou/Itero/mid/server"
-	"github.com/JBoudou/Itero/mid/server/logger"
+	"github.com/JBoudou/Itero/pkg/events"
 )
 
-func SignupHandler(ctx context.Context, response server.Response, request *server.Request) {
+type signupHandler struct {
+	evtManager events.Manager
+}
+
+func SignupHandler(evtManager events.Manager) signupHandler {
+	return signupHandler{evtManager: evtManager}
+}
+
+func (self signupHandler) Handle(ctx context.Context, response server.Response, request *server.Request) {
 	if err := request.CheckPOST(ctx); err != nil {
 		response.SendError(ctx, err)
 		return
@@ -43,8 +52,7 @@ func SignupHandler(ctx context.Context, response server.Response, request *serve
 		Passwd string
 	}
 	if err := request.UnmarshalJSONBody(&signupQuery); err != nil {
-		logger.Print(ctx, err)
-		err = server.NewHttpError(http.StatusBadRequest, "Wrong request", "Unable to read SignupQuery")
+		err = server.WrapError(http.StatusBadRequest, "Wrong request", err)
 		response.SendError(ctx, err)
 		return
 	}
@@ -115,12 +123,14 @@ func SignupHandler(ctx context.Context, response server.Response, request *serve
 		return
 	}
 
+	self.evtManager.Send(services.CreateUserEvent{User: uint32(rawId)})
+
 	// Start session //
 
 	response.SendLoginAccepted(ctx, server.User{
 		Name: signupQuery.Name,
 		Id: uint32(rawId),
 		Logged: true,
-	}, request)
+	}, request, ProfileInfo{})
 	return
 }

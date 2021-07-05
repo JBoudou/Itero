@@ -16,7 +16,7 @@
 
 import { Inject, Injectable, InjectionToken } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Router } from '@angular/router';
+import { Event, NavigationEnd, Router } from '@angular/router';
 
 import { Observable, BehaviorSubject } from 'rxjs';
 import { take, delayWhen, filter } from 'rxjs/operators';
@@ -105,6 +105,18 @@ export class CreateService {
     private http: HttpClient,
   ) {
     this.makeCurrent(this.root, { navigate: false });
+
+    this.router.events
+      .pipe(filter<Event, NavigationEnd>((evt: Event): evt is NavigationEnd => evt instanceof NavigationEnd))
+      .subscribe({
+        next: (evt: NavigationEnd) => {
+          const lastSegment = evt.urlAfterRedirects.split('/').pop()
+          const node = this.root.findSegment(lastSegment)
+          if (node !== null) {
+            this.makeCurrent(node, { navigate: false })
+          }
+        },
+      })
   }
 
 
@@ -249,6 +261,9 @@ export class CreateService {
     if (!options.reset && this._sending) {
       console.warn('CreateService change root while current');
       options.reset = true;
+    }
+    if (!options.reset && !options.navigate && this._current === node) {
+      return
     }
 
     if (options.reset) {

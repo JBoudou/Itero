@@ -17,6 +17,7 @@
 import { NgModule } from '@angular/core';
 import { Routes, RouterModule } from '@angular/router';
 
+import { ConfirmationComponent } from './confirmation/confirmation.component';
 import { LoginComponent }   from './login/login.component';
 import { SessionGuard } from './session.guard';
 import { SignupComponent }  from './signup/signup.component';
@@ -26,6 +27,7 @@ const routes: Routes = [
     { path: 'login' , component: LoginComponent , data: {title: 'Log in' } },
     { path: 'signup', component: SignupComponent, data: {title: 'Sign up'} },
   ]},
+  { path: 'r/confirm/:confirmSegment', component: ConfirmationComponent },
 ];
 
 @NgModule({

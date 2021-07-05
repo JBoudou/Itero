@@ -26,6 +26,10 @@ type CreateUserEvent struct {
 	User uint32
 }
 
+type ReverifyEvent struct {
+	User uint32
+}
+
 //
 // Polls
 //

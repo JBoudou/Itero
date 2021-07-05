@@ -19,7 +19,15 @@ package db
 import (
 	"strings"
 	"testing"
+	"time"
 )
+
+func mustt(t *testing.T, err error) {
+	t.Helper()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
 
 func TestAddURLQuery(t *testing.T) {
 	tests := []struct {
@@ -147,53 +155,39 @@ func TestInsert(t *testing.T) {
 	exec("INSERT INTO Ballots (User, Poll, Alternative, Round) VALUES (?, ?, 1, 1)", userId, pollId)
 }
 
-func TestVariables(t *testing.T) {
-	precheck(t)
-
-	allDifferent := func(vals ...uint8) {
-		t.Helper()
-		set := map[uint8]bool{}
-		for _, val := range vals {
-			if _, found := set[val]; found {
-				t.Fatalf("Value %d duplicated", val)
-			}
-			set[val] = true
-		}
-	}
-
-	allDifferent(PollPublicityPublic, PollPublicityPublicRegistered, PollPublicityHidden,
-		PollPublicityHiddenRegistered, PollPublicityInvited)
-}
-
-func TestMillisecondsToTime(t *testing.T) {
+func TestDurationToTime(t *testing.T) {
 	tests := []struct {
-		input uint64
+		input  time.Duration
 		expect string
-	} {
+	}{
 		{
-			input: 1000,
+			input:  1000 * time.Millisecond,
 			expect: "0:00:01.000000",
 		},
 		{
-			input: 60001,
+			input:  60001 * time.Millisecond,
 			expect: "0:01:00.001000",
 		},
 		{
-			input: 60 * 60 * 1000,
+			input:  60 * 60 * 1000 * time.Millisecond,
 			expect: "1:00:00.000000",
 		},
 		{
-			input: 100 * 60 * 60 * 1000,
+			input:  100 * 60 * 60 * 1000 * time.Millisecond,
 			expect: "100:00:00.000000",
 		},
 		{
-			input: 60 * 60 * 1000 - 1,
+			input:  (60*60*1000 - 1) * time.Millisecond,
 			expect: "0:59:59.999000",
+		},
+		{
+			input:  -1 * time.Second,
+			expect: "-0:00:01.000000",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.expect, func(t *testing.T) {
-			got := MillisecondsToTime(tt.input)
+			got := DurationToTime(tt.input)
 			if got != tt.expect {
 				t.Errorf("Got %s. Expect %s.", got, tt.expect)
 			}

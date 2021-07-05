@@ -35,6 +35,7 @@ type Checker interface {
 
 /* ChecherFun */
 
+// CheckerFun wraps a function into a Checker.
 type CheckerFun func(t *testing.T, response *http.Response, request *server.Request)
 
 func (self CheckerFun) Check(t *testing.T, response *http.Response, request *server.Request) {
@@ -145,7 +146,7 @@ func (self CheckError) Check(t *testing.T, response *http.Response, request *ser
 	body := strings.TrimSpace(string(buff.Bytes()))
 
 	if body != self.Body {
-		t.Errorf("Wrong error. Got %s. Expect %s.", body, self.Body)
+		t.Errorf(`Wrong error. Got "%s". Expect "%s".`, body, self.Body)
 	}
 }
 

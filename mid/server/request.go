@@ -26,7 +26,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/JBoudou/Itero/mid/server/logger"
+	"github.com/JBoudou/Itero/pkg/slog"
 
 	gs "github.com/gorilla/sessions"
 )
@@ -85,7 +85,7 @@ func (self *Request) CheckPOST(ctx context.Context) error {
 
 	origin := self.original.Header.Values("Origin")
 	if origin == nil || len(origin) != 1 {
-		logger.Print(ctx, "No Origin: header.")
+		slog.CtxLog(ctx, "No Origin: header.")
 		origin = self.original.Header.Values("Referer")
 		if origin == nil || len(origin) != 1 {
 			return NewHttpError(http.StatusForbidden, "Missing Origin", "No Origin nor Referer header")
@@ -102,7 +102,7 @@ func (self *Request) CheckPOST(ctx context.Context) error {
 	if originUrl.Scheme != baseUrl.Scheme ||
 		originUrl.Hostname() != baseUrl.Hostname() ||
 		URLPortWithDefault(originUrl) != URLPortWithDefault(baseUrl) {
-		logger.Printf(ctx, "Wrong origin. Got %s. Expect %s.", originUrl, baseUrl)
+		slog.CtxLogf(ctx, "Wrong origin. Got %s. Expect %s.", originUrl, baseUrl)
 		return NewHttpError(http.StatusForbidden, "Unauthorized", "Wrong origin")
 	}
 
@@ -212,14 +212,14 @@ func (self *Request) addSession(session *gs.Session) {
 
 	self.User = &User{Name: userName, Id: userId, Logged: true}
 	self.SessionError = nil
-	logger.Push(self.original.Context(), sessionId)
+	slog.CtxPush(self.original.Context(), sessionId)
 }
 
 func (self *Request) addUnlogged(session *gs.Session) {
 	failed := false
 	registerError := func(detail string) {
 		// Errors are just logged
-		logger.Print(self.original.Context(), "Error loading Unlogged cookie: ", detail)
+		slog.CtxLog(self.original.Context(), "Error loading Unlogged cookie: ", detail)
 		failed = true
 	}
 

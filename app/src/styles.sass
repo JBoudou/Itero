@@ -108,7 +108,9 @@ input
 
 .form-alone
   width: 260px
-  margin: 0 auto
+  position: relative
+  left: 50%
+  transform: translate(-50%,0)
   padding: 1em
   border: solid 2px $maincolor
   border-radius: 8px
@@ -153,22 +155,6 @@ $itero-mat-theme: mat-light-theme(( color: ( primary: $itero-mat-primary, accent
   @include userinput
   width: auto
 
-//.mat-select-panel.base-colors mat-option.mat-selected:not(.mat-option-multiple)
-  background-color: $userbuttonbgcolor
-
-//.mat-select-panel.base-colors mat-option:hover:not(.mat-option-disabled):not(.mat-selected)
-  background-color: $softbgcolor
-
-//.mat-form-field-wrapper
-  padding: 0
-  .mat-form-field-infix
-    padding: 4px 0
-    border-top: 0.3em solid transparent
-    .mat-select-arrow-wrapper
-      transform: none
-  .mat-form-field-outline > div
-    background-color: $softbgcolor
-
 mat-form-field.lone-field
   display: block
   .mat-from-field-wrapper
@@ -186,6 +172,7 @@ div.mat-menu-panel.nav-menu
   background-color: $userbuttonbgcolor
   border-top-left-radius: 0
   border-top-right-radius: 0
+  margin-top: 4px
   button.mat-menu-item
     font-size: smaller
     line-height: 36px

@@ -18,9 +18,9 @@ package handlers
 
 import (
 	"context"
-	
-	"github.com/JBoudou/Itero/pkg/config"
+
 	"github.com/JBoudou/Itero/mid/server"
+	"github.com/JBoudou/Itero/pkg/config"
 )
 
 type ConfigAnswer struct {

@@ -29,8 +29,11 @@ import (
 
 	"github.com/JBoudou/Itero/mid/db"
 	"github.com/JBoudou/Itero/mid/server"
-	"github.com/JBoudou/Itero/mid/server/logger"
 )
+
+type ProfileInfo struct {
+	Verified bool
+}
 
 func passwdHash() (hash.Hash, error) {
 	return blake2b.New256(nil)
@@ -47,15 +50,14 @@ func LoginHandler(ctx context.Context, response server.Response, request *server
 		Passwd string
 	}
 	if err := request.UnmarshalJSONBody(&loginQuery); err != nil {
-		logger.Print(ctx, err)
-		err = server.NewHttpError(http.StatusBadRequest, "Wrong request", "Unable to read loginQuery")
+		err = server.WrapError(http.StatusBadRequest, "Wrong request", err)
 		response.SendError(ctx, err)
 		return
 	}
 
 	const (
-		qName  = `SELECT Id, Passwd FROM Users WHERE Name = ?`
-		qEmail = `SELECT Id, Passwd FROM Users WHERE Email = ?`
+		qName  = `SELECT Id, Passwd, Verified FROM Users WHERE Name = ?`
+		qEmail = `SELECT Id, Passwd, Verified FROM Users WHERE Email = ?`
 	)
 	query := qName
 	if strings.ContainsRune(loginQuery.User, '@') {
@@ -64,8 +66,9 @@ func LoginHandler(ctx context.Context, response server.Response, request *server
 
 	var id uint32
 	var passwd []byte
+	var profileInfo ProfileInfo
 	row := db.DB.QueryRowContext(ctx, query, loginQuery.User)
-	if err := row.Scan(&id, &passwd); err != nil {
+	if err := row.Scan(&id, &passwd, &profileInfo.Verified); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			err = server.UnauthorizedHttpError("User not found")
 		}
@@ -85,6 +88,6 @@ func LoginHandler(ctx context.Context, response server.Response, request *server
 		return
 	}
 
-	response.SendLoginAccepted(ctx, server.User{Name: loginQuery.User, Id: id, Logged: true}, request)
+	response.SendLoginAccepted(ctx, server.User{Name: loginQuery.User, Id: id, Logged: true}, request, profileInfo)
 	return
 }

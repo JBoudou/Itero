@@ -32,6 +32,8 @@ type myCompoundStruct struct {
 }
 
 func TestValue(t *testing.T) {
+	ReadConfigFile(t, "config.json", 2)
+
 	const key = "object"
 	var expected = myCompoundStruct{42, "foo", 3.14, "bar", [4]int{2, 3, 5, 8}}
 
