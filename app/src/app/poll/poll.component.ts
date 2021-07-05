@@ -124,7 +124,7 @@ export class PollComponent implements OnInit, OnDestroy {
   // TODO: Implements a decorator for PollBallot that provides methods for that.
   BallotType = BallotType;
 
-  responsiveName$ : Observable<string>
+  infoOnPanel$ : Observable<boolean>
 
   /** Subscription for the sub component. The first index must be a SubComponentId. */
   private subsubscriptions: Subscription[][] = [];
@@ -145,7 +145,8 @@ export class PollComponent implements OnInit, OnDestroy {
     private title: AppTitleService,
     private responsive: ResponsiveBreakpointService,
   ) {
-    this.responsiveName$ = this.responsive.state$.pipe(map((st: ResponsiveState): string => ResponsiveState[st]))
+    this.infoOnPanel$ = this.responsive.state$
+      .pipe(map((st: ResponsiveState): boolean => st !== ResponsiveState.Laptop))
   }
 
   ngOnInit(): void {

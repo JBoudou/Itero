@@ -97,6 +97,9 @@
             "styles": [
               "src/styles.sass"
             ],
+            "stylePreprocessorOptions": {
+              "includePaths": [ "src" ]
+            },
             "scripts": []
           }
         },

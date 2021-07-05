@@ -7,7 +7,6 @@
   Your vote has not been taken into account because the next round started while you were voting.
 </p>
 
-<p class="debug">Current responsive statut is {{ responsiveName$ | async }}.</p>
 
 <div class="information-container" *ngIf="!error">
   <div class="poll-main" *ngIf="!!answer else loadingTmpl">
@@ -88,7 +87,18 @@
 
   </div>
 
-  <app-info-panel *ngIf="!!answer">
+  <ng-container *ngIf="!!answer" [ngSwitch]="infoOnPanel$ | async">
+    <app-info-panel *ngSwitchCase="true">
+      <ng-container [ngTemplateOutlet]="information"></ng-container>
+    </app-info-panel>
+    <div class="information" *ngSwitchCase="false">
+      <ng-container [ngTemplateOutlet]="information"></ng-container>
+    </div>
+  </ng-container>
+ 
+</div>  
+
+<ng-template #information>
     
     <ng-template #firstRoundTmpl>
       <p i18n>
@@ -166,9 +176,4 @@
         </p>
       </ng-container>
     </ng-container>
-
-  </app-info-panel>
- 
-</div>  
-
-
+</ng-template>
