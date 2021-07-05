@@ -16,7 +16,7 @@
 
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
-import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 
 import { take } from 'rxjs/operators';
@@ -28,12 +28,6 @@ function notInclude(substring: string): ValidatorFn {
     const found = (control.value as string).includes(substring);
     return found ? { notInclude: substring } : null;
   }
-}
-
-function samePasswordValidator(grp: FormGroup): ValidationErrors | null {
-  const first  = grp.get('Passwd');
-  const second = grp.get('pwdconfirm');
-  return first.value != second.value ? { passwordsDiffer: true } : null;
 }
 
 @Component({
@@ -53,13 +47,7 @@ export class SignupComponent implements OnInit {
       Validators.required,
       Validators.email,
     ]],
-    Passwd: ['', [
-      Validators.required,
-      Validators.minLength(5)
-    ]],
-    pwdconfirm: [''],
   }, {
-    validators: [ samePasswordValidator ],
   });
 
   serverError = ''
@@ -128,13 +116,6 @@ export class SignupComponent implements OnInit {
       this.form.controls['Name'].errors['notInclude'] == '@';
   }
 
-  pwdTooShort(): boolean {
-    return true &&
-      this.form.controls['Passwd'].dirty &&
-      !this.form.controls['Passwd'].valid &&
-      !!this.form.controls['Passwd'].errors['minlength'];
-  }
-
   emailWrong(): boolean {
     return true &&
       this.form.controls['Email'].dirty &&
@@ -142,9 +123,17 @@ export class SignupComponent implements OnInit {
       !!this.form.controls['Email'].errors['email'];
   }
 
+  private _pwdErrors: Set<string> = new Set<string>()
+
+  onPwdErrors(evt: Set<string>) {
+    this._pwdErrors = evt
+  }
+
+  pwdTooShort(): boolean {
+    return this._pwdErrors.has('pwdTooShort')
+  }
+
   passwordsDiffer(): boolean {
-    return true &&
-      !!this.form.errors &&
-      !!this.form.errors['passwordsDiffer'];
+    return this._pwdErrors.has('passwordsDiffer')
   }
 }

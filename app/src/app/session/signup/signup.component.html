@@ -7,14 +7,7 @@
     <mat-label i18n>Email</mat-label>
     <input matInput type="text" formControlName="Email">
   </mat-form-field>
-  <mat-form-field class="lone-field" appearance="standard">
-    <mat-label i18n>Password</mat-label>
-    <app-disclose-password formControlName="Passwd"></app-disclose-password>
-  </mat-form-field>
-  <mat-form-field class="lone-field" appearance="standard">
-    <mat-label i18n>Confirm password</mat-label>
-    <app-disclose-password formControlName="pwdconfirm"></app-disclose-password>
-  </mat-form-field>
+  <app-retype-password [controlGroup]="form" (errors)="onPwdErrors($event)"></app-retype-password>
   <div class="formerrors" *ngIf="!form.valid">
     <p *ngIf="nameTooShort()" i18n>Your login name must be at least 5 characters long.</p>
     <p *ngIf="nameContainsAt()" i18n>Your login name can not contain symbol '@'.</p>
@@ -37,5 +30,5 @@
   </div>  
   <div class="formactions login-action">
     <button type="submit" [disabled]="!form.valid" i18n>Sign up</button>
-  </div>  
+  </div>
 </form>

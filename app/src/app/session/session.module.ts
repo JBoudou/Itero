@@ -35,6 +35,7 @@ import { LoginComponent } from './login/login.component';
 import { SignupComponent } from './signup/signup.component';
 import { ConfirmationComponent } from './confirmation/confirmation.component';
 import { EmailVerificationDialog } from './session.service';
+import { RetypePasswordComponent } from './retype-password/retype-password.component';
 
 @NgModule({
   declarations: [
@@ -42,6 +43,7 @@ import { EmailVerificationDialog } from './session.service';
     SignupComponent,
     ConfirmationComponent,
     EmailVerificationDialog,
+    RetypePasswordComponent,
   ],
   imports: [
     CommonModule,
