@@ -124,6 +124,7 @@ export class PollComponent implements OnInit, OnDestroy {
   // TODO: Implements a decorator for PollBallot that provides methods for that.
   BallotType = BallotType;
 
+  // Whether the information must be displayed inside an InfoPanelComponent.
   infoOnPanel$ : Observable<boolean>
 
   /** Subscription for the sub component. The first index must be a SubComponentId. */

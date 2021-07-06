@@ -17,10 +17,11 @@
 import { Component, ChangeDetectionStrategy, OnInit, ViewEncapsulation, TemplateRef, OnDestroy } from '@angular/core';
 
 import { BehaviorSubject, Observable, Subscription, Subject } from 'rxjs';
-import { delay } from 'rxjs/operators';
+import { delay, map } from 'rxjs/operators';
 
 import { CreateService } from './create.service';
 import { NavStepStatus } from './navtree/navstep.status';
+import { ResponsiveBreakpointService, ResponsiveState } from '../responsive-breakpoint.service';
 
 @Component({
   selector: 'app-create',
@@ -48,13 +49,20 @@ export class CreateComponent implements OnInit, OnDestroy {
   /** The information template reference */
   infoTemplate$ = new Subject<TemplateRef<any>>();
 
+  // Whether the information must be displayed inside an InfoPanelComponent.
+  infoOnPanel$ : Observable<boolean>
+
   private _subscriptions: Subscription[] = [];
 
   constructor(
     private service: CreateService,
+    private responsive: ResponsiveBreakpointService,
   ) {
     this._subscriptions.push(this.service.stepStatus$.subscribe(this._stepStatus$));
     this.infoContext = { $implicit: true, query$: this.service.query$ };
+
+    this.infoOnPanel$ = this.responsive.state$
+      .pipe(map((st: ResponsiveState): boolean => st !== ResponsiveState.Laptop))
   }
 
   ngOnInit(): void {

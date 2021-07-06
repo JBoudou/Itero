@@ -5,8 +5,11 @@
     <router-outlet (activate)="onActivate($event)" (desactivate)="onDesactivate($event)"></router-outlet>
     <app-navbuttons [stepStatus]="stepStatus$ | async" [validable]="validable$ | async" (navigateTo)="onJump($event)"></app-navbuttons>
   </div>
-  <ng-container *ngIf="(infoTemplate$ | async) as tmpl">
-    <div class="information">
+  <ng-container *ngIf="(infoTemplate$ | async) as tmpl" [ngSwitch]="infoOnPanel$ | async">
+    <app-info-panel *ngSwitchCase="true">
+      <ng-container *ngTemplateOutlet="tmpl; context: infoContext"></ng-container>
+    </app-info-panel>
+    <div class="information" *ngSwitchCase="false">
       <ng-container *ngTemplateOutlet="tmpl; context: infoContext"></ng-container>
     </div>
   </ng-container>
