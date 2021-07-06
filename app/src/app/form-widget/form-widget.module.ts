@@ -22,13 +22,15 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatMenuModule } from '@angular/material/menu';
+
+import { SharedModule } from 'src/app/shared/shared.module';
 
 import { DateTimePickerComponent } from './date-time-picker/date-time-picker.component';
 import { DayHourMinDurationComponent } from './day-hour-min-duration/day-hour-min-duration.component';
 import { DurationPipe } from './duration.pipe';
 import { DisclosePasswordComponent } from './disclose-password/disclose-password.component';
 
-import { MatMenuModule } from '@angular/material/menu';
 
 @NgModule({
   declarations: [
@@ -46,6 +48,7 @@ import { MatMenuModule } from '@angular/material/menu';
     MatInputModule,
     MatMenuModule,
     ReactiveFormsModule,
+    SharedModule,
   ],
   exports: [
     DateTimePickerComponent,
