@@ -177,8 +177,8 @@ func (self *createPollTest) Check(t *testing.T, response *http.Response, request
 
 	// Check Alternatives
 	rows, err := db.DB.Query(qCheckAlternative, pollSegment.Id)
-	defer rows.Close()
 	mustt(t, err)
+	defer rows.Close()
 	for id, alt := range query.Alternatives {
 		if !rows.Next() {
 			t.Errorf("Premature end of the alternatives. Got %d. Expect %d.", id, len(query.Alternatives))

@@ -110,8 +110,8 @@ func (self createHandler) Handle(ctx context.Context, response server.Response, 
 	const qVerified = `SELECT 1 FROM Users WHERE Id = ? AND Verified`
 	if query.Verified {
 		rows, err := db.DB.QueryContext(ctx, qVerified, request.User.Id)
-		defer rows.Close()
 		must(err)
+		defer rows.Close()
 		if !rows.Next() {
 			panic(server.NewHttpError(http.StatusBadRequest, "Not verified", "The user is not verified"))
 		}

@@ -121,8 +121,8 @@ func TestEmailService_Events(t *testing.T) {
 
 			const qSelect = `SELECT 1 FROM Confirmations WHERE User = ? AND Type = ?`
 			rows, err := db.DB.Query(qSelect, uid, tt.type_)
-			defer rows.Close()
 			mustt(t, err)
+			defer rows.Close()
 			if !rows.Next() {
 				t.Errorf("No confirmation created.")
 			}

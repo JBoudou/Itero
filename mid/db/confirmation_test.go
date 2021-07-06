@@ -40,8 +40,8 @@ func TestCreateConfirmation(t *testing.T) {
 
 	// Check there is initially no confirmation
 	rows, err := DB.Query(qFindConfirmation, uid)
-	defer rows.Close()
 	mustt(t, err)
+	defer rows.Close()
 	if rows.Next() {
 		t.Fatalf("There is a confirmation before none has been created")
 	}

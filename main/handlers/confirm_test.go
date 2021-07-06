@@ -126,8 +126,8 @@ func (self *confirmTest) Check(t *testing.T, response *http.Response, request *s
 
 	const qFind = `SELECT 1 FROM Confirmations WHERE Id = ?`
 	rows, err := db.DB.Query(qFind, self.requested.Id)
-	defer rows.Close()
 	mustt(t, err)
+	defer rows.Close()
 	gotDelete := !rows.Next()
 	if gotDelete != expectDelete {
 		t.Errorf("Wrong delete status for %d. Got %t. Expect %t.", self.requested.Id,

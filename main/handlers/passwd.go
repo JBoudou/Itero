@@ -50,8 +50,8 @@ func PasswdHandler(ctx context.Context, response server.Response, request *serve
 	var uid uint32
 	var salt uint32
 	rows, err := db.DB.QueryContext(ctx, qVerify, segment.Id, db.ConfirmationTypePasswd)
-	defer rows.Close()
 	must(err)
+	defer rows.Close()
 	if !rows.Next() {
 		panic(server.NewHttpError(http.StatusNotFound, "Not found", "No such id"))
 	}

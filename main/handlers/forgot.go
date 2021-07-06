@@ -57,8 +57,8 @@ func (self forgotHandler) Handle(ctx context.Context, response server.Response, 
 	const qCheck =`
 	  SELECT 1 FROM Confirmations WHERE User = ? AND Type = ? AND Expires > CURRENT_TIMESTAMP`
 	rows, err := db.DB.QueryContext(ctx, qCheck, userInfo.Id, db.ConfirmationTypePasswd)
-	defer rows.Close()
 	must(err)
+	defer rows.Close()
 	if rows.Next() {
 		panic(server.NewHttpError(http.StatusConflict,
 			"Already sent", "A forgotten password request is still active"))

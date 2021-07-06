@@ -49,8 +49,8 @@ func (self confirmHandler) Handle(ctx context.Context, response server.Response,
 	var answer ConfirmAnswer
 	var salt, uid uint32
 	rows, err := db.DB.QueryContext(ctx, qSelect, segment.Id)
-	defer rows.Close()
 	must(err)
+	defer rows.Close()
 	if !rows.Next() {
 		panic(server.NewHttpError(http.StatusNotFound, "Not found", "No such id"))
 	}

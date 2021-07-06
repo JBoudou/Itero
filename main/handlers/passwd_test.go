@@ -109,8 +109,8 @@ func (self passwdTest) Check(t *testing.T, response *http.Response, request *ser
 	success := self.Checker == nil
 
 	rows, err := db.DB.Query(qConfirm, self.segment.Id)
-	defer rows.Close()
 	mustt(t, err)
+	defer rows.Close()
 	gotDeleted := !rows.Next()
 	expectDeleted := success || self.Delete
 	if gotDeleted != expectDeleted {

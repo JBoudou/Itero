@@ -120,6 +120,10 @@ func TestInternalHttpError(t *testing.T) {
 			if !errors.Is(got, tt.err) {
 				t.Errorf("Unwrap() gives %v. Expect %v.", got.Unwrap(), tt.err)
 			}
+			var httpError HttpError
+			if !errors.As(got, &httpError) {
+				t.Error("The resulting error is not an HttpError.")
+			}
 		})
 	}
 }

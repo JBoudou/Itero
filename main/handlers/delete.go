@@ -61,8 +61,8 @@ func (self deleteHandler) Handle(ctx context.Context, response server.Response, 
 	)
 
 	rows, err := db.DB.QueryContext(ctx, qTitle, segment.Id, request.User.Id)
-	defer rows.Close()
 	must(err)
+	defer rows.Close()
 	if !rows.Next() {
 		panic(server.NewHttpError(ImpossibleStatus, ImpossibleMessage, ""))
 	}
@@ -73,8 +73,8 @@ func (self deleteHandler) Handle(ctx context.Context, response server.Response, 
 	}
 
 	rows, err = db.DB.QueryContext(ctx, qParticipants, segment.Id)
-	defer rows.Close()
 	must(err)
+	defer rows.Close()
 	for rows.Next() {
 		var uid uint32
 		must(rows.Scan(&uid))
