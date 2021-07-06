@@ -9,7 +9,7 @@
     <app-info-panel *ngSwitchCase="true">
       <ng-container *ngTemplateOutlet="tmpl; context: infoContext"></ng-container>
     </app-info-panel>
-    <div class="information" *ngSwitchCase="false">
+    <div class="information information-sided" *ngSwitchCase="false">
       <ng-container *ngTemplateOutlet="tmpl; context: infoContext"></ng-container>
     </div>
   </ng-container>

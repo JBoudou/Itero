@@ -91,7 +91,7 @@
     <app-info-panel *ngSwitchCase="true">
       <ng-container [ngTemplateOutlet]="information"></ng-container>
     </app-info-panel>
-    <div class="information" *ngSwitchCase="false">
+    <div class="information information-sided" *ngSwitchCase="false">
       <ng-container [ngTemplateOutlet]="information"></ng-container>
     </div>
   </ng-container>

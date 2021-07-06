@@ -42,12 +42,7 @@
     width: $menu-close-width  
   .info-panel-content
     overflow: hidden
-  .info-panel-content .information
-    margin: 0
-    padding: 0
-    border: none
-    width: calc(#{$width-smartphone} - #{$menu-close-width})
-    @media screen and (min-width: $breakpoint-tablet) and (max-width: $breakpoint-laptop)
-      width: calc(#{$width-tablet} - #{$menu-close-width})
-    p
-      margin-top: 1em
+    .info-panel-inner
+      width: calc(#{$width-smartphone} - #{$menu-close-width})
+      @media screen and (min-width: $breakpoint-tablet) and (max-width: $breakpoint-laptop)
+        width: calc(#{$width-tablet} - #{$menu-close-width})
