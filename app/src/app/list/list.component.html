@@ -1,5 +1,5 @@
 <app-server-error [error]="error$ | async"></app-server-error>
-<mat-tab-group mat-align-tabs="center">
+<mat-tab-group mat-align-tabs="center" dynamicHeight>
   <mat-tab  label="Participate" *ngIf="(publicList$ | async)?.length">
     <h3>Polls you participate in</h3>
     <app-polls-table [polls]="publicList$ | async"></app-polls-table>

@@ -3,71 +3,76 @@
 @import 'sizes'
 
 table
-  display: grid
-  grid-template-columns: 1fr min-content min-content min-content min-content
-  border: solid 1px $maincolor
-  tbody, tr, thead
-    display: contents
-  th
-    border-bottom: solid 1px $maincolor
-    background-color: $softbgcolor
-    padding: 2px 4px
-  th.manage
-    padding: 2px 0
-  tr.poll
+  tbody tr.poll
     td
-      padding: 3px 4px
-      cursor: default
-    &:hover td
-      background-color: $softbgcolor
-    td[colspan="2"]
-      grid-column: span 2
+      white-space: nowrap
     td.title
-      align-self: center
       text-overflow: ellipsis
       overflow: hidden
-      white-space: nowrap
-    td.round, td.deadline, td.terminated
-      align-self: center
-      text-align: center
-      white-space: nowrap
-    .last-line
-      display: contents
-      td.action
+    td.action, td.manage span
+      cursor: pointer
+    td.action
+      span
+        display: block
         cursor: pointer
-        white-space: nowrap
-        span
-          display: block
-          cursor: pointer
-          margin: auto
-          border-radius: 2px
-          font-size: smaller
-          padding: 3px .5em
-          text-align: center
-        .part
-          background-color: lightblue
-        .vote
-          background-color: lightgreen
-        .modi
-          background-color: orange
-        .term
-          background-color: $userbuttonbgcolor
-        .wait
-          background-color: $softbgcolor
-          border: solid 1px $userbuttonbgcolor
+        margin: auto
+        border-radius: 2px
+        font-size: smaller
+        padding: 3px .5em
+        text-align: center
+      .part
+        background-color: lightblue
+      .vote
+        background-color: lightgreen
+      .modi
+        background-color: orange
+      .term
+        background-color: $userbuttonbgcolor
+      .wait
+        background-color: $softbgcolor
+        border: solid 1px $userbuttonbgcolor
+    td.manage
+      padding: 0
+      span
+        margin-right: 2px
+      &:hover
+        color: $maincolor
+
+@media screen and (min-width: $breakpoint-tablet + 1)
+  table
+    display: grid
+    grid-template-columns: 1fr min-content min-content min-content min-content
+    border: solid 1px $maincolor
+    tbody, tr, thead
+      display: contents
+    th
+      border-bottom: solid 1px $maincolor
+      background-color: $softbgcolor
+      padding: 2px 4px
+    th.manage
+      padding: 2px 0
+    tr.poll
+      td
+        padding: 3px 4px
+        cursor: default
+      &:hover td
+        background-color: $softbgcolor
+      td[colspan="2"]
+        grid-column: span 2
+      td.title
+        align-self: center
+      td.round, td.deadline, td.terminated
+        align-self: center
+        text-align: center
+      .last-line
+        display: contents
       td.manage
-        padding: 0
-        span
-          margin-right: 2px
-          cursor: pointer
-        &:hover
-          color: $maincolor
+        position: relative
+        top: 2px
 
 @media screen and (max-width: $breakpoint-tablet)
   table
-    width: 100%
     display: block
-    border: 0
     thead
       display: none
     tbody
@@ -83,13 +88,11 @@ table
         text-align: right
         text-overflow: ellipsis
         overflow: hidden
-        white-space: nowrap
       td.title
         border-bottom: solid 2px #ddd
         text-align: left
       td.round,  td.deadline,  td.terminated
         font-size: smaller
-        text-align: right
         &:before
           content: attr(data-label)
           float: left
