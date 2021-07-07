@@ -1,4 +1,5 @@
-<div role="group" class="day-hour-min-duration merged-input" [formGroup]="form">
+<div role="group" class="day-hour-min-duration merged-input" [formGroup]="form"
+  [appMenuTriggerFor]="durationMenu" [appMenuTriggerFilter]="filterMouseEvent">
   <input #days type="number" size="3" min="0" max="999" formControlName="days"  />
   &nbsp;{days.value, plural, =0 {day} =1 {day} other {days}},
   <input #hours type="number" size="2" min="0"  max="23" formControlName="hours" />
@@ -6,3 +7,39 @@
   <input #mins type="number" size="2" min="0"  max="59" formControlName="mins"  />
   &nbsp;{mins.value, plural, =0 {minute} =1 {minute} other {minutes }}.
 </div>
+
+<mat-menu #durationMenu="matMenu" id="MenuDuration">
+  <button mat-menu-item (click)="value = 5 * 60 * 1000" i18n>
+    5 min
+  </button>
+  <button mat-menu-item (click)="value = 10 * 60 * 1000" i18n>
+    10 min
+  </button>
+  <button mat-menu-item (click)="value = 15 * 60 * 1000" i18n>
+    15 min
+  </button>
+  <button mat-menu-item (click)="value = 30 * 60 * 1000" i18n>
+    30 min
+  </button>
+  <button mat-menu-item (click)="value = 60 * 60 * 1000" i18n>
+    1 hour
+  </button>
+  <button mat-menu-item (click)="value = 2 * 60 * 60 * 1000" i18n>
+    2 hours
+  </button>
+  <button mat-menu-item (click)="value = 6 * 60 * 60 * 1000" i18n>
+    6 hours
+  </button>
+  <button mat-menu-item (click)="value = 12 * 60 * 60 * 1000" i18n>
+    12 hours
+  </button>
+  <button mat-menu-item (click)="value = 24 * 60 * 60 * 1000" i18n>
+    1 day
+  </button>
+  <button mat-menu-item (click)="value = 2 * 24 * 60 * 60 * 1000" i18n>
+    2 days
+  </button>
+  <button mat-menu-item (click)="value = 7 * 24 * 60 * 60 * 1000" i18n>
+    7 days
+  </button>
+</mat-menu>

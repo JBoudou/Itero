@@ -17,6 +17,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule, FormBuilder, FormsModule } from '@angular/forms';
 
+import { MatMenuModule } from '@angular/material/menu';
+
 import { DayHourMinDurationComponent } from './day-hour-min-duration.component';
 
 describe('DayHourMinDurationComponent', () => {
@@ -26,7 +28,11 @@ describe('DayHourMinDurationComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [ DayHourMinDurationComponent ],
-      imports: [ ReactiveFormsModule, FormsModule ],
+      imports: [ 
+        FormsModule,
+        MatMenuModule,
+        ReactiveFormsModule,
+      ],
       providers: [
         FormBuilder,
       ],

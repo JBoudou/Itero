@@ -1,5 +1,5 @@
 // Itero - Online iterative vote application
-// Copyright (C) 2021 Joseph Boudou
+// Copyright (C) 2021 Joseph Boudou, Milo Parra
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -22,6 +22,9 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatMenuModule } from '@angular/material/menu';
+
+import { SharedModule } from 'src/app/shared/shared.module';
 
 import { DateTimePickerComponent } from './date-time-picker/date-time-picker.component';
 import { DayHourMinDurationComponent } from './day-hour-min-duration/day-hour-min-duration.component';
@@ -43,7 +46,9 @@ import { DisclosePasswordComponent } from './disclose-password/disclose-password
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    MatMenuModule,
     ReactiveFormsModule,
+    SharedModule,
   ],
   exports: [
     DateTimePickerComponent,

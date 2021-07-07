@@ -103,6 +103,11 @@ export class DayHourMinDurationComponent
     this._stateChanges.next();
   }
 
+  filterMouseEvent(evt: MouseEvent): boolean {
+    const target = evt.target
+    return (target instanceof Element) ? target.tagName != 'INPUT' : true
+  }
+
 
   /** Implements MatFormFieldControl */
 
