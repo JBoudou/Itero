@@ -1,7 +1,7 @@
 @use 'sass:color'
+@import 'decos'
 @import 'sizes'
 @import 'typo'
-@import 'decos'
 
 @mixin userbox
   border: $simple-frame
@@ -16,5 +16,5 @@
   background-color: $softbgcolor
 
 @mixin overhilight
-  box-shadow: 2px 6px 12px color.change(color.adjust($maincolor, $saturation: -20%), $lightness: 85%)
+  box-shadow: 2px 6px 12px $shadow-color
   padding: 4px

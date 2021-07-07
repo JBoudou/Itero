@@ -1,25 +1,19 @@
 @use 'sass:color'
-@import '../../../responsive'
-@import '../../../sizes'
+@import 'colors'
+@import 'responsive'
+@import 'sizes'
 
 :host
-  border: 1px solid #704f6a
+  border: 1px solid $maincolor
   border-right: none
-  background-color: #d5b6d0
-  box-shadow: -5px 0px 5px 0 rgba(255, 204, 244, 0.7)
+  background-color: $userbuttonbgcolor
+  box-shadow: -4px 4px 8px 1px $shadow-color
   position: absolute
   z-index: 1
   right: 0
   display: flex
   flex-flow: row nowrap
   transition: width 2s
-  .info-panel-icon
-    background: transparent
-    border: none
-    padding: 0
-    height: min-content
-    mat-icon
-      margin: 0.7em $small-space
   $menu-close-width: 32px
   $width-smartphone: 80vw
   $width-tablet: 50vw
@@ -31,18 +25,19 @@
   @media screen and (min-width: $breakpoint-laptop)
     display: none
   &.opened
-    .info-panel-icon .help-button
-      display: none
     width: $width-smartphone
     @media screen and (min-width: $breakpoint-tablet) and (max-width: $breakpoint-laptop)
       width: $width-tablet
   &.closed
-    .info-panel-icon .close-button
-      display: none
     width: $menu-close-width  
+  .info-panel-icon
+    width: $menu-close-width
+    bottom: 6px
   .info-panel-content
     overflow: hidden
     .info-panel-inner
+      box-sizing: border-box
+      padding-right: 2ex
       width: calc(#{$width-smartphone} - #{$menu-close-width})
       @media screen and (min-width: $breakpoint-tablet) and (max-width: $breakpoint-laptop)
         width: calc(#{$width-tablet} - #{$menu-close-width})

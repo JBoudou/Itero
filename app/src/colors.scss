@@ -20,6 +20,8 @@ $fgOnMaincolor: white;
 $useboxfgcolor: color.change($maincolor, $lightness: 16%);
 $errorcolor: red;
 
+$shadow-color: color.change(color.adjust($maincolor, $saturation: -20%), $lightness: 85%);
+
 $itero-mat-maincolor: (
   50: #f4e5f0,
   100: #e5bddb,
