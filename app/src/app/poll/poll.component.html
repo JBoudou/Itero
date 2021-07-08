@@ -30,7 +30,7 @@
             voted <span class="vote">{{currentRoundBallot.asString}}</span>.
           </ng-container>
           <ng-container *ngSwitchCase="false">
-            abstained.
+            ab&shy;stained.
           </ng-container>
         </ng-container>
         You may now change this vote.
@@ -104,13 +104,13 @@
       <p i18n>
         This is the first round of the poll.
         <ng-container *ngIf="!hasCurrentRoundBallot()">
-          You can submit a first ballot, in which case you will become a participant of the poll.
+          You can submit a first ballot, in which case you will become a par&shy;tic&shy;i&shy;pant of the poll.
         </ng-container>
         In the next rounds, you will be able to change your vote, based on the results of the previous round.
         The first round will end
         <ng-container [ngSwitch]="roundDeadlinePassed()">
           <ng-container *ngSwitchCase="true">
-            as soon as three participants have voted.
+            as soon as three par&shy;tic&shy;i&shy;pants have voted.
           </ng-container>
           <ng-container *ngSwitchCase="false">
             {{ answer.RoundDeadline | nearDate:'inside' }}.
@@ -119,8 +119,8 @@
         <ng-container *ngIf="!hasCurrentRoundBallot()">
           It will not be possible to join the poll once the first round has ended.
         </ng-container>
-        Then, each round will last {{ answer.MaxRoundDuration | duration }}, or until all participants have voted,
-        whichever comes first.
+        Then, each round will last {{ answer.MaxRoundDuration | duration }}, or until all
+        par&shy;tic&shy;i&shy;pants have voted, whichever comes first.
       </p>
     </ng-template>
 
@@ -144,14 +144,14 @@
           If you do not vote before the end of the round,
           <ng-container [ngSwitch]="answer.CarryForward">
             <ng-container *ngSwitchCase="false">
-              you will be declared abstentionist.
+              you will be declared ab&shy;sten&shy;tion&shy;ist.
             </ng-container>
             <ng-container *ngSwitchCase="true">
               your previous vote will be carried forward.
             </ng-container>
           </ng-container>
-          The round will end {{ answer.RoundDeadline | nearDate:'inside' }} or when all participants have voted,
-          whichever comes first.
+          The round will end {{ answer.RoundDeadline | nearDate:'inside' }} or when all
+          par&shy;tic&shy;i&shy;pants have voted, whichever comes first.
         </p>
 
         <p i18n>

@@ -1,5 +1,3 @@
-// We define the fonts in SCSS instead of SASS, because maps suck in SASS :(
-@import '~@angular/material/theming';
 @import './responsive';
 
 $mainfont: 'Asap';
@@ -8,38 +6,29 @@ $fontsize: 13pt;
 $titlefont: 'Overpass';
 $infofont: 300 100% 'Livvic';
 
-$itero-mat-typography: mat-typography-config(
-  $font-family: $mainfont,
-  $body-1:    mat-typography-level($fontsize, 1.2),
-  $headline:  mat-typography-level(32px,      1.2, $font-family: $titlefont),
-  $title:     mat-typography-level($fontsize, 1.2, $font-family: $titlefont),
-  $button:    mat-typography-level($fontsize, 1.2),
-  $input:     mat-typography-level($fontsize, 1.3),
-);
-
 //laptop-size (default size)
-@media only screen and (min-width : $breakpoint-laptop)
+@media all and (min-width : $breakpoint-laptop)
 {
-  :root{
-        --font-size: 13pt;
-        --small-font-size: 12pt;
-       }
+  :root {
+    --font-size: #{$fontsize};
+    --small-font-size: #{$fontsize - 1};
+  }
 }
 
 //tablet-size
-@media only screen and (min-width : $breakpoint-tablet + 1) and (max-width : $breakpoint-laptop - 1px)
+@media all and (min-width : $breakpoint-tablet + 1) and (max-width : $breakpoint-laptop - 1px)
 {
-    :root{
-        --font-size: 12pt;
-        --small-font-size: 11pt;
-         }
+  :root {
+    --font-size: #{$fontsize - 1};
+    --small-font-size: #{$fontsize - 2};
+  }
 }
 
 //phone-size
-@media only screen and  (max-width: $breakpoint-tablet)
+@media all and  (max-width: $breakpoint-tablet)
 {
-    :root{
-      --font-size: 11pt;
-      --small-font-size: 10pt;
-         }
+  :root {
+    --font-size: #{$fontsize - 2};
+    --small-font-size: #{$fontsize - 3};
+  }
 }

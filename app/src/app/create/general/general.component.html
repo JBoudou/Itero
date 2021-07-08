@@ -20,26 +20,26 @@
 <ng-template #stepInfo let-query="query$">
   <ng-container *ngIf="query | async as q">
     <p i18n>
-      The title of the poll should be the question the poll will answer to.
+      The title of the poll should be the question the poll will an&shy;swer to.
     </p>
     <p i18n>
-      The optional description may give some additional information,
-      for instance about the different alternatives.
+      The optional de&shy;scrip&shy;tion may give some ad&shy;di&shy;tion&shy;al in&shy;for&shy;ma&shy;tion,
+      for instance about the different al&shy;ter&shy;na&shy;tives.
     </p>
     <p *ngIf="!q.Hidden; else Hidden" i18n>
       The title will be displayed in the list of polls,
       allowing
       <ng-container [ngSwitch]="q.Verified">
         <ng-container *ngSwitchCase="false">any user</ng-container>
-        <ng-container *ngSwitchCase="true" >users with a verified email</ng-container>
+        <ng-container *ngSwitchCase="true" >users with a ver&shy;i&shy;fied email</ng-container>
       </ng-container>
-      to participate in.
+      to par&shy;tic&shy;i&shy;pate in.
       If you don't want the poll to be public, select "Manually spread the link".
     </p>
     <ng-template #Hidden>
       <p>
-        The title will be displayed in the list of poll only for the participants in the poll.
-        You will have to send the link of the poll to all the participants.
+        The title will be displayed in the list of poll only for the par&shy;tic&shy;i&shy;pants in the poll.
+        You will have to send the link of the poll to all the par&shy;tic&shy;i&shy;pants.
         <ng-container *ngIf="q.Verified">
           Beware that users whose email is not verified yet will not have access to the poll.
         </ng-container>

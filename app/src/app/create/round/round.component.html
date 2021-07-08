@@ -10,16 +10,11 @@
   <mat-form-field class="least-most" appearance="standard" i18n>
     <mat-label>Number of rounds</mat-label>
     <div role="group" class="merged-input">
-      <div>
-        At least
-        <input matInput type=number size="3" min="2" [max]="minMax()" formControlName="MinNbRounds" />
-        &nbsp;rounds,&nbsp;
-      </div>
-      <div>
-        at most
-        <input matInput type=number size="3" [min]="maxMin()" max="255" formControlName="MaxNbRounds" />
-        &nbsp;rounds.
-      </div>
+      Between
+      <input matInput type=number size="3" min="2" [max]="minMax()" formControlName="MinNbRounds" />
+      &nbsp;and
+      <input matInput type=number size="3" [min]="maxMin()" max="255" formControlName="MaxNbRounds" />
+      &nbsp;rounds.
     </div>
   </mat-form-field>
   <mat-form-field appearance="standard">
@@ -56,15 +51,15 @@
       The poll is divided in {{ q.MinNbRounds }}
       <ng-container *ngIf="q.MinNbRounds != q.MaxNbRounds"> to {{ q.MaxNbRounds }}</ng-container>
       rounds.
-      At each round, the participants will have to choose one of the alternatives.
-      A round ends when all the participants have voted, or after {{ q.MaxRoundDuration | duration }}.
-      Participants that did not vote during a round
+      At each round, the par&shy;tic&shy;i&shy;pants will have to choose one of the al&shy;ter&shy;na&shy;tives.
+      A round ends when all the par&shy;tic&shy;i&shy;pants have voted, or after {{ q.MaxRoundDuration | duration }}.
+      Par&shy;tic&shy;i&shy;pants that did not vote during a round
       <ng-container [ngSwitch]="q.ReportVote">
         <ng-container *ngSwitchCase="true">
-          get their previous vote carried forward.
+          get their pre&shy;vi&shy;ous vote car&shy;ried forward.
         </ng-container>
         <ng-container *ngSwitchCase="false">
-          are considered as abstentionists for that round.
+          are con&shy;sid&shy;ered as ab&shy;sten&shy;tion&shy;ists for that round.
         </ng-container>
       </ng-container>
     </p>
