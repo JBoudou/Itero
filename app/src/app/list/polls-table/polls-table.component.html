@@ -26,6 +26,7 @@
       </td>
       <td data-label=" " class="manage">
         <span *ngIf="poll.Deletable" (click)="service.delete(poll)"><mat-icon>delete</mat-icon></span>
+        <span *ngIf="poll.Launchable" (click)="service.delete(poll)"><mat-icon>update</mat-icon></span>
       </td>
     </div>
   </tr>

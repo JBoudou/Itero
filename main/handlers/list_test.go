@@ -38,10 +38,11 @@ type listChecker struct {
 }
 
 type listCheckerEntry struct {
-	title     string
-	id        *uint32
-	action    PollAction
-	deletable bool
+	title      string
+	id         *uint32
+	action     PollAction
+	deletable  bool
+	launchable bool
 }
 
 func (self *listCheckerEntry) toListEntry(t *testing.T) *listAnswerEntry {
@@ -54,6 +55,7 @@ func (self *listCheckerEntry) toListEntry(t *testing.T) *listAnswerEntry {
 		MaxRound:     4,
 		Action:       self.action,
 		Deletable:    self.deletable,
+		Launchable:   self.launchable,
 	}
 }
 
@@ -109,21 +111,20 @@ const (
 	listCheckFactoryKindNone
 )
 
-func listCheckFactory(kind listCheckFactoryKind, action PollAction, deletable bool) pollTestCheckerFactory {
+func listCheckFactory(kind listCheckFactoryKind, entrySketch listCheckerEntry) pollTestCheckerFactory {
+
 	return func(param PollTestCheckerFactoryParam) srvt.Checker {
-		entry := []listCheckerEntry{{
-			title:     param.PollTitle,
-			id:        &param.PollId,
-			action:    action,
-			deletable: deletable,
-		}}
+		entry := entrySketch
+		entry.title = param.PollTitle
+		entry.id = &param.PollId
+		entries := []listCheckerEntry{entry}
 		switch kind {
 		case listCheckFactoryKindPublic:
-			return &listChecker{publicInc: entry, ownExc: entry}
+			return &listChecker{publicInc: entries, ownExc: entries}
 		case listCheckFactoryKindOwn:
-			return &listChecker{publicExc: entry, ownInc: entry}
+			return &listChecker{publicExc: entries, ownInc: entries}
 		case listCheckFactoryKindNone:
-			return &listChecker{publicExc: entry, ownExc: entry}
+			return &listChecker{publicExc: entries, ownExc: entries}
 		}
 		return nil
 	}
@@ -143,10 +144,6 @@ func TestListHandler(t *testing.T) {
 	const (
 		qParticipate = `INSERT INTO Participants(Poll, User, Round) VALUE (?, ?, 0)`
 		qTerminate   = `UPDATE Polls SET State = 'Terminated' WHERE Id = ?`
-		qWaiting     = `
-		  UPDATE Polls
-			   SET State = 'Waiting', Start = ADDTIME(CURRENT_TIMESTAMP(), '1:00')
-			 WHERE Id = ?`
 		qHidden = `UPDATE Polls SET Hidden = TRUE WHERE Id = ?`
 
 		poll1Title = "Test-1"
@@ -259,23 +256,6 @@ func TestListHandler(t *testing.T) {
 			},
 		},
 		&srvt.T{
-			Name: "Waiting",
-			Update: func(t *testing.T) {
-				poll3Id = env.CreatePoll(poll3Title, userId, db.ElectorateLogged)
-				env.Must(t)
-				_, err := db.DB.Exec(qWaiting, poll3Id)
-				if err != nil {
-					t.Fatal(err)
-				}
-			},
-			Request: srvt.Request{UserId: &userId},
-			Checker: listChecker{
-				ownInc: []listCheckerEntry{
-					{title: poll3Title, id: &poll3Id, action: PollActionWait, deletable: true},
-				},
-			},
-		},
-		&srvt.T{
 			Name:    "Waiting is hidden",
 			Request: srvt.Request{UserId: &userId},
 			Checker: listChecker{
@@ -289,7 +269,7 @@ func TestListHandler(t *testing.T) {
 			Name:       "public",
 			Electorate: db.ElectorateAll,
 			UserType:   pollTestUserTypeLogged,
-			Checker:    listCheckFactory(listCheckFactoryKindPublic, PollActionPart, false),
+			Checker:    listCheckFactory(listCheckFactoryKindPublic, listCheckerEntry{action: PollActionPart}),
 		},
 		&pollTest{
 			Name:        "hidden participate",
@@ -297,20 +277,28 @@ func TestListHandler(t *testing.T) {
 			Hidden:      true,
 			Participate: []pollTestParticipate{{1, 0}},
 			UserType:    pollTestUserTypeLogged,
-			Checker:     listCheckFactory(listCheckFactoryKindPublic, PollActionModif, false),
+			Checker:     listCheckFactory(listCheckFactoryKindPublic, listCheckerEntry{action: PollActionModif}),
 		},
 		&pollTest{
 			Name:       "poll verified user unverified",
 			Electorate: db.ElectorateVerified,
 			UserType:   pollTestUserTypeLogged,
-			Checker:    listCheckFactory(listCheckFactoryKindNone, PollActionPart, false),
+			Checker:    listCheckFactory(listCheckFactoryKindNone, listCheckerEntry{action: PollActionPart}),
 		},
 		&pollTest{
 			Name:       "poll verified user verified",
 			Electorate: db.ElectorateVerified,
 			UserType:   pollTestUserTypeLogged,
 			Verified:   true,
-			Checker:    listCheckFactory(listCheckFactoryKindPublic, PollActionPart, false),
+			Checker:    listCheckFactory(listCheckFactoryKindPublic, listCheckerEntry{action: PollActionPart}),
+		},
+		&pollTest{
+			Name:       "Waiting",
+			Electorate: db.ElectorateLogged,
+			UserType:   pollTestUserTypeAdmin,
+			Waiting:    true,
+			Checker: listCheckFactory(listCheckFactoryKindOwn,
+				listCheckerEntry{action: PollActionWait, deletable: true, launchable: true}),
 		},
 	}
 

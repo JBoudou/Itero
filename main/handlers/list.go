@@ -70,6 +70,7 @@ type listAnswerEntry struct {
 	Deadline     NuDate
 	Action       PollAction
 	Deletable    bool `json:",omitempty"`
+	Launchable   bool `json:",omitempty"`
 }
 
 func ListHandler(ctx context.Context, response server.Response, request *server.Request) {
@@ -88,7 +89,8 @@ func ListHandler(ctx context.Context, response server.Response, request *server.
 	                WHEN a.Poll IS NULL THEN 2
 	                WHEN a.LastRound >= p.CurrentRound THEN 1
 	                ELSE 0 END AS Action,
-	                FALSE AS Deletable
+						 FALSE AS Deletable,
+						 FALSE AS Launchable
 	      FROM Polls AS p LEFT OUTER JOIN (
 	               SELECT Poll, MAX(Round) AS LastRound
 	                FROM Participants
@@ -113,7 +115,8 @@ func ListHandler(ctx context.Context, response server.Response, request *server.
 	           ( p.State = 'Waiting' OR
 	             ( p.State = 'Active' AND p.CurrentRound = 0 AND
 	               ADDTIME(p.CurrentRoundStart, p.MaxRoundDuration) < CURRENT_TIMESTAMP )
-	           ) AS Deletable
+	           ) AS Deletable,
+						 p.State = 'Waiting' AS Launchable
 	      FROM Polls AS p LEFT OUTER JOIN (
 	               SELECT Poll, MAX(Round) AS LastRound
 	                FROM Participants
@@ -150,7 +153,7 @@ func makeListEntriesList(rows *sql.Rows) (list []listAnswerEntry, err error) {
 
 		err = rows.Scan(&segment.Id, &segment.Salt, &listAnswerEntry.Title,
 			&listAnswerEntry.CurrentRound, &listAnswerEntry.MaxRound, &deadline,
-			&listAnswerEntry.Action, &listAnswerEntry.Deletable)
+			&listAnswerEntry.Action, &listAnswerEntry.Deletable, &listAnswerEntry.Launchable)
 		if err != nil {
 			return
 		}

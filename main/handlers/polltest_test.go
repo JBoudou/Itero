@@ -58,11 +58,11 @@ type pollTest struct {
 	WithEvent
 
 	Name         string        // Required.
-	Sequential   bool          // If the test cannot be run in parallel.
 	Electorate   db.Electorate // Required.
 	Hidden       bool
 	Alternatives []string
 	Round        uint8
+	Waiting      bool
 	Participate  []pollTestParticipate // No need to add an entry for each vote.
 	Vote         []pollTestVote
 
@@ -104,9 +104,7 @@ func stats(ctx string) {
 }
 
 func (self *pollTest) Prepare(t *testing.T) *ioc.Locator {
-	if !self.Sequential {
-		t.Parallel()
-	}
+	t.Parallel()
 
 	self.userId = make([]uint32, 2)
 	self.userId[0] = self.DB.CreateUserWith(t.Name())
@@ -163,6 +161,15 @@ func (self *pollTest) Prepare(t *testing.T) *ioc.Locator {
 	const qRound = `UPDATE Polls SET CurrentRound = ? WHERE Id = ?`
 	if self.Round > 0 {
 		self.DB.QuietExec(qRound, self.Round, self.pollId)
+	}
+
+	// Waiting
+	const qWaiting = `
+	  UPDATE Polls
+		   SET State = 'Waiting', Start = ADDTIME(CURRENT_TIMESTAMP, '1:00:00')
+	   WHERE Id = ?`
+	if self.Waiting {
+		self.DB.QuietExec(qWaiting, self.pollId)
 	}
 
 	// Participate

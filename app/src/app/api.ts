@@ -58,6 +58,7 @@ export class ListAnswerEntry {
   Deadline:     Date|undefined;
   Action:       PollAction;
   Deletable:    boolean;
+  Launchable:   boolean;
 }
 
 export class ListAnswer {
@@ -78,6 +79,9 @@ export class ListAnswer {
       }
       if (!entry.hasOwnProperty('Deletable')) {
         entry.Deletable = false;
+      }
+      if (!entry.hasOwnProperty('Launchable')) {
+        entry.Launchable = false;
       }
     }
     ret.Public.forEach(normalize);
