@@ -3,12 +3,15 @@
 </ng-template>
 
 <app-server-error [error]="error"></app-server-error>
-<p class="error-msg" *ngIf="!!nextRoundError" i18n>
+<p class="error-msg" *ngIf="localError === 'next-round'" i18n>
   Your vote has not been taken into account because the next round started while you were voting.
+</p>
+<p class="error-msg" *ngIf="localError === 'unverified'" i18n>
+  This poll is restricted to users with a verified email.
 </p>
 
 
-<div class="information-container" *ngIf="!error">
+<div class="information-container" *ngIf="!error && !localError">
   <div class="poll-main" *ngIf="!!answer else loadingTmpl">
 
     <div class="poll-information">

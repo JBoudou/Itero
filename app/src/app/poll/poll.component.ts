@@ -114,7 +114,7 @@ export class PollComponent implements OnInit, OnDestroy {
   displayedResult: number|undefined;
 
   error: ServerError;
-  nextRoundError = false;
+  localError : false | 'next-round' | 'unverified' = false;
 
   previousRoundBallot: PollBallot = NONE_BALLOT;
   currentRoundBallot : PollBallot = NONE_BALLOT;
@@ -261,8 +261,10 @@ export class PollComponent implements OnInit, OnDestroy {
         setTimeout(() => this.synchronizeSubComponents(), 0);
       },
       error: (err: HttpErrorResponse) => {
-        if (err.status == 403 && !this.session.logged) {
+        if (err.status === 403 && err.error.trim() === 'Unlogged' && !this.session.logged) {
           this.session.logNow();
+        } else if (err.status === 403 && err.error.trim() === 'Unverified' && this.session.logged) {
+          this.localError = 'unverified'
         } else {
           this.registerError(new ServerError(err, 'retrieving poll information'));
         }
@@ -289,7 +291,7 @@ export class PollComponent implements OnInit, OnDestroy {
           comp.justVoteBallot.subscribe({
             next: (ballot: PollBallot) => {
               this.justVoteBallot = ballot;
-              this.nextRoundError = false;
+              this.localError = false;
               this.clearSubComponent(SubComponentId.Ballot);
               this.refresh.suspend(5000);
             }
@@ -380,11 +382,11 @@ export class PollComponent implements OnInit, OnDestroy {
    */
   private registerError(err: ServerError) {
     if (err.status == 423 && err.message == "Next round") {
-      this.nextRoundError = true;
+      this.localError = 'next-round';
       this.refresh();
       return;
     }
-    this.nextRoundError = false;
+    this.localError = false;
     this.error = err;
     for (let i = 0, end = this.subsubscriptions.length; i < end; i++) {
       this.clearSubComponent(i);

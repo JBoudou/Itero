@@ -210,7 +210,7 @@ func TestCountInfoHandler(t *testing.T) {
 			UserType:     pollTestUserTypeNone,
 			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
 			Round:        1,
-			Checker:      srvt.CheckStatus{http.StatusNotFound},
+			Checker:      srvt.CheckError{Code: http.StatusForbidden, Body: "Unlogged"},
 		},
 		&pollTest{
 			Name:         "No user hidden registered",
@@ -220,7 +220,7 @@ func TestCountInfoHandler(t *testing.T) {
 			UserType:     pollTestUserTypeNone,
 			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
 			Round:        1,
-			Checker:      srvt.CheckStatus{http.StatusNotFound},
+			Checker:      srvt.CheckError{Code: http.StatusForbidden, Body: "Unlogged"},
 		},
 		&pollTest{
 			Name:         "Unlogged public registered",
@@ -229,7 +229,7 @@ func TestCountInfoHandler(t *testing.T) {
 			UserType:     pollTestUserTypeUnlogged,
 			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
 			Round:        1,
-			Checker:      srvt.CheckStatus{http.StatusNotFound},
+			Checker:      srvt.CheckError{Code: http.StatusForbidden, Body: "Unlogged"},
 		},
 		&pollTest{
 			Name:         "Unlogged hidden registered",
@@ -239,7 +239,7 @@ func TestCountInfoHandler(t *testing.T) {
 			UserType:     pollTestUserTypeUnlogged,
 			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
 			Round:        1,
-			Checker:      srvt.CheckStatus{http.StatusNotFound},
+			Checker:      srvt.CheckError{Code: http.StatusForbidden, Body: "Unlogged"},
 		},
 
 		&pollTest{
@@ -249,7 +249,7 @@ func TestCountInfoHandler(t *testing.T) {
 			UserType:     pollTestUserTypeLogged,
 			Vote:         []pollTestVote{{2, 0, 0}, {3, 0, 0}, {4, 0, 2}},
 			Round:        1,
-			Checker:      srvt.CheckStatus{http.StatusNotFound},
+			Checker:      srvt.CheckError{Code: http.StatusForbidden, Body: "Unverified"},
 		},
 	}
 	srvt.RunFunc(t, tests, CountInfoHandler)

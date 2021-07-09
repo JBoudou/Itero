@@ -89,7 +89,7 @@ func checkPollAccess(ctx context.Context, request *server.Request) (poll PollInf
 	}
 	poll.Public = electorate == db.ElectorateAll
 	if !poll.Logged && !poll.Public {
-		err = noPollError("Non-public poll")
+		err = server.NewHttpError(http.StatusForbidden, "Unlogged", "Not a public poll")
 		return
 	}
 
@@ -102,7 +102,7 @@ func checkPollAccess(ctx context.Context, request *server.Request) (poll PollInf
 			return
 		}
 		if !rows.Next() {
-			err = noPollError("Not verified user")
+			err = server.NewHttpError(http.StatusForbidden, "Unverified", "Verified poll")
 			return
 		}
 	}

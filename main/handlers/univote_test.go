@@ -263,7 +263,7 @@ func TestUninominalVoteHandler(t *testing.T) {
 			UserType:       pollTestUserTypeNone,
 			Request:        fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
 			EventPredicate: checkVoteEvent,
-			Checker:        srvt.CheckStatus{http.StatusNotFound},
+			Checker:        srvt.CheckError{Code: http.StatusForbidden, Body: "Unlogged"},
 		},
 		&pollTest{
 			Name:           "No user hidden registered",
@@ -272,7 +272,7 @@ func TestUninominalVoteHandler(t *testing.T) {
 			UserType:       pollTestUserTypeNone,
 			Request:        fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
 			EventPredicate: checkVoteEvent,
-			Checker:        srvt.CheckStatus{http.StatusNotFound},
+			Checker:        srvt.CheckError{Code: http.StatusForbidden, Body: "Unlogged"},
 		},
 		&pollTest{
 			Name:           "Unlogged registered",
@@ -280,7 +280,7 @@ func TestUninominalVoteHandler(t *testing.T) {
 			UserType:       pollTestUserTypeUnlogged,
 			Request:        fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
 			EventPredicate: checkVoteEvent,
-			Checker:        srvt.CheckStatus{http.StatusNotFound},
+			Checker:        srvt.CheckError{Code: http.StatusForbidden, Body: "Unlogged"},
 		},
 		&pollTest{
 			Name:           "Unlogged hidden registered",
@@ -289,7 +289,7 @@ func TestUninominalVoteHandler(t *testing.T) {
 			UserType:       pollTestUserTypeUnlogged,
 			Request:        fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
 			EventPredicate: checkVoteEvent,
-			Checker:        srvt.CheckStatus{http.StatusNotFound},
+			Checker:        srvt.CheckError{Code: http.StatusForbidden, Body: "Unlogged"},
 		},
 
 		&pollTest{
@@ -318,7 +318,7 @@ func TestUninominalVoteHandler(t *testing.T) {
 			UserType:       pollTestUserTypeLogged,
 			Request:        fillRequest(UninominalVoteQuery{Alternative: 0}, srvt.Request{}),
 			EventPredicate: checkVoteEvent,
-			Checker:        srvt.CheckStatus{http.StatusNotFound},
+			Checker:        srvt.CheckError{Code: http.StatusForbidden, Body: "Unverified"},
 		},
 		&pollTest{
 			Name:           "Poll verified, User verified",

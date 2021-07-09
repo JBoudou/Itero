@@ -186,27 +186,27 @@ func TestPollHandler(t *testing.T) {
 			Name:       "No user no access to registered",
 			Electorate: db.ElectorateLogged,
 			UserType:   pollTestUserTypeNone,
-			Checker:    srvt.CheckStatus{http.StatusNotFound},
+			Checker:    srvt.CheckError{Code: http.StatusForbidden, Body: "Unlogged"},
 		},
 		&pollTest{
 			Name:       "No user no access to hidden registered",
 			Electorate: db.ElectorateLogged,
 			Hidden:     true,
 			UserType:   pollTestUserTypeNone,
-			Checker:    srvt.CheckStatus{http.StatusNotFound},
+			Checker:    srvt.CheckError{Code: http.StatusForbidden, Body: "Unlogged"},
 		},
 		&pollTest{
 			Name:       "Unlogged no access to registered",
 			Electorate: db.ElectorateLogged,
 			UserType:   pollTestUserTypeUnlogged,
-			Checker:    srvt.CheckStatus{http.StatusNotFound},
+			Checker:    srvt.CheckError{Code: http.StatusForbidden, Body: "Unlogged"},
 		},
 		&pollTest{
 			Name:       "Unlogged no access to hidden registered",
 			Electorate: db.ElectorateLogged,
 			Hidden:     true,
 			UserType:   pollTestUserTypeUnlogged,
-			Checker:    srvt.CheckStatus{http.StatusNotFound},
+			Checker:    srvt.CheckError{Code: http.StatusForbidden, Body: "Unlogged"},
 		},
 
 		&pollTest{
@@ -234,7 +234,7 @@ func TestPollHandler(t *testing.T) {
 			Name:       "Poll verified, User unverified",
 			Electorate: db.ElectorateVerified,
 			UserType:   pollTestUserTypeLogged,
-			Checker:    srvt.CheckStatus{http.StatusNotFound},
+			Checker:    srvt.CheckError{Code: http.StatusForbidden, Body: "Unverified"},
 		},
 		&pollTest{
 			Name:       "Poll verified, User verified",
