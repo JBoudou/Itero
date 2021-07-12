@@ -74,6 +74,7 @@ func main() {
 	StartHandler("/a/reverify", ReverifyHandler)
 	StartHandler("/a/forgot", ForgotHandler)
 	StartHandler("/a/passwd/", PasswdHandler)
+	StartHandler("/a/launch/", LaunchHandler)
 
 	var logger slog.Leveled
 	root.IoC.Inject(&logger)

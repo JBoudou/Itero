@@ -68,9 +68,9 @@ type pollTest struct {
 
 	UserType pollTestUserType // Required.
 	Verified bool             // Whether the user doing the request is verified.
-	Request  srvt.Request     // Just a squeleton that will be completed by the test.
-	Checker  interface{}      // Required. Either an srvt.Checker or a PollTestCheckerFactoryParam.
 
+	Request        srvt.Request // Just a squeleton that will be completed by the test.
+	Checker        interface{}  // Required. Either an srvt.Checker or a PollTestCheckerFactory.
 	EventPredicate func(PollTestCheckerFactoryParam, events.Event) bool
 	EventCount     int
 
@@ -80,7 +80,6 @@ type pollTest struct {
 
 // PollTestCheckerFactoryParam contains the parameter to construct a default Checker.
 // We use a struct type instead of a list of arguments to ease the addition of parameters.
-// TODO consider moving that to a _test package.
 type PollTestCheckerFactoryParam struct {
 	PollTitle string
 	PollId    uint32
@@ -205,7 +204,7 @@ func (self *pollTest) Prepare(t *testing.T) *ioc.Locator {
 }
 
 func (self *pollTest) GetRequest(t *testing.T) *srvt.Request {
-	segment, err := salted.Segment{Id: self.pollId, Salt: 42}.Encode()
+	segment, err := salted.Segment{Id: self.pollId, Salt: dbt.PollSalt}.Encode()
 	if err != nil {
 		t.Errorf("Error encoding poll segment: %v.", err)
 	}
@@ -252,5 +251,75 @@ func (self *pollTest) makeParam(t *testing.T) PollTestCheckerFactoryParam {
 		AdminName: dbt.UserNameWith(t.Name()),
 		UserId:    self.userId[1],
 		Round:     self.Round,
+	}
+}
+
+//
+// No poll test
+//
+
+type wrongPollTest struct {
+	dbt.WithDB
+	WithEvent
+
+	Kind wrongPollTestKind
+
+	uid uint32
+	pollId uint32
+}
+
+type wrongPollTestKind uint8
+const (
+	wrongPollTestKindNoPoll wrongPollTestKind = iota
+	wrongPollTestKindWrongSalt
+)
+
+func (self wrongPollTest) GetName() string {
+	switch self.Kind {
+	case wrongPollTestKindNoPoll:
+		return "No poll"
+	case wrongPollTestKindWrongSalt:
+		return "Wrong salt"
+	}
+	return "Invalid test"
+}
+
+func (self *wrongPollTest) Prepare(t *testing.T) *ioc.Locator {
+	self.uid = self.DB.CreateUserWith(t.Name())
+	self.pollId = self.DB.CreatePoll("Test", self.uid, db.ElectorateAll)
+
+	const qDelete = `DELETE FROM Polls WHERE Id = ?`
+	if self.Kind == wrongPollTestKindNoPoll {
+		self.DB.QuietExec(qDelete, self.pollId)
+	}
+
+	self.DB.Must(t)
+	return self.WithEvent.Prepare(t)
+}
+
+func (self wrongPollTest) GetRequest(t *testing.T) *srvt.Request {
+	var salt uint32 = dbt.PollSalt
+	if self.Kind == wrongPollTestKindWrongSalt {
+		salt += 1
+	}
+
+	segment, err := salted.Segment{Id: self.pollId, Salt: salt}.Encode()
+	if err != nil {
+		t.Errorf("Error encoding poll segment: %v.", err)
+	}
+	target := "/a/test/" + segment
+
+	return &srvt.Request{
+		Target: &target,
+		UserId: &self.uid,
+	}
+}
+
+func (self wrongPollTest) Check(t *testing.T, response *http.Response, request *server.Request) {
+	if response.StatusCode != http.StatusNotFound {
+		t.Errorf("Wrong status. Got %d. Expect %d.", response.StatusCode, http.StatusNotFound)
+	}
+	if len(self.RecordedEvents) != 0 {
+		t.Errorf("Events sent: %v", self.RecordedEvents)
 	}
 }

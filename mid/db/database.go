@@ -50,6 +50,15 @@ var (
 	RoundTypeFreelyAsynchronous uint8
 )
 
+// State is the enum type for the field State of table Polls.
+type State string
+
+const (
+	StateWaiting    State = "Waiting"
+	StateActive     State = "Active"
+	StateTerminated State = "Terminated"
+)
+
 // Electorate is the enum type for the field Electorate of table Polls.
 type Electorate string
 
