@@ -20,6 +20,7 @@ import { CommonModule } from '@angular/common';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTabsModule } from '@angular/material/tabs';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { SharedModule } from '../shared/shared.module';
 
@@ -41,6 +42,7 @@ import { DeletePollDialog } from './list.service';
     MatDialogModule,
     MatIconModule,
     MatTabsModule,
+    MatTooltipModule,
     SharedModule,
   ],
   exports: [

@@ -25,8 +25,12 @@
         <span class ="wait" *ngSwitchCase="'Wait'" i18n>Watch</span>
       </td>
       <td data-label=" " class="manage">
-        <span *ngIf="poll.Deletable" (click)="service.delete(poll)"><mat-icon>delete</mat-icon></span>
-        <span *ngIf="poll.Launchable" (click)="service.delete(poll)"><mat-icon>update</mat-icon></span>
+        <span i18n-matTooltip matTooltip="Delete" *ngIf="poll.Deletable" (click)="service.delete(poll)">
+          <mat-icon>delete</mat-icon>
+        </span>
+        <span i18n-matTooltip matTooltip="Start now" *ngIf="poll.Launchable" (click)="service.launch(poll)">
+          <mat-icon>update</mat-icon>
+        </span>
       </td>
     </div>
   </tr>
