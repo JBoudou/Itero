@@ -28,11 +28,11 @@ import { ListRoutingModule } from './list-routing.module';
 
 import { ListComponent } from './list.component';
 import { PollsTableComponent } from './polls-table/polls-table.component';
-import { DeletePollDialog } from './list.service';
+import { ConfirmationDialog } from './list.service';
 
 @NgModule({
   declarations: [
-    DeletePollDialog,
+    ConfirmationDialog,
     ListComponent,
     PollsTableComponent,
   ],

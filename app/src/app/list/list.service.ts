@@ -53,7 +53,11 @@ export class ListService {
   }
 
   delete(poll: ListAnswerEntry): void {
-    const ref = this.dialog.open<DeletePollDialog, ListAnswerEntry, boolean>(DeletePollDialog, { data: poll });
+    const ref = this.dialog
+      .open<ConfirmationDialog, ConfirmationInfo, boolean>(
+        ConfirmationDialog,
+        { data: {action: 'delete', poll: poll } }
+      );
     ref.afterClosed().pipe(take(1)).subscribe({
       next: (result: boolean) => {
         if (result) {
@@ -70,12 +74,23 @@ export class ListService {
   }
 
   launch(poll: ListAnswerEntry): void {
-    this.http.get('/a/launch/' + poll.Segment).pipe(take(1)).subscribe({
-      next: () => this.go(poll),
-      error: (err: HttpErrorResponse) => {
-        this._error.next(new ServerError(err, 'launching poll ' + poll.Segment));
-        this._refresh();
-      },
+    const ref = this.dialog
+      .open<ConfirmationDialog, ConfirmationInfo, boolean>(
+        ConfirmationDialog,
+        { data: {action: 'start', poll: poll } }
+      );
+    ref.afterClosed().pipe(take(1)).subscribe({
+      next: (result: boolean) => {
+        if (result) {
+          this.http.get('/a/launch/' + poll.Segment).pipe(take(1)).subscribe({
+            next: () => this.go(poll),
+            error: (err: HttpErrorResponse) => {
+              this._error.next(new ServerError(err, 'launching poll ' + poll.Segment));
+              this._refresh();
+            },
+          });
+        }
+      }
     });
   }
 
@@ -128,13 +143,18 @@ export class ListService {
   }, 2000);
 }
 
+interface ConfirmationInfo {
+  action: string
+  poll: ListAnswerEntry
+}
+
 @Component({
-  selector: 'delete-poll-dialog',
-  templateUrl: 'delete-poll.dialog.html',
+  selector: 'confirmation-dialog',
+  templateUrl: 'confirmation.dialog.html',
   host: {class: 'dialog-box'},
 })
-export class DeletePollDialog {
+export class ConfirmationDialog {
   constructor(
-    @Inject(MAT_DIALOG_DATA) public poll: ListAnswerEntry,
+    @Inject(MAT_DIALOG_DATA) public info: ConfirmationInfo,
   ) { }
 }
