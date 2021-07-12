@@ -89,6 +89,7 @@ describe('ListService', () => {
         Deadline: new Date('2012-12-12T12:12:12Z'),
         Action: PollAction.Vote,
         Deletable: false,
+        Launchable: true,
       }];
       const ownList = [{
         Segment: '987654321',
@@ -98,6 +99,7 @@ describe('ListService', () => {
         Deadline: new Date('2012-12-21T12:12:12Z'),
         Action: PollAction.Modi,
         Deletable: true,
+        Launchable: false,
       }];
 
       const recPublic = new Recorder<ListAnswerEntry[]>();
@@ -140,6 +142,7 @@ describe('ListService', () => {
         Deadline: undefined,
         Action: PollAction.Term,
         Deletable: false,
+        Launchable: false,
       }]);
 
       recPublic.unsubscribe();
@@ -156,9 +159,26 @@ describe('ListService', () => {
       MaxRound: 3,
       Deadline: undefined,
       Action: PollAction.Term,
-      Deletable: false,
+      Deletable: true,
+      Launchable: false,
     });
     const req = httpControler.expectOne('/a/delete/123456789');
+    expect(req.request.method).toBe('GET');
+  });
+
+  it('sends launch request', () => {
+    makeDialogSay(true);
+    service.launch({
+      Segment: '123456789',
+      Title: 'Public',
+      CurrentRound: 1,
+      MaxRound: 3,
+      Deadline: undefined,
+      Action: PollAction.Term,
+      Deletable: false,
+      Launchable: true,
+    });
+    const req = httpControler.expectOne('/a/launch/123456789');
     expect(req.request.method).toBe('GET');
   });
 
@@ -175,6 +195,7 @@ describe('ListService', () => {
       Deadline: undefined,
       Action: PollAction.Term,
       Deletable: false,
+      Launchable: false,
     });
 
     const req = httpControler.expectOne('/a/delete/123456789');
