@@ -18,6 +18,7 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
 
 	"github.com/JBoudou/Itero/main/services"
@@ -25,6 +26,7 @@ import (
 	"github.com/JBoudou/Itero/mid/salted"
 	"github.com/JBoudou/Itero/mid/server"
 	"github.com/JBoudou/Itero/pkg/events"
+	"github.com/JBoudou/Itero/pkg/slog"
 )
 
 type launchHandler struct {
@@ -51,51 +53,37 @@ func (self launchHandler) Handle(ctx context.Context, response server.Response, 
 			WHERE Id = ? AND Admin = ? AND State = 'Waiting'`
 	)
 
-	tx, err := db.DB.BeginTx(ctx, nil)
-	must(err)
-	commited := false
-	defer func() {
-		if !commited {
-			tx.Rollback()
+	db.RepeatDeadlocked(slog.CtxLoadLogger(ctx), ctx, nil, func(tx *sql.Tx) {
+		rows, err := tx.QueryContext(ctx, qCheck, segment.Id)
+		must(err)
+		defer rows.Close()
+		if !rows.Next() {
+			panic(noPollError("No such Id"))
 		}
-	}()
-	rows, err := tx.QueryContext(ctx, qCheck, segment.Id)
-	must(err)
-	defer rows.Close()
-	if !rows.Next() {
-		response.SendError(ctx, noPollError("No such Id"))
-		return
-	}
 
-	var salt, admin uint32
-	var state db.State
-	must(rows.Scan(&salt, &admin, &state))
-	rows.Close()
-	if salt != segment.Salt {
-		response.SendError(ctx, noPollError("Wrong salt"))
-		return
-	}
-	if admin != request.User.Id {
-		response.SendError(ctx, server.UnauthorizedHttpError("Not admin"))
-		return
-	}
-	if state != db.StateWaiting {
-		response.SendError(ctx, server.NewHttpError(http.StatusBadRequest, "Not waiting", "Not waiting"))
-		return
-	}
+		var salt, admin uint32
+		var state db.State
+		must(rows.Scan(&salt, &admin, &state))
+		rows.Close()
+		if salt != segment.Salt {
+			panic(noPollError("Wrong salt"))
+		}
+		if admin != request.User.Id {
+			panic(server.UnauthorizedHttpError("Not admin"))
+		}
+		if state != db.StateWaiting {
+			panic(server.NewHttpError(http.StatusBadRequest, "Not waiting", "Not waiting"))
+		}
 
-	result, err := tx.ExecContext(ctx, qUpdate, segment.Id, request.User.Id)
-	must(err)
-	affected, err := result.RowsAffected()
-	must(err)
-	if affected != 1 {
-		response.SendError(ctx, server.NewHttpError(http.StatusInternalServerError, "Not started",
-			"The request did not change one row"))
-		return
-	}
-
-	must(tx.Commit())
-	commited = true
+		result, err := tx.ExecContext(ctx, qUpdate, segment.Id, request.User.Id)
+		must(err)
+		affected, err := result.RowsAffected()
+		must(err)
+		if affected != 1 {
+			panic(server.NewHttpError(http.StatusInternalServerError, "Not started",
+				"The request did not change one row"))
+		}
+	})
 
 	self.evtManager.Send(services.StartPollEvent{Poll: segment.Id})
 }
