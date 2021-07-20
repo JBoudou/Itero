@@ -7,14 +7,6 @@
     <mat-label i18n>Description</mat-label>
     <textarea matInput rows="1" formControlName="Description"></textarea>
   </mat-form-field>
-  <mat-radio-group formControlName="Hidden">
-    <p class="radio-hint" i18n>Accessibility</p>
-    <mat-radio-button [value]="false" i18n>Make the poll public.</mat-radio-button>
-    <mat-radio-button [value]="true"  i18n>Manually spread the link.</mat-radio-button>
-  </mat-radio-group>
-  <mat-checkbox *ngIf="(session.state$ | async).verified" class="verifiedPoll" formControlName="Verified" i18n>
-    Restrict to users with a verified email.
-  </mat-checkbox>
 </form>
 
 <ng-template #stepInfo let-query="query$">
@@ -26,25 +18,5 @@
       The optional de&shy;scrip&shy;tion may give some ad&shy;di&shy;tion&shy;al in&shy;for&shy;ma&shy;tion,
       for instance about the different al&shy;ter&shy;na&shy;tives.
     </p>
-    <p *ngIf="!q.Hidden; else Hidden" i18n>
-      The title will be displayed in the list of polls,
-      allowing
-      <ng-container [ngSwitch]="q.Verified">
-        <ng-container *ngSwitchCase="false">any user</ng-container>
-        <ng-container *ngSwitchCase="true" >users with a ver&shy;i&shy;fied email</ng-container>
-      </ng-container>
-      to par&shy;tic&shy;i&shy;pate in.
-      If you don't want the poll to be public, select "Manually spread the link".
-    </p>
-    <ng-template #Hidden>
-      <p>
-        The title will be displayed in the list of poll only for the par&shy;tic&shy;i&shy;pants in the poll.
-        You will have to send the link of the poll to all the par&shy;tic&shy;i&shy;pants.
-        <ng-container *ngIf="q.Verified">
-          Beware that users whose email is not verified yet will not have access to the poll.
-        </ng-container>
-        If you prefer your poll to be public, select "Make the poll public".
-      </p>
-    </ng-template>
   </ng-container>
 </ng-template>

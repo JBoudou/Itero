@@ -165,10 +165,7 @@ func (self *createPollTest) Check(t *testing.T, response *http.Response, request
 		t.Errorf("Deadline differ. Got %v. Expect %v. Difference %v.",
 			got.Deadline, query.Deadline, dateDiff)
 	}
-	if electorate == db.ElectorateAll {
-		t.Errorf("Wrong ElectorateAll.")
-	}
-	got.Verified = electorate == db.ElectorateVerified
+	got.Electorate = electorateFromDB(electorate)
 	got.Deadline = query.Deadline
 	got.MaxRoundDuration = uint64(roundEnd.Sub(roundStart).Milliseconds())
 	if !reflect.DeepEqual(got, query) {
@@ -199,6 +196,17 @@ func (self *createPollTest) Check(t *testing.T, response *http.Response, request
 	_, ok := self.pollsCreated[pollSegment.Id]
 	if !ok {
 		t.Errorf("CreatePollEvent not sent")
+	}
+}
+
+func electorateFromDB(electorate db.Electorate) CreatePollElectorate {
+	switch electorate {
+	case db.ElectorateAll:
+		return CreatePollElectorateAll
+	case db.ElectorateVerified:
+		return CreatePollElectorateVerified
+	default:
+		return CreatePollElectorateLogged
 	}
 }
 
@@ -268,13 +276,17 @@ func TestCreateHandler(t *testing.T) {
 		CreatePollTest(createPollTest_{
 			Name:       "Unverified",
 			Verified:   false,
-			RequestFct: RFPostSession(makeBody(`"Verified": true,`, []string{"First", "Second"})),
+			RequestFct: RFPostSession(makeBody(`"Electorate": 1,`, []string{"First", "Second"})),
 			Checker:    srvt.CheckStatus{http.StatusBadRequest},
 		}),
 		CreatePollTest(createPollTest_{
 			Name:       "Verified",
 			Verified:   true,
-			RequestFct: RFPostSession(makeBody(`"Verified": true,`, []string{"First", "Second"})),
+			RequestFct: RFPostSession(makeBody(`"Electorate": 1,`, []string{"First", "Second"})),
+		}),
+		CreatePollTest(createPollTest_{
+			Name:       "ElectorateAll",
+			RequestFct: RFPostSession(makeBody(`"Electorate": -1,`, []string{"First", "Second"})),
 		}),
 	}
 

@@ -14,32 +14,31 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Component, ChangeDetectionStrategy, OnInit, OnDestroy, ViewChild, TemplateRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, OnDestroy, ViewChild, TemplateRef } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 
 import { CreateService } from '../create.service';
 import { CreateSubComponentBase } from '../create-sub-component-base';
+import { SessionService } from 'src/app/session/session.service';
 
 @Component({
-  selector: 'app-create-general',
-  templateUrl: './general.component.html',
-  styleUrls: ['./general.component.sass'],
+  selector: 'app-access',
+  templateUrl: './access.component.html',
+  styleUrls: ['./access.component.sass'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class GeneralComponent extends CreateSubComponentBase implements OnInit, OnDestroy {
+export class AccessComponent extends CreateSubComponentBase implements OnInit, OnDestroy {
 
-  @ViewChild('stepInfo') infoTemplate: TemplateRef<any>;
+  @ViewChild('stepInfo') infoTemplate: TemplateRef<any>
 
   form = this.formBuilder.group({
-    Title: ['', [
-      Validators.required,
-      Validators.minLength(3)
-    ]],
-    Description: [''],
-  });
+    Electorate: [0],
+    Hidden: [false],
+  })
 
   constructor(
+    public session: SessionService,
     protected service: CreateService,
     protected route: ActivatedRoute,
     private formBuilder: FormBuilder,

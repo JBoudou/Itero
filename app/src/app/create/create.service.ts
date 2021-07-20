@@ -32,7 +32,9 @@ export const CREATE_TREE = new InjectionToken<NavTreeNode>('create.tree');
 export const APP_CREATE_TREE: NavTreeNode =
   new LinearNavTreeNode('general', 'Generalities',
     new LinearNavTreeNode('simpleAlternatives', 'Alternatives',
-      new FinalNavTreeNode('round', 'Rounds')
+      new LinearNavTreeNode('round', 'Rounds',
+        new FinalNavTreeNode('access', 'Access')
+      )
     )
   );
 
@@ -303,6 +305,7 @@ export class CreateService {
 
   private sendRequest(): void {
     this._sending = true;
+    console.log(JSON.stringify(this._current.query))
     this.http.post<string>('/a/create', this._current.query, { observe: 'body', responseType: 'json' })
       .pipe(take(1)).subscribe({
       next: (segment: string) => {

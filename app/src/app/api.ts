@@ -168,8 +168,10 @@ export interface CountInfoAnswer {
   Result: Array<CountInfoEntry>;
 }
 
-export enum PollUserType {
-  Simple,
+export enum Electorate {
+  All = -1,
+  Logged,
+  Verified
 }
 
 export interface SimpleAlternative {
@@ -178,11 +180,10 @@ export interface SimpleAlternative {
 }
 
 export interface CreateQuery {
-  UserType:         PollUserType;
   Title:            string;
   Description:      string;
   Hidden:           boolean;
-  Verified:         boolean;
+  Electorate:       Electorate;
   Start:            Date;
   Alternatives:     SimpleAlternative[];
   ReportVote:       boolean;

@@ -36,13 +36,14 @@ import { CreateRoutingModule } from './create-routing.module';
 import { CreateService, CREATE_TREE, APP_CREATE_TREE } from './create.service';
 import { CreateGuard, LeaveCreateDialog } from './create.guard';
 
+import { AccessComponent }              from './access/access.component';
 import { CreateComponent }              from './create.component';
 import { GeneralComponent }             from './general/general.component';
+import { NavbuttonsComponent }          from './navtree/navbuttons.component';
+import { NavtreeComponent }             from './navtree/navtree.component';
 import { ResultComponent }              from './result/result.component';
 import { RoundComponent }               from './round/round.component';
 import { SimpleAlternativesComponent }  from './simple-alternatives/simple-alternatives.component';
-import { NavtreeComponent } from './navtree/navtree.component';
-import { NavbuttonsComponent } from './navtree/navbuttons.component';
 
 @NgModule({
   declarations: [
@@ -54,6 +55,7 @@ import { NavbuttonsComponent } from './navtree/navbuttons.component';
     SimpleAlternativesComponent,
     NavtreeComponent,
     NavbuttonsComponent,
+    AccessComponent,
   ],
   imports: [
     ClipboardModule,

@@ -24,6 +24,7 @@ import { CreateComponent }              from './create.component';
 import { GeneralComponent }             from './general/general.component';
 import { SimpleAlternativesComponent }  from './simple-alternatives/simple-alternatives.component';
 import { RoundComponent }               from './round/round.component';
+import { AccessComponent }              from './access/access.component';
 import { ResultComponent }              from './result/result.component';
 
 const routes: Routes = [
@@ -37,6 +38,7 @@ const routes: Routes = [
     { path: 'general', component: GeneralComponent },
     { path: 'simpleAlternatives', component: SimpleAlternativesComponent },
     { path: 'round', component: RoundComponent },
+    { path: 'access', component: AccessComponent },
     { path: '', redirectTo: 'general', pathMatch: 'full' },
   ] },
 ];

@@ -29,11 +29,24 @@ import (
 	"github.com/JBoudou/Itero/pkg/events"
 )
 
-type PollUserType uint8
+type CreatePollElectorate int8
 
 const (
-	PollUserTypeSimple PollUserType = iota
+	CreatePollElectorateAll CreatePollElectorate = iota - 1
+	CreatePollElectorateLogged
+	CreatePollElectorateVerified
 )
+
+func (self CreatePollElectorate) ToDB() db.Electorate {
+	switch self {
+	case CreatePollElectorateAll:
+		return db.ElectorateAll
+	case CreatePollElectorateVerified:
+		return db.ElectorateVerified
+	default:
+		return db.ElectorateLogged
+	}
+}
 
 type SimpleAlternative struct {
 	Name string
@@ -41,11 +54,10 @@ type SimpleAlternative struct {
 }
 
 type CreateQuery struct {
-	UserType         PollUserType
 	Title            string
 	Description      string
 	Hidden           bool
-	Verified         bool
+	Electorate       CreatePollElectorate
 	Start            time.Time
 	Alternatives     []SimpleAlternative
 	ReportVote       bool
@@ -58,7 +70,6 @@ type CreateQuery struct {
 
 func defaultCreateQuery() CreateQuery {
 	return CreateQuery{
-		UserType:         PollUserTypeSimple,
 		ReportVote:       true,
 		MinNbRounds:      2,
 		MaxNbRounds:      10,
@@ -106,16 +117,15 @@ func (self createHandler) Handle(ctx context.Context, response server.Response, 
 		state = "Active"
 	}
 
-	electorate := db.ElectorateLogged
+	electorate := query.Electorate.ToDB()
 	const qVerified = `SELECT 1 FROM Users WHERE Id = ? AND Verified`
-	if query.Verified {
+	if electorate == db.ElectorateVerified {
 		rows, err := db.DB.QueryContext(ctx, qVerified, request.User.Id)
 		must(err)
 		defer rows.Close()
 		if !rows.Next() {
 			panic(server.NewHttpError(http.StatusBadRequest, "Not verified", "The user is not verified"))
 		}
-		electorate = db.ElectorateVerified
 	}
 
 	pollSegment, err := salted.New(0)
