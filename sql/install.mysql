@@ -204,6 +204,7 @@ CREATE TABLE Polls (
   Created           timestamp         NOT NULL  DEFAULT CURRENT_TIMESTAMP,
   State             ENUM('Waiting','Active','Terminated') NOT NULL DEFAULT 'Active',
   Start             datetime,
+  ShortURL          tinytext,
 
   # Salt is used to make discovery of poll difficult
   Salt              int unsigned      NOT NULL,
@@ -245,7 +246,9 @@ CREATE TABLE Polls (
   CONSTRAINT Polls_Admin_fk FOREIGN KEY (Admin) REFERENCES Users (Id),
   CONSTRAINT Polls_Type_fk FOREIGN KEY (Type) REFERENCES PollType (Id),
   CONSTRAINT Polls_Rule_fk FOREIGN KEY (Rule) REFERENCES PollRule (Id),
-  CONSTRAINT Polls_RoundType_fk FOREIGN KEY (RoundType) REFERENCES RoundType (Id)
+  CONSTRAINT Polls_RoundType_fk FOREIGN KEY (RoundType) REFERENCES RoundType (Id),
+
+  CONSTRAINT Polls_ShortURL_unique UNIQUE (ShortURL)
 
 ) ENGINE = InnoDB;
 
@@ -280,6 +283,7 @@ CREATE OR REPLACE PROCEDURE Polls_checker_before (
   State             ENUM('Waiting','Active','Terminated'),
   Start             datetime,
   Salt              int unsigned,
+  ShortURL          tinytext,
   NbChoices         tinyint unsigned,
   MinNbRounds       smallint unsigned,
   MaxNbRounds       smallint unsigned,
@@ -301,6 +305,9 @@ BEGIN
   END IF;
   IF Salt >= 4194304 THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Salt must be 22 bits long';
+  END IF;
+  IF ShortURL IS NOT NULL AND ShortURL NOT RLIKE '^[-_.~a-zA-Z0-9]+$' THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'ShortURL must be a valid URI segment';
   END IF;
   IF NbChoices < 2 THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'NbChoices must be at least 2';
@@ -326,6 +333,9 @@ END;
 CREATE OR REPLACE TRIGGER Polls_check_before_insert
   BEFORE INSERT ON Polls FOR EACH ROW
 BEGIN
+  IF NEW.State != 'Waiting' AND NEW.State != 'Active' THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'State must be Waiting or Active on INSERT';
+  END IF;
   IF NEW.CurrentRound != 0 THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'CurrentRound must be zero on INSERT';
   END IF;
@@ -341,7 +351,7 @@ BEGIN
   SET NEW.Created           = CURRENT_TIMESTAMP();
   SET NEW.CurrentRoundStart = CURRENT_TIMESTAMP();
 
-  CALL Polls_checker_before(NEW.Title, NEW.State, NEW.Start, NEW.Salt, NEW.NbChoices,
+  CALL Polls_checker_before(NEW.Title, NEW.State, NEW.Start, NEW.Salt, NEW.ShortURL, NEW.NbChoices,
                             NEW.MinNbRounds, NEW.MaxNbRounds, NEW.Deadline, NEW.MaxRoundDuration,
                             NEW.RoundThreshold, NEW.CurrentRound, NEW.CurrentRoundStart);
 END;
@@ -364,8 +374,11 @@ BEGIN
     SET NEW.CurrentRound = 0;
     SET NEW.CurrentRoundStart = CURRENT_TIMESTAMP();
   END IF;
+  IF NEW.State = 'Terminated' THEN
+    SET NEW.ShortURL = NULL;
+  END IF;
 
-  CALL Polls_checker_before(NEW.Title, NEW.State, NEW.Start, NEW.Salt, NEW.NbChoices,
+  CALL Polls_checker_before(NEW.Title, NEW.State, NEW.Start, NEW.Salt, NEW.ShortURL, NEW.NbChoices,
                             NEW.MinNbRounds, NEW.MaxNbRounds, NEW.Deadline, NEW.MaxRoundDuration,
                             NEW.RoundThreshold, NEW.CurrentRound, NEW.CurrentRoundStart);
 END;
