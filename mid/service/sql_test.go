@@ -105,7 +105,7 @@ func TestIteratorFromRows(t *testing.T) {
 func TestSQLProcessOne(t *testing.T) {
 	env := dbtest.Env{}
 	defer env.Close()
-	userId := env.CreateUser()
+	userId := env.CreateUserWith(t.Name())
 	env.Must(t)
 
 	tests := []struct {

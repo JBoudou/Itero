@@ -40,6 +40,9 @@ type Response interface {
 	// Also log the error.
 	SendError(context.Context, error)
 
+	// SendRedirect sends a permanent redirection.
+	SendRedirect(ctx context.Context, req *Request, url string)
+
 	// SendLoginAccepted create new credential for the user and send it as response.
 	SendLoginAccepted(ctx context.Context, usr User, req *Request, profileInfo interface{})
 
@@ -83,6 +86,15 @@ func (self response) SendError(ctx context.Context, err error) {
 	} else {
 		send(http.StatusInternalServerError, "Internal error")
 	}
+}
+
+func (self response) SendRedirect(ctx context.Context, req *Request, url string) {
+	if err := ctx.Err(); err != nil {
+		self.SendError(ctx, err)
+		return
+	}
+	
+	http.Redirect(self.writer, req.original, url, http.StatusPermanentRedirect)
 }
 
 // SessionAnswer is the type of the value sent by request creating a new session.

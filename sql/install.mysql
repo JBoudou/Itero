@@ -204,7 +204,7 @@ CREATE TABLE Polls (
   Created           timestamp         NOT NULL  DEFAULT CURRENT_TIMESTAMP,
   State             ENUM('Waiting','Active','Terminated') NOT NULL DEFAULT 'Active',
   Start             datetime,
-  ShortURL          tinytext,
+  ShortURL          varchar(32),
 
   # Salt is used to make discovery of poll difficult
   Salt              int unsigned      NOT NULL,
@@ -283,7 +283,7 @@ CREATE OR REPLACE PROCEDURE Polls_checker_before (
   State             ENUM('Waiting','Active','Terminated'),
   Start             datetime,
   Salt              int unsigned,
-  ShortURL          tinytext,
+  ShortURL          varchar(32),
   NbChoices         tinyint unsigned,
   MinNbRounds       smallint unsigned,
   MaxNbRounds       smallint unsigned,

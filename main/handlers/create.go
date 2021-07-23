@@ -27,6 +27,7 @@ import (
 	"github.com/JBoudou/Itero/mid/salted"
 	"github.com/JBoudou/Itero/mid/server"
 	"github.com/JBoudou/Itero/pkg/events"
+	"github.com/JBoudou/Itero/pkg/slog"
 )
 
 type CreatePollElectorate int8
@@ -131,15 +132,6 @@ func (self createHandler) Handle(ctx context.Context, response server.Response, 
 	pollSegment, err := salted.New(0)
 	must(err)
 
-	tx, err := db.DB.BeginTx(ctx, nil)
-	must(err)
-	commited := false
-	defer func() {
-		if !commited {
-			tx.Rollback()
-		}
-	}()
-
 	const (
 		qPoll = `
 			INSERT INTO Polls (Title, Description, Admin, State, Start, Salt, Electorate, Hidden,
@@ -149,35 +141,33 @@ func (self createHandler) Handle(ctx context.Context, response server.Response, 
 		qAlternative = `INSERT INTO Alternatives (Poll, Id, Name) VALUE (?, ?, ?)`
 	)
 
-	result, err := tx.ExecContext(ctx, qPoll,
-		query.Title,
-		query.Description,
-		request.User.Id,
-		state,
-		start,
-		pollSegment.Salt,
-		electorate,
-		query.Hidden,
-		len(query.Alternatives),
-		query.ReportVote,
-		query.MinNbRounds,
-		query.MaxNbRounds,
-		query.Deadline,
-		db.DurationToTime(time.Duration(query.MaxRoundDuration)*time.Millisecond),
-		query.RoundThreshold,
-	)
-	must(err)
-	tmp, err := result.LastInsertId()
-	must(err)
-	pollSegment.Id = uint32(tmp)
-	for id, alt := range query.Alternatives {
-		_, err = tx.ExecContext(ctx, qAlternative, pollSegment.Id, id, alt.Name)
+	db.RepeatDeadlocked(slog.CtxLoadLogger(ctx), ctx, nil, func(tx *sql.Tx) {
+		result, err := tx.ExecContext(ctx, qPoll,
+			query.Title,
+			query.Description,
+			request.User.Id,
+			state,
+			start,
+			pollSegment.Salt,
+			electorate,
+			query.Hidden,
+			len(query.Alternatives),
+			query.ReportVote,
+			query.MinNbRounds,
+			query.MaxNbRounds,
+			query.Deadline,
+			db.DurationToTime(time.Duration(query.MaxRoundDuration)*time.Millisecond),
+			query.RoundThreshold,
+		)
 		must(err)
-	}
-
-	err = tx.Commit()
-	commited = true
-	must(err)
+		tmp, err := result.LastInsertId()
+		must(err)
+		pollSegment.Id = uint32(tmp)
+		for id, alt := range query.Alternatives {
+			_, err = tx.ExecContext(ctx, qAlternative, pollSegment.Id, id, alt.Name)
+			must(err)
+		}
+	})
 
 	segment, err := pollSegment.Encode()
 	must(err)

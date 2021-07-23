@@ -1,6 +1,6 @@
 ALTER TABLE Polls
   ADD COLUMN
-    ShortURL          tinytext,
+    ShortURL          varchar(32),
   ADD
     CONSTRAINT Polls_ShortURL_unique UNIQUE (ShortURL);
 
@@ -11,7 +11,7 @@ CREATE OR REPLACE PROCEDURE Polls_checker_before (
   State             ENUM('Waiting','Active','Terminated'),
   Start             datetime,
   Salt              int unsigned,
-  ShortURL          tinytext,
+  ShortURL          varchar(32),
   NbChoices         tinyint unsigned,
   MinNbRounds       smallint unsigned,
   MaxNbRounds       smallint unsigned,

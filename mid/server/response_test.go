@@ -198,6 +198,55 @@ func TestResponse_SendError(t *testing.T) {
 	}
 }
 
+func TestResponse_SendRedirect(t *testing.T) {
+	tests := []struct {
+		name  string
+		ctx   context.Context
+		url   string
+		check func(*testing.T, *httptest.ResponseRecorder, string)
+	}{
+		{
+			name: "Success",
+			ctx: context.Background(),
+			url: "/foo",
+			check: func(t *testing.T, mock *httptest.ResponseRecorder, url string) {
+				result := mock.Result()
+				if result.StatusCode < 300 || result.StatusCode >= 400 {
+					t.Errorf("Wrong status %d.", result.StatusCode)
+				}
+				loc := result.Header.Get("Location")
+				if strings.TrimSuffix(loc, url) == loc {
+					t.Errorf("Wrong Location header. Got %s. Expect %s.", loc, url)
+				}
+			},
+		},
+		{
+			name: "Canceled",
+			ctx: canceledContext(),
+			url: "/foo",
+			check: func(t *testing.T, mock *httptest.ResponseRecorder, url string) {
+				result := mock.Result()
+				if result.StatusCode < 400 {
+					t.Errorf("Wrong status %d.", result.StatusCode)
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			mock := httptest.NewRecorder()
+			self := response{
+				writer: mock,
+			}
+			ctx := slog.CtxSaveLogger(tt.ctx, &slog.WithStack{Target: t})
+			self.SendRedirect(ctx, &Request{original: httptest.NewRequest("GET", "/origin", nil)}, tt.url)
+			tt.check(t, mock, tt.url)
+		})
+	}
+}
+
 func TestResponse_SendLoginAccepted(t *testing.T) {
 	precheck(t)
 

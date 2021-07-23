@@ -75,6 +75,7 @@ func main() {
 	StartHandler("/a/forgot", ForgotHandler)
 	StartHandler("/a/passwd/", PasswdHandler)
 	StartHandler("/a/launch/", LaunchHandler)
+	StartHandler("/p/", ShortURLHandler)
 
 	var logger slog.Leveled
 	root.IoC.Inject(&logger)

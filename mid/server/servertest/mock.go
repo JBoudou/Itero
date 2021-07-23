@@ -28,6 +28,7 @@ type ResponseSpy struct {
 	T           *testing.T
 	JsonFct     func(*testing.T, context.Context, interface{})
 	ErrorFct    func(*testing.T, context.Context, error)
+	RedirectFct func(*testing.T, context.Context, *server.Request, string)
 	LoginFct    func(*testing.T, context.Context, server.User, *server.Request, interface{})
 	UnloggedFct func(*testing.T, context.Context, server.User, *server.Request) error
 }
@@ -46,6 +47,14 @@ func (self ResponseSpy) SendError(ctx context.Context, err error) {
 		self.ErrorFct(self.T, ctx, err)
 	}
 	self.Backend.SendError(ctx, err)
+}
+
+func (self ResponseSpy) SendRedirect(ctx context.Context, req *server.Request, url string) {
+	self.T.Helper()
+	if self.RedirectFct != nil {
+		self.RedirectFct(self.T, ctx, req, url)
+	}
+	self.Backend.SendRedirect(ctx, req, url)
 }
 
 func (self ResponseSpy) SendLoginAccepted(ctx context.Context, user server.User,
