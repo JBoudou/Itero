@@ -12,6 +12,10 @@
     <mat-radio-button [value]="false" i18n>Make the poll public.</mat-radio-button>
     <mat-radio-button [value]="true"  i18n>Manually spread the link.</mat-radio-button>
   </mat-radio-group>
+  <mat-checkbox #CBShortURL i18n>Provide a shortcut URL</mat-checkbox>
+  <mat-form-field class="lone-field sub-field no-label" appearance="fill">
+    <input matInput type="text" formControlName="ShortURL" floatLabel="always" [disabled]="!CBShortURL.checked" placeholder="Shortcut URL" />
+  </mat-form-field>
 </form>
 
 <ng-template #stepInfo let-query="query$">
