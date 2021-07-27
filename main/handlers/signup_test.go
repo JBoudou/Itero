@@ -226,7 +226,7 @@ func TestSignupHandler(t *testing.T) {
 						`","Email":"` + dbt.UserEmailWith(other) + `","Passwd":"tititi"}`,
 				}
 			},
-			Checker: srvt.CheckError{http.StatusBadRequest, "Already exists"},
+			Checker: srvt.CheckError{http.StatusConflict, "Already exists"},
 		}),
 		SignupHandlerTest(signupHandlerTestWithUser_{
 			Name: "Email already exists",
@@ -238,7 +238,7 @@ func TestSignupHandler(t *testing.T) {
 						`","Email":"` + dbt.UserEmailWith(basename) + `","Passwd":"tititi"}`,
 				}
 			},
-			Checker: srvt.CheckError{http.StatusBadRequest, "Already exists"},
+			Checker: srvt.CheckError{http.StatusConflict, "Already exists"},
 		}),
 	}
 	srvt.Run(t, tests, SignupHandler)

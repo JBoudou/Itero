@@ -30,16 +30,16 @@ import (
 	"github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
 	"github.com/JBoudou/Itero/pkg/events"
-	"github.com/JBoudou/Itero/pkg/events/eventstest"
 	"github.com/JBoudou/Itero/pkg/ioc"
 )
 
 type createPollTest_ struct {
-	Name       string
-	Unlogged   bool
-	Verified   bool // Whether the user is verified
-	RequestFct RequestFct
-	Checker    srvt.Checker
+	Name              string
+	Unlogged          bool
+	Verified          bool   // Whether the user is verified.
+	DuplicateShortURL string // Create a poll with this short URL before the request.
+	RequestFct        RequestFct
+	Checker           srvt.Checker // Must be nil when success is expected.
 }
 
 func CreatePollTest(c createPollTest_) *createPollTest {
@@ -50,46 +50,51 @@ func CreatePollTest(c createPollTest_) *createPollTest {
 			Verified:   c.Verified,
 			RequestFct: c.RequestFct,
 		},
-		Checker: c.Checker,
+		DuplicateShortURL: c.DuplicateShortURL,
+		Checker:           c.Checker,
 	}
 }
 
 type createPollTest struct {
 	srvt.WithName
 	WithUser
+	WithEvent
 
-	Verified bool
-	Checker  srvt.Checker
-
-	pollsCreated map[uint32]bool
+	DuplicateShortURL string
+	Checker           srvt.Checker
 }
 
 func (self *createPollTest) Prepare(t *testing.T) *ioc.Locator {
 	t.Parallel()
 
+	self.WithUser.Prepare(t)
+
 	if checker, ok := self.Checker.(interface{ Before(t *testing.T) }); ok {
 		checker.Before(t)
 	}
 
-	self.pollsCreated = make(map[uint32]bool, 2)
-	locator := self.WithUser.Prepare(t).Sub()
-	locator.Bind(func() events.Manager {
-		return &eventstest.ManagerMock{
-			T: t,
-			Send_: func(evt events.Event) error {
-				if vEvt, ok := evt.(services.CreatePollEvent); ok {
-					self.pollsCreated[vEvt.Poll] = true
-				}
-				return nil
-			},
-		}
-	})
-	return locator
+	if self.DuplicateShortURL != "" {
+		pid := self.DB.CreatePoll("Duplicate", self.User.Id, db.ElectorateAll)
+		const qShortURL = `UPDATE Polls SET ShortURL = ? WHERE Id = ?`
+		self.DB.QuietExec(qShortURL, self.DuplicateShortURL, pid)
+		self.DB.Must(t)
+	}
+
+	return self.WithEvent.Prepare(t)
 }
 
 func (self *createPollTest) Check(t *testing.T, response *http.Response, request *server.Request) {
 	if self.Checker != nil {
 		self.Checker.Check(t, response, request)
+
+		// Check events
+		countEvent := self.CountRecorderEvents(func(evt events.Event) bool {
+			_, ok := evt.(services.CreatePollEvent)
+			return ok
+		})
+		if countEvent > 0 {
+			t.Errorf("CreatePollEvent sent")
+		}
 		return
 	}
 
@@ -97,7 +102,7 @@ func (self *createPollTest) Check(t *testing.T, response *http.Response, request
 
 	const (
 		qCheckPoll = `
-			SELECT Title, Description, Admin, State, Start, Salt, Electorate, Hidden, ReportVote,
+			SELECT Title, Description, Admin, State, Start, ShortURL, Salt, Electorate, Hidden, ReportVote,
 			       MinNbRounds, MaxNbRounds, Deadline, CurrentRoundStart,
 						 ADDTIME(CurrentRoundStart, MaxRoundDuration), RoundThreshold
 			  FROM Polls
@@ -120,10 +125,10 @@ func (self *createPollTest) Check(t *testing.T, response *http.Response, request
 	// Check Polls
 	row := db.DB.QueryRow(qCheckPoll, pollSegment.Id)
 	got := query
-	var admin uint32
+	var admin, salt uint32
 	var state string
 	var startDate sql.NullTime
-	var salt uint32
+	var shortURL sql.NullString
 	var electorate db.Electorate
 	var roundStart, roundEnd time.Time
 	mustt(t, row.Scan(
@@ -132,6 +137,7 @@ func (self *createPollTest) Check(t *testing.T, response *http.Response, request
 		&admin,
 		&state,
 		&startDate,
+		&shortURL,
 		&salt,
 		&electorate,
 		&got.Hidden,
@@ -156,6 +162,11 @@ func (self *createPollTest) Check(t *testing.T, response *http.Response, request
 	} else {
 		expectState = "Active"
 		got.Start = time.Time{}
+	}
+	if shortURL.Valid {
+		got.ShortURL = shortURL.String
+	} else {
+		got.ShortURL = ""
 	}
 	if state != expectState {
 		t.Errorf("Wrong state. Got %s. Expect %s.", state, expectState)
@@ -193,8 +204,11 @@ func (self *createPollTest) Check(t *testing.T, response *http.Response, request
 	}
 
 	// Check events
-	_, ok := self.pollsCreated[pollSegment.Id]
-	if !ok {
+	countEvent := self.CountRecorderEvents(func(evt events.Event) bool {
+		converted, ok := evt.(services.CreatePollEvent)
+		return ok && converted.Poll == pollSegment.Id
+	})
+	if countEvent < 1 {
 		t.Errorf("CreatePollEvent not sent")
 	}
 }
@@ -212,6 +226,7 @@ func electorateFromDB(electorate db.Electorate) CreatePollElectorate {
 
 func TestCreateHandler(t *testing.T) {
 	precheck(t)
+	t.Parallel()
 
 	makeBody := func(innerBody string, alternatives []string) string {
 		pollAlternatives := make([]SimpleAlternative, len(alternatives))
@@ -287,6 +302,16 @@ func TestCreateHandler(t *testing.T) {
 		CreatePollTest(createPollTest_{
 			Name:       "ElectorateAll",
 			RequestFct: RFPostSession(makeBody(`"Electorate": -1,`, []string{"First", "Second"})),
+		}),
+		CreatePollTest(createPollTest_{
+			Name:       "ShortURL",
+			RequestFct: RFPostSession(makeBody(`"ShortURL": "CreatePollTest_ShortURL",`, []string{"First", "Second"})),
+		}),
+		CreatePollTest(createPollTest_{
+			Name:              "ShortURL",
+			DuplicateShortURL: "CreatePollTest_ShortURL",
+			RequestFct:        RFPostSession(makeBody(`"ShortURL": "CreatePollTest_ShortURL",`, []string{"First", "Second"})),
+			Checker:           srvt.CheckError{Code: http.StatusConflict, Body: "Already exists"},
 		}),
 	}
 

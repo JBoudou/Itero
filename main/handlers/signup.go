@@ -116,8 +116,8 @@ func (self signupHandler) Handle(ctx context.Context, response server.Response, 
 	if err != nil {
 		sqlError, ok := err.(*mysql.MySQLError)
 		if ok && sqlError.Number == 1062 {
-			err = server.NewHttpError(http.StatusBadRequest, "Already exists",
-				"The Name or Password already exists")
+			err = server.NewHttpError(http.StatusConflict, "Already exists",
+				"The Name or Email already exists")
 		}
 		response.SendError(ctx, err)
 		return

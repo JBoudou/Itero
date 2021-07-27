@@ -22,6 +22,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/go-sql-driver/mysql"
+
 	"github.com/JBoudou/Itero/main/services"
 	"github.com/JBoudou/Itero/mid/db"
 	"github.com/JBoudou/Itero/mid/salted"
@@ -67,6 +69,7 @@ type CreateQuery struct {
 	Deadline         time.Time
 	MaxRoundDuration uint64 // milliseconds
 	RoundThreshold   float64
+	ShortURL         string
 }
 
 func defaultCreateQuery() CreateQuery {
@@ -98,13 +101,14 @@ func (self createHandler) Handle(ctx context.Context, response server.Response, 
 	query := defaultCreateQuery()
 	must(request.UnmarshalJSONBody(&query))
 
-	if len(query.Title) < 0 {
+	if len(query.Title) < 1 {
 		must(server.NewHttpError(http.StatusBadRequest, "Bad request", "Missing title"))
 	}
 	if len(query.Alternatives) < 2 {
 		must(server.NewHttpError(http.StatusBadRequest, "Bad request", "Too few alternatives"))
 	}
 
+	// Start
 	var start sql.NullTime
 	var state string
 	if query.Start.After(time.Now()) {
@@ -118,6 +122,7 @@ func (self createHandler) Handle(ctx context.Context, response server.Response, 
 		state = "Active"
 	}
 
+	// Electorate
 	electorate := query.Electorate.ToDB()
 	const qVerified = `SELECT 1 FROM Users WHERE Id = ? AND Verified`
 	if electorate == db.ElectorateVerified {
@@ -129,15 +134,26 @@ func (self createHandler) Handle(ctx context.Context, response server.Response, 
 		}
 	}
 
+	// ShortURL
+	var shortURL sql.NullString
+	if query.ShortURL != "" {
+		if len(query.ShortURL) < 6 {
+			panic(server.NewHttpError(http.StatusBadRequest, "Bad request", "ShortURL is too short"))
+		}
+
+		shortURL.String = query.ShortURL
+		shortURL.Valid = true
+	}
+
 	pollSegment, err := salted.New(0)
 	must(err)
 
 	const (
 		qPoll = `
-			INSERT INTO Polls (Title, Description, Admin, State, Start, Salt, Electorate, Hidden,
+			INSERT INTO Polls (Title, Description, Admin, State, Start, ShortURL, Salt, Electorate, Hidden,
 			                   NbChoices, ReportVote, MinNbRounds, MaxNbRounds, Deadline, MaxRoundDuration,
 												 RoundThreshold)
-				  	 VALUE (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+				  	 VALUE (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 		qAlternative = `INSERT INTO Alternatives (Poll, Id, Name) VALUE (?, ?, ?)`
 	)
 
@@ -148,6 +164,7 @@ func (self createHandler) Handle(ctx context.Context, response server.Response, 
 			request.User.Id,
 			state,
 			start,
+			shortURL,
 			pollSegment.Salt,
 			electorate,
 			query.Hidden,
@@ -159,7 +176,13 @@ func (self createHandler) Handle(ctx context.Context, response server.Response, 
 			db.DurationToTime(time.Duration(query.MaxRoundDuration)*time.Millisecond),
 			query.RoundThreshold,
 		)
-		must(err)
+		if err != nil {
+			sqlError, ok := err.(*mysql.MySQLError)
+			if ok && sqlError.Number == 1062 {
+				err = server.NewHttpError(http.StatusConflict, "Already exists", "ShortURL already exists")
+			}
+			panic(err)
+		}
 		tmp, err := result.LastInsertId()
 		must(err)
 		pollSegment.Id = uint32(tmp)
