@@ -16,7 +16,6 @@
 
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, ParamMap } from '@angular/router';
-import { HttpErrorResponse } from '@angular/common/http';
 
 import { take } from 'rxjs/operators';
 
@@ -57,11 +56,6 @@ export class ResultComponent implements OnInit {
         status: 999,
         message: 'Front end error',
       };
-    } else if (result instanceof HttpErrorResponse) {
-      this.result = {
-        status: result.status,
-        message: result.error.trim(),
-      };
     } else {
       this.result = result;
     }
@@ -72,7 +66,10 @@ export class ResultComponent implements OnInit {
   }
 
   link(): string {
-    return window.location.protocol + '//' + window.location.host + '/r/poll/' + this.pollSegment;
+    const prefix : string = window.location.protocol + '//' + window.location.host
+    return (isCreateQuery(this.result) && this.result.ShortURL) ?
+      prefix + '/p/' + this.result.ShortURL :
+      prefix + '/r/poll/' + this.pollSegment;
   }
 
   error(): {status: number, message: string} | undefined {

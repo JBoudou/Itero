@@ -14,13 +14,17 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Component, OnInit, ChangeDetectionStrategy, OnDestroy, ViewChild, TemplateRef } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnDestroy, ViewChild, TemplateRef, AfterViewInit } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
+
+import { MatCheckbox, MatCheckboxChange } from '@angular/material/checkbox';
 
 import { CreateService } from '../create.service';
 import { CreateSubComponentBase } from '../create-sub-component-base';
 import { SessionService } from 'src/app/session/session.service';
+import { CreateQuery } from 'src/app/api';
+import { ServerError } from 'src/app/shared/server-error';
 
 @Component({
   selector: 'app-access',
@@ -28,14 +32,33 @@ import { SessionService } from 'src/app/session/session.service';
   styleUrls: ['./access.component.sass'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class AccessComponent extends CreateSubComponentBase implements OnInit, OnDestroy {
+export class AccessComponent extends CreateSubComponentBase implements AfterViewInit, OnDestroy {
 
   @ViewChild('stepInfo') infoTemplate: TemplateRef<any>
+  @ViewChild('CBShortURL', { static: true }) shortURLElt: MatCheckbox
 
   form = this.formBuilder.group({
     Electorate: [0],
     Hidden: [false],
+    ShortURL: [''],
   })
+
+  get shortURLMinLength(): number {
+    return 6
+  }
+
+  get shortURLIsTooShort(): boolean {
+    const errors = this.form.get('ShortURL').errors
+    return !!errors['minlength'] || !!errors['required']
+  }
+
+  get shortURLHasWrongFormat(): boolean {
+    return !!this.form.get('ShortURL').errors['pattern']
+  }
+
+  get serverError(): ServerError {
+    return this.service.serverError
+  }
 
   constructor(
     public session: SessionService,
@@ -46,12 +69,42 @@ export class AccessComponent extends CreateSubComponentBase implements OnInit, O
     super();
   }
 
-  ngOnInit(): void {
+  // We use AfterViewInit instead of OnInit to ensure that shortURLElt is set when afterQueryFetch
+  // is first called.
+  ngAfterViewInit(): void {
     this.initModel();
   }
 
   ngOnDestroy(): void {
     this.unsubscribeAll();
+  }
+
+  protected afterQueryFetch(query: Partial<CreateQuery>): void {
+    if (query.ShortURL) {
+      this.shortURLElt.checked = true
+      this.onCBShortURL({source: this.shortURLElt, checked: true})
+    }
+  }
+
+  onCBShortURL(evt: MatCheckboxChange): void {
+    const control = this.form.get('ShortURL')
+    if (evt.checked) {
+      control.setValidators([
+        Validators.required,
+        Validators.minLength(this.shortURLMinLength),
+        Validators.pattern(/^[-_.~a-zA-Z0-9]*$/),
+      ])
+    } else {
+      control.clearValidators()
+    }
+    control.updateValueAndValidity()
+  }
+
+  protected modifyQueryToSend(query: Partial<CreateQuery>): Partial<CreateQuery> {
+    if (!this.shortURLElt?.checked) {
+      query.ShortURL = undefined
+    }
+    return query
   }
 
 }

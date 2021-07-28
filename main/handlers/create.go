@@ -155,6 +155,7 @@ func (self createHandler) Handle(ctx context.Context, response server.Response, 
 												 RoundThreshold)
 				  	 VALUE (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 		qAlternative = `INSERT INTO Alternatives (Poll, Id, Name) VALUE (?, ?, ?)`
+		qCheckShortURL = `SELECT 1 FROM Polls WHERE ShortURL = ?`
 	)
 
 	db.RepeatDeadlocked(slog.CtxLoadLogger(ctx), ctx, nil, func(tx *sql.Tx) {
@@ -178,8 +179,13 @@ func (self createHandler) Handle(ctx context.Context, response server.Response, 
 		)
 		if err != nil {
 			sqlError, ok := err.(*mysql.MySQLError)
-			if ok && sqlError.Number == 1062 {
-				err = server.NewHttpError(http.StatusConflict, "Already exists", "ShortURL already exists")
+			if ok && sqlError.Number == 1062 && shortURL.Valid {
+				rows, tmpErr := tx.QueryContext(ctx, qCheckShortURL, shortURL)
+				must(tmpErr)
+				defer rows.Close()
+				if rows.Next() {
+					err = server.NewHttpError(http.StatusConflict, "ShortURL already exists", shortURL.String)
+				}
 			}
 			panic(err)
 		}

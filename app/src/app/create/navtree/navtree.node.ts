@@ -44,6 +44,7 @@ export abstract class NavTreeNode {
 
   private _parent: NavTreeNode|undefined;
 
+  /** Predecessor of the node. */
   get parent(): NavTreeNode|undefined {
     return this._parent;
   }

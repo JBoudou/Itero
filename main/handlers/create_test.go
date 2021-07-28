@@ -311,7 +311,7 @@ func TestCreateHandler(t *testing.T) {
 			Name:              "ShortURL",
 			DuplicateShortURL: "CreatePollTest_ShortURL",
 			RequestFct:        RFPostSession(makeBody(`"ShortURL": "CreatePollTest_ShortURL",`, []string{"First", "Second"})),
-			Checker:           srvt.CheckError{Code: http.StatusConflict, Body: "Already exists"},
+			Checker:           srvt.CheckError{Code: http.StatusConflict, Body: "ShortURL already exists"},
 		}),
 	}
 

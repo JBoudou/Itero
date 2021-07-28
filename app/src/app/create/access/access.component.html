@@ -12,11 +12,26 @@
     <mat-radio-button [value]="false" i18n>Make the poll public.</mat-radio-button>
     <mat-radio-button [value]="true"  i18n>Manually spread the link.</mat-radio-button>
   </mat-radio-group>
-  <mat-checkbox #CBShortURL i18n>Provide a shortcut URL</mat-checkbox>
-  <mat-form-field class="lone-field sub-field no-label" appearance="fill">
-    <input matInput type="text" formControlName="ShortURL" floatLabel="always" [disabled]="!CBShortURL.checked" placeholder="Shortcut URL" />
-  </mat-form-field>
+  <div class="custom-field">
+    <p class="field-hint" i18n>Shortcut URL</p>
+    <mat-checkbox #CBShortURL (change)="onCBShortURL($event)" i18n>Provide a shortcut URL</mat-checkbox>
+    <mat-form-field class="lone-field sub-field no-label" appearance="fill" *ngIf="CBShortURL.checked">
+      <input matInput type="text" formControlName="ShortURL" floatLabel="always" placeholder="Shortcut URL" />
+    </mat-form-field>
+  </div>
 </form>
+<div class="formerrors" *ngIf="!form.valid">
+  <p *ngIf="shortURLIsTooShort" i18n>
+    The shortcut URL must be at least {{ shortURLMinLength }} characters long.
+  </p>
+  <p *ngIf="shortURLHasWrongFormat" i18n>
+    The shortcut URL can contain only plain characters (a-z and A-Z), numbers (0-9), hyphen (-),
+    underscore (_), dot (.) and tilde (~).
+  </p>
+</div>
+<div class="formerrors" *ngIf="!serverError.ok" [ngSwitch]="serverError.message">
+  <p *ngSwitchCase="'ShortURL already exists'" i18n>There already is a poll with this shortcut URL.</p>
+</div>
 
 <ng-template #stepInfo let-query="query$">
   <ng-container *ngIf="query | async as q">

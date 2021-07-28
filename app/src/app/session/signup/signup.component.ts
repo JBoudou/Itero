@@ -76,7 +76,7 @@ export class SignupComponent implements OnInit {
         this.router.navigateByUrl(this.session.getLoginRedirectionUrl());
       },
       error: (err: HttpErrorResponse) => {
-        if (err.status == 400) {
+        if (err.status == 400 || err.status == 409) {
           this.serverError = err.error.trim()
           switch (this.serverError) {
             case 'Name too short':

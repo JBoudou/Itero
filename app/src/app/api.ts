@@ -192,6 +192,7 @@ export interface CreateQuery {
   Deadline:         Date;
   MaxRoundDuration: number; // milliseconds
   RoundThreshold:   number;
+  ShortURL:         string;
 }
 
 export enum PollNotifAction {

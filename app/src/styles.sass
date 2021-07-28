@@ -143,7 +143,8 @@ input
   display: grid
   grid-template-columns: 1fr minmax(min-content, 31%)
   @media screen and (max-width: $breakpoint-laptop)
-    grid-template-columns: 1fr minmax(min-content, 5%)
+    grid-template-columns: 1fr 0
+    padding-right: 5%
 
 .information
   font: $infofont
@@ -172,14 +173,15 @@ $itero-mat-theme: mat-light-theme(( color: ( primary: $itero-mat-primary, accent
 
 mat-form-field.lone-field
   display: block
-  .mat-from-field-wrapper
-    padding-bottom: 0
+
+mat-form-field.no-label .mat-form-field-flex
+  padding-top: 0
 
 /* Added for SimpleAlternativeComponent, to align the icon correctly on Firefox 83.0. */
 .mat-form-field-suffix
   align-self: flex-end
 
-mat-radio-group .radio-hint
+mat-radio-group .radio-hint, .custom-field .field-hint
   font-size: 75%
   color: rgba(0,0,0,0.6)
 

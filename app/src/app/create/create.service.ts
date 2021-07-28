@@ -25,6 +25,7 @@ import { cloneDeep, isEqual } from 'lodash';
 import { CreateQuery } from '../api';
 import { NavTreeNode, LinearNavTreeNode, FinalNavTreeNode } from './navtree/navtree.node';
 import { NavStepStatus } from './navtree/navstep.status';
+import { ServerError } from '../shared/server-error';
 
 
 export const CREATE_TREE = new InjectionToken<NavTreeNode>('create.tree');
@@ -99,7 +100,7 @@ export class CreateService {
    */
   private _sending: boolean = false;
 
-  private _httpError: HttpErrorResponse;
+  serverError: ServerError = new ServerError()
 
   constructor(
     @Inject(CREATE_TREE) private root: NavTreeNode,
@@ -192,22 +193,34 @@ export class CreateService {
 
     let modified = false;
     for (const prop in patch) {
-      if (!isEqual(patch[prop], this._current.query[prop])) {
-        if (!ret) {
-          console.warn(`Segment ${stepSegment} instead of ${this._current.segment} ` +
-                       `to change ${prop} from ${this._current.query[prop]} to ${patch[prop]}`);
-          continue;
-        }
-        if (patch[prop] === undefined) {
-          delete this._current.query[prop];
-          this._current.handledFields.delete(prop);
-        } else {
-          this._current.query[prop] = cloneDeep(patch[prop]);
-          this._current.handledFields.add(prop);
-        }
-        modified = true;
+      if (isEqual(patch[prop], this._current.query[prop])) { continue }
+
+      // Warn in case of wrong segment.
+      if (!ret) {
+        console.warn(`Segment ${stepSegment} instead of ${this._current.segment} ` +
+                      `to change ${prop} from ${this._current.query[prop]} to ${patch[prop]}`);
+        continue;
       }
+      
+      // Update the query
+      if (patch[prop] === undefined) {
+        delete this._current.query[prop];
+        this._current.handledFields.delete(prop);
+      } else {
+        this._current.query[prop] = cloneDeep(patch[prop]);
+        this._current.handledFields.add(prop);
+      }
+
+      // Remove error
+      if (!this.serverError.ok && this.serverError.status === 409 &&
+          this.serverError.message.split(' ')[0] === prop) {
+        this.serverError = new ServerError()
+      }
+
+      modified = true;
     }
+
+    // Send the new query
     if (ret && modified) {
       if (!options.defaultValues) {
         this._queryModified = true;
@@ -240,11 +253,11 @@ export class CreateService {
    * Get the result of sending the create request.
    * Call to this method reinitialise the service.
    */
-  getResult(): HttpErrorResponse | Partial<CreateQuery> | undefined {
+  getResult(): ServerError | Partial<CreateQuery> | undefined {
     if (!this._sending) {
       return undefined;
     }
-    const ret = !!this ._httpError ? this._httpError : this._current.query;
+    const ret = !this .serverError.ok ? this.serverError : this._current.query;
     this.reset();
     return ret;
   }
@@ -252,6 +265,12 @@ export class CreateService {
 
   // Private methods //
 
+  /**
+   * Set the current step.
+   * Options:
+   *  - `reset` set to true to reset the service while change the step.
+   *  - `navigate` set to false to prevent changing the view.
+   */
   private makeCurrent(
     node: NavTreeNode,
     options: { reset?: boolean, navigate?: boolean } = { navigate: true }
@@ -270,7 +289,7 @@ export class CreateService {
 
     if (options.reset) {
       this._sending = false;
-      this._httpError = undefined;
+      this.serverError = new ServerError()
       this.root.reset();
       this._queryModified = false;
     }
@@ -308,14 +327,30 @@ export class CreateService {
     console.log(JSON.stringify(this._current.query))
     this.http.post<string>('/a/create', this._current.query, { observe: 'body', responseType: 'json' })
       .pipe(take(1)).subscribe({
+
       next: (segment: string) => {
-        this._httpError = undefined;
+        this.serverError = new ServerError()
         this.router.navigateByUrl('/r/create/result/' + segment);
       },
+
       error: (err: HttpErrorResponse) => {
-        this._httpError = err;
-        this.router.navigateByUrl('/r/create/result/error');
+        this.serverError = new ServerError(err, 'creating a new poll')
+        if (this.serverError.status == 409) {
+          // 409 Conflict received. Try to find a page to display for the user to fix the error.
+          const field = this.serverError.message.split(' ')[0]
+          for (let cur = this._current; cur !== undefined; cur = cur.parent) {
+            if (cur.handledFields.has(field)) {
+              this._sending = false
+              this.makeCurrent(cur)
+              break
+            }
+          }
+        }
+        if (this._sending) {
+          this.router.navigateByUrl('/r/create/result/error')
+        }
       },
+
     });
   }
 }

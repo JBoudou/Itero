@@ -23,7 +23,7 @@ import { map, startWith, take } from 'rxjs/operators';
 import { CreateService } from '../create/create.service';
 import { CreateQuery } from '../api';
 
-/** Implementation of CreateSubComponent using a FormGroup. */
+/** Base class to implement editing component using CreateService. */
 export abstract class CreateSubComponentBase {
 
   /**
@@ -32,10 +32,11 @@ export abstract class CreateSubComponentBase {
    */
   abstract form: FormGroup;
 
+  protected subscriptions: Subscription[] = [];
+
+  // Fields that are assumed to be injected by the subclass.
   protected abstract service: CreateService;
   protected abstract route: ActivatedRoute;
-
-  protected subscriptions: Subscription[] = [];
 
   constructor(
   ) { }
@@ -71,10 +72,15 @@ export abstract class CreateSubComponentBase {
   /**
    * Modify the partial query sent to the model.
    * Could be overloaded in the component. By default, return the parameter unchanged.
-   * Beware to not modify the parameter.
+   * Beware that the properties of the original query may be references to value stored in some form
+   * controls.
    */
   protected modifyQueryToSend(query: Partial<CreateQuery>): Partial<CreateQuery> {
     return query;
+  }
+
+  /** Callback called just after the form is refreshed with the query from the service. */
+  protected afterQueryFetch(query: Partial<CreateQuery>): void {
   }
   
   private _initModel(stepSegment: string): void {
@@ -89,7 +95,8 @@ export abstract class CreateSubComponentBase {
 
   /** Synchronize the view from the model. */
   private _synchronize(stepSegment: string, query: Partial<CreateQuery>) {
-    this.form.patchValue(query);
+    this.form.patchValue(query)
+    this.afterQueryFetch(query)
 
     if (!this._first_synchronize_done) {
       let toSend: any = {};
@@ -105,15 +112,15 @@ export abstract class CreateSubComponentBase {
         this.service.patchQuery(stepSegment, this.modifyQueryToSend(toSend), { defaultValues: true });
       }
 
-    // Subscribe to valueChanges for each control in this.form.
-    for (const prop in this.form.controls) {
-      const control = this.form.controls[prop];
-      this.subscriptions.push(
-        control.valueChanges.subscribe({
-          next: value => this.service.patchQuery(stepSegment, this.modifyQueryToSend({ [prop]: value })),
-        })
-      );
-    };
+      // Subscribe to valueChanges for each control in this.form.
+      for (const prop in this.form.controls) {
+        const control = this.form.controls[prop];
+        this.subscriptions.push(
+          control.valueChanges.subscribe({
+            next: value => this.service.patchQuery(stepSegment, this.modifyQueryToSend({ [prop]: value })),
+          })
+        );
+      };
 
       this._first_synchronize_done = true;
     }

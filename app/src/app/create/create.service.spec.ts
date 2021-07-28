@@ -27,6 +27,7 @@ import { NavStepStatus } from './navtree/navstep.status';
 
 import { Recorder, justRecordedFrom } from 'src/testing/recorder';
 import { RouterStub } from 'src/testing/router.stub';
+import {ServerError} from '../shared/server-error';
 
 describe('CreateService', () => {
 
@@ -285,9 +286,10 @@ describe('CreateService', () => {
     httpControler.verify();
 
     // call getResult()
-    const error = service.getResult() as HttpErrorResponse;
-    expect(error.status).toBe(500);
-    expect(error.error?.trim()).toBe('Argh');
+    const error = service.getResult() as ServerError
+    expect(error.ok).toBeFalse()
+    expect(error.status).toBe(500)
+    expect(error.message).toBe('Argh')
   });
 
 });
