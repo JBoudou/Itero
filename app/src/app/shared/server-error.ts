@@ -25,9 +25,11 @@ export class ServerError {
   constructor();
   constructor(err: HttpErrorResponse, context: string);
   constructor(err?: HttpErrorResponse, context?: string) {
-    this.ok = !err;
+    this.ok = err === undefined || (err.status > 99 && err.status < 400)
     this.status = err && err.status || 200;
-    this.message = err && err.error.trim() || '';
     this.context = err && context || '';
+    this.message = typeof(err?.error) === 'string' ? err.error.trim() :
+                   err?.error instanceof Error ? err.error.message :
+                   ''
   }
 }
