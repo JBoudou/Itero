@@ -6,12 +6,12 @@ URL
 URLs are partitioned as follows, based on the one-letter first segment.
 
  - **`/`** The root correspond to the front-end files (HTML, CSS and Javascript static files).
- - **`/s/`** Reserved for additional static files. May be abandonned in favor of Angular's assets.
  - **`/a/`** Public API, handled by the middleware. Details can be read in
    [main/main.go](../main/main.go).
  - **`/r/`** Virtual URL, handled by the front end. Details can be read in
    [app/src/app/app-routing.module.ts](../app/src/app/app-routing.module.ts). On the middleware,
    these requests are redirected to `/index.html`.
+ - **`/p/`** Shortcut URL for polls, handled by [ShortURLHandler](../main/handlers/shorturl.go).
 
 Details on the partition can be read in the function `server.Start` in file
 [mid/server/server.go](../mid/server/server.go).
@@ -44,14 +44,26 @@ POST queries must have an `Origin` header (or at least a `Referer` one). See met
 Response
 ========
 
-A status code between 200 and 299 indicates a success. In that case, the body is a JSON encoded
-structure. The JSON structure is described similarly in Go and TypeScript, by an interface with a
-name ending with `Answer`. Exactly one such interface is associated with each URL. The file
-[app/src/app/api.ts](../app/src/app/api.ts) contains all those interfaces for TypeScript. In the
-future, the TypeScript interfaces could be generated from the Go ones.
+A status code between 200 and 299 indicates a success. In that case, for middleware request, the
+body is a JSON encoded structure. The JSON structure is described similarly in Go and TypeScript,
+by an interface with a name ending with `Answer`. Exactly one such interface is associated with
+each URL. The file [app/src/app/api.ts](../app/src/app/api.ts) contains all those interfaces for
+TypeScript. In the future, the TypeScript interfaces could be generated from the Go ones.
 
 A status code of at least 300 indicates a failure. In that case, the body is a short unquoted string
-describing the reason of the failure. Those strings are part of the API.
+describing the reason of the failure. Those strings are part of the API. Some often used code are
+listen below.
+
+Name           | Status | Description
+---------------|--------|-----------------------------------------------------
+PermanentRedirect | 308 | Used for /p/ shortcut URL.
+BadRequest        | 400 | Such a query should never be sent.
+Forbidden         | 403 | The user is not allowed to make this request.
+NotFound          | 404 | The resource does not exist or is not available to this user.
+Conflict          | 409 | The query is valid but conflict with existing resources.
+Locked            | 423 | The query is valid but currently impossible.
+InternalServerError | 500 | The middleware reached an impossible state.
+
 
 ## Compression
 
@@ -71,9 +83,9 @@ When a session starts (typically when the user successfully logged in), the midd
 session cookie and a session identifier. The session cookie is named `s` and is encrypted by a
 private key (see `server.SessionKeys` configuration parameter). It contains the user identifier, the
 session identifier and an expiration date. The session identifier is a 4 alphanumeric characters
-string. It is send in the response's body.
+string. It is sent in the response's body.
 
-For all subsequent request, the front end includes the session cookie and the session identifier in
+For all subsequent requests, the front end includes the session cookie and the session identifier in
 each request. The session identifier is send in the HTTP header `X-CSRF`.
 
 Sessions are created by the method server.Response.SendLoginAccepted in file
