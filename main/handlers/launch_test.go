@@ -55,6 +55,9 @@ func launchHandlerEventPredicate(param PollTestCheckerFactoryParam, evt events.E
 }
 
 func TestLaunchHandler(t *testing.T) {
+	precheck(t)
+	t.Parallel()
+
 	tests := []srvt.Test{
 		&wrongPollTest{
 			Kind: wrongPollTestKindNoPoll,

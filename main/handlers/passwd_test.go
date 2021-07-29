@@ -131,6 +131,7 @@ func (self passwdTest) Check(t *testing.T, response *http.Response, request *ser
 }
 
 func TestPasswdHandler(t *testing.T) {
+	precheck(t)
 	t.Parallel()
 
 	tests := []srvt.Test{

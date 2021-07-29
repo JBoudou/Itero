@@ -45,10 +45,14 @@ type createUserTest struct {
 }
 
 func (self *createUserTest) Prepare(t *testing.T, loc *ioc.Locator) *ioc.Locator {
+	t.Parallel()
 	return srvt.ChainPrepare(t, loc, &self.WithUser, &self.WithChecker)
 }
 
 func TestRefreshHandler(t *testing.T) {
+	precheck(t)
+	t.Parallel()
+
 	tests := []srvt.Test{
 		CreateUserTest(createUserTest_{
 			Name:    "No user",

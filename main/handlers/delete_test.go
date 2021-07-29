@@ -148,6 +148,9 @@ func (self *deleteHandlerTestWithVote) Prepare(t *testing.T, loc *ioc.Locator) *
 }
 
 func TestDeleteHandler(t *testing.T) {
+	precheck(t)
+	t.Parallel()
+
 	tests := []srvt.Test{
 		&deleteHandlerTest{
 			name:  "Waiting",

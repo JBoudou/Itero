@@ -104,6 +104,7 @@ func (self *reverifyTest) Check(t *testing.T, response *http.Response, request *
 }
 
 func TestReverifyHandler(t *testing.T) {
+	precheck(t)
 	t.Parallel()
 
 	tests := []srvt.Test{

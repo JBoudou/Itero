@@ -153,6 +153,9 @@ func (self *pollNotifHandlerTest) Close() {
 }
 
 func TestPollNotifHandler(t *testing.T) {
+	precheck(t)
+	t.Parallel()
+
 	create := func(id uint32) events.Event { return services.StartPollEvent{Poll: id} }
 	next := func(id uint32) events.Event { return services.NextRoundEvent{Poll: id} }
 	term := func(id uint32) events.Event { return services.ClosePollEvent{Poll: id} }

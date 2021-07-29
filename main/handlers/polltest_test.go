@@ -285,6 +285,8 @@ func (self wrongPollTest) GetName() string {
 }
 
 func (self *wrongPollTest) Prepare(t *testing.T, loc *ioc.Locator) *ioc.Locator {
+	t.Parallel()
+
 	self.uid = self.DB.CreateUserWith(t.Name())
 	self.pollId = self.DB.CreatePoll("Test", self.uid, db.ElectorateAll)
 

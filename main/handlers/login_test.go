@@ -64,6 +64,7 @@ func (self *loginTest) Close() {
 
 func TestLoginHandler(t *testing.T) {
 	precheck(t)
+	t.Parallel()
 
 	env := new(dbt.Env)
 	defer env.Close()

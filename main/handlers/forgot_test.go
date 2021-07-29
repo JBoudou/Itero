@@ -103,6 +103,9 @@ func (self forgotTest) Check(t *testing.T, response *http.Response, request *ser
 }
 
 func TestForgotHandler(t *testing.T) {
+	precheck(t)
+	t.Parallel()
+
 	tests := []srvt.Test{
 		ForgotTest(forgotTest_{
 			Name: "Login",

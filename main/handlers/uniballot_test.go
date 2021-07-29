@@ -17,7 +17,6 @@
 package handlers
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"reflect"
@@ -28,29 +27,6 @@ import (
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
 )
 
-func TestAllAlternatives(t *testing.T) {
-	precheck(t)
-
-	var env dbt.Env
-	defer env.Close()
-
-	pollInfo := PollInfo{NbChoices: 2}
-	userId := env.CreateUser()
-	pollInfo.Id = env.CreatePoll("AllAlternatives", userId, db.ElectorateAll)
-	mustt(t, env.Error)
-
-	var got []PollAlternative
-	allAlternatives(context.Background(), pollInfo, &got)
-
-	expect := []PollAlternative{
-		{Id: 0, Name: "No", Cost: 1.},
-		{Id: 1, Name: "Yes", Cost: 1.},
-	}
-	if !reflect.DeepEqual(got, expect) {
-		t.Errorf("Got %v. Expect %v", got, expect)
-	}
-}
-
 var (
 	noVote        = uninominalBallot{Value: 0, State: uninominalBallotStateValid}
 	yesVote       = uninominalBallot{Value: 1, State: uninominalBallotStateValid}
@@ -60,6 +36,7 @@ var (
 
 func TestUninominalBallotAnswer_MarshalJSON(t *testing.T) {
 	precheck(t)
+	t.Parallel()
 
 	tests := []struct {
 		name        string
@@ -140,7 +117,10 @@ func TestUninominalBallotAnswer_MarshalJSON(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			gotJSON, err := tt.answer.MarshalJSON()
 			if err != tt.expectError {
 				t.Errorf("Got error %s. Expect %s", err, tt.expectError)

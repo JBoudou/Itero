@@ -280,6 +280,8 @@ func (self missingPollTest) GetName() string {
 }
 
 func (self *missingPollTest) Prepare(t *testing.T, loc *ioc.Locator) *ioc.Locator {
+	t.Parallel()
+
 	if self.WithUser.RequestFct == nil {
 		self.WithUser.RequestFct = RFGetSession
 	}

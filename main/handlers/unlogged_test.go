@@ -26,6 +26,8 @@ import (
 )
 
 func TestHashAddr(t *testing.T) {
+	t.Parallel()
+
 	const input1 = "192.168.26.0:1234"
 	got1 := HashAddr(input1)
 	if got1&0xFF000000 != 0 {
@@ -44,6 +46,8 @@ func TestHashAddr(t *testing.T) {
 }
 
 func TestLE24Bits(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		input  uint32
@@ -64,6 +68,8 @@ func TestLE24Bits(t *testing.T) {
 }
 
 func TestUnloggedFromHash(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		hash uint32
