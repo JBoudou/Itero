@@ -26,7 +26,6 @@ import (
 
 	"github.com/JBoudou/Itero/mid/db"
 	dbt "github.com/JBoudou/Itero/mid/db/dbtest"
-	"github.com/JBoudou/Itero/mid/root"
 	"github.com/JBoudou/Itero/mid/salted"
 	"github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
@@ -58,7 +57,7 @@ func (self *confirmTest) GetName() string {
 	return self.Name
 }
 
-func (self *confirmTest) Prepare(t *testing.T) *ioc.Locator {
+func (self *confirmTest) Prepare(t *testing.T, loc *ioc.Locator) *ioc.Locator {
 	t.Parallel()
 
 	const qDelete = `DELETE FROM Confirmations WHERE Id = ?`
@@ -80,7 +79,7 @@ func (self *confirmTest) Prepare(t *testing.T) *ioc.Locator {
 	if checker, ok := self.Checker.(interface{ Before(*testing.T) }); checker != nil && ok {
 		checker.Before(t)
 	}
-	return root.IoC
+	return loc
 }
 
 func (self *confirmTest) GetRequest(t *testing.T) *srvt.Request {

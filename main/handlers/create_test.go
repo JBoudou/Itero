@@ -64,10 +64,10 @@ type createPollTest struct {
 	Checker           srvt.Checker
 }
 
-func (self *createPollTest) Prepare(t *testing.T) *ioc.Locator {
+func (self *createPollTest) Prepare(t *testing.T, loc *ioc.Locator) *ioc.Locator {
 	t.Parallel()
 
-	self.WithUser.Prepare(t)
+	loc = srvt.ChainPrepare(t, loc, &self.WithUser, &self.WithEvent)
 
 	if checker, ok := self.Checker.(interface{ Before(t *testing.T) }); ok {
 		checker.Before(t)
@@ -80,7 +80,7 @@ func (self *createPollTest) Prepare(t *testing.T) *ioc.Locator {
 		self.DB.Must(t)
 	}
 
-	return self.WithEvent.Prepare(t)
+	return loc
 }
 
 func (self *createPollTest) Check(t *testing.T, response *http.Response, request *server.Request) {

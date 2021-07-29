@@ -102,7 +102,7 @@ func stats(ctx string) {
 		stats.OpenConnections, stats.InUse, stats.Idle, runtime.NumGoroutine())
 }
 
-func (self *pollTest) Prepare(t *testing.T) *ioc.Locator {
+func (self *pollTest) Prepare(t *testing.T, loc *ioc.Locator) *ioc.Locator {
 	t.Parallel()
 
 	self.userId = make([]uint32, 2)
@@ -200,7 +200,7 @@ func (self *pollTest) Prepare(t *testing.T) *ioc.Locator {
 	if checker, ok := self.Checker.(interface{ Before(*testing.T) }); ok {
 		checker.Before(t)
 	}
-	return self.WithEvent.Prepare(t)
+	return self.WithEvent.Prepare(t, loc)
 }
 
 func (self *pollTest) GetRequest(t *testing.T) *srvt.Request {
@@ -284,7 +284,7 @@ func (self wrongPollTest) GetName() string {
 	return "Invalid test"
 }
 
-func (self *wrongPollTest) Prepare(t *testing.T) *ioc.Locator {
+func (self *wrongPollTest) Prepare(t *testing.T, loc *ioc.Locator) *ioc.Locator {
 	self.uid = self.DB.CreateUserWith(t.Name())
 	self.pollId = self.DB.CreatePoll("Test", self.uid, db.ElectorateAll)
 
@@ -294,7 +294,7 @@ func (self *wrongPollTest) Prepare(t *testing.T) *ioc.Locator {
 	}
 
 	self.DB.Must(t)
-	return self.WithEvent.Prepare(t)
+	return self.WithEvent.Prepare(t, loc)
 }
 
 func (self wrongPollTest) GetRequest(t *testing.T) *srvt.Request {

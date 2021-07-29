@@ -72,7 +72,7 @@ type WithUser struct {
 	User server.User
 }
 
-func (self *WithUser) Prepare(t *testing.T) *ioc.Locator {
+func (self *WithUser) Prepare(t *testing.T, loc *ioc.Locator) *ioc.Locator {
 	if self.Unlogged {
 		var err error
 		self.User, err = UnloggedFromAddr(context.Background(), withUserFakeAddress)
@@ -93,7 +93,7 @@ func (self *WithUser) Prepare(t *testing.T) *ioc.Locator {
 		}
 	}
 
-	return root.IoC
+	return loc
 }
 
 func (self *WithUser) GetRequest(t *testing.T) *srvt.Request {
@@ -144,7 +144,7 @@ type WithEvent struct {
 	RecordedEvents []events.Event
 }
 
-func (self *WithEvent) Prepare(t *testing.T) *ioc.Locator {
+func (self *WithEvent) Prepare(t *testing.T, loc *ioc.Locator) *ioc.Locator {
 	manager := &eventstest.ManagerMock{
 		T: t,
 		Send_: func(evt events.Event) error {
@@ -153,9 +153,9 @@ func (self *WithEvent) Prepare(t *testing.T) *ioc.Locator {
 		},
 	}
 
-	locator := root.IoC.Sub()
-	mustt(t, locator.Bind(func() events.Manager { return manager }))
-	return locator
+	loc = loc.Sub()
+	mustt(t, loc.Bind(func() events.Manager { return manager }))
+	return loc
 }
 
 func (self *WithEvent) CountRecorderEvents(predicate func(events.Event) bool) (ret int) {

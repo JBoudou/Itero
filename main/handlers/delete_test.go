@@ -51,7 +51,7 @@ func (self *deleteHandlerTest) GetName() string {
 	return self.name
 }
 
-func (self *deleteHandlerTest) Prepare(t *testing.T) *ioc.Locator {
+func (self *deleteHandlerTest) Prepare(t *testing.T, loc *ioc.Locator) *ioc.Locator {
 	t.Parallel()
 
 	self.userId = self.DB.CreateUserWith("DeleteHandle" + self.name)
@@ -77,7 +77,7 @@ func (self *deleteHandlerTest) Prepare(t *testing.T) *ioc.Locator {
 	}
 
 	self.DB.Must(t)
-	return self.WithEvent.Prepare(t)
+	return self.WithEvent.Prepare(t, loc)
 }
 
 func (self *deleteHandlerTest) GetRequest(t *testing.T) *srvt.Request {
@@ -138,8 +138,8 @@ type deleteHandlerTestWithVote struct {
 	deleteHandlerTest
 }
 
-func (self *deleteHandlerTestWithVote) Prepare(t *testing.T) *ioc.Locator {
-	ret := self.deleteHandlerTest.Prepare(t)
+func (self *deleteHandlerTestWithVote) Prepare(t *testing.T, loc *ioc.Locator) *ioc.Locator {
+	ret := self.deleteHandlerTest.Prepare(t, loc)
 	for i := uint8(0); i <= self.round; i++ {
 		self.DB.Vote(self.pollId, i, self.userId, 0)
 	}

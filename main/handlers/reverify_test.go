@@ -24,11 +24,9 @@ import (
 
 	"github.com/JBoudou/Itero/main/services"
 	"github.com/JBoudou/Itero/mid/db"
-	"github.com/JBoudou/Itero/mid/root"
 	"github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
 	"github.com/JBoudou/Itero/pkg/events"
-	evtt "github.com/JBoudou/Itero/pkg/events/eventstest"
 	"github.com/JBoudou/Itero/pkg/ioc"
 )
 
@@ -59,18 +57,17 @@ func ReverifyTest(c reverifyTest_) *reverifyTest {
 type reverifyTest struct {
 	srvt.WithName
 	WithUser
+	WithEvent
 
 	Previous bool
 	ExpDiff  time.Duration // Difference from now for Expires (positive value are in the future)
 	Checker  srvt.Checker
-
-	records []events.Event
 }
 
-func (self *reverifyTest) Prepare(t *testing.T) *ioc.Locator {
+func (self *reverifyTest) Prepare(t *testing.T, loc *ioc.Locator) *ioc.Locator {
 	t.Parallel()
 
-	self.WithUser.Prepare(t)
+	loc = srvt.ChainPrepare(t, loc, &self.WithUser, &self.WithEvent)
 
 	if self.Previous {
 		_, err := db.CreateConfirmation(context.Background(),
@@ -82,41 +79,28 @@ func (self *reverifyTest) Prepare(t *testing.T) *ioc.Locator {
 		checker.Before(t)
 	}
 
-	locator := root.IoC.Sub()
-	locator.Bind(func() events.Manager {
-		return &evtt.ManagerMock{
-			T: t,
-			Send_: func(evt events.Event) error {
-				self.records = append(self.records, evt)
-				return nil
-			},
-		}
-	})
-	return locator
+	return loc
 }
 
 func (self *reverifyTest) Check(t *testing.T, response *http.Response, request *server.Request) {
+	var expectEvents int
 	if self.Checker != nil {
 		self.Checker.Check(t, response, request)
-		return
-	}
-
-	if response.StatusCode != http.StatusOK {
-		t.Errorf("Wrong status code. Got %d. Expect %d.", response.StatusCode, http.StatusOK)
-	}
-	if len(self.records) != 1 {
-		t.Errorf("Received %d events. Expect 1.", len(self.records))
-	}
-
-	for _, evt := range self.records {
-		if converted, ok := evt.(services.ReverifyEvent); ok && converted.User == self.User.Id {
-			goto eventFound
+		expectEvents = 0
+	} else {
+		if response.StatusCode != http.StatusOK {
+			t.Errorf("Wrong status code. Got %d. Expect %d.", response.StatusCode, http.StatusOK)
 		}
+		expectEvents = 1
 	}
-	t.Errorf("ReverifyEvent not found.")
-eventFound:
 
-	return
+	gotEvents := self.CountRecorderEvents(func(evt events.Event) bool {
+		converted, ok := evt.(services.ReverifyEvent)
+		return ok && converted.User == self.User.Id
+	})
+	if gotEvents != expectEvents {
+		t.Errorf("Received %d events, %d expected.", gotEvents, expectEvents)
+	}
 }
 
 func TestReverifyHandler(t *testing.T) {

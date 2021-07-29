@@ -279,11 +279,14 @@ func (self missingPollTest) GetName() string {
 	return "Missing poll"
 }
 
-func (self *missingPollTest) Prepare(t *testing.T) *ioc.Locator {
+func (self *missingPollTest) Prepare(t *testing.T, loc *ioc.Locator) *ioc.Locator {
 	if self.WithUser.RequestFct == nil {
 		self.WithUser.RequestFct = RFGetSession
 	}
-	self.WithUser.Prepare(t)
+	if self.Checker == nil {
+		self.Checker = srvt.CheckStatus{http.StatusNotFound}
+	}
+	loc = srvt.ChainPrepare(t, loc, &self.WithUser, &self.WithChecker)
 
 	var pollEnv dbt.Env
 	self.pollSegment.Id = pollEnv.CreatePoll("Todel", self.User.Id, db.ElectorateAll)
@@ -291,10 +294,7 @@ func (self *missingPollTest) Prepare(t *testing.T) *ioc.Locator {
 	pollEnv.Must(t)
 	pollEnv.Close()
 
-	if self.Checker == nil {
-		self.Checker = srvt.CheckStatus{http.StatusNotFound}
-	}
-	return self.WithChecker.Prepare(t)
+	return loc
 }
 
 func (self missingPollTest) GetRequest(t *testing.T) *srvt.Request {

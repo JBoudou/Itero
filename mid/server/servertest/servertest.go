@@ -109,13 +109,25 @@ type Test interface {
 	GetName() string
 
 	// Prepare is called before the handler is created.
-	Prepare(t *testing.T) *ioc.Locator
+	Prepare(t *testing.T, loc *ioc.Locator) *ioc.Locator
 
 	// GetRequest is called just after the handler is created.
 	GetRequest(t *testing.T) *Request
 
 	Checker
 	Close()
+}
+
+// ChainPrepare sequentially call the Prepare method of its arguments.
+// The methods are called in the same order as the arguments.
+// The locator is updated by each call, then returned.
+func ChainPrepare(t *testing.T, loc *ioc.Locator, chain ...interface {
+	Prepare(*testing.T, *ioc.Locator) *ioc.Locator
+}) *ioc.Locator {
+	for _, pre := range chain {
+		loc = pre.Prepare(t, loc)
+	}
+	return loc
 }
 
 // T is a simple implementation of Test.
@@ -140,14 +152,14 @@ func (self *T) GetRequest(t *testing.T) *Request {
 // Prepare runs before the handler is executed.
 // If Update is not nil, it is called first.
 // If Checker implements a method Before(*testing.T) then it is called next.
-func (self *T) Prepare(t *testing.T) *ioc.Locator {
+func (self *T) Prepare(t *testing.T, loc *ioc.Locator) *ioc.Locator {
 	if self.Update != nil {
 		self.Update(t)
 	}
 	if checker, ok := self.Checker.(interface{ Before(t *testing.T) }); ok {
 		checker.Before(t)
 	}
-	return root.IoC
+	return loc
 }
 
 func (self *T) Close() {
@@ -178,7 +190,7 @@ func Run(t *testing.T, tests []Test, handlerFactory interface{}) {
 			t.Helper()
 			defer tt.Close()
 
-			locator := tt.Prepare(t)
+			locator := tt.Prepare(t, root.IoC)
 			var handler server.Handler
 			err := locator.Inject(handlerFactory, &handler)
 			if err != nil {

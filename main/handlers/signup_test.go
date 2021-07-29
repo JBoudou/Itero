@@ -41,10 +41,9 @@ type signupHandlerTest struct {
 	called int
 }
 
-func (self *signupHandlerTest) Prepare(t *testing.T) *ioc.Locator {
+func (self *signupHandlerTest) Prepare(t *testing.T, loc *ioc.Locator) *ioc.Locator {
 	t.Parallel()
-	self.T.Prepare(t)
-	return self.WithEvent.Prepare(t)
+	return srvt.ChainPrepare(t, loc, &self.T, &self.WithEvent)
 }
 
 func (self *signupHandlerTest) ChangeResponse(t *testing.T, in server.Response) server.Response {
@@ -98,7 +97,7 @@ type signupHandlerTestWithUser struct {
 	RequestFct func(t *testing.T, basename string) *srvt.Request
 }
 
-func (self *signupHandlerTestWithUser) Prepare(t *testing.T) *ioc.Locator {
+func (self *signupHandlerTestWithUser) Prepare(t *testing.T, loc *ioc.Locator) *ioc.Locator {
 	uid := self.DB.CreateUserWith(t.Name())
 
 	// We remove the spaces for error "Name has space" to not be raised
@@ -106,7 +105,7 @@ func (self *signupHandlerTestWithUser) Prepare(t *testing.T) *ioc.Locator {
 	self.DB.QuietExec(qNoSpace, uid)
 	self.DB.Must(t)
 
-	return self.signupHandlerTest.Prepare(t)
+	return self.signupHandlerTest.Prepare(t, loc)
 }
 
 func (self *signupHandlerTestWithUser) GetRequest(t *testing.T) *srvt.Request {

@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	dbt "github.com/JBoudou/Itero/mid/db/dbtest"
-	"github.com/JBoudou/Itero/mid/root"
 	"github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
 	"github.com/JBoudou/Itero/pkg/ioc"
@@ -39,13 +38,13 @@ func (self *loginTest) GetName() string {
 	return self.Name
 }
 
-func (self *loginTest) Prepare(t *testing.T) *ioc.Locator {
+func (self *loginTest) Prepare(t *testing.T, loc *ioc.Locator) *ioc.Locator {
 	t.Parallel()
 	self.dbEnv.CreateUserWith(t.Name())
 	if checker, ok := self.Checker.(interface{ Before(*testing.T) }); ok {
 		checker.Before(t)
 	}
-	return root.IoC
+	return loc
 }
 
 func (self *loginTest) GetRequest(t *testing.T) *srvt.Request {

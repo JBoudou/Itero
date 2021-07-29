@@ -23,7 +23,6 @@ import (
 
 	"github.com/JBoudou/Itero/mid/db"
 	dbt "github.com/JBoudou/Itero/mid/db/dbtest"
-	"github.com/JBoudou/Itero/mid/root"
 	"github.com/JBoudou/Itero/mid/salted"
 	"github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
@@ -46,7 +45,7 @@ func (self shortURLTest) GetName() string {
 	return self.Name
 }
 
-func (self *shortURLTest) Prepare(t *testing.T) *ioc.Locator {
+func (self *shortURLTest) Prepare(t *testing.T, loc *ioc.Locator) *ioc.Locator {
 	t.Parallel()
 
 	var err error
@@ -63,7 +62,7 @@ func (self *shortURLTest) Prepare(t *testing.T) *ioc.Locator {
 		self.DB.Must(t)
 	}
 
-	return root.IoC
+	return loc
 }
 
 func (self shortURLTest) GetRequest(t *testing.T) *srvt.Request {

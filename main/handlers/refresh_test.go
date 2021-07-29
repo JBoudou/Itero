@@ -20,7 +20,6 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/JBoudou/Itero/mid/root"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
 	"github.com/JBoudou/Itero/pkg/ioc"
 )
@@ -45,10 +44,8 @@ type createUserTest struct {
 	WithUser
 }
 
-func (self *createUserTest) Prepare(t *testing.T) *ioc.Locator {
-	self.WithUser.Prepare(t)
-	self.WithChecker.Prepare(t)
-	return root.IoC
+func (self *createUserTest) Prepare(t *testing.T, loc *ioc.Locator) *ioc.Locator {
+	return srvt.ChainPrepare(t, loc, &self.WithUser, &self.WithChecker)
 }
 
 func TestRefreshHandler(t *testing.T) {

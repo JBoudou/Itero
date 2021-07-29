@@ -26,7 +26,6 @@ import (
 	"github.com/JBoudou/Itero/main/services"
 	"github.com/JBoudou/Itero/mid/db"
 	dbt "github.com/JBoudou/Itero/mid/db/dbtest"
-	"github.com/JBoudou/Itero/mid/root"
 	"github.com/JBoudou/Itero/mid/salted"
 	"github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
@@ -60,7 +59,7 @@ func (self *pollNotifHandlerTest) GetName() string {
 	return self.name
 }
 
-func (self *pollNotifHandlerTest) Prepare(t *testing.T) *ioc.Locator {
+func (self *pollNotifHandlerTest) Prepare(t *testing.T, loc *ioc.Locator) *ioc.Locator {
 	t.Parallel()
 
 	self.admnId = self.dbEnv.CreateUserWith("PollNotifHandler" + self.name + "Admin")
@@ -79,13 +78,13 @@ func (self *pollNotifHandlerTest) Prepare(t *testing.T) *ioc.Locator {
 
 	self.dbEnv.Must(t)
 
-	ret := root.IoC.Sub()
-	ret.Refresh(&self.evtManager)
-	ret.Bind(func(evtManager events.Manager) (services.PollNotifChannel, error) {
+	loc = loc.Sub()
+	loc.Refresh(&self.evtManager)
+	loc.Bind(func(evtManager events.Manager) (services.PollNotifChannel, error) {
 		return services.RunPollNotif(time.Second, evtManager)
 	})
 
-	return ret
+	return loc
 }
 
 func (self *pollNotifHandlerTest) GetRequest(t *testing.T) *srvt.Request {

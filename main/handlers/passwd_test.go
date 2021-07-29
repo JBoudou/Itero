@@ -25,7 +25,6 @@ import (
 
 	"github.com/JBoudou/Itero/mid/db"
 	dbt "github.com/JBoudou/Itero/mid/db/dbtest"
-	"github.com/JBoudou/Itero/mid/root"
 	"github.com/JBoudou/Itero/mid/salted"
 	"github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
@@ -66,7 +65,7 @@ type passwdTest struct {
 	segment salted.Segment
 }
 
-func (self *passwdTest) Prepare(t *testing.T) *ioc.Locator {
+func (self *passwdTest) Prepare(t *testing.T, loc *ioc.Locator) *ioc.Locator {
 	t.Parallel()
 
 	self.uid = self.DB.CreateUserWith(t.Name())
@@ -83,7 +82,7 @@ func (self *passwdTest) Prepare(t *testing.T) *ioc.Locator {
 		mustt(t, err)
 	}
 
-	return root.IoC
+	return loc
 }
 
 func (self passwdTest) GetRequest(t *testing.T) *srvt.Request {

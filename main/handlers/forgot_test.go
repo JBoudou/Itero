@@ -62,7 +62,7 @@ type forgotTest struct {
 	uid uint32
 }
 
-func (self *forgotTest) Prepare(t *testing.T) *ioc.Locator {
+func (self *forgotTest) Prepare(t *testing.T, loc *ioc.Locator) *ioc.Locator {
 	t.Parallel()
 
 	self.uid = self.DB.CreateUserWith(t.Name())
@@ -74,7 +74,7 @@ func (self *forgotTest) Prepare(t *testing.T) *ioc.Locator {
 		mustt(t, err)
 	}
 
-	return self.WithEvent.Prepare(t)
+	return self.WithEvent.Prepare(t, loc)
 }
 
 func (self forgotTest) GetRequest(t *testing.T) *srvt.Request {
