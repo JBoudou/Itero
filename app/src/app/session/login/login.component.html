@@ -4,11 +4,11 @@
   <p class="request-result" *ngIf="forgotSent" i18n>
     An email has been sent to you with instructions to change your password.
   </p>
-  <mat-form-field class="lone-field" appearance="standard">
+  <mat-form-field class="lone-field">
     <mat-label i18n>User</mat-label>
     <input matInput type="text" formControlName="User" i18n-placeholder placeholder="Name or email" />
   </mat-form-field>
-  <mat-form-field class="lone-field" appearance="standard">
+  <mat-form-field class="lone-field">
     <mat-label i18n>Password</mat-label>
     <app-disclose-password formControlName="Passwd"></app-disclose-password>
   </mat-form-field>

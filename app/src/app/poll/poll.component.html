@@ -79,7 +79,7 @@
       <h3 i18n>Previous rounds</h3>
       <form (submit)="onPreviousResult()" [formGroup]="previousForm" i18n>
         Display results of round&nbsp;
-        <mat-form-field appearance="standard">
+        <mat-form-field>
           <input matInput type="number" size="2" min="1" [max]="lastDisplayRound()" formControlName="round" />
           <button mat-icon-button matSuffix type="submit"><mat-icon>addchart</mat-icon></button>
         </mat-form-field>

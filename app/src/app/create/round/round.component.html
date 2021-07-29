@@ -1,13 +1,13 @@
 <form class="basicform" [formGroup]="form">
-  <mat-form-field appearance="standard">
+  <mat-form-field>
     <mat-label i18n>Poll starts</mat-label>
     <app-date-time-picker formControlName="Start"></app-date-time-picker>
   </mat-form-field>
-  <mat-form-field appearance="standard">
+  <mat-form-field>
     <mat-label i18n>Poll ends</mat-label>
     <app-date-time-picker formControlName="Deadline"></app-date-time-picker>
   </mat-form-field>
-  <mat-form-field class="least-most" appearance="standard" i18n>
+  <mat-form-field class="least-most" i18n>
     <mat-label>Number of rounds</mat-label>
     <div role="group" class="merged-input">
       Between
@@ -17,7 +17,7 @@
       &nbsp;rounds.
     </div>
   </mat-form-field>
-  <mat-form-field appearance="standard">
+  <mat-form-field>
     <mat-label i18n>Maximum round duration</mat-label>
     <app-day-hour-min-duration formControlName="MaxRoundDuration"></app-day-hour-min-duration>
   </mat-form-field>

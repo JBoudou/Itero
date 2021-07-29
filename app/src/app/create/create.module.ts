@@ -22,7 +22,7 @@ import { ClipboardModule }  from '@angular/cdk/clipboard';
 import { MatButtonModule }  from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialogModule }  from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatFormFieldModule, MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
 import { MatIconModule }    from '@angular/material/icon'; 
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -79,6 +79,7 @@ import { SimpleAlternativesComponent }  from './simple-alternatives/simple-alter
     CreateService,
     CreateGuard,
     { provide: CREATE_TREE, useValue: APP_CREATE_TREE },
+    { provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: { appearance: 'standard' }},
   ],
 })
 export class CreateModule { }

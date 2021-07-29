@@ -19,7 +19,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 
 import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatFormFieldModule, MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
 import { MatIconModule }    from '@angular/material/icon'; 
 import { MatInputModule } from '@angular/material/input';
 
@@ -58,6 +58,7 @@ import { CountsInformationService } from './counts-information/counts-informatio
   ],
   providers: [
     CountsInformationService,
+    { provide: MAT_FORM_FIELD_DEFAULT_OPTIONS, useValue: { appearance: 'standard' }},
   ]
 })
 export class PollModule { }
