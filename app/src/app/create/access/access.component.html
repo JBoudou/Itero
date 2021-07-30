@@ -35,25 +35,27 @@
 
 <ng-template #stepInfo let-query="query$">
   <ng-container *ngIf="query | async as q">
+    <p *ngIf="q.Electorate === -1" i18n>
+      Everybody will be able to par&shy;tic&shy;i&shy;pate in the poll, even un&shy;logged users.
+      Beware that it will be very easy for a ma&shy;li&shy;cious user to vote more than once.
+    </p>
+
     <p *ngIf="!q.Hidden; else Hidden" i18n>
-      The title will be displayed in the list of polls,
-      allowing
-      <ng-container [ngSwitch]="q.Verified">
-        <ng-container *ngSwitchCase="false">any user</ng-container>
-        <ng-container *ngSwitchCase="true" >users with a ver&shy;i&shy;fied email</ng-container>
-      </ng-container>
-      to par&shy;tic&shy;i&shy;pate in.
-      If you don't want the poll to be public, select "Manually spread the link".
+      All users <ng-container *ngIf="q.Electorate === 1">with a ver&shy;i&shy;fied email</ng-container> will
+      see the poll in their list.
     </p>
     <ng-template #Hidden>
       <p>
-        The title will be displayed in the list of poll only for the par&shy;tic&shy;i&shy;pants in the poll.
-        You will have to send the link of the poll to all the par&shy;tic&shy;i&shy;pants.
-        <ng-container *ngIf="q.Verified">
+        Only the participants in the poll will see it in their list.
+        You will have to send the link of the poll for the users to be able to par&shy;tic&shy;i&shy;pate.
+        <ng-container *ngIf="!q.ShortURL">
+          If the users could not copy-paste the link, you should provide an easy to remember shortcut URL.
+        </ng-container>
+        <ng-container *ngIf="q.Electorate === 1">
           Beware that users whose email is not verified yet will not have access to the poll.
         </ng-container>
-        If you prefer your poll to be public, select "Make the poll public".
       </p>
     </ng-template>
+
   </ng-container>
 </ng-template>
