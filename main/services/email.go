@@ -35,8 +35,8 @@ import (
 // TmplBaseDir is the directory to find email templates into.
 const TmplBaseDir = "email"
 
-// EmailService constructs the email service.
-// This service listen to events and send emails to users.
+// EmailService is the factory for the service that sends emails to users.
+// Emails are sent when some events are received.
 func EmailService(sender emailsender.Sender, log slog.StackedLeveled) emailService {
 	return emailService{
 		sender: sender,
@@ -142,7 +142,7 @@ func (self emailService) confirmationEmail(userId uint32, ctrl service.RunnerCon
 
 	// Find the template
 	var tmpl *template.Template
-	tmpl, err := template.ParseFiles(filepath.Join(config.BaseDir, TmplBaseDir, "en", tmplFile))
+	tmpl, err := template.ParseFiles(filepath.Join(root.BaseDir, TmplBaseDir, "en", tmplFile))
 	if err != nil {
 		self.log.Errorf("Error retrieving template: %v", err)
 		return

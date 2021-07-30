@@ -30,6 +30,7 @@ type reverifyHandler struct {
 	evtManager events.Manager
 }
 
+// ReverifyHandler requests the email address of the current user to be verified.
 func ReverifyHandler(evtManager events.Manager) reverifyHandler {
 	return reverifyHandler{evtManager}
 }

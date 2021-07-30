@@ -24,6 +24,7 @@ import (
 	"github.com/JBoudou/Itero/mid/salted"
 )
 
+// ConfirmationType is the enum type for the field Type of table Confirmations.
 type ConfirmationType string
 
 const (

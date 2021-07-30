@@ -26,6 +26,10 @@ var (
 	WrongEmailValue = errors.New("Wrong email value (missing recipient or nil template)")
 )
 
+// Email represents an email to be sent.
+//
+// The real email (both its header and its body) is constructed by the Sender by applying the
+// provided template to the provided data.
 type Email struct {
 	To   []string
 	Tmpl *template.Template

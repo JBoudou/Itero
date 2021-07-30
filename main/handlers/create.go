@@ -87,6 +87,7 @@ type createHandler struct {
 	evtManager events.Manager
 }
 
+// CreateHandler creates a new poll.
 func CreateHandler(evtManager events.Manager) createHandler {
 	return createHandler{evtManager: evtManager}
 }

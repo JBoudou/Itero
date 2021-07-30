@@ -20,9 +20,9 @@ import (
 	"time"
 )
 
-// BatchSenderOptions records the options for the batch sender. A email is sent by the batch sender
-// either if there are at least (MinBatchLen - 1) other emails waiting for being sent, or if the
-// email has beeen asked to be sent at least MaxDelay ago.
+// BatchSenderOptions records the options for the batch sender.
+// An email is sent by the batch sender either if there are at least (MinBatchLen - 1) other emails
+// waiting for being sent, or if the email is wainting to be sent for at least MaxDelay.
 type BatchSenderOptions struct {
 	MinBatchLen int
 	MaxDelay    string // string representation of a duration

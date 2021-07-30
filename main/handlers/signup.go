@@ -37,6 +37,7 @@ type signupHandler struct {
 	evtManager events.Manager
 }
 
+// SignupHandler creates a new user. On success, a new session is started.
 func SignupHandler(evtManager events.Manager) signupHandler {
 	return signupHandler{evtManager: evtManager}
 }

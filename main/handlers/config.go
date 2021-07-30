@@ -27,6 +27,7 @@ type ConfigAnswer struct {
 	DemoPollSegment string
 }
 
+// ConfigHandler sends the "frontend" section of the configuration file.
 func ConfigHandler(ctx context.Context, response server.Response, request *server.Request) {
 	var answer ConfigAnswer
 	config.Value("frontend", &answer)

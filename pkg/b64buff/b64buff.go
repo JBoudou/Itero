@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-// Package b64buff implements a bit buffer that can be represented as URL string.
+// Package b64buff implements a bit buffer that can encode bit vectors as URL string.
 //
 // The bit buffer allows to read and write any number of bits.
 // The encoding is similar to Base64 but different. It has no padding. Currently it cannot be
@@ -61,7 +61,7 @@ func init() {
 	}
 }
 
-// Random create a Buffer containing at least nbBits random bits.
+// Random creates a Buffer containing at least nbBits random bits.
 func NewRandom(nbBits uint32) (ret *Buffer, err error) {
 	ret = &Buffer{}
 
@@ -192,8 +192,8 @@ func (self *Buffer) ReadUInt32(nbBits uint8) (ret uint32, err error) {
 //
 // The string must have been correctly encoded by a call to ReadAllB64.
 //
-// The call fails if the write is not aligned. The write is aligned if the sum of written bits
-// into the buffer can be divided by 6.
+// The call fails if write is not aligned.
+// Write is aligned when the number of bits written to the buffer can be divided by 6.
 func (self *Buffer) WriteB64(str string) (err error) {
 	if self.writeSize != 0 {
 		return NotAligned
@@ -214,8 +214,8 @@ func (self *Buffer) WriteB64(str string) (err error) {
 
 // ReadAllB64 reads the whole buffer to the string.
 //
-// The call fails if the read is not aligned. The read is aligned if the sum of read bits
-// from the buffer can be divided by 6.
+// The call fails if read is not aligned.
+// Read is aligned when the number of bits read from the buffer can be divided by 6.
 func (self *Buffer) ReadAllB64() (ret string, err error) {
 	if self.readSize != 0 {
 		return "", NotAligned
@@ -246,16 +246,17 @@ func (self b64Reader) Read(p []byte) (n int, err error) {
 	return
 }
 
-// B64Reader return a encoded reader on the Buffer.
+// B64Reader returns an encoded reader on the Buffer.
 //
-// Calling Read on the returned value fail if the read is not aligned.
-// The read is aligned if the sum of read bits from the buffer can be divided by 6.
+// Calling Read on the returned value fails if read is not aligned.
+// Read is aligned when the number of bits read from the buffer can be divided by 6.
 func (self *Buffer) B64Reader() io.Reader {
 	return b64Reader{self}
 }
 
-// AlignRead forces the read to be aligned, by discarding surnumerous bits.
+// AlignRead forces read to be aligned, by discarding surnumerous bits.
 //
+// Read is aligned when the number of bits read from the buffer can be divided by 6.
 // The discarded bits are the less significant bits that would have been returned by a call
 // to ReadUInt32. Those bits are returned by the method.
 func (self *Buffer) AlignRead() (ret byte) {

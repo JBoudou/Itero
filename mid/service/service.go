@@ -53,7 +53,7 @@ type Service interface {
 	// If no operation has to be done on that object, CheckOne must return zero time.Time.
 	CheckOne(id uint32) time.Time
 
-	// Interval returns the maximal duration between two full check of the object to proceed.
+	// Interval returns the maximal duration between two calls to CheckAll.
 	Interval() time.Duration
 
 	Logger() slog.Leveled
@@ -70,7 +70,7 @@ type Iterator interface {
 
 	// Next goes to the next entry if it can, returning false otherwise.
 	// Returning true guarantees that a call to IdAndDate will succeed.
-	// Next must be called before once before the first call to IdAndDate.
+	// Next must be called once before the first call to IdAndDate.
 	Next() bool
 
 	IdAndDate() (uint32, time.Time)

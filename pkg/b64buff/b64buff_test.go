@@ -17,6 +17,7 @@
 package b64buff
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -340,4 +341,16 @@ func TestRandomUInt32(t *testing.T) {
 			}
 		}
 	}
+}
+
+// Examples //
+
+func Example() {
+	buffer := Buffer{}
+	buffer.WriteUInt32(0x57, 7)
+	a, _ := buffer.ReadUInt32(3)
+	b, _ := buffer.ReadUInt32(4)
+	fmt.Println(a, b)
+	// Output:
+	// 5 7
 }

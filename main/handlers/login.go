@@ -57,6 +57,7 @@ func getUserInfo(ctx context.Context, login string) (info userInfo, err error) {
 	return
 }
 
+// LoginHandler starts a new session for an existing user.
 func LoginHandler(ctx context.Context, response server.Response, request *server.Request) {
 	if err := request.CheckPOST(ctx); err != nil {
 		response.SendError(ctx, err)

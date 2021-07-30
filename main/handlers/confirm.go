@@ -32,6 +32,7 @@ type ConfirmAnswer struct {
 type confirmHandler struct {
 }
 
+// ConfirmHandler handles confirmations.
 func ConfirmHandler() confirmHandler {
 	return confirmHandler{}
 }

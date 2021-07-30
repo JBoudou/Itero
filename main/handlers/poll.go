@@ -177,6 +177,7 @@ type PollAnswer struct {
 	Information      InformationType
 }
 
+// PollHandler provides general information about a poll.
 func PollHandler(ctx context.Context, response server.Response, request *server.Request) {
 	pollInfo, err := checkPollAccess(ctx, request)
 	must(err)

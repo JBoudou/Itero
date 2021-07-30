@@ -33,6 +33,7 @@ type startPollService struct {
 	evtManager events.Manager
 }
 
+// StartPollService is the factory for the service that starts polls that was created as waiting.
 func StartPollService(evtManager events.Manager, log slog.StackedLeveled) *startPollService {
 	return &startPollService{
 		logger: log.With("StartPoll"),

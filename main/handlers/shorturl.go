@@ -26,6 +26,7 @@ import (
 	"github.com/JBoudou/Itero/mid/server"
 )
 
+// ShortURLHandler handles shortcut URL of polls, redirecting to the virtual URL of the poll.
 func ShortURLHandler(ctx context.Context, response server.Response, request *server.Request) {
 	key := strings.Join(request.RemainingPath, "/")
 

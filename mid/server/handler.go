@@ -32,6 +32,7 @@ type Interceptor = alice.Constructor
 //
 // The Handle method should read the Request then use Response's methods to send the response.
 // The Context must be checked for completion and transmitted to all called functions.
+// The Context also contain a slog.Stacked that can be retrieved using slog.CtxLoadStacked.
 //
 // As a convenience, if the Handle method panics with an HttpError then that error is send
 // as response.
@@ -39,6 +40,7 @@ type Handler interface {
 	Handle(ctx context.Context, response Response, request *Request)
 }
 
+// HandleFunction is the signature of the functions that are called to handle requests.
 type HandleFunction = func(ctx context.Context, response Response, request *Request)
 
 // HandlerFunc wraps a function into a Handler.

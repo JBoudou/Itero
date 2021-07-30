@@ -43,7 +43,6 @@ type WithChecker struct {
 }
 
 // Prepare call the Before method of the Checker, it it exists.
-// It always returns root.IoC.
 func (self WithChecker) Prepare(t *testing.T, loc *ioc.Locator) *ioc.Locator {
 	if checker, ok := self.Checker.(interface{ Before(t *testing.T) }); ok {
 		checker.Before(t)

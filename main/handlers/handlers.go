@@ -16,9 +16,12 @@
 
 // Package handlers contains the handler for all the HTTP request on the server.
 //
-// Types and functions whose name ends with "Handler" are the handler.
-// Types whose name ends with "Query" are the type of the information received in the requests.
-// Types whose name ends with "Answer" are the type of the information sent in the responses.
+// Types and functions whose name ends with "Handler" are the handlers.
+// Types whose name ends with "Query" are the types of the information received in the requests.
+// Types whose name ends with "Answer" are the types of the information sent in the responses.
+//
+// Handlers are either handler functions (of type server.HandleFunction), or factories for handler
+// objects (of type server.Handler).
 package handlers
 
 import (

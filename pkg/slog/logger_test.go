@@ -17,6 +17,8 @@
 package slog
 
 import (
+	"log"
+	"os"
 	"reflect"
 	"testing"
 )
@@ -41,21 +43,21 @@ func TestSimpleLogger(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name string
+		name   string
 		action func(log *SimpleLogger)
 		expect [][]interface{}
 	}{
 		{
-			name: "nothing",
+			name:   "nothing",
 			action: func(log *SimpleLogger) {},
 		},
 		{
-			name: "Log",
+			name:   "Log",
 			action: func(log *SimpleLogger) { log.Log(1, "2", 3) },
 			expect: [][]interface{}{{1, "2", 3}},
 		},
 		{
-			name: "Logf",
+			name:   "Logf",
 			action: func(log *SimpleLogger) { log.Logf("%d %s", 1, "2") },
 			expect: [][]interface{}{{"1 2"}},
 		},
@@ -100,7 +102,7 @@ func TestSimpleLogger(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			
+
 			recorder := printRecorder{}
 			tt.action(&SimpleLogger{Printer: &recorder})
 
@@ -115,27 +117,27 @@ func TestStackedLeveled(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name string
+		name   string
 		action func(log StackedLeveled)
 		expect [][]interface{}
 	}{
 		{
-			name: "Log",
+			name:   "Log",
 			action: func(log StackedLeveled) { log.Log(1, "2", 3) },
 			expect: [][]interface{}{{1, "2", 3}},
 		},
 		{
-			name: "Logf",
+			name:   "Logf",
 			action: func(log StackedLeveled) { log.Logf("%d %s", 1, "2") },
 			expect: [][]interface{}{{"1 2"}},
 		},
 		{
-			name: "Error",
+			name:   "Error",
 			action: func(log StackedLeveled) { log.Error(1, "2", 3) },
 			expect: [][]interface{}{{1, "2", 3}},
 		},
 		{
-			name: "Errorf",
+			name:   "Errorf",
 			action: func(log StackedLeveled) { log.Errorf("%d %s", 1, "2") },
 			expect: [][]interface{}{{"1 2"}},
 		},
@@ -216,7 +218,7 @@ func TestStackedLeveled(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			
+
 			recorder := printRecorder{}
 			tt.action(&SimpleLeveled{Printer: &recorder})
 
@@ -226,7 +228,7 @@ func TestStackedLeveled(t *testing.T) {
 		})
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			
+
 			recorder := printRecorder{}
 			tt.action(&WithStack{Target: &recorder})
 
@@ -235,4 +237,19 @@ func TestStackedLeveled(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Examples
+
+func Example() {
+	logger := SimpleLeveled{
+		Printer:  log.New(os.Stdout, "", 0),
+		ErrStack: []interface{}{"Error"},
+	}
+	logger.Push("Test")
+	logger.Log("Let's try something")
+	logger.Error("It has failed")
+	// Output:
+	// Test Let's try something
+	// Error Test It has failed
 }

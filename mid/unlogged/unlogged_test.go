@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-package handlers
+package unlogged
 
 import (
 	"bytes"
@@ -24,6 +24,13 @@ import (
 
 	"github.com/JBoudou/Itero/mid/db"
 )
+
+func mustt(t *testing.T, err error) {
+	t.Helper()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
 
 func TestHashAddr(t *testing.T) {
 	t.Parallel()
@@ -67,7 +74,7 @@ func TestLE24Bits(t *testing.T) {
 	}
 }
 
-func TestUnloggedFromHash(t *testing.T) {
+func TestFromHash(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -91,7 +98,7 @@ func TestUnloggedFromHash(t *testing.T) {
 			_, err := db.DB.Exec(qDelete, bin)
 			mustt(t, err)
 
-			got1, err := UnloggedFromHash(context.Background(), tt.hash)
+			got1, err := FromHash(context.Background(), tt.hash)
 			mustt(t, err)
 
 			if got1.Hash != tt.hash {
@@ -112,7 +119,7 @@ func TestUnloggedFromHash(t *testing.T) {
 				t.Errorf("Wrong Id. Got %d. Expect %d.", got1.Id, expectId)
 			}
 
-			got2, err := UnloggedFromHash(context.Background(), tt.hash)
+			got2, err := FromHash(context.Background(), tt.hash)
 			mustt(t, err)
 			if !reflect.DeepEqual(got1, got2) {
 				t.Errorf("Not the same pseudo-user on second call. Got %v. Expect %v.", got2, got1)

@@ -45,6 +45,8 @@ type PollNotification struct {
 	Participants map[uint32]bool
 }
 
+// NewPollNotification creates a new notification from an event.
+// Some fields may be left uninitialized. Timestamp is always set to now.
 func NewPollNotification(evt events.Event) (ret *PollNotification) {
 	ret = &PollNotification{Timestamp: time.Now()}
 
@@ -77,6 +79,9 @@ func NewPollNotification(evt events.Event) (ret *PollNotification) {
 //
 
 // PollNotifChannel provides lists of recent notifications.
+//
+// A factory is binded to this type in root.IoC. The factory calls RunPollNotif with PollNotifDelay
+// as delay.
 type PollNotifChannel = <-chan []*PollNotification
 
 // PollNotifDelay is the default duration during which notifications are kept in the list.
@@ -89,6 +94,11 @@ func init() {
 	})
 }
 
+// RunPollNotif lanches the service that provides notifications.
+//
+// The service provides the list of currenlty active notifications through the returned
+// PollNotifChannel. Notifications correspond to events received from the given event Manager.
+// Notifications are kept in the list of active notification for the given duration.
 func RunPollNotif(delay time.Duration, evtManager events.Manager) (PollNotifChannel, error) {
 	runner := newPollNotifRunner(delay)
 
@@ -107,12 +117,12 @@ func RunPollNotif(delay time.Duration, evtManager events.Manager) (PollNotifChan
 }
 
 type pollNotifRunner struct {
-	toKeep *PollNotifList
-	toSend *PollNotifList
+	toKeep *pollNotifList
+	toSend *pollNotifList
 }
 
 func newPollNotifRunner(delay time.Duration) *pollNotifRunner {
-	base := NewPollNotifList(delay)
+	base := newPollNotifList(delay)
 	return &pollNotifRunner{toKeep: base, toSend: base.Copy()}
 }
 
@@ -143,18 +153,18 @@ func (self *pollNotifRunner) run(eventChan <-chan events.Event, notifChan chan<-
 }
 
 //
-// PollNotifList
+// pollNotifList
 //
 
-// PollNotifList is a list of PollNotification that removes too old elements.
-type PollNotifList struct {
+// pollNotifList is a list of PollNotification that removes too old elements.
+type pollNotifList struct {
 	data  []*PollNotification
 	first int
 	delay time.Duration
 }
 
-func NewPollNotifList(delay time.Duration) *PollNotifList {
-	return &PollNotifList{
+func newPollNotifList(delay time.Duration) *pollNotifList {
+	return &pollNotifList{
 		data:  make([]*PollNotification, 0, 4),
 		first: 0,
 		delay: delay,
@@ -163,7 +173,7 @@ func NewPollNotifList(delay time.Duration) *PollNotifList {
 
 // Add adds a notification to the list.
 // The list may be tidied.
-func (self *PollNotifList) Add(notif *PollNotification) {
+func (self *pollNotifList) Add(notif *PollNotification) {
 	if len(self.data) == cap(self.data) {
 		self.Tidy()
 	}
@@ -181,7 +191,7 @@ func (self *PollNotifList) Add(notif *PollNotification) {
 }
 
 // Tidy removes too old notifications from the list.
-func (self *PollNotifList) Tidy() {
+func (self *pollNotifList) Tidy() {
 	l := len(self.data)
 	if l == 0 {
 		return
@@ -200,16 +210,16 @@ func (self *PollNotifList) Tidy() {
 
 // Slice return the list of notifications.
 // The list is always tidied first.
-func (self *PollNotifList) Slice() []*PollNotification {
+func (self *pollNotifList) Slice() []*PollNotification {
 	self.Tidy()
 	return self.data[self.first:]
 }
 
 // Copy construct a copy of the current list.
 // The original list is never tidied but the constructed one always is.
-func (self *PollNotifList) Copy() *PollNotifList {
+func (self *pollNotifList) Copy() *pollNotifList {
 	nlen := len(self.data) - self.first
-	ret := &PollNotifList{
+	ret := &pollNotifList{
 		data:  make([]*PollNotification, nlen, 2*nlen),
 		first: 0,
 		delay: self.delay,

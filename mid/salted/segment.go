@@ -16,8 +16,8 @@
 
 // Package salted handles salted identifiers.
 //
-// A salted identifier is pair consisting of an identifier and a random salt.
-// Salted identifier are used to prevent malicious agents to guess valid identifiers too easily.
+// A salted identifier is a pair consisting of an identifier and a random salt.
+// Salted identifiers are used to prevent malicious agents to guess valid identifiers too easily.
 package salted
 
 import (

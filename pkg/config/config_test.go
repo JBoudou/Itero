@@ -17,7 +17,9 @@
 package config
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -32,7 +34,7 @@ type myCompoundStruct struct {
 }
 
 func TestValue(t *testing.T) {
-	ReadConfigFile(t, "config.json", 2)
+	ReadFile(t, "config.json", 2)
 
 	const key = "object"
 	var expected = myCompoundStruct{42, "foo", 3.14, "bar", [4]int{2, 3, 5, 8}}
@@ -140,17 +142,17 @@ func TestFindFileInParent(t *testing.T) {
 			err:   os.ErrNotExist,
 		},
 		{
-			name:  "Direct",
-			pwd:   "a/b/c/d",
-			file:  "foo.txt",
-			depth: 3,
+			name:   "Direct",
+			pwd:    "a/b/c/d",
+			file:   "foo.txt",
+			depth:  3,
 			expect: "a/b/c/d",
 		},
 		{
-			name:  "Last",
-			pwd:   "a/b/c/d",
-			file:  "foo.cfg",
-			depth: 3,
+			name:   "Last",
+			pwd:    "a/b/c/d",
+			file:   "foo.cfg",
+			depth:  3,
 			expect: "a",
 		},
 		{
@@ -198,4 +200,23 @@ func TestFindFileInParent(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Example //
+
+func Example() {
+	configMap := bytes.NewBufferString(`{
+		"Foo": 42,
+		"Bar": {"Baz": 1}
+	}`)
+	var foo int
+	var bar struct{ Baz int }
+
+	Read(configMap)
+	Value("Foo", &foo)
+	Value("Bar", &bar)
+
+	fmt.Println(foo, bar.Baz)
+	// Output:
+	// 42 1
 }

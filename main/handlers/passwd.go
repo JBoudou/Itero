@@ -25,6 +25,8 @@ import (
 	"github.com/JBoudou/Itero/mid/server"
 )
 
+// PasswdHandler changes the password of an existing user. The request must reference a valid
+// confirmation of type passwd.
 func PasswdHandler(ctx context.Context, response server.Response, request *server.Request) {
 	const (
 		qVerify = `

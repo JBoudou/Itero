@@ -22,15 +22,17 @@ import ()
 // Users
 //
 
+// CreateUserEvent is sent when a new user has been created.
 type CreateUserEvent struct {
 	User uint32
 }
 
+// ReverifyEvent is sent when the user asks for its email address to be verified.
 type ReverifyEvent struct {
 	User uint32
 }
 
-// ForgotEvent is sent when a user requests to change its passwd.
+// ForgotEvent is sent when a user requests to change its password.
 type ForgotEvent struct {
 	User uint32
 }
@@ -39,30 +41,33 @@ type ForgotEvent struct {
 // Polls
 //
 
+// CreatePollEvent is sents when a new poll has been created.
 type CreatePollEvent struct {
 	Poll uint32
 }
 
-// StartPollEvent is send when a poll is started.
+// StartPollEvent is sent when a poll has started.
 type StartPollEvent struct {
 	Poll uint32
 }
 
+// VoteEvent is sent when a new ballot has been accepted for a poll.
 type VoteEvent struct {
 	Poll uint32
 }
 
-// NextRoundEvent is the type of events send when a new round starts.
+// NextRoundEvent is sent when a new round starts. It is not sent for the first round.
 type NextRoundEvent struct {
 	Poll  uint32
 	Round uint8
 }
 
-// ClosePollEvent is type of events send when a poll is closed.
+// ClosePollEvent is sent when a poll has been marked as terminated.
 type ClosePollEvent struct {
 	Poll uint32
 }
 
+// DeletePollEvent is sent when a poll has been deleted.
 type DeletePollEvent struct {
 	Poll         uint32
 	Title        string

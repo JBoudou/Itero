@@ -18,6 +18,7 @@ package ioc
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 )
 
@@ -585,4 +586,15 @@ func TestLocator_Refresh_Error(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Examples
+
+func ExampleLocator_Inject() {
+	loc := New()
+	var v int
+	loc.Inject(func() int { return 1 }, func() int { return 2 }, func() interface{} { return 3 }, &v)
+	fmt.Println(v)
+	// Output:
+	// 2
 }

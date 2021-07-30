@@ -14,7 +14,8 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-package handlers
+// package unlogged provides functions to handle unlogged users.
+package unlogged
 
 import (
 	"context"
@@ -32,8 +33,8 @@ import (
 	"github.com/go-sql-driver/mysql"
 )
 
-// UnloggedFromHash constructs a server.User from a hash, creating the user if necessary.
-func UnloggedFromHash(ctx context.Context, hash uint32) (user server.User, err error) {
+// FromHash constructs a server.User from a hash, creating the user if necessary.
+func FromHash(ctx context.Context, hash uint32) (user server.User, err error) {
 	const (
 		qSelect = `SELECT Id FROM Users WHERE Hash = ?`
 		qInsert = `INSERT INTO Users (Hash) VALUE (?)`
@@ -99,8 +100,8 @@ func HashAddr(addr string) uint32 {
 	return (sum >> 24) ^ (sum & 0xFFFFFF)
 }
 
-// UnloggedFromAddr constructs a server.User from an address string like http.Request.RemoteAddr.
+// FromAddr constructs a server.User from an address string like http.Request.RemoteAddr.
 // The user is created if necessary.
-func UnloggedFromAddr(ctx context.Context, addr string) (server.User, error) {
-	return UnloggedFromHash(ctx, HashAddr(addr))
+func FromAddr(ctx context.Context, addr string) (server.User, error) {
+	return FromHash(ctx, HashAddr(addr))
 }

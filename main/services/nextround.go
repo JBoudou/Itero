@@ -33,6 +33,7 @@ type nextRoundService struct {
 	evtManager events.Manager
 }
 
+// NextRoundService is the factory for the service that changes the current round of polls.
 func NextRoundService(evtManager events.Manager, log slog.StackedLeveled) *nextRoundService {
 	return &nextRoundService{
 		logger:     log.With("NextRound"),

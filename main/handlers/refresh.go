@@ -23,6 +23,7 @@ import (
 	"github.com/JBoudou/Itero/mid/server"
 )
 
+// RefreshHandler creates a fresh new session from an older active session.
 func RefreshHandler(ctx context.Context, response server.Response, request *server.Request) {
 	if request.User == nil {
 		if request.SessionError != nil {

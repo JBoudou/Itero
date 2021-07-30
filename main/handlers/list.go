@@ -73,6 +73,7 @@ type listAnswerEntry struct {
 	Launchable   bool `json:",omitempty"`
 }
 
+// ListHandler lists the available polls.
 func ListHandler(ctx context.Context, response server.Response, request *server.Request) {
 	if request.User == nil {
 		// TODO change that

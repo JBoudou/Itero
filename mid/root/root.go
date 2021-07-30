@@ -34,9 +34,15 @@ import (
 	"github.com/JBoudou/Itero/pkg/slog"
 )
 
+// IoC is the root locator for the application.
+// Application packages providing services must Bind to it in their init function.
 var IoC = ioc.New()
 
+// Configured indicates whether the configuration file has successfully been read.
 var Configured = false
+
+// BaseDir is the path in which the configuration file has been found.
+var BaseDir string
 
 func init() {
 	IoC.Bind(func() events.Manager { return events.NewAsyncManager(events.DefaultManagerChannelSize) })
@@ -58,10 +64,17 @@ func init() {
 
 	// Config
 	IoC.Inject(func(logger slog.Leveled) {
-		Configured = config.ReadConfigFile(logger, "config.json", 2)
+		var err error
+		BaseDir, err = config.ReadFile(logger, "config.json", 2)
+		if err == nil {
+			Configured = true
+		} else {
+			logger.Errorf("Configuration error: %v", err)
+		}
 	})
 }
 
+// PasswdHash provides the hash function used for passwords.
 func PasswdHash() (hash.Hash, error) {
 	return blake2b.New256(nil)
 }

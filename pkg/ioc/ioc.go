@@ -25,14 +25,14 @@
 // either a pointer on a service to be located, or a function whose arguments are all services to be
 // located.
 //
-// By default, service are considered to be singletons and factories are called at most once, when
+// By default, services are considered to be singletons and factories are called at most once, when
 // first needed. Methods Fresh and Refresh can be used to force a factory to be called.
 //
 // Service location is considered to be a singleton service, therefore any Locator provides itself
 // to receptors of type *Locator. This allows receptor functions to call Inject() for some services
 // and Fresh() for some others.
 //
-// Beware that cyclic dependencies are currently not detected by the package, resulting silently in
+// Beware that cyclic dependencies are currently not detected by the package, silently resulting in
 // infinite loops.
 //
 // Performance
@@ -118,11 +118,7 @@ func (self *Locator) Bind(factory interface{}) error {
 // type error, this value is not stored and Inject fails with the returned error if it is not nil.
 //
 // The deduced value is the last stored value assignable to the requested type if there is one, or
-// the singleton value registered for the requested type otherwise. For instance, the following code
-// will store value 2 in the variable v.
-//
-//     var v int
-//     loc.Inject(func() int {return 1}, func() int {return 2}, func() interface{} {return 3}, &v)
+// the singleton value registered for the requested type otherwise.
 func (self *Locator) Inject(chain ...interface{}) error {
 	// Check all types
 	for _, receptor := range chain {

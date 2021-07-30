@@ -34,6 +34,6 @@ func init() {
 func refresher(c <-chan os.Signal) {
 	for {
 		<- c
-		readConfigFile()
+		readFile()
 	}
 }

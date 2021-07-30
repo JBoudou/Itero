@@ -31,6 +31,7 @@ type deleteHandler struct {
 	evtManager events.Manager
 }
 
+// DeleteHandler deletes a poll.
 func DeleteHandler(evtManager events.Manager) deleteHandler {
 	return deleteHandler{evtManager: evtManager}
 }

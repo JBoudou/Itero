@@ -16,20 +16,6 @@
 
 // Package log provides simple log facilities.
 // Loggers may have two levels (log and error) and a stack of prefixes.
-//
-// Example
-//
-// The following code
-//     logger := slog.SimpleLeveled{
-//         Printer: log.New(os.Stderr, "", 0),
-//         ErrStack: []interface{}{"Error"},
-//     }
-//     logger.Push("Test")
-//     logger.Log("Let's try something")
-//     logger.Error("It has failed")
-// must print
-//     Test Let's try something
-//     Error Test It has failed
 package slog
 
 // Logger is the base type for loggers.
@@ -148,7 +134,7 @@ func (self SimpleLeveled) Errorf(format string, args ...interface{}) {
 }
 
 // Push appends values to the stacks of prefixes.
-// The values are appended for both levels.
+// The values are appended to both levels.
 func (self *SimpleLeveled) Push(args ...interface{}) {
 	self.LogStack = append(self.LogStack, args...)
 	self.ErrStack = append(self.ErrStack, args...)

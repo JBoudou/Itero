@@ -33,6 +33,7 @@ type launchHandler struct {
 	evtManager events.Manager
 }
 
+// LaunchHandler forces the start of a waiting poll.
 func LaunchHandler(evtManager events.Manager) launchHandler {
 	return launchHandler{evtManager: evtManager}
 }

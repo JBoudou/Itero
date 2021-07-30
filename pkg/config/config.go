@@ -14,16 +14,17 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-// Package config provides configured values for all parts of the application.
+// Package config provides configuration values.
 //
-// Configuration values are read from the file "config.json". This file is search in the
-// directory of the running program, and recursively in its parent directories.
+// Configuration values are read from a file containing a JSON encoded map from keys to values.
+// This file is searched in the current working directory, and recursively in its parent directories.
 package config
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sync"
@@ -35,13 +36,12 @@ var (
 	values  map[string]json.RawMessage
 	valLock sync.RWMutex
 
-	logger         slog.Leveled
-	configFileName string
-	maxDepth       int
+	rec struct {
+		logger   slog.Leveled
+		filename string
+		maxDepth int
+	}
 )
-
-// BaseDir is the path in which the configuration file has been found.
-var BaseDir string
 
 // Error returned when the key is not found in the configuration.
 type KeyNotFound string
@@ -50,42 +50,48 @@ func (self KeyNotFound) Error() string {
 	return fmt.Sprintf("Key %s not found", string(self))
 }
 
-// ReadConfigFile reads and stores the given configuration file.
-// This method must be called once before Value is called.
-// When called multiple times, only the values from the last read configuration file are available.
-func ReadConfigFile(logger_ slog.Leveled, configFileName_ string, maxDepth_ int) bool {
-	logger = logger_
-	configFileName = configFileName_
-	maxDepth = maxDepth_
-	return readConfigFile()
+// ReadFile reads a JSON file and stores the recorded values for subsequent calls to Value and ValueOr.
+// This method must be called once before Value or ValueOr are called.
+// When called multiple times, only the values from the last read file are available.
+func ReadFile(logger slog.Leveled, filename string, maxDepth int) (baseDir string, err error) {
+	rec.logger = logger
+	rec.filename = filename
+	rec.maxDepth = maxDepth
+	return readFile()
 }
 
-func readConfigFile() bool {
-	logger.Log("Loading configuration")
+func readFile() (baseDir string, err error) {
+	rec.logger.Log("Loading configuration")
 
-	var err error
-	BaseDir, err = FindFileInParent(configFileName, maxDepth)
+	baseDir, err = FindFileInParent(rec.filename, rec.maxDepth)
 	if err != nil && errors.Is(err, os.ErrNotExist) {
-		logger.Errorf("No configuration file ./%s found! You must create it.", configFileName)
-		logger.Error("To enable tests, there must be a configuration file (or link) in each package folder.")
-		return false
+		rec.logger.Errorf("No configuration file ./%s found! You must create it.", rec.filename)
+		return
 	}
-	in, err := os.Open(filepath.Join(BaseDir, configFileName))
+	in, err := os.Open(filepath.Join(baseDir, rec.filename))
 	if err != nil {
-		panic(err)
+		return
 	}
+	defer in.Close()
 
+	err = Read(in)
+	return
+}
+
+// Read is a low-level function that reads the JSON configuration map directly from the given
+// Reader.
+func Read(in io.Reader) (err error) {
 	decoder := json.NewDecoder(in)
 	var tmp map[string]json.RawMessage
 	err = decoder.Decode(&tmp)
 	if err != nil {
-		panic(err)
+		return
 	}
 
 	valLock.Lock()
 	values = tmp
 	valLock.Unlock()
-	return true
+	return
 }
 
 // Value retrieves the value associated with the given key.

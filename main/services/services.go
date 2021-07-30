@@ -15,6 +15,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 // Package main/services contains the concrete services used by Itero middleware server.
+//
+// Most services are provided as factories.
 package services
 
 import (

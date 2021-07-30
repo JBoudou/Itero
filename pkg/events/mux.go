@@ -71,9 +71,9 @@ func muxRun(ch <-chan Event) {
 
 // NewAsyncManager creates a new asynchronous Manager.
 //
-// The returned Manager send the events over a channel of the size given as argument.
-// All its Receivers receive the events in the same goroutine, in the order they've been added
-// to the manager.
+// An asynchronous manager launch a goroutine that calls the Receive method of all the registered
+// receivers for each sent event. Events are sent to this goroutine through a channel whose size is
+// given as argument to NewAsyncManager.
 func NewAsyncManager(chanSize int) Manager {
 	ch := make(chan Event, chanSize)
 	go muxRun(ch)

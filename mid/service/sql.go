@@ -24,7 +24,7 @@ import (
 )
 
 // IteratorFromRows constructs an Iterator from an *sql.Rows.
-// Each rows must have exacly two cells: one that can be scanned as a uint32 and one that can be
+// Each rows must have exacly two cells: one that can be scanned as an uint32 and one that can be
 // scanned as a time.Time.
 func IteratorFromRows(rows *sql.Rows) Iterator {
 	return &rowsIterator{rows: rows, err: rows.Err()}

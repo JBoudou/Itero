@@ -29,6 +29,7 @@ import (
 	"github.com/JBoudou/Itero/mid/salted"
 	"github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
+	"github.com/JBoudou/Itero/mid/unlogged"
 	"github.com/JBoudou/Itero/pkg/events"
 	"github.com/JBoudou/Itero/pkg/ioc"
 )
@@ -132,14 +133,14 @@ func (self *pollTest) Prepare(t *testing.T, loc *ioc.Locator) *ioc.Locator {
 
 	case pollTestUserTypeUnlogged:
 		self.DB.Must(t)
-		user, err := UnloggedFromHash(context.Background(), 42)
+		user, err := unlogged.FromHash(context.Background(), 42)
 		mustt(t, err)
 		self.userId[1] = user.Id
 
 	case pollTestUserTypeNone:
 		if self.Request.RemoteAddr != nil {
 			self.DB.Must(t)
-			user, err := UnloggedFromAddr(context.Background(), *self.Request.RemoteAddr)
+			user, err := unlogged.FromAddr(context.Background(), *self.Request.RemoteAddr)
 			mustt(t, err)
 			self.userId[1] = user.Id
 			break
@@ -264,11 +265,12 @@ type wrongPollTest struct {
 
 	Kind wrongPollTestKind
 
-	uid uint32
+	uid    uint32
 	pollId uint32
 }
 
 type wrongPollTestKind uint8
+
 const (
 	wrongPollTestKindNoPoll wrongPollTestKind = iota
 	wrongPollTestKindWrongSalt

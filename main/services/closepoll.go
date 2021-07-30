@@ -30,6 +30,8 @@ type closePollService struct {
 	evtManager events.Manager
 }
 
+// ClosePollService is the factory for the service that terminates polls when their last round is
+// over.
 func ClosePollService(evtManager events.Manager, log slog.StackedLeveled) *closePollService {
 	return &closePollService{
 		logger:     log.With("ClosePoll"),

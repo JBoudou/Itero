@@ -51,7 +51,6 @@ type CheckJSON struct {
 	Partial bool // If true, Body may lack some field of the response.
 }
 
-// Check implements Checker.
 func (self CheckJSON) Check(t *testing.T, response *http.Response, request *server.Request) {
 	t.Helper()
 
@@ -132,7 +131,6 @@ type CheckError struct {
 	Body string
 }
 
-// Check implements Checker.
 func (self CheckError) Check(t *testing.T, response *http.Response, request *server.Request) {
 	t.Helper()
 	if response.StatusCode != self.Code {
@@ -157,7 +155,6 @@ type CheckStatus struct {
 	Code int
 }
 
-// Check implements Checker.
 func (self CheckStatus) Check(t *testing.T, response *http.Response, request *server.Request) {
 	t.Helper()
 	if response.StatusCode != self.Code {

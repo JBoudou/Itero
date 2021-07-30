@@ -23,7 +23,7 @@ import (
 	"github.com/JBoudou/Itero/pkg/events"
 )
 
-// TestPollNotifList_Global tests all PollNotifList's methods but in only one scenario.
+// TestPollNotifList_Global tests all pollNotifList's methods but in only one scenario.
 func TestPollNotifList_Global(t *testing.T) {
 	const delay = 210 * time.Millisecond
 
@@ -64,7 +64,7 @@ func TestPollNotifList_Global(t *testing.T) {
 		},
 	}
 
-	list := NewPollNotifList(delay)
+	list := newPollNotifList(delay)
 	for step, tt := range tests {
 		ts := time.Now()
 

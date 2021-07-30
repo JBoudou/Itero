@@ -24,6 +24,7 @@ import (
 	"github.com/JBoudou/Itero/main/services"
 	"github.com/JBoudou/Itero/mid/db"
 	"github.com/JBoudou/Itero/mid/server"
+	"github.com/JBoudou/Itero/mid/unlogged"
 	"github.com/JBoudou/Itero/pkg/events"
 	"github.com/JBoudou/Itero/pkg/slog"
 )
@@ -38,6 +39,7 @@ type uninominalVoteHandler struct {
 	evtManager events.Manager
 }
 
+// UninominalVoteHandler votes for an alternative. Blank votes are also permitted.
 func UninominalVoteHandler(evtManager events.Manager) uninominalVoteHandler {
 	return uninominalVoteHandler{evtManager: evtManager}
 }
@@ -66,7 +68,7 @@ func (self uninominalVoteHandler) Handle(ctx context.Context, response server.Re
 	sendUnloggedCookie := request.User == nil
 	if sendUnloggedCookie {
 		var user server.User
-		user, err = UnloggedFromAddr(ctx, request.RemoteAddr())
+		user, err = unlogged.FromAddr(ctx, request.RemoteAddr())
 		must(err)
 		request.User = &user
 	}

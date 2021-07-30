@@ -26,6 +26,7 @@ import (
 
 	"github.com/JBoudou/Itero/mid/db"
 	"github.com/JBoudou/Itero/mid/server"
+	"github.com/JBoudou/Itero/mid/unlogged"
 )
 
 type PollAlternative struct {
@@ -79,7 +80,6 @@ func (self *uninominalBallot) Scan(src interface{}) error {
 	}
 	return nil
 }
-
 
 // UninominalBallotAnswer represents the response sent by UninominalBallotHandler.
 // The fields Previous and Current are not sent in the JSON representation if the user did not vote.
@@ -161,7 +161,7 @@ func UninominalBallotHandler(ctx context.Context, response server.Response, requ
 
 	if request.User == nil {
 		var user server.User
-		user, err = UnloggedFromAddr(ctx, request.RemoteAddr())
+		user, err = unlogged.FromAddr(ctx, request.RemoteAddr())
 		must(err)
 		request.User = &user
 	}

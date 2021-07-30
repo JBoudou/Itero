@@ -48,6 +48,8 @@ type pollNotifHandler struct {
 	notifChannel services.PollNotifChannel
 }
 
+// PollNotifHandler retrieves the current list of notifications for the user. The same notification
+// may be listed in more than one consecutive answers.
 func PollNotifHandler(notifChannel services.PollNotifChannel) *pollNotifHandler {
 	return &pollNotifHandler{
 		notifChannel: notifChannel,

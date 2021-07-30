@@ -26,6 +26,7 @@ import (
 	"github.com/JBoudou/Itero/mid/salted"
 	"github.com/JBoudou/Itero/mid/server"
 	srvt "github.com/JBoudou/Itero/mid/server/servertest"
+	"github.com/JBoudou/Itero/mid/unlogged"
 	"github.com/JBoudou/Itero/pkg/events"
 	"github.com/JBoudou/Itero/pkg/events/eventstest"
 	"github.com/JBoudou/Itero/pkg/ioc"
@@ -75,7 +76,7 @@ type WithUser struct {
 func (self *WithUser) Prepare(t *testing.T, loc *ioc.Locator) *ioc.Locator {
 	if self.Unlogged {
 		var err error
-		self.User, err = UnloggedFromAddr(context.Background(), withUserFakeAddress)
+		self.User, err = unlogged.FromAddr(context.Background(), withUserFakeAddress)
 		mustt(t, err)
 
 	} else {

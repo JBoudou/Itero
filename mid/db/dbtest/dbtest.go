@@ -29,13 +29,14 @@ import (
 const (
 	UserPasswd = "XYZ"
 
-	PollSalt = 42
+	PollSalt        = 42
 	PollMaxNbRounds = 4
 
 	// ImpossibleUserName is a user name which is guaranteed to not exist.
 	ImpossibleUserName = "  "
 )
 
+// UserPasswdHash contains the hash of UserPasswd.
 var UserPasswdHash []byte
 
 func init() {
@@ -45,7 +46,7 @@ func init() {
 	}
 	hashFct.Write([]byte(UserPasswd))
 	UserPasswdHash = hashFct.Sum(nil)
-}	
+}
 
 // Env provides methods to add temporary test data. It collects functions to remove these data.
 // These functions are called by Close, hence a call to Close must be defered for each Env object.
@@ -96,8 +97,8 @@ func (self *Env) QuietExec(query string, args ...interface{}) {
 	_, self.Error = db.DB.Exec(query, args...)
 }
 
-// CreateUser adds a user to the database. The user has name ' Test ' (mind the spaces), email
-// address 'testTest@example.test', and password UserPasswd. It is deleted by Close.
+// CreateUser adds a user to the database.
+// You should use CreateUserWith instead.
 func (self *Env) CreateUser() uint32 {
 	return self.CreateUserWith("Test")
 }
@@ -146,14 +147,16 @@ func UserEmailWith(salt string) string {
 	return prefix + salt + suffix
 }
 
-// CreatePoll adds a poll to the database. The poll has Salt PollSalt, MaxNbRounds PollMaxNbRounds, and 2 alternatives
-// 'No' and 'Yes' (in that order). The poll is deleted by Close.
+// CreatePoll adds a poll to the database.
+// The poll has Salt PollSalt, MaxNbRounds PollMaxNbRounds, and 2 alternatives 'No' and 'Yes' (in
+// that order). The poll is deleted by Close.
 func (self *Env) CreatePoll(title string, admin uint32, electorate db.Electorate) uint32 {
 	return self.CreatePollWith(title, admin, electorate, []string{"No", "Yes"})
 }
 
-// CreatePoll adds a poll to the database. The poll has Salt 42, MaxNbRounds 4, and the alternatives
-// given as arguments. All alternatives have Cost 1. The poll is deleted by Close.
+// CreatePoll adds a poll to the database.
+// The poll has Salt PollSalt, MaxNbRounds PollMaxNbRounds, and the alternatives given as arguments.
+// All alternatives have Cost 1. The poll is deleted by Close.
 func (self *Env) CreatePollWith(title string, admin uint32, electorate db.Electorate,
 	alternatives []string) (pollId uint32) {
 

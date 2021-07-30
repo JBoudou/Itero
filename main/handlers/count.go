@@ -45,7 +45,7 @@ func getPollRoundFromRequest(request *server.Request, fallback uint8) uint8 {
 	return fallback
 }
 
-// CountInfoEntry sends the plurality result of the previous round.
+// CountInfoEntry sends the plurality result of a previous round.
 func CountInfoHandler(ctx context.Context, response server.Response, request *server.Request) {
 	pollInfo, err := checkPollAccess(ctx, request)
 	must(err)
